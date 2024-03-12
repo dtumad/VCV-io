@@ -26,9 +26,31 @@ evalDist oa x
 noncomputable def probEvent (oa : OracleComp spec α) (p : α → Prop) : ℝ≥0∞ :=
 (evalDist oa).toOuterMeasure p
 
+notation "[=" x "|" oa "]" => probOutput oa x
+notation "[" p "|" oa "]" => probEvent oa p
+
+lemma probOutput.def (oa : OracleComp spec α) (x : α) : [= x | oa] = evalDist oa x := rfl
+lemma probEvent.def (oa : OracleComp spec α) (p : α → Prop) :
+  [p | oa] = (evalDist oa).toOuterMeasure p := rfl
+
+noncomputable example : ℝ≥0∞ := [= 5 | do let x ←$[0..4]; return x + 1]
+noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ←$[0..4]; return x]
+
 section pure
 
---
+@[simp] lemma evalDist_pure (x : α) : evalDist (return x : OracleComp spec α) = pure x := rfl
+
+@[simp] lemma probOutput_pure [DecidableEq α] (x y : α) :
+  [= y | (return x : OracleComp spec α)] = if y = x then 1 else 0 := by
+  split_ifs with h
+  · induction h
+    exact PMF.pure_apply_self y
+  · exact PMF.pure_apply_of_ne _ _ h
+
+@[simp] lemma probEvent_pure (x : α) (p : α → Prop) [DecidablePred p] :
+  [p | (return x : OracleComp spec α)] = if p x then 1 else 0 :=
+(PMF.toOuterMeasure_pure_apply x p).trans (by congr)
+
 end pure
 
 section bind
@@ -65,11 +87,5 @@ section uniformFin
 
 --
 end uniformFin
-
-notation "[=" x "|" oa "]" => probOutput oa x
-notation "[" p "|" oa "]" => probEvent oa p
-
-noncomputable example : ℝ≥0∞ := [= 5 | do let x ←$[0..4]; return x + 1]
-noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ←$[0..4]; return x]
 
 end OracleComp
