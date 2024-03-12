@@ -9,42 +9,38 @@ structure OracleSpec where
   ι : Type
   domain : ι → Type
   range : ι → Type
-  ι_decidableEq : DecidableEq ι
-  domain_decidableEq : ∀ i, DecidableEq $ domain i
-  range_decidableEq : ∀ i, DecidableEq $ range i
-  range_inhabited : ∀ i, Inhabited $ range i
-  range_fintype : ∀ i, Fintype $ range i
+  ι_decidableEq' : DecidableEq ι
+  domain_decidableEq' : ∀ i, DecidableEq $ domain i
+  range_decidableEq' : ∀ i, DecidableEq $ range i
+  range_inhabited' : ∀ i, Inhabited $ range i
+  range_fintype' : ∀ i, Fintype $ range i
 
 namespace OracleSpec
 
-instance ι.decidableEq' (spec : OracleSpec) :
-  DecidableEq spec.ι := spec.ι_decidableEq
+variable {spec : OracleSpec} (i : spec.ι)
 
-instance domain.decidableEq' {spec : OracleSpec} (i : spec.ι) :
-  DecidableEq (spec.domain i) := spec.domain_decidableEq i
-
-instance range.decidableEq' {spec : OracleSpec} (i : spec.ι) :
-  DecidableEq (spec.range i) := spec.range_decidableEq i
-
-instance range.inhabited {spec : OracleSpec} (i : spec.ι) :
-  Inhabited (spec.range i) := spec.range_inhabited i
-
-instance range.fintype' {spec : OracleSpec} (i : spec.ι) :
-  Fintype (spec.range i) := spec.range_fintype i
+instance ι_decidableEq : DecidableEq spec.ι := spec.ι_decidableEq'
+instance domain_decidableEq : DecidableEq (spec.domain i) := spec.domain_decidableEq' i
+instance range_decidableEq : DecidableEq (spec.range i) := spec.range_decidableEq' i
+instance range_inhabited : Inhabited (spec.range i) := spec.range_inhabited' i
+instance range_fintype : Fintype (spec.range i) := spec.range_fintype' i
 
 @[simp] lemma card_range_ne_zero {spec : OracleSpec} (i : spec.ι) :
   Fintype.card (spec.range i) ≠ 0 := Fintype.card_ne_zero
+
+end OracleSpec
 
 @[simps] def emptySpec : OracleSpec where
   ι := Empty
   domain := λ _ ↦ Unit
   range := λ _ ↦ Unit
-  range_inhabited := inferInstance
-  ι_decidableEq := inferInstance
-  domain_decidableEq := inferInstance
-  range_decidableEq := inferInstance
-  range_fintype := inferInstance
+  range_inhabited' := inferInstance
+  ι_decidableEq' := inferInstance
+  domain_decidableEq' := inferInstance
+  range_decidableEq' := inferInstance
+  range_fintype' := inferInstance
 
+instance : IsEmpty (emptySpec.ι) := instIsEmptyEmpty
 instance (i : emptySpec.ι) : Unique (emptySpec.domain i) := PUnit.unique
 instance (i : emptySpec.ι) : Unique (emptySpec.range i) := PUnit.unique
 
@@ -56,53 +52,42 @@ instance : Inhabited OracleSpec := ⟨∅⟩
   ι := Unit
   domain := λ _ ↦ T
   range := λ _ ↦ U
-  range_inhabited := inferInstance
-  ι_decidableEq := inferInstance
-  domain_decidableEq := inferInstance
-  range_decidableEq := inferInstance
-  range_fintype := inferInstance
+  range_inhabited' := inferInstance
+  ι_decidableEq' := inferInstance
+  domain_decidableEq' := inferInstance
+  range_decidableEq' := inferInstance
+  range_fintype' := inferInstance
 
 infixl : 25 " →ₒ " => singletonSpec
 
-instance singletonSpec_ι_unique (T U : Type) [Inhabited U] [DecidableEq T]
+instance (T U : Type) [Inhabited U] [DecidableEq T]
   [DecidableEq U] [Fintype U] : Unique (T →ₒ U).ι := PUnit.unique
 
-instance : Append OracleSpec where
-  append := λ spec spec' ↦
-  { ι := spec.ι ⊕ spec'.ι,
-    domain := Sum.elim spec.domain spec'.domain,
-    range := Sum.elim spec.range spec'.range,
-    range_inhabited := λ i ↦ Sum.recOn i spec.range_inhabited spec'.range_inhabited,
-    ι_decidableEq := inferInstance,
-    domain_decidableEq := λ i ↦ Sum.recOn i spec.domain_decidableEq spec'.domain_decidableEq,
-    range_decidableEq := λ i ↦ Sum.recOn i spec.range_decidableEq spec'.range_decidableEq,
-    range_fintype := λ i ↦ Sum.recOn i spec.range_fintype spec'.range_fintype }
+@[inline, reducible] def coinSpec : OracleSpec := Unit →ₒ Bool
 
-@[simp] lemma domain_append_inl (spec spec' : OracleSpec) (i : spec.ι) :
-  (spec ++ spec').domain (Sum.inl i) = spec.domain i := rfl
-@[simp] lemma domain_append_inr (spec spec' : OracleSpec) (i : spec'.ι) :
-  (spec ++ spec').domain (Sum.inr i) = spec'.domain i := rfl
-@[simp] lemma range_append_inl (spec spec' : OracleSpec) (i : spec.ι) :
-  (spec ++ spec').range (Sum.inl i) = spec.range i := rfl
-@[simp] lemma range_append_inr (spec spec' : OracleSpec) (i : spec'.ι) :
-  (spec ++ spec').range (Sum.inr i) = spec'.range i := rfl
-
-def coinSpec : OracleSpec := Unit →ₒ Bool
-
-@[simp] lemma card_range_coinSpec (i : Unit) :
-  Fintype.card (coinSpec.range i) = 2 := rfl
-
-@[simps] def unifSpec : OracleSpec where
+@[simps, inline, reducible] def unifSpec : OracleSpec where
   ι := ℕ
   domain := λ _ ↦ Unit
   range := λ n ↦ Fin (n + 1)
-  range_inhabited := inferInstance
-  ι_decidableEq := inferInstance
-  domain_decidableEq := inferInstance
-  range_decidableEq := inferInstance
-  range_fintype := inferInstance
+  range_inhabited' := inferInstance
+  ι_decidableEq' := inferInstance
+  domain_decidableEq' := inferInstance
+  range_decidableEq' := inferInstance
+  range_fintype' := inferInstance
 
-@[simp] lemma card_range_unifSpec (n : ℕ) :
-  Fintype.card (unifSpec.range n) = n + 1 := Finset.card_fin (n + 1)
+instance (i : unifSpec.ι) : Unique (unifSpec.domain i) := PUnit.unique
 
-end OracleSpec
+@[simps] instance : Append OracleSpec where
+  append := λ spec spec' ↦
+  { ι := spec.ι ⊕ spec'.ι,
+    domain := λ i ↦ match i with
+      | Sum.inl i => spec.domain i
+      | Sum.inr i => spec'.domain i,
+    range := λ i ↦ match i with
+      | Sum.inl i => spec.range i
+      | Sum.inr i => spec'.range i,
+    range_inhabited' := λ i ↦ Sum.recOn i spec.range_inhabited spec'.range_inhabited,
+    ι_decidableEq' := instDecidableEqSum,
+    domain_decidableEq' := λ i ↦ Sum.recOn i spec.domain_decidableEq spec'.domain_decidableEq,
+    range_decidableEq' := λ i ↦ Sum.recOn i spec.range_decidableEq spec'.range_decidableEq,
+    range_fintype' := λ i ↦ Sum.recOn i spec.range_fintype spec'.range_fintype }

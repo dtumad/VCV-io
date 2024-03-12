@@ -62,7 +62,10 @@ by split_ifs <;> rfl
 
 end Monad
 
-def query (i : spec.ι) (t : spec.domain i) : OracleComp spec (spec.range i) :=
+section query
+
+def query {spec : OracleSpec} (i : spec.ι) (t : spec.domain i) :
+  OracleComp spec (spec.range i) :=
 query_bind' i t (spec.range i) (pure' (spec.range i))
 
 lemma query_def (i : spec.ι) (t : spec.domain i) :
@@ -72,9 +75,20 @@ lemma query_def (i : spec.ι) (t : spec.domain i) :
   (t : spec.domain i) (oa : spec.range i → OracleComp spec α) :
   query_bind' i t α oa = query i t >>= oa := rfl
 
-@[reducible, inline] def coin : OracleComp OracleSpec.coinSpec Bool :=
-query (spec := OracleSpec.coinSpec) () ()
-variable (C : Nat → Type u)
+@[reducible, inline] def coin : OracleComp coinSpec Bool :=
+query (spec := coinSpec) () ()
+
+@[reducible, inline] def uniformFin (n : ℕ) : OracleComp unifSpec (Fin (n + 1)) :=
+query (spec := unifSpec) n ()
+
+notation "$[0.." n "]" => uniformFin n
+
+example : OracleComp unifSpec ℕ := do
+  let x ←$[0..31415]
+  let y ←$[0..16180]
+  return x + 2 * y
+
+end query
 
 protected def induction_on {spec : OracleSpec}
   {C : Π {α : Type}, OracleComp spec α → Prop}
@@ -86,6 +100,8 @@ protected def induction_on {spec : OracleSpec}
 | _, (pure' α a) => h_pure a
 | _, (query_bind' i t α oa) => h_query_bind i t oa
   (λ u ↦ OracleComp.induction_on h_pure h_query_bind (oa u))
+
+section noConfusion
 
 @[simp] lemma pure_inj (x x' : α) :
   (pure x : OracleComp spec α) = (pure x' : OracleComp spec α) ↔ x = x' :=
@@ -142,5 +158,7 @@ protected instance decidableEq {α : Type} [h : DecidableEq α] : DecidableEq (O
     suffices ∀ u, Decidable (oa u = oa' u) from Fintype.decidableForallFintype
     exact λ u ↦ OracleComp.decidableEq (oa u) (oa' u)
   · simpa [hi] using Decidable.isFalse not_false
+
+end noConfusion
 
 end OracleComp
