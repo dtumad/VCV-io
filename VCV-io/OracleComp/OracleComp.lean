@@ -98,7 +98,12 @@ protected def induction_on {spec : OracleSpec}
 @[simp] lemma query_bind_inj (i i' : spec.ι) (t : spec.domain i) (t' : spec.domain i')
   (oa : spec.range i → OracleComp spec α) (oa' : spec.range i' → OracleComp spec α) :
   query i t >>= oa = query i' t' >>= oa' ↔ ∃ h : i = i', h ▸ t = t' ∧ h ▸ oa = oa' := by
-  sorry
+  refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
+  · rw [← query_bind'_eq_query_bind, ← query_bind'_eq_query_bind] at h
+    refine OracleComp.noConfusion h ?_
+    rintro rfl ⟨rfl⟩ _ ⟨rfl⟩
+    exact ⟨rfl, rfl, rfl⟩
+  · obtain ⟨rfl, rfl, rfl⟩ := h; rfl
 
 @[simp] lemma pure_ne_query (i : spec.ι) (t : spec.domain i) (u : spec.range i) :
   pure u ≠ query i t := OracleComp.noConfusion

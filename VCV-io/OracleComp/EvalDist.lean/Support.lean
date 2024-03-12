@@ -53,4 +53,8 @@ by induction oa using OracleComp.induction_on with
   have : ∀ u, ↑(oa u).finSupport = (oa u).support := λ u ↦ coe_finSupport (oa u)
   by simp [this]
 
+instance support_finite (oa : OracleComp spec α) : Finite oa.support :=
+match oa with
+| _ => sorry
+
 end OracleComp
