@@ -5,6 +5,8 @@ Authors: Devon Tuma
 -/
 import Mathlib.Data.Fintype.Card
 
+/-- A type to represent a specification of oracles available to a computation.
+The available oracles are all indexed by some (potentially infinite) indexing set `ι`. -/
 structure OracleSpec where
   ι : Type
   domain : ι → Type
@@ -30,6 +32,9 @@ instance range_fintype : Fintype (spec.range i) := spec.range_fintype' i
 
 end OracleSpec
 
+/-- Access to no oracles, represented by an empty indexing set.
+We take the domain and range to be `Unit` (rather than e.g. `empty.elim i`),
+which often gives better behavior for proofs even though the oracle is never called. -/
 @[simps] def emptySpec : OracleSpec where
   ι := Empty
   domain := λ _ ↦ Unit
@@ -47,6 +52,7 @@ instance (i : emptySpec.ι) : Unique (emptySpec.range i) := PUnit.unique
 instance : EmptyCollection OracleSpec := ⟨emptySpec⟩
 instance : Inhabited OracleSpec := ⟨∅⟩
 
+/-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`. -/
 @[simps] def singletonSpec (T U : Type) [Inhabited U] [DecidableEq T]
   [DecidableEq U] [Fintype U] : OracleSpec where
   ι := Unit
@@ -63,8 +69,15 @@ infixl : 25 " →ₒ " => singletonSpec
 instance (T U : Type) [Inhabited U] [DecidableEq T]
   [DecidableEq U] [Fintype U] : Unique (T →ₒ U).ι := PUnit.unique
 
+/-- A coin flipping oracle produces a random `Bool` with no meaningful input.
+
+NOTE: debate on whether inlining this is good -/
 @[inline, reducible] def coinSpec : OracleSpec := Unit →ₒ Bool
 
+/-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
+By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.
+
+NOTE: debate on whether inlining this is good -/
 @[simps, inline, reducible] def unifSpec : OracleSpec where
   ι := ℕ
   domain := λ _ ↦ Unit
@@ -77,6 +90,8 @@ instance (T U : Type) [Inhabited U] [DecidableEq T]
 
 instance (i : unifSpec.ι) : Unique (unifSpec.domain i) := PUnit.unique
 
+/-- `spec ++ spec'` combines the two sets of oracles disjointly using `Sum` for the indexing set.
+`Sum.inl i` is a query to oracle `i` of `spec`, and `Sum.inr i` for oracle `i` of `spec'`. -/
 @[simps] instance : Append OracleSpec where
   append := λ spec spec' ↦
   { ι := spec.ι ⊕ spec'.ι,

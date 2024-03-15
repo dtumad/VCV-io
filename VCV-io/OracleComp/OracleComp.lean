@@ -5,15 +5,27 @@ Authors: Devon Tuma
 -/
 import «VCV-io».OracleComp.OracleSpec
 
+/-- A value `oa : OracleComp spec α` represents a computation with return type `α`,
+with access to any of the oracles specified by `spec : OracleSpec`.
+Returning a value `x` corresponds to the computation `pure' α x`.
+The computation `query_bind' i t α oa` represents querying the oracle corresponding to index `i`
+on input `t`, getting a result `u : spec.range i`, and then running `oa u`.
+
+`pure' α a` gives a monadic `pure` operation, while a more general `>>=` operator
+is derived by induction on the first computation (see `OracleComp.bind`).
+This importantly allows us to define a `LawfulMonad` instance on `OracleComp spec`,
+which isn't possible if a general bind operator is included in the main syntax. -/
 inductive OracleComp (spec : OracleSpec) : Type → Type 1
-| pure' (α : Type) (a : α) : OracleComp spec α
+| pure' (α : Type) (x : α) : OracleComp spec α
 | query_bind' (i : spec.ι) (t : spec.domain i) (α : Type)
     (oa : spec.range i → OracleComp spec α) : OracleComp spec α
 
 namespace OracleComp
 
+/-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
+by assuming each query returns the `default` value given by the `Inhabited` instance. -/
 def defaultResult {spec : OracleSpec} : {α : Type} → OracleComp spec α → α
-| _, pure' α a => a
+| _, pure' α x => x
 | _, query_bind' _ _ α oa => defaultResult (oa default)
 
 instance (spec : OracleSpec) (α : Type) [h : Nonempty α] :
@@ -29,10 +41,12 @@ def baseInhabited (oa : OracleComp spec α) : Inhabited α := ⟨oa.defaultResul
 
 section Monad
 
+/-- Bind operator on `OracleComp spec` operation used in the monad definition. -/
 def bind' : (α β : Type) → OracleComp spec α → (α → OracleComp spec β) → OracleComp spec β
 | _, _, pure' α a, ob => ob a
 | _, β, query_bind' i t α oa, ob => query_bind' i t β (λ u ↦ bind' α β (oa u) ob)
 
+/-- `OracleComp spec` forms a monad under `OracleComp.pure'` and `OracleComp.bind'`. -/
 instance (spec : OracleSpec) : Monad (OracleComp spec) :=
 { pure := @pure' spec, bind := @bind' spec }
 
@@ -56,28 +70,37 @@ protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → Oracle
   (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' :=
 h ▸ (congr_arg (λ ob ↦ oa >>= ob) (funext h'))
 
+-- This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
 lemma ite_bind (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
   (ob : α → OracleComp spec β) : ite p oa oa' >>= ob = ite p (oa >>= ob) (oa' >>= ob) :=
-by split_ifs <;> rfl
+apply_ite (. >>= ob) p oa oa'
 
 end Monad
 
 section query
 
+/-- `query i t` represents querying the oracle corresponding to `i` on input `t`.
+The continuation for the computation in this case just returns the original result-/
 def query {spec : OracleSpec} (i : spec.ι) (t : spec.domain i) :
   OracleComp spec (spec.range i) :=
-query_bind' i t (spec.range i) (pure' (spec.range i))
+query_bind' i t (spec.range i) pure
 
 lemma query_def (i : spec.ι) (t : spec.domain i) :
-  query i t = query_bind' i t (spec.range i) (pure' (spec.range i)) := rfl
+  query i t = query_bind' i t (spec.range i) pure := rfl
 
 @[simp] lemma query_bind'_eq_query_bind (i : spec.ι)
   (t : spec.domain i) (oa : spec.range i → OracleComp spec α) :
   query_bind' i t α oa = query i t >>= oa := rfl
 
+/-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline] def coin : OracleComp coinSpec Bool :=
 query (spec := coinSpec) () ()
 
+/-- `$[0..n]` is the computation choosing a random value in the given range, inclusively.
+By making this range inclusive we avoid the case of choosing from the empty range.
+
+TODO: could define `$[n..m]` instead as `(. + n) <$> $[0..(m - n)]`,
+but there are issues when `m < n`. -/
 @[reducible, inline] def uniformFin (n : ℕ) : OracleComp unifSpec (Fin (n + 1)) :=
 query (spec := unifSpec) n ()
 
