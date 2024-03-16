@@ -43,8 +43,7 @@ section pure
 @[simp] lemma probOutput_pure [DecidableEq α] (x y : α) :
   [= y | (return x : OracleComp spec α)] = if y = x then 1 else 0 := by
   split_ifs with h
-  · induction h
-    exact PMF.pure_apply_self y
+  · induction h; exact PMF.pure_apply_self y
   · exact PMF.pure_apply_of_ne _ _ h
 
 @[simp] lemma probEvent_pure (x : α) (p : α → Prop) [DecidablePred p] :
