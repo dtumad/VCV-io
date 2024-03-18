@@ -113,7 +113,7 @@ example : OracleComp unifSpec ℕ := do
 
 end query
 
-protected def induction_on {spec : OracleSpec}
+protected def inductionOn {spec : OracleSpec}
   {C : Π {α : Type}, OracleComp spec α → Prop}
   (h_pure : ∀ {α : Type} (a : α), C (pure a))
   (h_query_bind : ∀ (i : spec.ι) (t : spec.domain i) {α : Type}
@@ -122,7 +122,7 @@ protected def induction_on {spec : OracleSpec}
   {α : Type} → (oa : OracleComp spec α) → C oa
 | _, (pure' α a) => h_pure a
 | _, (query_bind' i t α oa) => h_query_bind i t oa
-  (λ u ↦ OracleComp.induction_on h_pure h_query_bind (oa u))
+  (λ u ↦ OracleComp.inductionOn h_pure h_query_bind (oa u))
 
 section noConfusion
 

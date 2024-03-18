@@ -8,8 +8,10 @@ import Mathlib.Probability.ProbabilityMassFunction.Constructions
 
 open ENNReal BigOperators
 
-lemma Fintype.sum_inv_card (α : Type) [Fintype α] :
-  ∑ x : α, (fintype.card α)⁻¹ = 1 := by sorry
+lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
+  Finset.sum Finset.univ (λ _ ↦ (Fintype.card α)⁻¹ : α → ℝ≥0∞) = 1 := by
+  simp only [Finset.card_univ, one_div, Finset.sum_const, nsmul_eq_mul]
+  exact ENNReal.mul_inv_cancel (by simp) (nat_ne_top _)
 
 namespace OracleComp
 
@@ -17,12 +19,8 @@ variable {spec : OracleSpec} {α β : Type}
 
 noncomputable def evalDist : {α : Type} → OracleComp spec α → PMF α
 | _, pure' α a => PMF.pure a
-| _, query_bind' i t α oa =>
-    let unifQueryPMF := (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹) (by
-
-      simp only [Finset.card_univ, one_div, Finset.sum_const, nsmul_eq_mul]
-      exact ENNReal.mul_inv_cancel (by simp) (nat_ne_top _)))
-    PMF.bind unifQueryPMF (λ a ↦ evalDist $ oa a)
+| _, query_bind' i _ α oa => PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
+    (Fintype.sum_inv_card (spec.range i))) (λ a ↦ evalDist $ oa a)
 
 noncomputable def probOutput (oa : OracleComp spec α) (x : α) : ℝ≥0∞ :=
 evalDist oa x
@@ -39,6 +37,36 @@ lemma probEvent.def (oa : OracleComp spec α) (p : α → Prop) :
 
 noncomputable example : ℝ≥0∞ := [= 5 | do let x ←$[0..4]; return x + 1]
 noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ←$[0..4]; return x]
+
+lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
+
+lemma evalDist_query_bind' (i : spec.ι) (t : spec.domain i)
+  (oa : spec.range i → OracleComp spec α) : evalDist (query_bind' i t α oa) =
+  PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
+    (Fintype.sum_inv_card (spec.range i))) (λ a ↦ evalDist $ oa a) := rfl
+
+section support
+
+lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
+  x ∈ (evalDist oa).support ↔ x ∈ oa.support :=
+by induction oa using OracleComp.inductionOn with
+| h_pure x => simp_rw [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, support_pure']
+| h_query_bind i t oa hoa => simp_rw [← query_bind'_eq_query_bind, evalDist_query_bind',
+    PMF.support_bind, support_query_bind', PMF.support_ofFintype, Set.mem_iUnion, hoa,
+    Function.mem_support, ne_eq, ENNReal.inv_eq_zero, nat_ne_top, not_false_eq_true, exists_const]
+
+-- lemma mem_support_evalDist_iff' [DecidableEq α] (oa : OracleComp spec α) (x : α) :
+--   x ∈ (evalDist oa).support ↔ x ∈ oa.finSupport :=
+-- by induction oa using OracleComp.inductionOn with
+-- | h_pure x => simpa only [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, finSupport]
+-- | h_query_bind i t oa hoa => simp_rw [← query_bind'_eq_query_bind, evalDist_query_bind',
+--     PMF.support_bind, finSupport_query_bind', PMF.support_ofFintype, Set.mem_iUnion, hoa,
+--     Function.mem_support, ne_eq, ENNReal.inv_eq_zero, nat_ne_top, not_false_eq_true, exists_const]
+
+@[simp] lemma support_evalDist (oa : OracleComp spec α) : (evalDist oa).support = oa.support :=
+Set.ext (mem_support_evalDist_iff oa)
+
+end support
 
 section pure
 
@@ -63,10 +91,23 @@ section bind
 
 variable (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 
-@[simp] lemma evalDist_bind : evalDist (oa >>= ob) = (evalDist oa).bind (evalDist ∘ ob) := by
-  induction' oa using OracleComp.induction_on with α x i t α oa hoa
-  · simp []
-  · rw [bind_assoc, ← query_bind'_eq_query_bind, evalDist]
+@[simp] lemma evalDist_bind : evalDist (oa >>= ob) = (evalDist oa).bind (evalDist ∘ ob) :=
+by induction oa using OracleComp.inductionOn with
+| h_pure _ => simp only [pure_bind, evalDist_pure, PMF.pure_bind, Function.comp_apply]
+| h_query_bind _ _ _ hoa => simp [bind_assoc, ← query_bind'_eq_query_bind, evalDist, hoa]
+
+@[simp] lemma probOutput_bind_eq_tsum (y : β) :
+  [= y | oa >>= ob] = ∑' x : α, [= x | oa] * [= y | ob x] :=
+by simp only [probOutput.def, evalDist_bind, PMF.bind_apply, Function.comp_apply]
+
+@[simp] lemma probOutput_bind_eq_sum [Fintype α] :
+  [= y | oa >>= ob] = ∑ x : α, [= x | oa] * [= y | ob x] :=
+(probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum (λ _ h ↦ False.elim (h (Finset.mem_univ _))))
+
+@[simp] lemma probOutput_bind_eq_sum_finSupport [DecidableEq α] :
+  [= y | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [= y | ob x] :=
+(probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum (λ x hx ↦
+  mul_eq_zero_of_left (sorry) _))
 
 end bind
 

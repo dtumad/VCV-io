@@ -17,6 +17,12 @@ def support : OracleComp spec α → Set α
 | pure' _ x => {x}
 | query_bind' _ _ _ oa => ⋃ u, (oa u).support
 
+lemma support_pure' (x : α) : support (pure' α x : OracleComp spec α) = {x} := rfl
+
+lemma support_query_bind' (i : spec.ι) (t : spec.domain i)
+  (oa : spec.range i → OracleComp spec α) : support (query_bind' i t α oa) =
+  ⋃ u, (oa u).support := rfl
+
 /-- Given a `DecidableEq` instance on the return type, we can construct
 a `Finset` of possible outputs. Without this we can't remove duplicate values from
 the list of outputs being constructed. This also relies on the `DecidableEq` instances
@@ -24,6 +30,13 @@ on `spec.range i` that are included in the definition of `OracleSpec`. -/
 def finSupport [DecidableEq α] : OracleComp spec α → Finset α
 | pure' _ x => {x}
 | query_bind' _ _ _ oa => Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport)
+
+lemma finSupport_pure' [DecidableEq α] (x : α) :
+  finSupport (pure' α x : OracleComp spec α) = {x} := rfl
+
+lemma finSupport_query_bind' [DecidableEq α] (i : spec.ι) (t : spec.domain i)
+  (oa : spec.range i → OracleComp spec α) : finSupport (query_bind' i t α oa) =
+  Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport) := rfl
 
 section basic
 
@@ -42,7 +55,7 @@ by simpa only [query_def, finSupport] using Finset.biUnion_singleton_eq_self
 
 @[simp] lemma support_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
   (oa >>= ob).support = ⋃ x ∈ oa.support, (ob x).support :=
-by induction oa using OracleComp.induction_on with
+by induction oa using OracleComp.inductionOn with
 | h_pure _ => simp
 | h_query_bind i t oa hoa =>
     simpa [bind_assoc, ← query_bind'_eq_query_bind, support, hoa]
@@ -51,7 +64,7 @@ by induction oa using OracleComp.induction_on with
 @[simp] lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
   [DecidableEq α] → [DecidableEq β] →
     (oa >>= ob).finSupport = oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) :=
-by induction oa using OracleComp.induction_on with
+by induction oa using OracleComp.inductionOn with
 | h_pure _ => simp
 | h_query_bind i t oa hoa =>
     intros hα hβ; apply Finset.coe_inj.1
@@ -59,7 +72,7 @@ by induction oa using OracleComp.induction_on with
 
 /-- The support of a computation is finite when viewed as a type. -/
 instance support_finite (oa : OracleComp spec α) : Finite ↥oa.support :=
-by induction oa using OracleComp.induction_on with
+by induction oa using OracleComp.inductionOn with
 | h_pure x => exact Set.finite_singleton x
 | h_query_bind _ _ oa hoa => exact Set.finite_iUnion hoa
 
@@ -73,7 +86,7 @@ instance support_fintype : {α : Type} → [DecidableEq α] →
     Set.fintypeiUnion _
 
 lemma support_nonempty (oa : OracleComp spec α) : oa.support.Nonempty :=
-by induction oa using OracleComp.induction_on with
+by induction oa using OracleComp.inductionOn with
 | h_pure x => exact Set.singleton_nonempty x
 | h_query_bind _ _ oa hoa => exact Set.nonempty_iUnion.2 ⟨default, hoa default⟩
 
