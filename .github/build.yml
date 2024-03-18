@@ -1,0 +1,75 @@
+on:
+  push:
+
+name: Continuous Integration Build
+
+jobs:
+  # Cancels previous runs of jobs in this file
+  cancel:
+    name: 'Cancel Previous Runs (CI)'
+    runs-on: ubuntu-latest
+    # timeout-minutes: 3
+    steps:
+      - uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          all_but_latest: true
+          access_token: ${{ github.token }}
+
+  check_imported:
+    if: github.repository == 'leanprover-community/mathlib4'
+    name: Check all files imported
+    runs-on: ubuntu-latest
+    steps:
+      # - name: cleanup
+      #   run: |
+      #     find . -name . -o -prune -exec rm -rf -- {} +
+
+      - uses: actions/checkout@v3
+
+      - name: update VCVio.lean
+        run: |
+          git ls-files 'VCVio/*.lean' | LC_ALL=C sort | sed 's/\.lean//;s,/,.,g;s/^/import /' > VCVio.lean
+
+      - name: check that all files are imported
+        run: git diff --exit-code
+
+  build:
+    if: github.repository == 'leanprover-community/mathlib4'
+    name: Build
+    runs-on: pr
+    steps:
+      # The Hoskinson runners may not have jq installed, so do that now.
+      - name: 'Setup jq'
+        uses: dcarbone/install-jq-action@v1.0.1
+
+      - name: install elan
+        run: |
+          set -o pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v3.0.0/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - uses: actions/checkout@v3
+
+      - name: get cache
+        run: |
+          lake exe cache clean
+          lake exe cache get
+
+      - name: build files
+        id: build
+        run: |
+          lake build | tee --append stdout.log
+
+      - name: check for noisy stdout lines
+        id: noisy
+        run: |
+          ! grep --after-context=1 "stdout:" stdout.log
+          ! grep --after-context=1 "stderr:" stdout.log
+
+      - name: check for unused imports
+        id: shake
+        uses: liskin/gh-problem-matcher-wrap@v2
+        with:
+          linters: gcc
+          run: env LEAN_ABORT_ON_PANIC=1 lake exe shake --gh-style
