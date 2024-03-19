@@ -61,6 +61,8 @@ jobs:
         with:
           python-version: 3.8
 
+      - uses: actions/checkout@v3
+
       - name: lint
         run: |
           ./scripts/lint-style.sh
