@@ -70,3 +70,13 @@ jobs:
         with:
           linters: gcc
           run: env LEAN_ABORT_ON_PANIC=1 lake exe shake --gh-style
+
+      - name: install Python
+        if: ${{ 'ubuntu-latest' == 'ubuntu-latest' }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: lint
+        run: |
+          ./scripts/lint-style.sh
