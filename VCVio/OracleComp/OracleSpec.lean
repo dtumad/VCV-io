@@ -28,8 +28,11 @@ We also define a number of basic oracle constructions:
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
 For each `i : ι`, `domain i` and `range i` are the input and output types of the oracle. -/
 structure OracleSpec where
+  /-- Indexing set for the avaialble oracles. -/
   ι : Type
+  /-- Map from oracle indices to domain types. -/
   domain : ι → Type
+  /-- Map from oracle indices to codomain types. -/
   range : ι → Type
   ι_decidableEq' : DecidableEq ι
   domain_decidableEq' : ∀ i, DecidableEq $ domain i

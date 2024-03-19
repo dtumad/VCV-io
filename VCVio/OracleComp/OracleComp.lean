@@ -37,9 +37,9 @@ and `queryBind' i t α oa` allows for querying oracle `i` on input `t`,
 calling `oa` on the result of the oracle call.
 We recursively define a more general monadic bind operation later. -/
 inductive OracleComp (spec : OracleSpec) : Type → Type 1
-| pure' (α : Type) (x : α) : OracleComp spec α
-| query_bind' (i : spec.ι) (t : spec.domain i) (α : Type)
-    (oa : spec.range i → OracleComp spec α) : OracleComp spec α
+  | pure' (α : Type) (x : α) : OracleComp spec α
+  | query_bind' (i : spec.ι) (t : spec.domain i) (α : Type)
+      (oa : spec.range i → OracleComp spec α) : OracleComp spec α
 
 namespace OracleComp
 
@@ -70,7 +70,7 @@ def bind' : (α β : Type) → OracleComp spec α → (α → OracleComp spec β
 
 /-- `OracleComp spec` forms a monad under `OracleComp.pure'` and `OracleComp.bind'`. -/
 instance (spec : OracleSpec) : Monad (OracleComp spec) :=
-{ pure := @pure' spec, bind := @bind' spec }
+  { pure := @pure' spec, bind := @bind' spec }
 
 @[simp] protected lemma pure'_eq_pure (spec : OracleSpec) (a : α) :
   pure' α a = (pure a : OracleComp spec α) := rfl
@@ -79,23 +79,23 @@ instance (spec : OracleSpec) : Monad (OracleComp spec) :=
   bind' α β oa ob = oa >>= ob := rfl
 
 instance (spec : OracleSpec) : LawfulMonad (OracleComp spec) :=
-LawfulMonad.mk' _
-  (λ oa ↦ by
-    induction' oa with α a i t α oa hoa; · rfl
-    · exact congr_arg (query_bind' i t α) (funext (λ u ↦ hoa u)))
-  (λ x ob ↦ rfl)
-  (λ oa ob oc ↦ by
-    induction' oa with α a i t α oa hoa; · rfl
-    · exact congr_arg (query_bind' i t _) <| funext (λ u ↦ hoa u ob))
+  LawfulMonad.mk' _
+    (λ oa ↦ by
+      induction' oa with α a i t α oa hoa; · rfl
+      · exact congr_arg (query_bind' i t α) (funext (λ u ↦ hoa u)))
+    (λ x ob ↦ rfl)
+    (λ oa ob oc ↦ by
+      induction' oa with α a i t α oa hoa; · rfl
+      · exact congr_arg (query_bind' i t _) <| funext (λ u ↦ hoa u ob))
 
 protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' :=
-h ▸ (congr_arg (λ ob ↦ oa >>= ob) (funext h'))
+  h ▸ (congr_arg (λ ob ↦ oa >>= ob) (funext h'))
 
 -- This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
 lemma ite_bind (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
     (ob : α → OracleComp spec β) : ite p oa oa' >>= ob = ite p (oa >>= ob) (oa' >>= ob) :=
-apply_ite (. >>= ob) p oa oa'
+  apply_ite (. >>= ob) p oa oa'
 
 end Monad
 
@@ -104,18 +104,20 @@ section query
 /-- `query i t` represents querying the oracle corresponding to `i` on input `t`.
 The continuation for the computation in this case just returns the original result-/
 def query {spec : OracleSpec} (i : spec.ι) (t : spec.domain i) : OracleComp spec (spec.range i) :=
-query_bind' i t (spec.range i) pure
+  query_bind' i t (spec.range i) pure
 
-lemma query_def (i : spec.ι) (t : spec.domain i) :
-    query i t = query_bind' i t (spec.range i) pure := rfl
+variable (i : spec.ι) (t : spec.domain i)
 
-@[simp] lemma query_bind'_eq_query_bind (i : spec.ι)
-  (t : spec.domain i) (oa : spec.range i → OracleComp spec α) :
-  query_bind' i t α oa = query i t >>= oa := rfl
+lemma query_def : query i t = query_bind' i t (spec.range i) pure := rfl
+
+@[simp] lemma query_bind'_eq_query_bind (oa : spec.range i → OracleComp spec α) :
+    query_bind' i t α oa = query i t >>= oa := rfl
+
+end query
 
 /-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline] def coin : OracleComp coinSpec Bool :=
-query (spec := coinSpec) () ()
+  query (spec := coinSpec) () ()
 
 /-- `$[0..n]` is the computation choosing a random value in the given range, inclusively.
 By making this range inclusive we avoid the case of choosing from the empty range.
@@ -123,7 +125,7 @@ By making this range inclusive we avoid the case of choosing from the empty rang
 TODO: could define `$[n..m]` instead as `(. + n) <$> $[0..(m - n)]`,
 but there are issues when `m < n`. -/
 @[reducible, inline] def uniformFin (n : ℕ) : OracleComp unifSpec (Fin (n + 1)) :=
-query (spec := unifSpec) n ()
+  query (spec := unifSpec) n ()
 
 notation "$[0.." n "]" => uniformFin n
 
@@ -131,8 +133,6 @@ example : OracleComp unifSpec ℕ := do
   let x ← $[0..31415]
   let y ← $[0..16180]
   return x + 2 * y
-
-end query
 
 protected def inductionOn {spec : OracleSpec}
     {C : Π {α : Type}, OracleComp spec α → Prop}
@@ -145,19 +145,18 @@ protected def inductionOn {spec : OracleSpec}
   | _, (query_bind' i t α oa) => h_query_bind i t oa
     (λ u ↦ OracleComp.inductionOn h_pure h_query_bind (oa u))
 
-section noConfusion
+section inj
 
-@[simp] lemma pure_inj (x x' : α) :
-  (pure x : OracleComp spec α) = (pure x' : OracleComp spec α) ↔ x = x' :=
-⟨λ h ↦ OracleComp.noConfusion h (λ _ hx ↦ eq_of_heq hx), λ h ↦ h ▸ rfl⟩
+@[simp] lemma pure_inj (x y : α) : (pure x : OracleComp spec α) = pure y ↔ x = y :=
+  ⟨λ h ↦ OracleComp.noConfusion h (λ _ hx ↦ eq_of_heq hx), λ h ↦ h ▸ rfl⟩
 
-@[simp] lemma query_inj (i : spec.ι) (t t' : spec.domain i) :
-  query i t = query i t' ↔ t = t' :=
-⟨λ h ↦ OracleComp.noConfusion h (λ _ ht _ _ ↦ eq_of_heq ht), λ h ↦ h ▸ rfl⟩
+@[simp] lemma query_inj (i : spec.ι) (t t' : spec.domain i) : query i t = query i t' ↔ t = t' :=
+  ⟨λ h ↦ OracleComp.noConfusion h (λ _ ht _ _ ↦ eq_of_heq ht), λ h ↦ h ▸ rfl⟩
 
-@[simp] lemma query_bind_inj (i i' : spec.ι) (t : spec.domain i) (t' : spec.domain i')
-  (oa : spec.range i → OracleComp spec α) (oa' : spec.range i' → OracleComp spec α) :
-  query i t >>= oa = query i' t' >>= oa' ↔ ∃ h : i = i', h ▸ t = t' ∧ h ▸ oa = oa' := by
+@[simp]
+lemma query_bind_inj (i i' : spec.ι) (t : spec.domain i) (t' : spec.domain i')
+    (oa : spec.range i → OracleComp spec α) (oa' : spec.range i' → OracleComp spec α) :
+    query i t >>= oa = query i' t' >>= oa' ↔ ∃ h : i = i', h ▸ t = t' ∧ h ▸ oa = oa' := by
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
   · rw [← query_bind'_eq_query_bind, ← query_bind'_eq_query_bind] at h
     refine OracleComp.noConfusion h ?_
@@ -165,20 +164,26 @@ section noConfusion
     exact ⟨rfl, rfl, rfl⟩
   · obtain ⟨rfl, rfl, rfl⟩ := h; rfl
 
-@[simp] lemma pure_ne_query (i : spec.ι) (t : spec.domain i) (u : spec.range i) :
-  pure u ≠ query i t := OracleComp.noConfusion
+end inj
 
-@[simp] lemma query_ne_pure (i : spec.ι) (t : spec.domain i) (u : spec.range i) :
-  query i t ≠ pure u := OracleComp.noConfusion
+section ne
 
-@[simp] lemma pure_ne_query_bind (x : α) (i : spec.ι) (t : spec.domain i)
-  (oa : spec.range i → OracleComp spec α) : pure x ≠ query i t >>= oa := OracleComp.noConfusion
+variable (i : spec.ι) (t : spec.domain i) (u : spec.range i) (x : α)
+  (ou : spec.range i → OracleComp spec α)
 
-@[simp] lemma query_bind_ne_pure (i : spec.ι) (t : spec.domain i)
-  (oa : spec.range i → OracleComp spec α) : query i t >>= oa ≠ (pure x) := OracleComp.noConfusion
+@[simp] lemma pure_ne_query : pure u ≠ query i t := OracleComp.noConfusion
+@[simp] lemma query_ne_pure : query i t ≠ pure u := OracleComp.noConfusion
+@[simp] lemma pure_ne_query_bind : pure x ≠ query i t >>= ou := OracleComp.noConfusion
+@[simp] lemma query_bind_ne_pure : query i t >>= ou ≠ (pure x) := OracleComp.noConfusion
 
-@[simp] lemma bind_eq_pure_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
-  oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x = pure y := by
+end ne
+
+section eq
+
+variable (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β)
+
+@[simp]
+lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x = pure y := by
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
   · match oa with
     | pure' _ x => exact ⟨x, rfl, h⟩
@@ -186,23 +191,23 @@ section noConfusion
   · obtain ⟨x, hxa, hxb⟩ := h
     rw [hxa, pure_bind, hxb]
 
-@[simp] lemma pure_eq_bind_iff (y : β) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-  pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
-eq_comm.trans (bind_eq_pure_iff oa ob y)
+@[simp]
+lemma pure_eq_bind_iff : pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
+  eq_comm.trans (bind_eq_pure_iff oa ob y)
 
 protected instance decidableEq {α : Type} [h : DecidableEq α] : DecidableEq (OracleComp spec α)
-| pure' _ x, pure' _ x' => by simpa [pure_inj x x'] using h x x'
-| pure' _ x, query_bind' i t _ oa => by simpa using Decidable.isFalse not_false
-| query_bind' i t _ oa, pure' _ x => by simpa using Decidable.isFalse not_false
-| query_bind' i t _ oa, query_bind' i' t' _ oa' => by
-  by_cases hi : i = i'
-  · induction hi; simp
-    suffices Decidable (oa = oa') from inferInstance
-    suffices Decidable (∀ u, oa u = oa' u) from decidable_of_iff' _ Function.funext_iff
-    suffices ∀ u, Decidable (oa u = oa' u) from Fintype.decidableForallFintype
-    exact λ u ↦ OracleComp.decidableEq (oa u) (oa' u)
-  · simpa [hi] using Decidable.isFalse not_false
+  | pure' _ x, pure' _ x' => by simpa [pure_inj x x'] using h x x'
+  | pure' _ x, query_bind' i t _ oa => by simpa using Decidable.isFalse not_false
+  | query_bind' i t _ oa, pure' _ x => by simpa using Decidable.isFalse not_false
+  | query_bind' i t _ oa, query_bind' i' t' _ oa' => by
+    by_cases hi : i = i'
+    · induction hi; simp
+      suffices Decidable (oa = oa') from inferInstance
+      suffices Decidable (∀ u, oa u = oa' u) from decidable_of_iff' _ Function.funext_iff
+      suffices ∀ u, Decidable (oa u = oa' u) from Fintype.decidableForallFintype
+      exact λ u ↦ OracleComp.decidableEq (oa u) (oa' u)
+    · simpa [hi] using Decidable.isFalse not_false
 
-end noConfusion
+end eq
 
 end OracleComp
