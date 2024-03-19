@@ -103,7 +103,7 @@ by simp only [probOutput.def, evalDist_bind, PMF.bind_apply, Function.comp_apply
 @[simp] lemma probOutput_bind_eq_sum_finSupport [DecidableEq α] :
   [= y | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [= y | ob x] :=
 (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum (λ x hx ↦
-  mul_eq_zero_of_left (sorry) _))
+  mul_eq_zero_of_left (_) _))
 
 end bind
 
