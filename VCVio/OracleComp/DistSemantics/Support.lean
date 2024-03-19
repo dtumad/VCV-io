@@ -16,6 +16,9 @@ If the final output type has decidable equality we can also define a function
 `OracleComp.finSupport : OracleComp spec α → Finset α` with the same property.
 This relies on decidable equality instances in `OracleSpec` as well, and the definition
 would need to be adjusted if those were moved into a seperate typeclass.
+
+We avoid using `(evalDist oa).support` as the definition of the support, as this forces
+noncomputability due to the use of real numbers, and also makes defining `finSupport` harder.
 -/
 
 namespace OracleComp
@@ -100,11 +103,6 @@ instance support_fintype : {α : Type} → [DecidableEq α] →
       have : ∀ u, Fintype (oa u).support := λ u ↦ support_fintype (oa u)
       Set.fintypeiUnion _
 
-lemma support_nonempty (oa : OracleComp spec α) : oa.support.Nonempty := by
-  induction oa using OracleComp.inductionOn with
-  | h_pure x => exact Set.singleton_nonempty x
-  | h_query_bind _ _ oa hoa => exact Set.nonempty_iUnion.2 ⟨default, hoa default⟩
-
 end basic
 
 section coe
@@ -122,20 +120,53 @@ variable [DecidableEq α] (oa : OracleComp spec α) (s : Finset α)
 
 lemma finSupport_eq_iff_support_eq_coe : oa.finSupport = s ↔ oa.support = ↑s :=
   Finset.coe_inj.symm.trans (by rw [coe_finSupport])
-
 lemma eq_finSupport_iff_coe_eq_support : s = oa.finSupport ↔ ↑s = oa.support :=
   Finset.coe_inj.symm.trans (by rw [coe_finSupport])
+
+lemma finSupport_subset_iff_support_subset_coe : oa.finSupport ⊆ s ↔ oa.support ⊆ ↑s :=
+  Finset.coe_subset.symm.trans (by rw [coe_finSupport])
+lemma subset_finSupport_iff_coe_subset_support : s ⊆ oa.finSupport ↔ ↑s ⊆ oa.support :=
+  Finset.coe_subset.symm.trans (by rw [coe_finSupport])
 
 lemma mem_finSupport_iff_mem_support (x : α) : x ∈ oa.finSupport ↔ x ∈ oa.support := by
   rw [← Finset.mem_coe, coe_finSupport]
 
 lemma mem_finSupport_of_mem_support {x : α} (hx : x ∈ oa.support) : x ∈ oa.finSupport :=
   (mem_finSupport_iff_mem_support oa x).2 hx
-
 lemma mem_support_of_mem_finSupport {x : α} (hx : x ∈ oa.finSupport) : x ∈ oa.support :=
   (mem_finSupport_iff_mem_support oa x).1 hx
 
 end coe
+
+section nonempty
+
+variable (oa : OracleComp spec α)
+
+lemma defaultResult_mem_support : oa.defaultResult ∈ oa.support := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => simp only [defaultResult, support_pure, Set.mem_singleton_iff]
+  | h_query_bind i t oa hoa =>
+      have : ∃ u, defaultResult (oa default) ∈ (oa u).support := ⟨default, hoa default⟩
+      simpa only [defaultResult, OracleComp.bind'_eq_bind, pure_bind, support_bind, support_query,
+        Set.mem_univ, Set.iUnion_true, Set.mem_iUnion] using this
+
+lemma defaultResult_mem_finSupport [DecidableEq α] : oa.defaultResult ∈ oa.finSupport := by
+  simpa only [mem_finSupport_iff_mem_support] using defaultResult_mem_support oa
+
+lemma support_nonempty : oa.support.Nonempty := ⟨defaultResult oa, defaultResult_mem_support oa⟩
+
+@[simp] lemma support_ne_empty : oa.support ≠ ∅ := (support_nonempty oa).ne_empty
+@[simp] lemma finSupport_ne_empty [DecidableEq α] : oa.finSupport ≠ ∅ :=
+  Finset.ne_empty_of_mem (defaultResult_mem_finSupport oa)
+
+@[simp] lemma support_eq_singleton_iff (x : α) :
+    oa.support = {x} ↔ oa.support ⊆ {x} := by
+  rw [oa.support_nonempty.subset_singleton_iff]
+@[simp] lemma finSupport_eq_singleton_iff [DecidableEq α] (x : α) :
+    oa.finSupport = {x} ↔ oa.finSupport ⊆ {x} := by
+  simp [finSupport_eq_iff_support_eq_coe]
+
+end nonempty
 
 @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
     (f <$> oa).support = f '' oa.support :=
