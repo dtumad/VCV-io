@@ -5,8 +5,28 @@ Authors: Devon Tuma
 -/
 import Mathlib.Data.Fintype.Card
 
-/-- A type to represent a specification of oracles available to a computation.
-The available oracles are all indexed by some (potentially infinite) indexing set `ι`. -/
+/-!
+# Specifications of Available Oracles
+
+This file defines a type `OracleSpec` to represent a set of available oracles.
+The available oracles are all indexed by some (potentially infinite) indexing set `ι`,
+and for each index `i` a pair of types `domain i` and `range i`.
+
+We also bundle a number of typeclasses into the defintion.
+Specifically these are necessary to give most of the denotational semantics.
+Seperating them out would require making some typeclass for "computable" specs.
+
+We also define a number of basic oracle constructions:
+* `∅`: Access to no oracles
+* `T →ₒ U`: Access to a single oracle with given input and output
+* `coinSpec`: A single oracle for flipping a coin
+* `unifSpec`: A family of oracles for selecting from `[0..n]` for any `n`
+* `spec ++ spec'`: Access to oracles in either of the two specs
+-/
+
+/-- A structure to represents a specification of oracles available to a computation.
+The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
+For each `i : ι`, `domain i` and `range i` are the input and output types of the oracle. -/
 structure OracleSpec where
   ι : Type
   domain : ι → Type

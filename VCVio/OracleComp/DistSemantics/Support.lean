@@ -6,6 +6,18 @@ Authors: Devon Tuma
 import VCVio.OracleComp.OracleComp
 import Mathlib.Data.Set.Finite
 
+/-!
+# Support of a Computation
+
+This file defines a function `OracleComp.support : OracleComp spec α → Set α` that
+gives the set of possible outputs of a computation, assuming all oracle outputs are possible.
+
+If the final output type has decidable equality we can also define a function
+`OracleComp.finSupport : OracleComp spec α → Finset α` with the same property.
+This relies on decidable equality instances in `OracleSpec` as well, and the definition
+would need to be adjusted if those were moved into a seperate typeclass.
+-/
+
 namespace OracleComp
 
 variable {spec : OracleSpec} {α β : Type}
@@ -14,29 +26,30 @@ variable {spec : OracleSpec} {α β : Type}
 assuming that all output values of the oracles are possible.
 This is naturally compatible with `evalDist` where the oracles respond uniformly. -/
 def support : OracleComp spec α → Set α
-| pure' _ x => {x}
-| query_bind' _ _ _ oa => ⋃ u, (oa u).support
+  | pure' _ x => {x}
+  | query_bind' _ _ _ oa => ⋃ u, (oa u).support
 
 lemma support_pure' (x : α) : support (pure' α x : OracleComp spec α) = {x} := rfl
 
 lemma support_query_bind' (i : spec.ι) (t : spec.domain i)
-  (oa : spec.range i → OracleComp spec α) : support (query_bind' i t α oa) =
-  ⋃ u, (oa u).support := rfl
+    (oa : spec.range i → OracleComp spec α) :
+    support (query_bind' i t α oa) = ⋃ u, (oa u).support := rfl
 
 /-- Given a `DecidableEq` instance on the return type, we can construct
 a `Finset` of possible outputs. Without this we can't remove duplicate values from
 the list of outputs being constructed. This also relies on the `DecidableEq` instances
 on `spec.range i` that are included in the definition of `OracleSpec`. -/
 def finSupport [DecidableEq α] : OracleComp spec α → Finset α
-| pure' _ x => {x}
-| query_bind' _ _ _ oa => Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport)
+  | pure' _ x => {x}
+  | query_bind' _ _ _ oa => Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport)
 
 lemma finSupport_pure' [DecidableEq α] (x : α) :
-  finSupport (pure' α x : OracleComp spec α) = {x} := rfl
+    finSupport (pure' α x : OracleComp spec α) = {x} := rfl
 
 lemma finSupport_query_bind' [DecidableEq α] (i : spec.ι) (t : spec.domain i)
-  (oa : spec.range i → OracleComp spec α) : finSupport (query_bind' i t α oa) =
-  Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport) := rfl
+    (oa : spec.range i → OracleComp spec α) :
+  finSupport (query_bind' i t α oa) =
+    Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport) := rfl
 
 section basic
 
@@ -102,12 +115,12 @@ section coe
   have : ∀ u, ↑(oa u).finSupport = (oa u).support := λ u ↦ coe_finSupport (oa u)
   by simp [this]
 
-lemma finSupport_eq_iff_support_eq_coe [DecidableEq α] (oa : OracleComp spec α)
-  (s : Finset α) : oa.finSupport = s ↔ oa.support = ↑s :=
+variable [DecidableEq α] (oa : OracleComp spec α) (s : Finset α)
+
+lemma finSupport_eq_iff_support_eq_coe : oa.finSupport = s ↔ oa.support = ↑s :=
 Finset.coe_inj.symm.trans (by rw [coe_finSupport])
 
-lemma eq_finSupport_iff_coe_eq_support [DecidableEq α] (oa : OracleComp spec α)
-  (s : Finset α) : s = oa.finSupport ↔ ↑s = oa.support :=
+lemma eq_finSupport_iff_coe_eq_support : s = oa.finSupport ↔ ↑s = oa.support :=
 Finset.coe_inj.symm.trans (by rw [coe_finSupport])
 
 end coe

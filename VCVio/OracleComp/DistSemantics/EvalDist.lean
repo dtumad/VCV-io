@@ -7,6 +7,25 @@ import VCVio.OracleComp.DistSemantics.Support
 import ToMathlib.General
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 
+/-!
+# Denotational Semantics for Output Distributions
+
+This file gives definitions for the output distribution or computations with uniform oracles.
+Given a computation `oa : OracleComp spec α` we define a distribution `evalDist oa : PMF α`
+expressing the probability of getting an output `x : α` if the oracles in `spec` were to
+respond uniformly to all queries.
+
+We also define functions `probOutput oa x` and `probEvent oa p` for the probabilities of a
+specific output of of a specific predicate holding on the output respectively.
+We introduce notation `[= x | oa]` and `[p | oa]` for these defintions as well.
+
+The behavior of more complex oracles should first be implemented using `OracleComp.simulate`
+before applying these constructions.
+
+These definitons are compatible with `OracleComp.support` and `OracleComp.finSupport` in the sense
+that values are in the support iff they have non-zero probability under `evalDist`.
+-/
+
 open ENNReal BigOperators
 
 namespace OracleComp
@@ -29,22 +48,22 @@ notation "[" p "|" oa "]" => probEvent oa p
 
 lemma probOutput.def (oa : OracleComp spec α) (x : α) : [= x | oa] = evalDist oa x := rfl
 lemma probEvent.def (oa : OracleComp spec α) (p : α → Prop) :
-  [p | oa] = (evalDist oa).toOuterMeasure p := rfl
+    [p | oa] = (evalDist oa).toOuterMeasure p := rfl
 
-noncomputable example : ℝ≥0∞ := [= 5 | do let x ←$[0..4]; return x + 1]
-noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ←$[0..4]; return x]
+noncomputable example : ℝ≥0∞ := [= 5 | do let x ← $[0..4]; return x + 1]
+noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ← $[0..4]; return x]
 
 lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
 
 lemma evalDist_query_bind' (i : spec.ι) (t : spec.domain i)
-  (oa : spec.range i → OracleComp spec α) : evalDist (query_bind' i t α oa) =
+    (oa : spec.range i → OracleComp spec α) : evalDist (query_bind' i t α oa) =
   PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
     (Fintype.sum_inv_card (spec.range i))) (λ a ↦ evalDist $ oa a) := rfl
 
 section support
 
 lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
-  x ∈ (evalDist oa).support ↔ x ∈ oa.support :=
+    x ∈ (evalDist oa).support ↔ x ∈ oa.support :=
 by induction oa using OracleComp.inductionOn with
 | h_pure x => simp_rw [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, support_pure']
 | h_query_bind i t oa hoa => simp_rw [← query_bind'_eq_query_bind, evalDist_query_bind',
@@ -54,10 +73,10 @@ by induction oa using OracleComp.inductionOn with
 -- lemma mem_support_evalDist_iff' [DecidableEq α] (oa : OracleComp spec α) (x : α) :
 --   x ∈ (evalDist oa).support ↔ x ∈ oa.finSupport :=
 -- by induction oa using OracleComp.inductionOn with
--- | h_pure x => simpa only [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, finSupport]
+-- | h_pure x => simpa only [← OracleComp.pure'_eq_pure,evalDist_pure',PMF.support_pure,finSupport]
 -- | h_query_bind i t oa hoa => simp_rw [← query_bind'_eq_query_bind, evalDist_query_bind',
 --     PMF.support_bind, finSupport_query_bind', PMF.support_ofFintype, Set.mem_iUnion, hoa,
---     Function.mem_support, ne_eq, ENNReal.inv_eq_zero, nat_ne_top, not_false_eq_true, exists_const]
+--     Function.mem_support, ne_eq, ENNReal.inv_eq_zero, nat_ne_top,not_false_eq_true,exists_const]
 
 @[simp] lemma support_evalDist (oa : OracleComp spec α) : (evalDist oa).support = oa.support :=
 Set.ext (mem_support_evalDist_iff oa)
@@ -103,7 +122,7 @@ by simp only [probOutput.def, evalDist_bind, PMF.bind_apply, Function.comp_apply
 @[simp] lemma probOutput_bind_eq_sum_finSupport [DecidableEq α] :
   [= y | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [= y | ob x] :=
 (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum (λ x hx ↦
-  mul_eq_zero_of_left (_) _))
+  mul_eq_zero_of_left (sorry) _))
 
 end bind
 
