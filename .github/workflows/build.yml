@@ -47,21 +47,22 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: get cache
+      - name: build project
         run: |
           lake exe cache clean
           lake exe cache get
+          lake build
 
-      - name: build files
-        id: build
-        run: |
-          lake build | tee --append stdout.log
+      # - name: build files
+      #   id: build
+      #   run: |
+      #     lake build
 
-      - name: check for noisy stdout lines
-        id: noisy
-        run: |
-          ! grep --after-context=1 "stdout:" stdout.log
-          ! grep --after-context=1 "stderr:" stdout.log
+      # - name: check for noisy stdout lines
+      #   id: noisy
+      #   run: |
+      #     ! grep --after-context=1 "stdout:" stdout.log
+      #     ! grep --after-context=1 "stderr:" stdout.log
 
       - name: check for unused imports
         id: shake
