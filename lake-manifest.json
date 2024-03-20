@@ -58,11 +58,11 @@
   {"url": "https://github.com/leanprover-community/mathlib4.git",
    "type": "git",
    "subDir": null,
-   "rev": "9d3f2bf8a149ca8d150b28e81d13b928fffb4728",
+   "rev": "d8258805abacf5e1925ac9aecc5c943f9974be9f",
    "name": "mathlib",
    "manifestFile": "lake-manifest.json",
    "inputRev": null,
    "inherited": false,
    "configFile": "lakefile.lean"}],
- "name": "«VCV-io»",
+ "name": "VCVio",
  "lakeDir": ".lake"}
