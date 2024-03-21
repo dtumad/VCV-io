@@ -367,6 +367,19 @@ variable (oa : OracleComp spec α) (f : α → β)
 lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
   simp [map_eq_bind_pure_comp, PMF.map, Function.comp]
 
+/-- Write the probability of an output after mapping the result of a computation as a sum
+over all outputs such that they map to the correct final output, using subtypes.
+This lemma notably doesn't require decidable equality on the final type, unlike most
+lemmas about probability when mapping a computation. -/
+lemma probOutput_map_eq_tsum' (y : β) :
+    [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
+  have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
+  simp only [map_eq_bind_pure_comp, tsum_subtype _ (λ x ↦ [= x | oa]), probOutput_bind_eq_tsum,
+    Function.comp_apply, probOutput_pure, mul_ite, mul_one, mul_zero,
+    Set.indicator, Set.mem_setOf_eq]
+  refine (tsum_congr (λ x ↦ ?_))
+  by_cases hy : y = f x <;> by_cases hx : x ∈ oa.support <;> simp [hy, hx]
+
 @[simp low]
 lemma probOutput_map_eq_tsum [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
@@ -395,7 +408,10 @@ end map
 
 section seq
 
--- TODO
+variable (oa : OracleComp spec α) (og : OracleComp spec (α → β))
+
+lemma evalDist_seq : evalDist (og <*> oa) = (evalDist og).seq (evalDist oa) := by
+  simp [PMF.ext_iff, seq_eq_bind_map, ← ENNReal.tsum_mul_left]
 
 end seq
 
@@ -440,7 +456,13 @@ end coin
 
 section uniformFin
 
--- TODO
+variable (n : ℕ)
+
+@[simp]
+lemma evalDist_uniformFin : evalDist $[0..n] = PMF.ofFintype (λ _ ↦ ((n : ℝ≥0∞) + 1)⁻¹) (by
+    have : ((n : ℝ≥0∞) + 1) * ((n : ℝ≥0∞) + 1)⁻¹ = 1 := ENNReal.mul_inv_cancel (by simp) (by simp)
+    simpa using this) := by
+  simp [PMF.ext_iff, uniformFin, evalDist_query (spec := unifSpec)]
 
 end uniformFin
 
