@@ -220,8 +220,8 @@ variable (oa : OracleComp spec α) (p : α → Prop)
 /-- The probability of an event written as a sum over the set `{x | p x}` viewed as a subtype.
 This notably doesn't require decidability of the predicate `p` unlike many other lemmas. -/
 lemma probEvent_eq_tsum_subtype :
-  [p | oa] = ∑' x : {x | p x}, [= x | oa] := by
-rw [probEvent.def, PMF.toOuterMeasure_apply, tsum_subtype, probOutput.def, setOf]
+    [p | oa] = ∑' x : {x | p x}, [= x | oa] := by
+  rw [probEvent.def, PMF.toOuterMeasure_apply, tsum_subtype, probOutput.def, setOf]
 
 /-- Version `probEvent_eq_tsum_subtype` that preemptively filters out elements that
 aren't in the support, since they will have no mass contribution anyways.
