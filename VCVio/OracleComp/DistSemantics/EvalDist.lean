@@ -31,12 +31,14 @@ always choose them over versions involving `sum` (as they require `DecidableEq` 
 TODO: We define `distEquiv` on it's own somewhere else
 -/
 
-open ENNReal BigOperators
-
 namespace OracleComp
+
+open ENNReal BigOperators
 
 variable {spec : OracleSpec} {α β : Type}
 
+/-- Associate a probability mass function to a computation, where the probability is the odds of
+getting a given output assuming all oracles responded uniformly at random. -/
 noncomputable def evalDist : {α : Type} → OracleComp spec α → PMF α
 | _, pure' α a => PMF.pure a
 | _, query_bind' i _ α oa => PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
@@ -49,18 +51,21 @@ lemma evalDist_query_bind' (i : spec.ι) (t : spec.domain i)
   PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
     (Fintype.sum_inv_card (spec.range i))) (λ a ↦ evalDist $ oa a) := rfl
 
+/-- `[= x | oa]` is the probability of getting the given output `x` from the computation `oa`,
+assuming all oracles respond uniformly at random. -/
 noncomputable def probOutput (oa : OracleComp spec α) (x : α) : ℝ≥0∞ :=
 evalDist oa x
 
+/-- `[p | oa]` is the probability of getting a result that satisfies a predicate `p`
+after running the computation `oa`, assuming all oracles respond uniformly at random.-/
 noncomputable def probEvent (oa : OracleComp spec α) (p : α → Prop) : ℝ≥0∞ :=
 (evalDist oa).toOuterMeasure p
 
 notation "[=" x "|" oa "]" => probOutput oa x
 notation "[" p "|" oa "]" => probEvent oa p
 
-lemma probOutput.def (oa : OracleComp spec α) (x : α) : [= x | oa] = evalDist oa x := rfl
-lemma probEvent.def (oa : OracleComp spec α) (p : α → Prop) :
-    [p | oa] = (evalDist oa).toOuterMeasure p := rfl
+lemma probOutput.def (oa : OracleComp spec α) : probOutput oa = ⇑(evalDist oa) := rfl
+lemma probEvent.def (oa : OracleComp spec α) : probEvent oa = ⇑(evalDist oa).toOuterMeasure := rfl
 
 noncomputable example : ℝ≥0∞ := [= 5 | do let x ← $[0..4]; return x + 1] -- = 1/4
 noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ← $[0..4]; return x] -- = 1/4
@@ -212,13 +217,18 @@ variable (oa : OracleComp spec α) (p : α → Prop)
 @[simp] lemma sum_probOutput [Fintype α] : ∑ x : α, [= x | oa] = 1 :=
   symm (oa.tsum_probOutput.symm.trans <| tsum_eq_sum' <| by simp)
 
-/-- The probability of an event `p` after running `oa` is the sum over elements `x ∈ support oa`
-such that `p x` of the probability `[= x | oa]`.
-This formulation notably doesn't require that `p` be decidable. -/
+/-- The probability of an event written as a sum over the set `{x | p x}` viewed as a subtype.
+This notably doesn't require decidability of the predicate `p` unlike many other lemmas. -/
 lemma probEvent_eq_tsum_subtype :
+  [p | oa] = ∑' x : {x | p x}, [= x | oa] := by
+rw [probEvent.def, PMF.toOuterMeasure_apply, tsum_subtype, probOutput.def, setOf]
+
+/-- Version `probEvent_eq_tsum_subtype` that preemptively filters out elements that
+aren't in the support, since they will have no mass contribution anyways.
+This can make some proofs simpler by handling things on the level of subtypes. -/
+lemma probEvent_eq_tsum_subtype_mem_support :
     [p | oa] = ∑' x : {x ∈ oa.support | p x}, [= x | oa] := by
-  simp_rw [probEvent.def, PMF.toOuterMeasure_apply, Set.indicator, probOutput.def,
-    tsum_subtype {x ∈ oa.support | p x} (evalDist oa)]
+  simp_rw [probEvent_eq_tsum_subtype, tsum_subtype]
   refine tsum_congr (λ x ↦ ?_)
   by_cases hpx : p x
   · refine (if_pos hpx).trans ?_
@@ -303,6 +313,10 @@ lemma probEvent_bind_eq_tsum (q : β → Prop) :
     [q | oa >>= ob] = ∑' x : α, [= x | oa] * [q | ob x] :=
   by simp [probEvent.def, probOutput.def]
 
+/-- Version of `probOutput_bind_eq_tsum` that sums only over the subtype given by the support
+of the first computation. This can be useful to avoid looking at edge cases that can't actually
+happen in practice after the first computation. A common example is if the first computation
+does some error handling to avoids returning malformed outputs. -/
 lemma probOutput_bind_eq_tsum_subtype (y : β) :
     [= y | oa >>= ob] = ∑' x : oa.support, [= x | oa] * [= y | ob x] := by
   rw [tsum_subtype _ (λ x ↦ [= x | oa] * [= y | ob x]), probOutput_bind_eq_tsum]
@@ -353,8 +367,16 @@ lemma probOutput_query (u : spec.range i) :
   by rw [probOutput.def, evalDist_query, PMF.ofFintype_apply]
 
 @[simp]
+lemma probEvent_query_eq_mul_inv (p : spec.range i → Prop) [DecidablePred p] :
+    [p | query i t] = (Finset.univ.filter p).card * (↑(Fintype.card (spec.range i)))⁻¹ := by
+  simp [probEvent_eq_sum_filter_finSupport]
+
+lemma probEvent_query_eq_inv_mul (p : spec.range i → Prop) [DecidablePred p] :
+    [p | query i t] = (↑(Fintype.card (spec.range i)))⁻¹ * (Finset.univ.filter p).card := by
+  rw [probEvent_query_eq_mul_inv, mul_comm]
+
 lemma probEvent_query_eq_div (p : spec.range i → Prop) [DecidablePred p] :
-    [p | query i t] = (Finset.card (Finset.univ.filter p)) / (Fintype.card (spec.range i)) := by
+    [p | query i t] = (Finset.univ.filter p).card / (Fintype.card (spec.range i)) := by
   simp [probEvent_eq_sum_filter_finSupport, div_eq_mul_inv]
 
 end query
@@ -371,7 +393,8 @@ lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
 over all outputs such that they map to the correct final output, using subtypes.
 This lemma notably doesn't require decidable equality on the final type, unlike most
 lemmas about probability when mapping a computation. -/
-lemma probOutput_map_eq_tsum' (y : β) :
+@[simp low]
+lemma probOutput_map_eq_tsum_subtype (y : β) :
     [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
   have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
   simp only [map_eq_bind_pure_comp, tsum_subtype _ (λ x ↦ [= x | oa]), probOutput_bind_eq_tsum,
@@ -381,24 +404,29 @@ lemma probOutput_map_eq_tsum' (y : β) :
   by_cases hy : y = f x <;> by_cases hx : x ∈ oa.support <;> simp [hy, hx]
 
 @[simp low]
-lemma probOutput_map_eq_tsum [DecidableEq β] (y : β) :
-    [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
-  simp [map_eq_bind_pure_comp]
-@[simp low]
-
-lemma probOutput_map_eq_tsum_subtype [DecidableEq β] (y : β) :
+lemma probOutput_map_eq_tsum_subtype_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : oa.support, if y = f x then [= x | oa] else 0 := by
   simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum_subtype]
 
-@[simp]
-lemma probOutput_map_eq_sum_fintype [Fintype α] [DecidableEq β] (y : β) :
-    [= y | f <$> oa] = ∑ x : α, if y = f x then [= x | oa] else 0 :=
-  (probOutput_map_eq_tsum oa f y).trans (tsum_eq_sum' <| by simp)
+@[simp low]
+lemma probOutput_map_eq_tsum_ite [DecidableEq β] (y : β) :
+    [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
+  simp [map_eq_bind_pure_comp]
 
 @[simp]
-lemma probOutput_map_eq_sum_finSupport [DecidableEq α] [DecidableEq β] (y : β) :
+lemma probOutput_map_eq_sum_fintype_ite [Fintype α] [DecidableEq β] (y : β) :
+    [= y | f <$> oa] = ∑ x : α, if y = f x then [= x | oa] else 0 :=
+  (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <| by simp)
+
+lemma probOutput_map_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x in oa.finSupport, if y = f x then [= x | oa] else 0 :=
-  (probOutput_map_eq_tsum oa f y).trans (tsum_eq_sum' <| by simp [mem_finSupport_iff_mem_support])
+  (probOutput_map_eq_tsum_ite oa f y).trans
+    (tsum_eq_sum' <| by simp [mem_finSupport_iff_mem_support])
+
+@[simp]
+lemma probOutput_map_eq_sum_filter_finSupport [DecidableEq α] [DecidableEq β] (y : β) :
+    [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f .), [= x | oa] := by
+  rw [Finset.sum_filter, probOutput_map_eq_sum_finSupport_ite]
 
 @[simp]
 lemma probEvent_map (q : β → Prop) : [q | f <$> oa] = [q ∘ f | oa] := by
@@ -410,6 +438,7 @@ section seq
 
 variable (oa : OracleComp spec α) (og : OracleComp spec (α → β))
 
+@[simp]
 lemma evalDist_seq : evalDist (og <*> oa) = (evalDist og).seq (evalDist oa) := by
   simp [PMF.ext_iff, seq_eq_bind_map, ← ENNReal.tsum_mul_left]
 
@@ -439,18 +468,28 @@ end ite
 section coin
 
 @[simp]
-lemma evalDist_coin : evalDist coin = PMF.bernoulli (1 / 2) (by simp) := by
+lemma evalDist_coin : evalDist coin = PMF.bernoulli 2⁻¹ (by simp) := by
   simp [PMF.ext_iff, coin, evalDist_query (spec := coinSpec)]
 
 @[simp]
-lemma probOutput_coin (b : Bool) : [= b | coin] = 1 / 2 := by
+lemma probOutput_coin (b : Bool) : [= b | coin] = 2⁻¹ := by
   simp [probOutput.def]
+
+@[simp low]
+lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) : [p | coin] = ∑' x : {x | p x}, 2⁻¹ := by
+  simp [probEvent_eq_tsum_subtype]
 
 @[simp]
 lemma probEvent_coin (p : Bool → Prop) [DecidablePred p] : [p | coin] =
-    if p true then (if p false then 1 else 1 / 2) else (if p false then 1 / 2 else 0) := by
+    if p true then (if p false then 1 else 2⁻¹) else (if p false then 2⁻¹ else 0) := by
   by_cases hpt : p true <;> by_cases hpf : p false <;>
     simp [probEvent_eq_sum_fintype_ite, hpt, hpf, inv_two_add_inv_two]
+
+/-- The xor of two coin flips looks like flipping a single coin -/
+example (x : Bool) : [= x | do let b ← coin; let b' ← coin; return xor b b'] = [= x | coin] := by
+  have : (↑2 : ℝ≥0∞) ≠ ∞ := by simp
+  have : (↑2 : ℝ≥0∞)⁻¹ * 2 = 1 := ENNReal.inv_mul_cancel two_ne_zero this
+  cases x <;> simp [← mul_two, mul_assoc, this]
 
 end coin
 
@@ -463,6 +502,24 @@ lemma evalDist_uniformFin : evalDist $[0..n] = PMF.ofFintype (λ _ ↦ ((n : ℝ
     have : ((n : ℝ≥0∞) + 1) * ((n : ℝ≥0∞) + 1)⁻¹ = 1 := ENNReal.mul_inv_cancel (by simp) (by simp)
     simpa using this) := by
   simp [PMF.ext_iff, uniformFin, evalDist_query (spec := unifSpec)]
+
+@[simp]
+lemma probOutput_uniformFin (x : Fin (n + 1)) : [= x | $[0..n]] = ((n : ℝ≥0∞) + 1)⁻¹ := by
+  rw [probOutput.def, evalDist_uniformFin, PMF.ofFintype_apply]
+
+/-- Without decidability of `p` we can't explicitly count the number of elements in the output,
+so we instead express the probability of an event as a sum. -/
+@[simp low]
+lemma probEvent_uniformFin_eq_tsum_subtype (p : Fin (n + 1) → Prop) :
+    [p | $[0..n]] = ∑' x : {x | p x}, ((n : ℝ≥0∞) + 1)⁻¹ := by
+  simp [probEvent_eq_tsum_subtype]
+
+/-- If `p` is decidable we can explicitly count the outputs of uniform selection that satisfy
+the predicate, avoiding the need to include a sum. -/
+@[simp]
+lemma probEvent_uniformFin (p : Fin (n + 1) → Prop) [DecidablePred p] :
+    [p | $[0..n]] = (Finset.univ.filter p).card * ((n : ℝ≥0∞) + 1)⁻¹ := by
+  simp [probEvent_eq_sum_filter_finSupport]
 
 end uniformFin
 
