@@ -128,6 +128,9 @@ namespace SimOracle
 
 section append
 
+/-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
+with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
+answering queries to either oracle set with queries to the corresponding simulation oracle. -/
 def append (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ) :
     spec₁ ++ spec₂ →[σ × τ]ₛₒ specₜ :=
   λ i ↦ match i with
@@ -142,6 +145,10 @@ end append
 
 section compose
 
+/-- Given a simulation oracle `so` from `spec₁` to `spec₂` and a simulation oracle `so'` from
+`spec₂` to a final target set of oracles `specₜ`, construct a new simulation oracle
+from `spec₁` to `spec₂` by first substituting queries using `so`, and then further
+substituting with the oracles in `so'`. -/
 def compose (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ) :
     spec₁ →[σ × τ]ₛₒ specₜ :=
   λ i ⟨t, s₁, s₂⟩ ↦ (λ ⟨⟨t, s₁⟩, s₂⟩ ↦ ⟨t, s₁, s₂⟩) <$>
@@ -150,6 +157,12 @@ def compose (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ sp
 infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 
 end compose
+
+section maskState
+
+-- TODO
+
+end maskState
 
 end SimOracle
 
