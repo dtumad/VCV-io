@@ -35,11 +35,18 @@ instance (spec₁ spec₂ : OracleSpec) (σ : Type) [h : Nonempty σ] : Nonempty
 instance (spec₁ spec₂ : OracleSpec) (σ : Type) [Inhabited σ] : Inhabited (spec₁ →[σ]ₛₒ spec₂) :=
   ⟨λ _ _ ↦ return default⟩
 
+/-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
+answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
 def simulate (so : spec₁ →[σ]ₛₒ spec₂) : OracleComp spec₁ α → σ → OracleComp spec₂ (α × σ)
   | pure' α x, s => return (x, s)
   | query_bind' i t α oa, s => do
       let ⟨u, s'⟩ ← so i (t, s)
       simulate so (oa u) s'
+
+/-- Version of `simulate` that tosses out the oracle state at the end. -/
+def simulate' (so : spec₁ →[σ]ₛₒ spec₂) (oa : OracleComp spec₁ α) (s : σ) :
+    OracleComp spec₂ α :=
+  Prod.fst <$> simulate so oa s
 
 namespace OracleComp
 
@@ -106,3 +113,38 @@ infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 end compose
 
 end SimOracle
+
+/-- "Simulate" a computation using the original oracles by "replacing" queries with queries.
+This operates as an actual identity for `simulate'`, in that we get an exact equality
+between the new and original computation.
+
+This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
+in a larger set of oracles, leaving the behavior of other oracles unchanged.
+
+This is importantly different than `unifOracle`, which preserves probabilities but
+changes the target oracle spec to `unifSpec` by explicitly choosing outputs randomly. -/
+def idOracle (spec : OracleSpec) : spec →ₛₒ spec :=
+  λ i ⟨t, ()⟩ ↦ ((., ())) <$> query i t
+
+namespace idOracle
+
+variable (spec : OracleSpec)
+
+@[simp]
+lemma apply_eq : idOracle spec i = λ ⟨t, ()⟩ ↦ ((., ())) <$> query i t := rfl
+
+@[simp]
+lemma simulate_eq (oa : OracleComp spec α) (s : Unit) :
+    simulate (idOracle _) oa s = ((·, ())) <$> oa := by
+  revert s
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => exact λ _ ↦ rfl
+  | h_query_bind i t oa hoa =>
+      exact λ () ↦ by simp [map_eq_bind_pure_comp, hoa]
+
+@[simp]
+lemma simulate'_eq (oa : OracleComp spec α) (s : Unit) :
+    simulate' (idOracle _) oa s = oa := by
+  simp [simulate', Functor.map_map, Function.comp]
+
+end idOracle
