@@ -55,12 +55,10 @@ variable {spec₁ spec₂ : OracleSpec} {α β γ σ : Type}
 section basic
 
 @[simp]
-lemma simulate_pure (x : α) (s : σ) :
-  simulate so (pure x) s = pure (x, s) := rfl
+lemma simulate_pure (x : α) (s : σ) : simulate so (pure x) s = pure (x, s) := rfl
 
 @[simp]
-lemma simulate'_pure (x : α) (s : σ) :
-  simulate' so (pure x) s = pure x := rfl
+lemma simulate'_pure (x : α) (s : σ) : simulate' so (pure x) s = pure x := rfl
 
 @[simp]
 lemma simulate_bind (oa : OracleComp spec₁ α) (ob : α → OracleComp spec₁ β)
