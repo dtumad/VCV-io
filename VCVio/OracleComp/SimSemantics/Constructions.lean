@@ -80,6 +80,15 @@ def maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) : spec →[τ]�
 lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : spec.ι) :
   so.maskState e i = λ ⟨t, s⟩ ↦ map id e <$> so i (t, e.symm s) := rfl
 
+/-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
+@[simp]
+lemma maskState_subsingleton [Subsingleton σ] (so : so →[σ]ₛₒ specₜ) (e : σ ≃ σ) :
+    so.maskState e = so := by
+  have he : ⇑e = id := funext (λ _ ↦ Subsingleton.elim _ _)
+  have he' : ⇑e.symm = id := funext (λ _ ↦ Subsingleton.elim _ _)
+  refine funext (λ i ↦ funext (λ ⟨t, _⟩ ↦ ?_))
+  simp only [maskState_apply, he, he', map_id, id_map, id]
+
 end maskState
 
 end SimOracle

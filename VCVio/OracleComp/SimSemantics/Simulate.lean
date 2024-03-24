@@ -8,8 +8,8 @@ import VCVio.OracleComp.DistSemantics.EvalDist
 /-!
 # Simulation Semantics for Oracles in a Computation
 
-This file defines a type `SimOracle spec₁ spec₂ σ` to represent a way to simulate
-oracles in `spec₁` using the oracles in `spec₂`, maintaining some state of type `σ`.
+This file defines a type `SimOracle spec specₜ σ` to represent a way to simulate
+oracles in `spec` using the oracles in `specₜ`, maintaining some state of type `σ`.
 We then define a function `simulate so oa s` to simulate the computation `oa`
 using `so` to answer oracle queries, with initial state `s`.
 -/
@@ -19,35 +19,32 @@ open OracleSpec OracleComp Prod Sum
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
-def SimOracle (spec₁ spec₂ : OracleSpec) (σ : Type) :=
-  (i : spec₁.ι) → spec₁.domain i × σ → OracleComp spec₂ (spec₁.range i × σ)
+def SimOracle (spec specₜ : OracleSpec) (σ : Type) :=
+  (i : spec.ι) → spec.domain i × σ → OracleComp specₜ (spec.range i × σ)
 
-notation : 55 spec₁ "→[" σ "]ₛₒ" spec₂ => SimOracle spec₁ spec₂ σ
-notation : 55 spec₁ "→ₛₒ" spec₂ => SimOracle spec₁ spec₂ Unit
+notation : 55 spec "→[" σ "]ₛₒ" specₜ => SimOracle spec specₜ σ
+notation : 55 spec "→ₛₒ" specₜ => SimOracle spec specₜ Unit
 
-instance (spec₁ spec₂ : OracleSpec) (σ : Type) [h : Nonempty σ] :
-    Nonempty (spec₁ →[σ]ₛₒ spec₂) :=
-  h.elim (λ s ↦ ⟨λ _ _ ↦ return (default, s)⟩)
-instance (spec₁ spec₂ : OracleSpec) (σ : Type) [Inhabited σ] : Inhabited (spec₁ →[σ]ₛₒ spec₂) :=
-  ⟨λ _ _ ↦ return default⟩
+instance (spec specₜ : OracleSpec) (σ : Type) :
+    Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ ⟨_, s⟩ ↦ pure (default, s)⟩
 
 /-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
 answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
-def simulate (so : spec₁ →[σ]ₛₒ spec₂) : OracleComp spec₁ α → σ → OracleComp spec₂ (α × σ)
+def simulate (so : spec →[σ]ₛₒ specₜ) : OracleComp spec α → σ → OracleComp specₜ (α × σ)
   | pure' α x, s => return (x, s)
   | query_bind' i t α oa, s => do
       let ⟨u, s'⟩ ← so i (t, s)
       simulate so (oa u) s'
 
 /-- Version of `simulate` that tosses out the oracle state at the end. -/
-def simulate' (so : spec₁ →[σ]ₛₒ spec₂) (oa : OracleComp spec₁ α) (s : σ) :
-    OracleComp spec₂ α :=
+def simulate' (so : spec →[σ]ₛₒ specₜ) (oa : OracleComp spec α) (s : σ) :
+    OracleComp specₜ α :=
   fst <$> simulate so oa s
 
 namespace OracleComp
 
-variable {spec₁ spec₂ : OracleSpec} {α β γ σ : Type}
-  (so : spec₁ →[σ]ₛₒ spec₂)
+variable {spec specₜ : OracleSpec} {α β γ σ : Type}
+  (so : spec →[σ]ₛₒ specₜ)
 
 section basic
 
@@ -58,7 +55,7 @@ lemma simulate_pure (x : α) (s : σ) : simulate so (pure x) s = pure (x, s) := 
 lemma simulate'_pure (x : α) (s : σ) : simulate' so (pure x) s = pure x := rfl
 
 @[simp]
-lemma simulate_bind (oa : OracleComp spec₁ α) (ob : α → OracleComp spec₁ β)
+lemma simulate_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     (s : σ) : (simulate so (oa >>= ob) s = do
       let ⟨x, s'⟩ ← simulate so oa s
       simulate so (ob x) s') := by
@@ -69,29 +66,29 @@ lemma simulate_bind (oa : OracleComp spec₁ α) (ob : α → OracleComp spec₁
       simp only [simulate, OracleComp.bind'_eq_bind, pure_bind, hoa, bind_assoc, implies_true]
 
 @[simp]
-lemma simulate'_bind (oa : OracleComp spec₁ α) (ob : α → OracleComp spec₁ β)
+lemma simulate'_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     (s : σ) : (simulate' so (oa >>= ob) s = do
       let ⟨x, s'⟩ ← simulate so oa s
       simulate' so (ob x) s') := by
   simp only [simulate', simulate_bind, map_bind]
 
 @[simp]
-lemma simulate_query (i : spec₁.ι) (t : spec₁.domain i) (s : σ) :
+lemma simulate_query (i : spec.ι) (t : spec.domain i) (s : σ) :
     simulate so (query i t) s = so i (t, s) := by
   simp_rw [query_def, simulate, Prod.mk.eta, bind_pure]
 
 @[simp]
-lemma simulate'_query (i : spec₁.ι) (t : spec₁.domain i) (s : σ) :
+lemma simulate'_query (i : spec.ι) (t : spec.domain i) (s : σ) :
     simulate' so (query i t) s = fst <$> so i (t, s) := by
   rw [simulate', simulate_query]
 
 @[simp]
-lemma simulate_map (oa : OracleComp spec₁ α) (f : α → β) (s : σ) :
+lemma simulate_map (oa : OracleComp spec α) (f : α → β) (s : σ) :
     simulate so (f <$> oa) s = (map f id) <$> simulate so oa s := by
   simp [map_eq_bind_pure_comp, Function.comp]
 
 @[simp]
-lemma simulate'_map (oa : OracleComp spec₁ α) (f : α → β) (s : σ) :
+lemma simulate'_map (oa : OracleComp spec α) (f : α → β) (s : σ) :
     simulate' so (f <$> oa) s = f <$> simulate' so oa s := by
   simp [simulate', simulate_map, Functor.map_map, Function.comp]
 
@@ -101,7 +98,7 @@ section support
 
 /-- Since `support` assumes any possible query result, `simulate` will never reduce the support.
 In particular the support of a simulation lies in the preimage of the original support. -/
-lemma support_simulate_subset_preimage_support (oa : OracleComp spec₁ α) (s : σ) :
+lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ) :
     (simulate so oa s).support ⊆ fst ⁻¹' oa.support := by
   revert s
   induction oa using OracleComp.inductionOn with
@@ -112,7 +109,7 @@ lemma support_simulate_subset_preimage_support (oa : OracleComp spec₁ α) (s :
 
 /-- Simulation only reduces the possible oracle outputs, so can't reduce the support. In particular
 the first output of a simulation has support at most that of the original computation -/
-lemma support_simulate'_subset_support (oa : OracleComp spec₁ α) (s : σ) :
+lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
     (simulate' so oa s).support ⊆ oa.support := by
   rw [simulate', support_map, Set.image_subset_iff]
   apply support_simulate_subset_preimage_support

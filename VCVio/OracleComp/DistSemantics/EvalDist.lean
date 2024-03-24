@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.DistSemantics.Support
 import ToMathlib.General
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+import Mathlib.Probability.Distributions.Uniform
 
 /-!
 # Denotational Semantics for Output Distributions
@@ -393,7 +393,7 @@ lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
 over all outputs such that they map to the correct final output, using subtypes.
 This lemma notably doesn't require decidable equality on the final type, unlike most
 lemmas about probability when mapping a computation. -/
-@[simp low]
+@[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype (y : β) :
     [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
   have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
@@ -403,17 +403,17 @@ lemma probOutput_map_eq_tsum_subtype (y : β) :
   refine (tsum_congr (λ x ↦ ?_))
   by_cases hy : y = f x <;> by_cases hx : x ∈ oa.support <;> simp [hy, hx]
 
-@[simp low]
+@[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : oa.support, if y = f x then [= x | oa] else 0 := by
   simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum_subtype]
 
-@[simp low]
+@[simp low - 1]
 lemma probOutput_map_eq_tsum_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
   simp [map_eq_bind_pure_comp]
 
-@[simp]
+@[simp low]
 lemma probOutput_map_eq_sum_fintype_ite [Fintype α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x : α, if y = f x then [= x | oa] else 0 :=
   (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <| by simp)
@@ -498,14 +498,13 @@ section uniformFin
 variable (n : ℕ)
 
 @[simp]
-lemma evalDist_uniformFin : evalDist $[0..n] = PMF.ofFintype (λ _ ↦ ((n : ℝ≥0∞) + 1)⁻¹) (by
-    have : ((n : ℝ≥0∞) + 1) * ((n : ℝ≥0∞) + 1)⁻¹ = 1 := ENNReal.mul_inv_cancel (by simp) (by simp)
-    simpa using this) := by
+lemma evalDist_uniformFin : evalDist $[0..n] = PMF.uniformOfFintype (Fin (n + 1)) := by
   simp [PMF.ext_iff, uniformFin, evalDist_query (spec := unifSpec)]
 
 @[simp]
 lemma probOutput_uniformFin (x : Fin (n + 1)) : [= x | $[0..n]] = ((n : ℝ≥0∞) + 1)⁻¹ := by
-  rw [probOutput.def, evalDist_uniformFin, PMF.ofFintype_apply]
+  rw [probOutput.def, evalDist_uniformFin, PMF.uniformOfFintype_apply]
+  simp only [Fintype.card_fin, Nat.cast_add, Nat.cast_one]
 
 /-- Without decidability of `p` we can't explicitly count the number of elements in the output,
 so we instead express the probability of an event as a sum. -/
