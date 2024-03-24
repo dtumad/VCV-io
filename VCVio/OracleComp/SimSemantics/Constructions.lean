@@ -34,12 +34,12 @@ infixl : 65 " ++ₛₒ " => append
 
 @[simp]
 lemma append_apply_inl (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-  (i : spec₁.ι) : (so ++ₛₒ so') (inl i) = λ ⟨t, s₁, s₂⟩ ↦ do
+    (i : spec₁.ι) : (so ++ₛₒ so') (inl i) = λ ⟨t, s₁, s₂⟩ ↦ do
       let ⟨u, s₁'⟩ ← so i (t, s₁) return (u, s₁', s₂) := rfl
 
 @[simp]
 lemma append_apply_inr (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-  (i : spec₂.ι) : (so ++ₛₒ so') (inr i) = λ ⟨t, s₁, s₂⟩ ↦ do
+    (i : spec₂.ι) : (so ++ₛₒ so') (inr i) = λ ⟨t, s₁, s₂⟩ ↦ do
       let ⟨u, s₂'⟩ ← so' i (t, s₂) return (u, s₁, s₂') := rfl
 
 end append
@@ -60,9 +60,9 @@ def compose (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ sp
 infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 
 @[simp]
-lemma compose_apply (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ)
-  (i : spec₁.ι) : (so' ∘ₛₒ so) i = λ ⟨t, s₁, s₂⟩ ↦ (λ ⟨⟨t, s₁⟩, s₂⟩ ↦ ⟨t, s₁, s₂⟩) <$>
-    simulate so' (so i (t, s₁)) s₂ := rfl
+lemma compose_apply (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ) (i : spec₁.ι) :
+    (so' ∘ₛₒ so) i = λ ⟨t, s₁, s₂⟩ ↦ (λ ⟨⟨t, s₁⟩, s₂⟩ ↦ ⟨t, s₁, s₂⟩) <$>
+      simulate so' (so i (t, s₁)) s₂ := rfl
 
 end compose
 
@@ -78,7 +78,7 @@ def maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) : spec →[τ]�
 
 @[simp]
 lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : spec.ι) :
-  so.maskState e i = λ ⟨t, s⟩ ↦ map id e <$> so i (t, e.symm s) := rfl
+    so.maskState e i = λ ⟨t, s⟩ ↦ map id e <$> so i (t, e.symm s) := rfl
 
 /-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
 @[simp]
