@@ -120,28 +120,30 @@ This can be useful especially with `SimOracle.append`, in order to simulate a si
 in a larger set of oracles, leaving the behavior of other oracles unchanged.
 
 This is importantly different than `unifOracle`, which preserves probabilities but
-changes the target oracle spec to `unifSpec` by explicitly choosing outputs randomly. -/
-def idOracle (spec : OracleSpec) : spec →ₛₒ spec := statelessOracle query
+changes the target oracle spec to `unifSpec` by explicitly choosing outputs randomly.
+
+The relevant spec can usually be inferred automatically, so we leave it implicit. -/
+def idOracle {spec : OracleSpec} : spec →ₛₒ spec := statelessOracle query
 
 namespace idOracle
 
 variable (spec : OracleSpec)
 
 @[simp]
-lemma apply_eq : idOracle spec i = λ ⟨t, ()⟩ ↦ ((., ())) <$> query i t := rfl
+lemma apply_eq (i : spec.ι) : idOracle i = λ ⟨t, ()⟩ ↦ ((., ())) <$> query i t := rfl
 
 @[simp]
-lemma simulate_eq (oa : OracleComp spec α) (u : Unit) :
-    simulate (idOracle _) oa u = ((·, ())) <$> oa := by
-  revert u
+lemma simulate_eq (oa : OracleComp spec α) :
+    simulate idOracle oa = λ _ ↦ ((·, ())) <$> oa := by
   induction oa using OracleComp.inductionOn with
-  | h_pure x => exact λ _ ↦ rfl
+  | h_pure x => exact funext (λ _ ↦ rfl)
   | h_query_bind i t oa hoa =>
-      exact λ () ↦ by simp [map_eq_bind_pure_comp, hoa]
+      exact funext (λ () ↦ by simp [map_eq_bind_pure_comp, hoa])
 
 @[simp]
-lemma simulate'_eq (oa : OracleComp spec α) (u : Unit) :
-    simulate' (idOracle _) oa u = oa := by
+lemma simulate'_eq (oa : OracleComp spec α) :
+    simulate' idOracle oa = λ _ ↦ oa := by
+  refine funext (λ x ↦ ?_)
   simp [simulate', Functor.map_map, Function.comp]
 
 end idOracle

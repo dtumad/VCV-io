@@ -149,4 +149,14 @@ lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
     [= x | simulate' unifOracle oa u] = [= x | oa] := by
   sorry
 
+@[simp]
+lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
+    [p | simulate unifOracle oa u] = [λ x ↦ p (x, ()) | oa] := by
+  sorry
+
+@[simp]
+lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
+    [p | simulate' unifOracle oa u] = [p | oa] := by
+  sorry
+
 end unifOracle
