@@ -87,7 +87,7 @@ instance (spec super_spec : OracleSpec) [h : spec ⊂ₒ super_spec] (α : Type)
 variable {spec super_spec : OracleSpec} [h : spec ⊂ₒ super_spec]
 
 lemma coe_subSpec_def (oa : OracleComp spec α) :
-  (↑oa : OracleComp super_spec α) = simulate' (statelessOracle h.toFun) oa () := rfl
+    (↑oa : OracleComp super_spec α) = simulate' (statelessOracle h.toFun) oa () := rfl
 
 @[simp]
 lemma coe_subSpec_pure (x : α) :
