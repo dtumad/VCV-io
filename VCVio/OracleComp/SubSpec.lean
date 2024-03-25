@@ -34,12 +34,15 @@ namespace OracleSpec
 
 /-- Relation defining an inclusion of one set of oracles into another, where the mapping
 doesn't affect the underlying probability distribution of the computation.
-Informally, `sub_spec ⊂ₒ super_spec` means that for any query to an oracle of `sub_spec`,
+Informally, `spec ⊂ₒ super_spec` means that for any query to an oracle of `sub_spec`,
 it can be perfectly simulated by a computation using the oracles of `super_spec`. -/
-class SubSpec (sub_spec : outParam OracleSpec) (super_spec : OracleSpec) where
-  index_map : sub_spec.ι → super_spec.ι
-  domain_map (i : sub_spec.ι) : sub_spec.domain i → super_spec.domain (index_map i)
-  range_eq (i : sub_spec.ι) : sub_spec.range i = super_spec.range (index_map i)
+class SubSpec (spec : outParam OracleSpec) (super_spec : OracleSpec) where
+  to_fun : (i : spec.ι) → spec.domain i → OracleComp super_spec (spec.range i)
+  evalDist_to_fun (i : spec.ι) (t : spec.domain i) : evalDist (to_fun i t) = evalDist (query i t)
+  -- index_map : spec.ι → super_spec.ι
+  -- -- index_map_inj : Function.Injective index_map
+  -- domain_map (i : spec.ι) : spec.domain i → super_spec.domain (index_map i)
+  -- range_eq (i : spec.ι) : spec.range i = super_spec.range (index_map i)
 
 infix : 50 " ⊂ₒ " => SubSpec
 
@@ -48,12 +51,35 @@ end OracleSpec
 namespace OracleComp
 
 /-- Coerce a computation using the replacement function defined in a `SubSpec` instance. -/
-instance (sub_spec super_spec : OracleSpec) [h : sub_spec ⊂ₒ super_spec] (α : Type)  :
-    Coe (OracleComp sub_spec α) (OracleComp super_spec α) where
-      coe := λ oa ↦ simulate' (statelessOracle (λ i t ↦ h.range_eq i ▸
-        query (h.index_map i) (h.domain_map i t))) oa ()
+instance (spec super_spec : OracleSpec) [h : spec ⊂ₒ super_spec] (α : Type)  :
+    Coe (OracleComp spec α) (OracleComp super_spec α) where
+      coe := λ oa ↦ simulate' (statelessOracle h.to_fun) oa ()
 
-example {sub_spec super_spec : OracleSpec} [h : sub_spec ⊂ₒ super_spec]
-    (oa : OracleComp sub_spec α) : OracleComp super_spec α := ↑oa
+      -- coe := λ oa ↦ simulate' (statelessOracle (λ i t ↦ h.range_eq i ▸
+      --   query (h.index_map i) (h.domain_map i t))) oa ()
+
+variable {spec super_spec : OracleSpec}
+
+-- lemma coe_subSpec_def [h : spec ⊂ₒ super_spec]
+--     (oa : OracleComp spec α) : (↑oa : OracleComp super_spec α) =
+--       simulate' (statelessOracle (λ i t ↦ h.range_eq i ▸
+--         query (h.index_map i) (h.domain_map i t))) oa () := rfl
+
+-- lemma evalDist_coe_subSpec [h : spec ⊂ₒ super_spec]
+--     (oa : OracleComp spec α) : evalDist oa = evalDist (↑oa : OracleComp super_spec α) := by
+--   rw [coe_subSpec_def]
+--   refine symm (evalDist_simulate'_eq_evalDist _ ?_ _ _)
+--   intros i t s
+--   simp [statelessOracle, PMF.map_comp, Function.comp]
+--   erw [PMF.map_id]
+--   convert (evalDist_query (h.index_map i) (h.domain_map i t))
+--   simp
+
+
+
+
+
+
+
 
 end OracleComp

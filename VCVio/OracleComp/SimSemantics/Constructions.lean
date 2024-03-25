@@ -108,8 +108,6 @@ variable {spec specₜ: OracleSpec}
 
 lemma apply_eq (i : spec.ι) : statelessOracle f i = λ ⟨t, ()⟩ ↦ ((·, ())) <$> f i t := rfl
 
--- TODO: do inline and reducible make lemmas here unimportant?
-
 end statelessOracle
 
 /-- "Simulate" a computation using the original oracles by "replacing" queries with queries.

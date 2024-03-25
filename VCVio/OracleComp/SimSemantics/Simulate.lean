@@ -116,4 +116,26 @@ lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
 
 end support
 
+section idem
+
+lemma simulate'_eq_self (so : spec →[σ]ₛₒ spec) (h : ∀ i t s, fst <$> so i (t, s) = query i t)
+    (oa : OracleComp spec α) :
+    ∀ s, simulate' so oa s = oa := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => simp
+  | h_query_bind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
+      hoa, ← h i t s, map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
+
+/-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
+Then `simulate' so` doesn't change the output distribution.
+Stateless oracles are the most common example of this -/
+lemma evalDist_simulate'_eq_evalDist (so : spec →[σ]ₛₒ specₜ)
+    (h : ∀ i t s, evalDist (fst <$> so i (t, s)) = PMF.uniformOfFintype (spec.range i))
+    (oa : OracleComp spec α) : ∀ s, evalDist (simulate' so oa s) = evalDist oa := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => simp
+  | h_query_bind i t oa hoa => refine λ s ↦ by simp [Function.comp, hoa, ← h i t s]
+
+end idem
+
 end OracleComp
