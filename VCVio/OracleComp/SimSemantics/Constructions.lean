@@ -96,7 +96,7 @@ end SimOracle
 /-- Given a functions `f i : spec.domain i → spec.range i` for all `i : spec.ι`,
 construct a simulation oracle that replaces queries `query i t` with `f i t`.
 This doesn't use any internal state, which we model with the `Unit` type. -/
-@[inline, reducible]
+-- @[inline, reducible]
 def statelessOracle {spec specₜ: OracleSpec}
     (f : (i : spec.ι) → spec.domain i → OracleComp specₜ (spec.range i)) : spec →ₛₒ specₜ :=
   λ i ⟨t, ()⟩ ↦ ((·, ())) <$> f i t
@@ -106,6 +106,7 @@ namespace statelessOracle
 variable {spec specₜ: OracleSpec}
     (f : (i : spec.ι) → spec.domain i → OracleComp specₜ (spec.range i))
 
+@[simp]
 lemma apply_eq (i : spec.ι) : statelessOracle f i = λ ⟨t, ()⟩ ↦ ((·, ())) <$> f i t := rfl
 
 end statelessOracle

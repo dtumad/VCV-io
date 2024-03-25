@@ -28,7 +28,7 @@ oracles to one with a larger set of oracles, using the sub-spec inclusion functi
 We show that this coercion has no effect on `support`, `eval_dist`, or `prob_event`.
 -/
 
-open OracleSpec OracleComp BigOperators
+open OracleSpec OracleComp BigOperators ENNReal
 
 namespace OracleSpec
 
@@ -37,14 +37,43 @@ doesn't affect the underlying probability distribution of the computation.
 Informally, `spec ⊂ₒ super_spec` means that for any query to an oracle of `sub_spec`,
 it can be perfectly simulated by a computation using the oracles of `super_spec`. -/
 class SubSpec (spec : outParam OracleSpec) (super_spec : OracleSpec) where
-  to_fun : (i : spec.ι) → spec.domain i → OracleComp super_spec (spec.range i)
-  evalDist_to_fun (i : spec.ι) (t : spec.domain i) : evalDist (to_fun i t) = evalDist (query i t)
-  -- index_map : spec.ι → super_spec.ι
-  -- -- index_map_inj : Function.Injective index_map
-  -- domain_map (i : spec.ι) : spec.domain i → super_spec.domain (index_map i)
-  -- range_eq (i : spec.ι) : spec.range i = super_spec.range (index_map i)
+  toFun : (i : spec.ι) → spec.domain i → OracleComp super_spec (spec.range i)
+  evalDist_toFun' (i : spec.ι) (t : spec.domain i) : evalDist (toFun i t) = evalDist (query i t)
 
 infix : 50 " ⊂ₒ " => SubSpec
+
+namespace SubSpec
+
+variable {spec super_spec : OracleSpec} [h : spec ⊂ₒ super_spec]
+
+@[simp]
+lemma evalDist_toFun (i : spec.ι) (t : spec.domain i) :
+    evalDist (h.toFun i t) = PMF.uniformOfFintype (spec.range i) := by
+  rw [h.evalDist_toFun' i t, evalDist_query]
+
+@[simp]
+lemma support_toFun (i : spec.ι) (t : spec.domain i) :
+    support (h.toFun i t) = Set.univ := by
+  rw [← support_evalDist, h.evalDist_toFun, PMF.support_uniformOfFintype, Set.top_eq_univ]
+
+@[simp]
+lemma finSupport_toFun (i : spec.ι) (t : spec.domain i) :
+    finSupport (h.toFun i t) = Finset.univ := by
+  rw [finSupport_eq_iff_support_eq_coe, support_toFun, Finset.coe_univ]
+
+@[simp]
+lemma probOutput_toFun (i : spec.ι) (t : spec.domain i) (u : spec.range i) :
+    [= u | h.toFun i t] = (↑(Fintype.card (spec.range i)) : ℝ≥0∞)⁻¹ :=
+  by rw [probOutput.def, evalDist_toFun, PMF.uniformOfFintype_apply]
+
+@[simp]
+lemma probEvent_toFun (i : spec.ι) (t : spec.domain i)
+    (p : spec.range i → Prop) [DecidablePred p] :
+    [p | h.toFun i t] = (Finset.univ.filter p).card / Fintype.card (spec.range i) := by
+  rw [probEvent.def, h.evalDist_toFun, ← evalDist_query i t, ← probEvent.def,
+    probEvent_query_eq_div]
+
+end SubSpec
 
 end OracleSpec
 
@@ -53,33 +82,40 @@ namespace OracleComp
 /-- Coerce a computation using the replacement function defined in a `SubSpec` instance. -/
 instance (spec super_spec : OracleSpec) [h : spec ⊂ₒ super_spec] (α : Type)  :
     Coe (OracleComp spec α) (OracleComp super_spec α) where
-      coe := λ oa ↦ simulate' (statelessOracle h.to_fun) oa ()
+      coe := λ oa ↦ simulate' (statelessOracle h.toFun) oa ()
 
-      -- coe := λ oa ↦ simulate' (statelessOracle (λ i t ↦ h.range_eq i ▸
-      --   query (h.index_map i) (h.domain_map i t))) oa ()
+variable {spec super_spec : OracleSpec} [h : spec ⊂ₒ super_spec]
 
-variable {spec super_spec : OracleSpec}
+lemma coe_subSpec_def (oa : OracleComp spec α) :
+  (↑oa : OracleComp super_spec α) = simulate' (statelessOracle h.toFun) oa () := rfl
 
--- lemma coe_subSpec_def [h : spec ⊂ₒ super_spec]
---     (oa : OracleComp spec α) : (↑oa : OracleComp super_spec α) =
---       simulate' (statelessOracle (λ i t ↦ h.range_eq i ▸
---         query (h.index_map i) (h.domain_map i t))) oa () := rfl
+@[simp]
+lemma coe_subSpec_pure (x : α) :
+    (↑(pure x : OracleComp spec α) : OracleComp super_spec α) = pure x := rfl
 
--- lemma evalDist_coe_subSpec [h : spec ⊂ₒ super_spec]
---     (oa : OracleComp spec α) : evalDist oa = evalDist (↑oa : OracleComp super_spec α) := by
---   rw [coe_subSpec_def]
---   refine symm (evalDist_simulate'_eq_evalDist _ ?_ _ _)
---   intros i t s
---   simp [statelessOracle, PMF.map_comp, Function.comp]
---   erw [PMF.map_id]
---   convert (evalDist_query (h.index_map i) (h.domain_map i t))
---   simp
+@[simp]
+lemma coe_subSpec_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    (↑(oa >>= ob) : OracleComp super_spec β) = ↑oa >>= ↑ob := by
+  sorry
+
+@[simp]
+lemma coe_subSpec_query (i : spec.ι) (t : spec.domain i) :
+    (↑(query i t) : OracleComp super_spec (spec.range i)) = h.toFun i t := by
+  simp only [simulate'_query, statelessOracle.apply_eq, Functor.map_map, Function.comp, id_map']
+
+@[simp]
+lemma coe_subSpec_map (oa : OracleComp spec α) (f : α → β) :
+    (↑(f <$> oa) : OracleComp super_spec β) = f <$> ↑oa := by
+  simp only [simulate'_map]
+
+@[simp]
+lemma coe_subSpec_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
+    (↑(og <*> oa) : OracleComp super_spec β) = (↑og : OracleComp super_spec (α → β)) <*> ↑oa := by
+  simp [seq_eq_bind_map, simulate', bind_assoc, map_eq_bind_pure_comp]
+
+section simulate
 
 
-
-
-
-
-
+end simulate
 
 end OracleComp
