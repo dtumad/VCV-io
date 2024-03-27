@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
+import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
 # Security Experiments

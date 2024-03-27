@@ -11,5 +11,6 @@ import VCVio.OracleComp.OracleComp
 import VCVio.OracleComp.OracleSpec.Append
 import VCVio.OracleComp.OracleSpec.Basic
 import VCVio.OracleComp.OracleSpec.SubSpec
+import VCVio.OracleComp.SimSemantics.Append
 import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.SimSemantics.Simulate

@@ -31,3 +31,10 @@ def exec (alg : OracleAlg spec) (oa : OracleComp spec α) : OracleComp unifSpec 
   simulate' alg.baseSimOracle oa alg.initState
 
 end OracleAlg
+
+/-- Simple base structure for defining algorithms using only uniform selection oracles.
+Usefull to auto-fill in fields with simple defaults in this case. -/
+def baseOracleAlg : OracleAlg unifSpec where
+  baseState := Unit
+  initState := ()
+  baseSimOracle := idOracle
