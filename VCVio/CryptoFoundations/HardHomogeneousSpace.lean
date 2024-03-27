@@ -50,8 +50,8 @@ and a result is valid if it is exactly the vectorization of the challenge points
 noncomputable def vectorizationExp [HomogeneousSpace G P]
     (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) G where
   inpGen := do
-    let x₁ ←$ᵗ P
-    let x₂ ←$ᵗ P
+    let x₁ ← $ᵗ P
+    let x₂ ← $ᵗ P
     return (x₁, x₂)
   main := adv.run
   isValid := λ ⟨x₁, x₂⟩ g ↦ g = x₁ -ᵥ x₂
