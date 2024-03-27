@@ -41,6 +41,9 @@ def simulate' (so : spec →[σ]ₛₒ specₜ) (oa : OracleComp spec α) (s : �
     OracleComp specₜ α :=
   fst <$> simulate so oa s
 
+lemma simulate'_def (so : spec →[σ]ₛₒ specₜ) (oa : OracleComp spec α) (s : σ) :
+    simulate' so oa s = fst <$> simulate so oa s := rfl
+
 namespace OracleComp
 
 variable {spec specₜ : OracleSpec} {α β γ σ : Type}
@@ -57,8 +60,8 @@ lemma simulate'_pure (x : α) (s : σ) : simulate' so (pure x) s = pure x := rfl
 @[simp]
 lemma simulate_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     (s : σ) : (simulate so (oa >>= ob) s = do
-      let ⟨x, s'⟩ ← simulate so oa s
-      simulate so (ob x) s') := by
+      let z ← simulate so oa s
+      simulate so (ob z.1) z.2) := by
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => exact (λ _ ↦ rfl)
