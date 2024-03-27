@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.DistSemantics.Support
 import ToMathlib.General
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+import Mathlib.Probability.Distributions.Uniform
 
 /-!
 # Denotational Semantics for Output Distributions
@@ -41,15 +41,13 @@ variable {spec : OracleSpec} {α β : Type}
 getting a given output assuming all oracles responded uniformly at random. -/
 noncomputable def evalDist : {α : Type} → OracleComp spec α → PMF α
 | _, pure' α a => PMF.pure a
-| _, query_bind' i _ α oa => PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
-    (Fintype.sum_inv_card (spec.range i))) (λ a ↦ evalDist $ oa a)
+| _, query_bind' i _ α oa => (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u))
 
 lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
 
 lemma evalDist_query_bind' (i : spec.ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) : evalDist (query_bind' i t α oa) =
-  PMF.bind (PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
-    (Fintype.sum_inv_card (spec.range i))) (λ a ↦ evalDist $ oa a) := rfl
+      (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u)) := rfl
 
 /-- `[= x | oa]` is the probability of getting the given output `x` from the computation `oa`,
 assuming all oracles respond uniformly at random. -/
@@ -94,8 +92,8 @@ lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
   induction oa using OracleComp.inductionOn with
   | h_pure => simp_rw [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, support_pure']
   | h_query_bind i t oa hoa => simp_rw [← query_bind'_eq_query_bind, evalDist_query_bind',
-      PMF.support_bind, support_query_bind', PMF.support_ofFintype, Set.mem_iUnion, hoa,
-      Function.mem_support, ne_eq, ENNReal.inv_eq_zero, nat_ne_top, not_false_iff, exists_const]
+      PMF.support_bind, support_query_bind', PMF.support_uniformOfFintype, Set.mem_iUnion, hoa,
+      Set.top_eq_univ, Set.mem_univ, exists_true_left]
 
 /-- The support of `evalDist oa` is exactly `support oa`. -/
 @[simp] lemma support_evalDist (oa : OracleComp spec α) : (evalDist oa).support = oa.support :=
@@ -357,14 +355,13 @@ section query
 variable (i : spec.ι) (t : spec.domain i)
 
 @[simp]
-lemma evalDist_query : evalDist (query i t) = PMF.ofFintype (λ _ ↦ (Fintype.card (spec.range i))⁻¹)
-    (Fintype.sum_inv_card (spec.range i)) := by
+lemma evalDist_query : evalDist (query i t) = PMF.uniformOfFintype (spec.range i):= by
   simp only [query_def, evalDist_query_bind', evalDist_pure, PMF.bind_pure]
 
 @[simp]
 lemma probOutput_query (u : spec.range i) :
     [= u | query i t] = (Fintype.card (spec.range i) : ℝ≥0∞)⁻¹ :=
-  by rw [probOutput.def, evalDist_query, PMF.ofFintype_apply]
+  by rw [probOutput.def, evalDist_query, PMF.uniformOfFintype_apply]
 
 @[simp]
 lemma probEvent_query_eq_mul_inv (p : spec.range i → Prop) [DecidablePred p] :
@@ -393,7 +390,7 @@ lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
 over all outputs such that they map to the correct final output, using subtypes.
 This lemma notably doesn't require decidable equality on the final type, unlike most
 lemmas about probability when mapping a computation. -/
-@[simp low]
+@[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype (y : β) :
     [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
   have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
@@ -403,17 +400,17 @@ lemma probOutput_map_eq_tsum_subtype (y : β) :
   refine (tsum_congr (λ x ↦ ?_))
   by_cases hy : y = f x <;> by_cases hx : x ∈ oa.support <;> simp [hy, hx]
 
-@[simp low]
+@[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : oa.support, if y = f x then [= x | oa] else 0 := by
   simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum_subtype]
 
-@[simp low]
+@[simp low - 1]
 lemma probOutput_map_eq_tsum_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
   simp [map_eq_bind_pure_comp]
 
-@[simp]
+@[simp low]
 lemma probOutput_map_eq_sum_fintype_ite [Fintype α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x : α, if y = f x then [= x | oa] else 0 :=
   (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <| by simp)
@@ -498,14 +495,13 @@ section uniformFin
 variable (n : ℕ)
 
 @[simp]
-lemma evalDist_uniformFin : evalDist $[0..n] = PMF.ofFintype (λ _ ↦ ((n : ℝ≥0∞) + 1)⁻¹) (by
-    have : ((n : ℝ≥0∞) + 1) * ((n : ℝ≥0∞) + 1)⁻¹ = 1 := ENNReal.mul_inv_cancel (by simp) (by simp)
-    simpa using this) := by
+lemma evalDist_uniformFin : evalDist $[0..n] = PMF.uniformOfFintype (Fin (n + 1)) := by
   simp [PMF.ext_iff, uniformFin, evalDist_query (spec := unifSpec)]
 
 @[simp]
 lemma probOutput_uniformFin (x : Fin (n + 1)) : [= x | $[0..n]] = ((n : ℝ≥0∞) + 1)⁻¹ := by
-  rw [probOutput.def, evalDist_uniformFin, PMF.ofFintype_apply]
+  rw [probOutput.def, evalDist_uniformFin, PMF.uniformOfFintype_apply]
+  simp only [Fintype.card_fin, Nat.cast_add, Nat.cast_one]
 
 /-- Without decidability of `p` we can't explicitly count the number of elements in the output,
 so we instead express the probability of an event as a sum. -/

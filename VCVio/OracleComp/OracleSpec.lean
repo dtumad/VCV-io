@@ -76,7 +76,7 @@ instance : EmptyCollection OracleSpec := ⟨emptySpec⟩
 instance : Inhabited OracleSpec := ⟨∅⟩
 
 /-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`. -/
-@[simps] def singletonSpec (T U : Type) [Inhabited U] [DecidableEq T]
+@[inline, reducible] def singletonSpec (T U : Type) [Inhabited U] [DecidableEq T]
   [DecidableEq U] [Fintype U] : OracleSpec where
   ι := Unit
   domain := λ _ ↦ T
@@ -101,7 +101,7 @@ NOTE: debate on whether inlining this is good -/
 By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.
 
 NOTE: debate on whether inlining this is good -/
-@[simps, inline, reducible] def unifSpec : OracleSpec where
+@[inline, reducible] def unifSpec : OracleSpec where
   ι := ℕ
   domain := λ _ ↦ Unit
   range := λ n ↦ Fin (n + 1)
