@@ -86,17 +86,15 @@ instance (spec super_spec : OracleSpec) [h : spec ⊂ₒ super_spec] (α : Type)
 
 variable {spec super_spec : OracleSpec} [h : spec ⊂ₒ super_spec]
 
-lemma coe_subSpec_def (oa : OracleComp spec α) :
-    (↑oa : OracleComp super_spec α) = simulate' (statelessOracle h.toFun) oa () := rfl
-
 @[simp]
 lemma coe_subSpec_pure (x : α) :
     (↑(pure x : OracleComp spec α) : OracleComp super_spec α) = pure x := rfl
 
 @[simp]
 lemma coe_subSpec_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    (↑(oa >>= ob) : OracleComp super_spec β) = ↑oa >>= ↑ob := by
-  sorry
+    (↑(oa >>= ob) : OracleComp super_spec β) = ↑oa >>= λ x ↦ ↑(ob x) := by
+  rw [simulate'_bind, simulate_eq_map_simulate'_of_subsingleton _ _ () ()]
+  simp [Functor.map_map, Function.comp, simulate', bind_assoc, map_eq_bind_pure_comp]
 
 @[simp]
 lemma coe_subSpec_query (i : spec.ι) (t : spec.domain i) :
@@ -113,9 +111,21 @@ lemma coe_subSpec_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β
     (↑(og <*> oa) : OracleComp super_spec β) = (↑og : OracleComp super_spec (α → β)) <*> ↑oa := by
   simp [seq_eq_bind_map, simulate', bind_assoc, map_eq_bind_pure_comp]
 
-section simulate
+@[simp]
+lemma evalDist_coe_subSpec (oa : OracleComp spec α) :
+    evalDist (↑oa : OracleComp super_spec α) = evalDist oa := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => simp
+  | h_query_bind i t oa hoa => simp [Function.comp, hoa]
 
+@[simp]
+lemma probOutput_coe_subSpec (oa : OracleComp spec α) (x : α) :
+    [= x | (↑oa : OracleComp super_spec α)] = [= x | oa] := by
+  simp only [probOutput.def, evalDist_coe_subSpec]
 
-end simulate
+@[simp]
+lemma probEvent_coe_subSpec (oa : OracleComp spec α) (p : α → Prop) :
+    [p | (↑oa : OracleComp super_spec α)] = [p | oa] := by
+  simp only [probEvent.def, evalDist_coe_subSpec]
 
 end OracleComp

@@ -22,8 +22,8 @@ e.g. using uniform selection oracles with a query cache to simulate a random ora
 def SimOracle (spec specₜ : OracleSpec) (σ : Type) :=
   (i : spec.ι) → spec.domain i × σ → OracleComp specₜ (spec.range i × σ)
 
-notation : 55 spec "→[" σ "]ₛₒ" specₜ => SimOracle spec specₜ σ
-notation : 55 spec "→ₛₒ" specₜ => SimOracle spec specₜ Unit
+notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
+notation : 55 spec " →ₛₒ " specₜ => SimOracle spec specₜ Unit
 
 instance (spec specₜ : OracleSpec) (σ : Type) :
     Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ ⟨_, s⟩ ↦ pure (default, s)⟩
@@ -68,8 +68,8 @@ lemma simulate_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 @[simp]
 lemma simulate'_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     (s : σ) : (simulate' so (oa >>= ob) s = do
-      let ⟨x, s'⟩ ← simulate so oa s
-      simulate' so (ob x) s') := by
+      let z ← simulate so oa s
+      simulate' so (ob z.1) z.2) := by
   simp only [simulate', simulate_bind, map_bind]
 
 @[simp]
@@ -137,5 +137,17 @@ lemma evalDist_simulate'_eq_evalDist (so : spec →[σ]ₛₒ specₜ)
   | h_query_bind i t oa hoa => refine λ s ↦ by simp [Function.comp, hoa, ← h i t s]
 
 end idem
+
+section stateless
+
+/-- If the state type is `Subsingleton`, then we can represent simulation in terms of `simulate'`,
+adding back any state at the end of the computation. -/
+lemma simulate_eq_map_simulate'_of_subsingleton [Subsingleton σ] (oa : OracleComp spec α)
+    (s s' : σ) : simulate so oa s = (., s') <$> simulate' so oa s := by
+  simp [seq_eq_bind, map_eq_bind_pure_comp, simulate']
+  convert symm (bind_pure (simulate so oa s))
+
+
+end stateless
 
 end OracleComp

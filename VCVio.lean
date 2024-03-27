@@ -8,7 +8,8 @@ import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Support
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.OracleComp
-import VCVio.OracleComp.OracleSpec
+import VCVio.OracleComp.OracleSpec.Append
+import VCVio.OracleComp.OracleSpec.Basic
+import VCVio.OracleComp.OracleSpec.SubSpec
 import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.SimSemantics.Simulate
-import VCVio.OracleComp.SubSpec

@@ -21,7 +21,6 @@ We also define a number of basic oracle constructions:
 * `T →ₒ U`: Access to a single oracle with given input and output
 * `coinSpec`: A single oracle for flipping a coin
 * `unifSpec`: A family of oracles for selecting from `[0..n]` for any `n`
-* `spec ++ spec'`: Access to oracles in either of the two specs
 -/
 
 /-- A structure to represents a specification of oracles available to a computation.
@@ -112,20 +111,3 @@ NOTE: debate on whether inlining this is good -/
   range_fintype' := inferInstance
 
 instance (i : unifSpec.ι) : Unique (unifSpec.domain i) := PUnit.unique
-
-/-- `spec ++ spec'` combines the two sets of oracles disjointly using `Sum` for the indexing set.
-`Sum.inl i` is a query to oracle `i` of `spec`, and `Sum.inr i` for oracle `i` of `spec'`. -/
-@[simps] instance : Append OracleSpec where
-  append := λ spec spec' ↦
-  { ι := spec.ι ⊕ spec'.ι,
-    domain := λ i ↦ match i with
-      | Sum.inl i => spec.domain i
-      | Sum.inr i => spec'.domain i,
-    range := λ i ↦ match i with
-      | Sum.inl i => spec.range i
-      | Sum.inr i => spec'.range i,
-    range_inhabited' := λ i ↦ Sum.recOn i spec.range_inhabited spec'.range_inhabited,
-    ι_decidableEq' := instDecidableEqSum,
-    domain_decidableEq' := λ i ↦ Sum.recOn i spec.domain_decidableEq spec'.domain_decidableEq,
-    range_decidableEq' := λ i ↦ Sum.recOn i spec.range_decidableEq spec'.range_decidableEq,
-    range_fintype' := λ i ↦ Sum.recOn i spec.range_fintype spec'.range_fintype }

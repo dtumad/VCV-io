@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Constructions
+import VCVio.OracleComp.OracleSpec.SubSpec
 import Mathlib.Data.Vector.Mem
 
 /-!
@@ -40,6 +41,7 @@ lemma evalDist_uniformOfVector : evalDist ($ᵛ v) =
   simp [div_eq_mul_inv]
   congr
   rw [Finset.card_filter]
+
   sorry
 
 @[simp]
@@ -160,3 +162,12 @@ lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop)
   sorry
 
 end unifOracle
+
+section coinSpec
+
+/-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
+noncomputable instance : coinSpec ⊂ₒ unifSpec where
+  toFun := λ () () ↦ $ᵗ Bool
+  evalDist_toFun' := λ i t ↦ by rw [evalDist_uniformOfFintype, evalDist_query i t]
+
+end coinSpec
