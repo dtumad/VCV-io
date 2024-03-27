@@ -47,9 +47,11 @@ namespace SecExp
 
 variable {spec : OracleSpec} {α β : Type}
 
+@[inline, reducible]
 def runExp (exp : SecExp spec α β) : OracleComp unifSpec Bool :=
   exp.exec (do let x ← exp.inpGen; let y ← exp.main x; return exp.isValid x y)
 
+@[inline, reducible]
 noncomputable def advantage (exp : SecExp spec α β) : ℝ≥0∞ :=
   [= true | exp.runExp]
 
