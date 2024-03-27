@@ -30,7 +30,7 @@ noncomputable def elgamalAsymmEnc (G P : Type)
     return (g +ᵥ x₀, m * (g +ᵥ pk))
   decrypt := λ ⟨c₁, c₂⟩ sk ↦ do
     return (c₂ / (sk +ᵥ c₁))
-  __ := baseOracleAlg
+  __ := OracleAlg.baseOracleAlg
 
 theorem elgamalAsymmEnc_sound (G P : Type)
     [AddCommGroup G] [HomogeneousSpace G P] [Group P] :
