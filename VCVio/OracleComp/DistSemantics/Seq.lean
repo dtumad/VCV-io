@@ -15,9 +15,9 @@ that runs the two computations `oa` and `ob` to get some `x` and `y` respectivel
 returning only the value `f x y`.
 -/
 
-namespace OracleComp
+open OracleSpec ENNReal BigOperators
 
-open ENNReal BigOperators
+namespace OracleComp
 
 variable {spec : OracleSpec} {α β : Type}
 

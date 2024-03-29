@@ -54,8 +54,11 @@ lemma exec_map (alg : OracleAlg spec) (oa : OracleComp spec α) (f : α → β) 
     alg.exec (f <$> oa) = f <$> alg.exec oa :=
   simulate'_map alg.baseSimOracle oa f alg.init_state
 
--- @[simp]
--- lemma exec_seq (alg : OracleAlg spec) (oa : OracleComp spec α)
+@[simp]
+lemma exec_seq (alg : OracleAlg spec) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
+    alg.exec (og <*> oa) = (simulate alg.baseSimOracle og alg.init_state >>= λ ⟨f, s⟩ ↦
+      f <$> simulate' alg.baseSimOracle oa s) :=
+  simulate'_seq alg.baseSimOracle oa og
 
 section baseOracleAlg
 
