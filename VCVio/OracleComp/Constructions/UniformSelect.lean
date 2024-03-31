@@ -20,11 +20,47 @@ variable {spec : OracleSpec} {α β γ : Type}
 
 namespace OracleComp
 
+class Selectable (α : Type*) (β : Type) where
+  (count : (s : α) → ℕ)
+  (elems : (s : α) → Vector (β) (count s + 1))
+
+class SelectableType (β : Type)
+
+def uniformSelect {α : Type*} {β : Type} [h : Selectable α β] (s : α) :
+    OracleComp unifSpec (β) := do
+  let i ← $[0..h.count s]
+  (h.elems s).get <$> pure i
+
+notation "$" => uniformSelect
+
+instance : Selectable (Vector α (n + 1)) α where
+  count := λ _ ↦ n
+  elems := λ xs ↦ xs
+
+instance [Inhabited α] : Selectable (List α) α where
+  count := λ xs ↦ xs.length.pred
+  elems := λ xs ↦ match xs with
+    | [] => ⟨[default], rfl⟩
+    | (x :: xs) => ⟨x :: xs, rfl⟩
+
+noncomputable instance [DecidableEq α] [Inhabited α] :
+    Selectable (Finset α) α where
+  count := λ s ↦ s.card.pred
+  elems := λ s ↦ if h : s = ∅
+    then ⟨[default], by simp [h]⟩
+    else ⟨s.toList, by
+      rw [Finset.length_toList]
+      exact symm (Nat.succ_pred <| λ h' ↦ h (Finset.card_eq_zero.1 h'))⟩
+
+
+
 section uniformOfVector
 
 /-- Select uniformly at random from a non-empty vector `v` by selecting a random index. -/
 def uniformOfVector {n : ℕ} (v : Vector α (n + 1)) :
-    OracleComp unifSpec α := v.get <$> $[0..n]
+    OracleComp unifSpec α :=
+  -- $ v
+  v.get <$> $[0..n]
 
 notation "$ᵛ" => uniformOfVector
 
@@ -83,6 +119,13 @@ lemma probEvent_uniformOfFinset (s : Finset α) (hs : s.Nonempty) (p : α → Pr
   sorry
 
 end uniformOfFinset
+
+
+-- instance  : Selectable Type (λ α ↦ α) where
+--   count := _
+--   elems := _
+
+-- def uniformSelect
 
 section uniformOfFintype
 

@@ -17,23 +17,26 @@ and extend this with finiteness and decidability conditions
 /-- A `HomogeneousSpace G P` is a group action of a group `G` on a set of points `P`,
 such that the action induces a bijection (represented by the `AddTorsor` class),
 with the additional assumption that both spaces are finite. -/
-class HomogeneousSpace (G P : outParam Type) [AddCommGroup G]
+class HomogeneousSpace (G : outParam Type) (P : semiOutParam Type)
+    [outParam (AddGroup G)]
     extends AddTorsor G P where
   fintype_G : Fintype G
   fintype_P : Fintype P
-  inhabited_G : Inhabited G
-  inhabited_P : Inhabited P
+  -- `AddTorsor G P` only gives us a `Nonemtpy` instance
+  -- inhabited_P : Inhabited P
   decidableEq_G : DecidableEq G
   decidableEq_P : DecidableEq P
 
 namespace HomogeneousSpace
 
-variable {G P : Type} [AddCommGroup G]
+variable {G P : Type} [AddGroup G]
+
+-- #check AddGroup.inhabited
 
 instance [h : HomogeneousSpace G P] : Fintype G := h.fintype_G
 instance [h : HomogeneousSpace G P] : Fintype P := h.fintype_P
-instance [h : HomogeneousSpace G P] : Inhabited G := h.inhabited_G
-instance [h : HomogeneousSpace G P] : Inhabited P := h.inhabited_P
+
+-- instance : Inhabited G := ⟨0⟩
 instance [h : HomogeneousSpace G P] : DecidableEq G := h.decidableEq_G
 instance [h : HomogeneousSpace G P] : DecidableEq P := h.decidableEq_P
 
@@ -44,15 +47,15 @@ TODO: how does ":=" compare to "extends" in practice? -/
 structure vectorizationAdv (G P : Type)
   extends SecAdv unifSpec (P × P) G
 
-/-- Analogue of the game for the discrete logarithm assumption.
-The input generator randomly chooses the challenge points for the adversary,
-and a result is valid if it is exactly the vectorization of the challenge points. -/
-noncomputable def vectorizationExp [HomogeneousSpace G P]
-    (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) G where
-  inpGen := do let x₁ ← $ᵗ P; let x₂ ← $ᵗ P; return (x₁, x₂)
-  main := adv.run
-  isValid := λ ⟨x₁, x₂⟩ g ↦ g = x₁ -ᵥ x₂
-  __ := OracleAlg.baseOracleAlg
+-- /-- Analogue of the game for the discrete logarithm assumption.
+-- The input generator randomly chooses the challenge points for the adversary,
+-- and a result is valid if it is exactly the vectorization of the challenge points. -/
+-- noncomputable def vectorizationExp [HomogeneousSpace G P]
+--     (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) G where
+--   inpGen := do let x₁ ← $ᵗ P; let x₂ ← $ᵗ P; return (x₁, x₂)
+--   main := adv.run
+--   isValid := λ ⟨x₁, x₂⟩ g ↦ g = x₁ -ᵥ x₂
+--   __ := OracleAlg.baseOracleAlg
 
 namespace vectorizationExp
 
