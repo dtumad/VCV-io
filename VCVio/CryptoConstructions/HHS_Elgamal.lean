@@ -32,8 +32,13 @@ noncomputable def elgamalAsymmEnc (G P : Type)
     return (c₂ / (sk +ᵥ c₁))
   __ := OracleAlg.baseOracleAlg
 
--- theorem elgamalAsymmEnc_sound (G P : Type)
---     [AddCommGroup G] [HomogeneousSpace G P] [Group P] :
---     (elgamalAsymmEnc G P).sound := by
---   intro m
---   sorry
+namespace elgamalAsymmEnc
+
+theorem elgamalAsymmEnc_sound (G P : Type)
+    [AddCommGroup G] [HomogeneousSpace G P] [Group P] :
+    (elgamalAsymmEnc G P).sound := by
+  intro m
+  simp [AsymmEncAlg.soundnessExp, elgamalAsymmEnc]
+  sorry
+
+end elgamalAsymmEnc

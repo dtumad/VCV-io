@@ -24,16 +24,12 @@ structure AsymmEncAlg (spec : OracleSpec) (M PK SK C : Type)
 
 namespace AsymmEncAlg
 
-section sound
+variable {spec : OracleSpec} {M PK SK C : Type}
 
-variable {spec : OracleSpec} {M PK SK C : Type} [DecidableEq M]
-
-/-- Experiment for checking that an asymmetric encryption algorithm is sound.
-`inp_gen` runs the key generation algorithm and returns the keys,
-`main` encrypts then decrypts the message `m`, and `is_valid` checks the new message is the same.
-The algorithm will be sound if this experiment always succeeds. -/
-def soundnessExp (encAlg : AsymmEncAlg spec M PK SK C) (m : M) :
-    SecExp spec (PK × SK) M where
+/-- Experiment for checking that an asymmetric encryption algorithm is sound,
+i.e. that decryption properly reverses encryption -/
+def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C)
+    (m : M) : SecExp spec (PK × SK) M where
   inpGen := encAlg.keygen ()
   main := λ ⟨pk, sk⟩ ↦ do
     let σ ← encAlg.encrypt m pk
@@ -41,11 +37,14 @@ def soundnessExp (encAlg : AsymmEncAlg spec M PK SK C) (m : M) :
   isValid := λ _ m' ↦ m = m'
   __ := encAlg
 
-/-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
-def sound (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
-  ∀ m : M, (soundnessExp encAlg m).advantage = 1
+namespace soundnessExp
 
-end sound
+
+end soundnessExp
+
+/-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
+def sound [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
+  ∀ m : M, (soundnessExp encAlg m).advantage = 1
 
 section IND_CPA
 
