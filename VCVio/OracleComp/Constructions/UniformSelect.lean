@@ -14,24 +14,56 @@ This file defines some computations for selecting uniformly at random from a num
 of different collections, using `unifSpec` to make the random choices.
 -/
 
-open OracleSpec OracleComp BigOperators
-
-variable {spec : OracleSpec} {α β γ : Type}
+open OracleSpec OracleComp BigOperators ENNReal
 
 namespace OracleComp
 
-class Selectable (α : Type*) (β : Type) where
-  (count : (s : α) → ℕ)
-  (elems : (s : α) → Vector (β) (count s + 1))
+section Selectable
 
-class SelectableType (β : Type)
+class Selectable (α : Type*) (β : outParam Type) where
+  (count : (s : α) → ℕ)
+  (elems : (s : α) → Vector β (count s + 1))
 
 def uniformSelect {α : Type*} {β : Type} [h : Selectable α β] (s : α) :
-    OracleComp unifSpec (β) := do
+    OracleComp unifSpec β := do
   let i ← $[0..h.count s]
   (h.elems s).get <$> pure i
 
 notation "$" => uniformSelect
+
+variable {α : Type*} {β : Type}
+
+@[simp]
+lemma evalDist_uniformSelect [h : Selectable α β] (s : α) :
+    evalDist ($ s) = PMF.ofMultiset (Multiset.ofList (h.elems s).toList)
+      (by simp [← List.length_eq_zero]) := by
+  sorry
+
+@[simp]
+lemma probOutput_uniformSelect [h : Selectable α β] (s : α) (x : β) :
+    [= x | $ s] = (h.count s : ℝ≥0∞)⁻¹ := by
+  sorry
+
+@[simp]
+lemma probEvent_uniformSelect [h : Selectable α β] (s : α)
+    (p : β → Prop) [DecidablePred p] :
+    [p | $ s] = ((h.elems s).toList.countP p) /  := by
+  sorry
+
+end Selectable
+
+section SelectableType
+
+class SelectableType (β : outParam Type) extends Selectable Unit β
+
+def uniformSelectFintype (β : Type) [SelectableType β] :
+    OracleComp unifSpec β := $ ()
+
+notation "$ᵗ" => uniformSelectFintype
+
+end SelectableType
+
+section instances
 
 instance : Selectable (Vector α (n + 1)) α where
   count := λ _ ↦ n
@@ -52,73 +84,99 @@ noncomputable instance [DecidableEq α] [Inhabited α] :
       rw [Finset.length_toList]
       exact symm (Nat.succ_pred <| λ h' ↦ h (Finset.card_eq_zero.1 h'))⟩
 
+instance : SelectableType Unit where
+  count := λ _ ↦ 0
+  elems := λ _ ↦ () ::ᵥ Vector.nil
+
+instance : SelectableType Bool where
+  count := λ _ ↦ 1
+  elems := λ _ ↦ true ::ᵥ false ::ᵥ Vector.nil
+
+/-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
+noncomputable instance : coinSpec ⊂ₒ unifSpec where
+  toFun := λ () () ↦ $ᵗ Bool
+  evalDist_toFun' := λ i t ↦ sorry --by rw [evalDist_uniformOfFintype, evalDist_query i t]
 
 
-section uniformOfVector
 
-/-- Select uniformly at random from a non-empty vector `v` by selecting a random index. -/
-def uniformOfVector {n : ℕ} (v : Vector α (n + 1)) :
-    OracleComp unifSpec α :=
-  -- $ v
-  v.get <$> $[0..n]
+-- noncomputable instance {spec : outParam OracleSpec} (i : outParam spec.ι) :
+--   SelectableType (spec.range i) where
+--   count := λ _ ↦ (Fintype.card (spec.range i)) - 1
+--   elems := λ _ ↦ ⟨Finset.univ.toList, by
+--     simp [Fintype.card]
+--     refine symm ?_
+--     refine Nat.succ_pred ?_
+--     simp
+--     sorry
+--     ⟩
 
-notation "$ᵛ" => uniformOfVector
+end instances
 
-variable {n : ℕ} (v : Vector α (n + 1))
+-- section uniformOfVector
 
-@[simp]
-lemma evalDist_uniformOfVector : evalDist ($ᵛ v) =
-    PMF.ofMultiset (Multiset.ofList v.toList) (by simp [← List.length_eq_zero]) := by
-  have : DecidableEq α := Classical.decEq α
-  refine PMF.ext (λ x ↦ ?_)
-  rw [← probOutput.def, uniformOfVector]
-  -- simp
-  rw [probOutput_map_eq_sum_filter_finSupport]
-  simp [div_eq_mul_inv]
-  congr
-  rw [Finset.card_filter]
+-- /-- Select uniformly at random from a non-empty vector `v` by selecting a random index. -/
+-- def uniformOfVector {n : ℕ} (v : Vector α (n + 1)) :
+--     OracleComp unifSpec α :=
+--   -- $ v
+--   v.get <$> $[0..n]
 
-  sorry
+-- notation "$ᵛ" => uniformOfVector
 
-@[simp]
-lemma probOutput_uniformOfVector [BEq α] [LawfulBEq α] (x : α) :
-    [= x | $ᵛ v] = v.toList.count x / (n + 1) := by
-  simp [probOutput.def, evalDist_uniformOfVector, PMF.ofMultiset_apply, lawful_beq_subsingleton]
+-- variable {n : ℕ} (v : Vector α (n + 1))
 
-@[simp]
-lemma probEvent_uniformOfVector (p : α → Prop) [DecidablePred p] :
-    [p | $ᵛ v] = (v.toList.filter p).length / (n + 1) := by
-  sorry
+-- @[simp]
+-- lemma evalDist_uniformOfVector : evalDist ($ᵛ v) =
+--     PMF.ofMultiset (Multiset.ofList v.toList) (by simp [← List.length_eq_zero]) := by
+--   have : DecidableEq α := Classical.decEq α
+--   refine PMF.ext (λ x ↦ ?_)
+--   rw [← probOutput.def, uniformOfVector]
+--   -- simp
+--   rw [probOutput_map_eq_sum_filter_finSupport]
+--   simp [div_eq_mul_inv]
+--   congr
+--   rw [Finset.card_filter]
 
-end uniformOfVector
+--   sorry
 
-section uniformOfFinset
+-- @[simp]
+-- lemma probOutput_uniformOfVector [BEq α] [LawfulBEq α] (x : α) :
+--     [= x | $ᵛ v] = v.toList.count x / (n + 1) := by
+--   simp [probOutput.def, evalDist_uniformOfVector, PMF.ofMultiset_apply, lawful_beq_subsingleton]
 
-/-- Select uniformly at random from a non-empty finite set. This definition is noncomputable
-because we need to use choice to convert the `Finset` into a `List`. -/
-noncomputable def uniformOfFinset (s : Finset α) (hs : s.Nonempty) : OracleComp unifSpec α :=
-  have hxs : s.toList ≠ [] := λ hxs ↦ hs.ne_empty <| Finset.toList_eq_nil.1 hxs
-  $ᵛ ⟨s.toList, symm (Nat.succ_pred (λ h ↦ hxs <| List.length_eq_zero.1 h))⟩
+-- @[simp]
+-- lemma probEvent_uniformOfVector (p : α → Prop) [DecidablePred p] :
+--     [p | $ᵛ v] = (v.toList.filter p).length / (n + 1) := by
+--   sorry
 
-notation "$ˢ" => uniformOfFinset
+-- end uniformOfVector
 
-@[simp]
-lemma evalDist_uniformOfFinset (s : Finset α) (hs : s.Nonempty) :
-    evalDist ($ˢ s hs) = PMF.uniformOfFinset s hs := by
-  refine PMF.ext (λ x ↦ ?_)
-  sorry
+-- section uniformOfFinset
 
-@[simp]
-lemma probOutput_uniformOfFinset [DecidableEq α] (s : Finset α) (hs : s.Nonempty) (x : α) :
-    [= x | $ˢ s hs] = if x ∈ s then (↑s.card)⁻¹ else 0 := by
-  sorry
+-- /-- Select uniformly at random from a non-empty finite set. This definition is noncomputable
+-- because we need to use choice to convert the `Finset` into a `List`. -/
+-- noncomputable def uniformOfFinset (s : Finset α) (hs : s.Nonempty) : OracleComp unifSpec α :=
+--   have hxs : s.toList ≠ [] := λ hxs ↦ hs.ne_empty <| Finset.toList_eq_nil.1 hxs
+--   $ᵛ ⟨s.toList, symm (Nat.succ_pred (λ h ↦ hxs <| List.length_eq_zero.1 h))⟩
 
-@[simp]
-lemma probEvent_uniformOfFinset (s : Finset α) (hs : s.Nonempty) (p : α → Prop) [DecidablePred p] :
-    [p | $ˢ s hs] = (s.filter p).card / s.card := by
-  sorry
+-- notation "$ˢ" => uniformOfFinset
 
-end uniformOfFinset
+-- @[simp]
+-- lemma evalDist_uniformOfFinset (s : Finset α) (hs : s.Nonempty) :
+--     evalDist ($ˢ s hs) = PMF.uniformOfFinset s hs := by
+--   refine PMF.ext (λ x ↦ ?_)
+--   sorry
+
+-- @[simp]
+-- lemma probOutput_uniformOfFinset [DecidableEq α] (s : Finset α) (hs : s.Nonempty) (x : α) :
+--     [= x | $ˢ s hs] = if x ∈ s then (↑s.card)⁻¹ else 0 := by
+--   sorry
+
+-- @[simp]
+-- lemma probEvent_uniformOfFinset (s : Finset α) (hs : s.Nonempty) (p : α → Prop) [DecidablePred p] :
+--     [p | $ˢ s hs] = (s.filter p).card / s.card := by
+--   sorry
+
+-- end uniformOfFinset
 
 
 -- instance  : Selectable Type (λ α ↦ α) where
@@ -127,90 +185,84 @@ end uniformOfFinset
 
 -- def uniformSelect
 
-section uniformOfFintype
+-- section uniformOfFintype
 
-/-- Select a random element from a non-empty finite type. This definition is noncomputable
-because we need choice to construct a list of elements in the type. -/
-noncomputable def uniformOfFintype (α : Type) [h : Fintype α] [Inhabited α] :
-    OracleComp unifSpec α := $ˢ h.elems ⟨default, h.complete default⟩
+-- /-- Select a random element from a non-empty finite type. This definition is noncomputable
+-- because we need choice to construct a list of elements in the type. -/
+-- noncomputable def uniformOfFintype (α : Type) [h : Fintype α] [Inhabited α] :
+--     OracleComp unifSpec α := $ˢ h.elems ⟨default, h.complete default⟩
 
-notation "$ᵗ" => uniformOfFintype
+-- notation "$ᵗ" => uniformOfFintype
 
-variable (α : Type) [h : Fintype α] [Inhabited α]
+-- variable (α : Type) [h : Fintype α] [Inhabited α]
 
-@[simp]
-lemma evalDist_uniformOfFintype : evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
-  have : ∀ x : α, x ∈ Fintype.elems := Fintype.complete
-  simp [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card, this]
+-- @[simp]
+-- lemma evalDist_uniformOfFintype : evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
+--   have : ∀ x : α, x ∈ Fintype.elems := Fintype.complete
+--   simp [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card, this]
 
-@[simp]
-lemma probOutput_uniformOfFintype [DecidableEq α] (x : α) :
-    [= x | $ᵗ α] = (↑(Fintype.card α))⁻¹ := by
-  simp [uniformOfFintype, Fintype.complete, Finset.univ, Fintype.card]
+-- @[simp]
+-- lemma probOutput_uniformOfFintype [DecidableEq α] (x : α) :
+--     [= x | $ᵗ α] = (↑(Fintype.card α))⁻¹ := by
+--   simp [uniformOfFintype, Fintype.complete, Finset.univ, Fintype.card]
 
-@[simp]
-lemma probEvent_uniformOfFintype (p : α → Prop) [DecidablePred p] :
-    [p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α := by
-  simp [uniformOfFintype, Finset.univ, Fintype.card]
+-- @[simp]
+-- lemma probEvent_uniformOfFintype (p : α → Prop) [DecidablePred p] :
+--     [p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α := by
+--   simp [uniformOfFintype, Finset.univ, Fintype.card]
 
-end uniformOfFintype
+-- end uniformOfFintype
 
 end OracleComp
 
-/-- Simulation oracle for replacing queries with uniform random selection, using `unifSpec`.
-The resulting computation is still identical under `evalDist`.
+-- /-- Simulation oracle for replacing queries with uniform random selection, using `unifSpec`.
+-- The resulting computation is still identical under `evalDist`.
+-- The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
+-- noncomputable def unifOracle {spec : OracleSpec} : spec →ₛₒ unifSpec :=
+--     statelessOracle (λ i _ ↦ $ᵗ (spec.range i))
 
-The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
-noncomputable def unifOracle {spec : OracleSpec} : spec →ₛₒ unifSpec :=
-    statelessOracle (λ i _ ↦ $ᵗ (spec.range i))
+-- namespace unifOracle
 
-namespace unifOracle
+-- variable {spec : OracleSpec}
 
-variable {spec : OracleSpec}
+-- @[simp]
+-- lemma apply_eq (i : spec.ι) : unifOracle i = λ _ ↦ ((., ())) <$> $ᵗ (spec.range i) := rfl
 
-@[simp]
-lemma apply_eq (i : spec.ι) : unifOracle i = λ _ ↦ ((., ())) <$> $ᵗ (spec.range i) := rfl
+-- @[simp]
+-- lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
+--     evalDist (simulate unifOracle oa u) = (evalDist oa).map ((., ())) := by
+--   revert u
+--   induction oa using OracleComp.inductionOn with
+--   | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
+--   | h_query_bind i t oa hoa => simp [PMF.map, hoa]
 
-@[simp]
-lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
-    evalDist (simulate unifOracle oa u) = (evalDist oa).map ((., ())) := by
-  revert u
-  induction oa using OracleComp.inductionOn with
-  | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
-  | h_query_bind i t oa hoa => simp [PMF.map, hoa]
+-- @[simp]
+-- lemma evalDist_simulate' (oa : OracleComp spec α) (u : Unit) :
+--     evalDist (simulate' unifOracle oa u) = evalDist oa :=
+--   by simpa [simulate', PMF.map_comp, Function.comp] using PMF.map_id (evalDist oa)
 
-@[simp]
-lemma evalDist_simulate' (oa : OracleComp spec α) (u : Unit) :
-    evalDist (simulate' unifOracle oa u) = evalDist oa :=
-  by simpa [simulate', PMF.map_comp, Function.comp] using PMF.map_id (evalDist oa)
+-- @[simp]
+-- lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
+--     [= z | simulate unifOracle oa u] = [= z.1 | oa] := by
+--   sorry
 
-@[simp]
-lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
-    [= z | simulate unifOracle oa u] = [= z.1 | oa] := by
-  sorry
+-- @[simp]
+-- lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
+--     [= x | simulate' unifOracle oa u] = [= x | oa] := by
+--   sorry
 
-@[simp]
-lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
-    [= x | simulate' unifOracle oa u] = [= x | oa] := by
-  sorry
+-- @[simp]
+-- lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
+--     [p | simulate unifOracle oa u] = [λ x ↦ p (x, ()) | oa] := by
+--   sorry
 
-@[simp]
-lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
-    [p | simulate unifOracle oa u] = [λ x ↦ p (x, ()) | oa] := by
-  sorry
-
-@[simp]
-lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
-    [p | simulate' unifOracle oa u] = [p | oa] := by
-  sorry
+-- @[simp]
+-- lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
+--     [p | simulate' unifOracle oa u] = [p | oa] := by
+--   sorry
 
 end unifOracle
 
-section coinSpec
+-- section coinSpec
 
-/-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
-noncomputable instance : coinSpec ⊂ₒ unifSpec where
-  toFun := λ () () ↦ $ᵗ Bool
-  evalDist_toFun' := λ i t ↦ by rw [evalDist_uniformOfFintype, evalDist_query i t]
-
-end coinSpec
+-- end coinSpec

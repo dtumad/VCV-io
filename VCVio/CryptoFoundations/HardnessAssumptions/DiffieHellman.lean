@@ -14,39 +14,60 @@ We represent this as hardness assumptions on the corresponding hard homogenous s
 
 namespace DiffieHellman
 
--- @[inline, reducible]
-def DHPoint (p : ℕ) : Type := ZMod p
+#check IsCyclic
 
--- @[inline, reducible]
+#check Multiplicative
+
+-- #check Generators
+
+#check IsPGroup
+
+#check Quotient
+
+def DHPoint (p : ℕ) : Type := ZMod p
 def DHVec (p : ℕ) : Type := ZMod p
 
 def DHPoint.to_zmod (x : DHPoint p) : ZMod p := x
 def DHVec.to_zmod (x : DHVec p) : ZMod p := x
 
-instance (p : ℕ) : Coe (DHPoint p) (ZMod p) := ⟨id⟩
-instance (p : ℕ) : Coe (DHVec p) (ZMod p) := ⟨id⟩
+-- @[simp] lemma DHPoint.to_zmod_def (x : DHPoint p) : x.to_zmod = x := rfl
+-- @[simp] lemma DHVec.to_zmod_def (x : DHVec p) : x.to_zmod = x := rfl
 
--- example (p : ℕ) [Fact (Nat.Prime (p))] : Group (ZMod (p)) := by
---   have := ZMod.instFieldZMod (p)
+-- instance (p : ℕ) : Coe (DHPoint p) (ZMod p) := ⟨id⟩
+-- instance (p : ℕ) : Coe (DHVec p) (ZMod p) := ⟨id⟩
 
 instance (p : ℕ) : Add (DHVec p) := ⟨λ x y ↦ x.to_zmod * y.to_zmod⟩
 instance (p : ℕ) : Zero (DHVec p) := ⟨(1 : ZMod p)⟩
 instance (p : ℕ) [Fact (Nat.Prime p)] : Neg (DHVec p) := ⟨λ x ↦ (x.to_zmod⁻¹ : ZMod p)⟩
 instance (p : ℕ) [Fact (Nat.Prime p)] : Sub (DHVec p) := ⟨λ x y ↦ x.to_zmod / y.to_zmod⟩
 
-instance (p : ℕ) [Fact (Nat.Prime p)] : AddGroup (DHVec p) where
-  add_assoc := λ x y z ↦ mul_assoc x.to_zmod y.to_zmod z.to_zmod
-  zero_add := λ x ↦ one_mul x.to_zmod
-  add_zero := λ x ↦ mul_one x.to_zmod
-  nsmul := nsmulRec
-  -- nsmul_zero := λ x ↦ rfl
-  -- nsmul_succ := λ x n ↦ rfl
-  -- sub_eq_add_neg := λ _ _ ↦ rfl
-  zsmul := zsmulRec
-  -- zsmul_zero' := λ
-  -- zsmul_succ' := _
-  -- zsmul_neg' := _
-  add_left_neg := λ x ↦ sorry
+@[simp] lemma DHVec.add_eq (x y : DHVec p) : x + y = x.to_zmod * y.to_zmod := rfl
+@[simp] lemma DHVec.zero_eq : (0 : DHVec p) = (1 : ZMod p) := rfl
+@[simp] lemma DHVec.neg_eq [Fact (Nat.Prime p)] (x : DHVec p) : - x = (x.to_zmod⁻¹ : ZMod p) := rfl
+@[simp] lemma DHVec.sub_eq [Fact (Nat.Prime p)] (x y : DHVec p) :
+    x - y = x.to_zmod / y.to_zmod := rfl
+
+-- instance (p : ℕ) [Fact (Nat.Prime p)] : AddGroup (DHVec p) where
+--   add_assoc := λ x y z ↦ mul_assoc x.to_zmod y.to_zmod z.to_zmod
+--   zero_add := λ x ↦ one_mul x.to_zmod
+--   add_zero := λ x ↦ mul_one x.to_zmod
+--   nsmul := nsmulRec
+--   -- nsmul_zero := λ x ↦ rfl
+--   -- nsmul_succ := λ x n ↦ rfl
+--   -- sub_eq_add_neg := λ _ _ ↦ rfl
+--   zsmul := zsmulRec
+--   -- zsmul_zero' := λ
+--   -- zsmul_succ' := _
+--   -- zsmul_neg' := _
+--   add_left_neg := λ x ↦ by
+--     simp
+--     show x.to_zmod⁻¹ * x.to_zmod = 1
+--     -- refine (mul_comm _ _).trans ?_
+--     refine inv_mul_cancel ?_
+--     simp
+
+
+#check ZMod.instFieldZMod
 
 #check ZMod.nat_cast_val
 
