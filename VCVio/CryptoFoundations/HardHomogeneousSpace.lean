@@ -70,7 +70,7 @@ namespace vectorizationExp
 lemma advantage_eq [HomogeneousSpace G P] (adv : vectorizationAdv G P) :
     (vectorizationExp adv).advantage =
       ∑ x₁ : P, ∑ x₂ : P, [= x₁ -ᵥ x₂ | adv.run (x₁, x₂)] / (Fintype.card P) ^ 2 := by
-  simp [vectorizationExp]
+  simp [vectorizationExp, Finset.mul_sum]
   sorry
 
 end vectorizationExp

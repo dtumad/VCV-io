@@ -20,7 +20,7 @@ namespace OracleComp
 
 section Selectable
 
-class Selectable (α : Type*) (β : outParam Type) where
+class Selectable (α : Type*) (β : Type) where
   (count : (s : α) → ℕ)
   (elems : (s : α) → Vector β (count s + 1))
 
@@ -47,14 +47,14 @@ lemma probOutput_uniformSelect [h : Selectable α β] (s : α) (x : β) :
 @[simp]
 lemma probEvent_uniformSelect [h : Selectable α β] (s : α)
     (p : β → Prop) [DecidablePred p] :
-    [p | $ s] = ((h.elems s).toList.countP p) /  := by
+    [p | $ s] = ((h.elems s).toList.countP p) * (h.count s : ℝ≥0∞)⁻¹ := by
   sorry
 
 end Selectable
 
 section SelectableType
 
-class SelectableType (β : outParam Type) extends Selectable Unit β
+class SelectableType (β : Type) extends Selectable Unit β
 
 def uniformSelectFintype (β : Type) [SelectableType β] :
     OracleComp unifSpec β := $ ()
@@ -261,7 +261,7 @@ end OracleComp
 --     [p | simulate' unifOracle oa u] = [p | oa] := by
 --   sorry
 
-end unifOracle
+-- end unifOracle
 
 -- section coinSpec
 
