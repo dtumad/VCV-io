@@ -50,11 +50,13 @@ lemma probEvent_uniformSelect [h : Selectable α β] (s : α)
     [p | $ s] = ((h.elem_vec s).toList.countP p) * (h.count s : ℝ≥0∞)⁻¹ := by
   sorry
 
-instance (α : Type) (n : ℕ) [hn : NeZero n] : Selectable (Vector α n) α where
+instance (α : Type) (n : ℕ) [hn : NeZero n] :
+    Selectable (Vector α n) α where
   count := λ _ ↦ n - 1
   elem_vec := λ xs ↦ ⟨xs.1, symm (by simpa using Nat.succ_pred hn.out)⟩
 
-instance (α : Type) [Inhabited α] : Selectable (List α) α where
+instance (α : Type) [Inhabited α] :
+    Selectable (List α) α where
   count := λ xs ↦ xs.length.pred
   elem_vec := λ xs ↦ match xs with
     | [] => ⟨[default], rfl⟩
@@ -75,9 +77,10 @@ section SelectableType
 
 /-- A `SelectableType β` instance means that `β` is a finite inhabited type,
 with an explicit list of the elements in the type.
-Without this -/
+We need to have an explicit vector, rather than just a `Finset` to make this computable. -/
 class SelectableType (β : Type) extends Fintype β, Inhabited β where
   elem_vec : Vector β (Fintype.card β)
+  mem_elem_vec : ∀ b : β, b ∈ elem_vec.toList
 
 def uniformSelectFintype (β : Type) [h : SelectableType β] :
     OracleComp unifSpec β := $ h.elem_vec
@@ -90,16 +93,18 @@ section instances
 
 instance : SelectableType Unit where
   elem_vec := () ::ᵥ Vector.nil
+  mem_elem_vec := λ () ↦ by simp
 
 instance : SelectableType Bool where
   elem_vec := true ::ᵥ false ::ᵥ Vector.nil
+  mem_elem_vec := λ b ↦ match b with
+    | true => by simp
+    | false => by simp
 
 /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
 noncomputable instance : coinSpec ⊂ₒ unifSpec where
   toFun := λ () () ↦ $ᵗ Bool
   evalDist_toFun' := λ i t ↦ sorry --by rw [evalDist_uniformOfFintype, evalDist_query i t]
-
-
 
 -- noncomputable instance {spec : outParam OracleSpec} (i : outParam spec.ι) :
 --   SelectableType (spec.range i) where

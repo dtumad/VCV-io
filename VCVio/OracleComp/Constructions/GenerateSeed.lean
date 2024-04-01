@@ -27,9 +27,9 @@ variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
 def generateSeedAux (oa : OracleComp spec α) (count : QueryCount spec) :
     List spec.ι → OracleComp unifSpec (QuerySeed spec)
   | (j :: js) => do
-    let xs ← replicate ($ᵗ (spec.range j)) (count j)
-    let seed ← generateSeedAux oa count js
-    return Function.update seed j xs.toList
+      let xs ← replicate ($ᵗ (spec.range j)) (count j)
+      let seed ← generateSeedAux oa count js
+      return Function.update seed j xs.toList
   | [] => return ∅
 
 noncomputable def generateSeed (oa : OracleComp spec α)
