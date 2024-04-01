@@ -163,7 +163,6 @@ lemma simulate_eq_map_simulate'_of_subsingleton [Subsingleton σ] (oa : OracleCo
   simp only [simulate', map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
   convert symm (bind_pure (simulate so oa s))
 
-
 end stateless
 
 end OracleComp

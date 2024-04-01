@@ -21,13 +21,13 @@ namespace OracleComp
 section Selectable
 
 class Selectable (α : Type*) (β : Type) where
-  (count : (s : α) → ℕ)
-  (elems : (s : α) → Vector β (count s + 1))
+  count : α → ℕ
+  elem_vec : (s : α) → Vector β (count s + 1)
 
 def uniformSelect {α : Type*} {β : Type} [h : Selectable α β] (s : α) :
     OracleComp unifSpec β := do
   let i ← $[0..h.count s]
-  (h.elems s).get <$> pure i
+  return (h.elem_vec s).get i
 
 notation "$" => uniformSelect
 
@@ -35,7 +35,7 @@ variable {α : Type*} {β : Type}
 
 @[simp]
 lemma evalDist_uniformSelect [h : Selectable α β] (s : α) :
-    evalDist ($ s) = PMF.ofMultiset (Multiset.ofList (h.elems s).toList)
+    evalDist ($ s) = PMF.ofMultiset (Multiset.ofList (h.elem_vec s).toList)
       (by simp [← List.length_eq_zero]) := by
   sorry
 
@@ -47,17 +47,40 @@ lemma probOutput_uniformSelect [h : Selectable α β] (s : α) (x : β) :
 @[simp]
 lemma probEvent_uniformSelect [h : Selectable α β] (s : α)
     (p : β → Prop) [DecidablePred p] :
-    [p | $ s] = ((h.elems s).toList.countP p) * (h.count s : ℝ≥0∞)⁻¹ := by
+    [p | $ s] = ((h.elem_vec s).toList.countP p) * (h.count s : ℝ≥0∞)⁻¹ := by
   sorry
+
+instance (α : Type) (n : ℕ) [hn : NeZero n] : Selectable (Vector α n) α where
+  count := λ _ ↦ n - 1
+  elem_vec := λ xs ↦ ⟨xs.1, symm (by simpa using Nat.succ_pred hn.out)⟩
+
+instance (α : Type) [Inhabited α] : Selectable (List α) α where
+  count := λ xs ↦ xs.length.pred
+  elem_vec := λ xs ↦ match xs with
+    | [] => ⟨[default], rfl⟩
+    | (x :: xs) => ⟨x :: xs, rfl⟩
+
+noncomputable instance (α : Type) [DecidableEq α] [Inhabited α] :
+    Selectable (Finset α) α where
+  count := λ s ↦ s.card.pred
+  elem_vec := λ s ↦ if h : s = ∅
+    then ⟨[default], by simp [h]⟩
+    else ⟨s.toList, by
+      rw [Finset.length_toList]
+      exact symm (Nat.succ_pred <| λ h' ↦ h (Finset.card_eq_zero.1 h'))⟩
 
 end Selectable
 
 section SelectableType
 
-class SelectableType (β : Type) extends Selectable Unit β
+/-- A `SelectableType β` instance means that `β` is a finite inhabited type,
+with an explicit list of the elements in the type.
+Without this -/
+class SelectableType (β : Type) extends Fintype β, Inhabited β where
+  elem_vec : Vector β (Fintype.card β)
 
-def uniformSelectFintype (β : Type) [SelectableType β] :
-    OracleComp unifSpec β := $ ()
+def uniformSelectFintype (β : Type) [h : SelectableType β] :
+    OracleComp unifSpec β := $ h.elem_vec
 
 notation "$ᵗ" => uniformSelectFintype
 
@@ -65,32 +88,11 @@ end SelectableType
 
 section instances
 
-instance : Selectable (Vector α (n + 1)) α where
-  count := λ _ ↦ n
-  elems := λ xs ↦ xs
-
-instance [Inhabited α] : Selectable (List α) α where
-  count := λ xs ↦ xs.length.pred
-  elems := λ xs ↦ match xs with
-    | [] => ⟨[default], rfl⟩
-    | (x :: xs) => ⟨x :: xs, rfl⟩
-
-noncomputable instance [DecidableEq α] [Inhabited α] :
-    Selectable (Finset α) α where
-  count := λ s ↦ s.card.pred
-  elems := λ s ↦ if h : s = ∅
-    then ⟨[default], by simp [h]⟩
-    else ⟨s.toList, by
-      rw [Finset.length_toList]
-      exact symm (Nat.succ_pred <| λ h' ↦ h (Finset.card_eq_zero.1 h'))⟩
-
 instance : SelectableType Unit where
-  count := λ _ ↦ 0
-  elems := λ _ ↦ () ::ᵥ Vector.nil
+  elem_vec := () ::ᵥ Vector.nil
 
 instance : SelectableType Bool where
-  count := λ _ ↦ 1
-  elems := λ _ ↦ true ::ᵥ false ::ᵥ Vector.nil
+  elem_vec := true ::ᵥ false ::ᵥ Vector.nil
 
 /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
 noncomputable instance : coinSpec ⊂ₒ unifSpec where
@@ -111,6 +113,7 @@ noncomputable instance : coinSpec ⊂ₒ unifSpec where
 --     ⟩
 
 end instances
+
 
 -- section uniformOfVector
 

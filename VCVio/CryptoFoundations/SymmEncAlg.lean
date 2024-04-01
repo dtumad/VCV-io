@@ -41,7 +41,7 @@ def soundnessExp (encAlg : SymmEncAlg spec M K C) (m : M) :
   __ := encAlg
 
 /-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
-def sound (encAlg : SymmEncAlg spec M K C) : Prop :=
+def isSound (encAlg : SymmEncAlg spec M K C) : Prop :=
   ∀ m : M, (soundnessExp encAlg m).advantage = 1
 
 end sound
