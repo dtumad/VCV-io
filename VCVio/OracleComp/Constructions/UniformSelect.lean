@@ -175,7 +175,8 @@ end instances
 --   sorry
 
 -- @[simp]
--- lemma probEvent_uniformOfFinset (s : Finset α) (hs : s.Nonempty) (p : α → Prop) [DecidablePred p] :
+-- lemma probEvent_uniformOfFinset (s : Finset α) (hs : s.Nonempty) (p : α → Prop)
+  --[DecidablePred p] :
 --     [p | $ˢ s hs] = (s.filter p).card / s.card := by
 --   sorry
 
