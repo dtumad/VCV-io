@@ -48,6 +48,7 @@ def DHHomogenousSpace : HomogeneousSpace (DHVec p) (DHPoint p) where
   vsub | ⟨⟨x, _⟩, hx⟩, ⟨⟨y, _⟩, hy⟩ => ⟨Nat.log x y, sorry⟩
   zero_vadd | ⟨x, hx⟩ => Subtype.ext (by show x ^ _ = x; simp [Nat.mod_eq, hp0.1])
   add_vadd | ⟨⟨x, _⟩, hx⟩, ⟨⟨y, _⟩, hy⟩, ⟨z, hz⟩ => Subtype.ext (by
+    -- Must be something in mathlib already right?
     suffices z ^ (p + 1) = 1 by
       show z ^ _ = (z ^ _) ^ _
       simp only [Nat.add_eq, Nat.add_zero, ← pow_mul, mul_comm y x]
@@ -58,6 +59,7 @@ def DHHomogenousSpace : HomogeneousSpace (DHVec p) (DHPoint p) where
   vadd_vsub' | ⟨x, hx⟩, ⟨y, hy⟩ => sorry
   decidableEq_G := Subtype.instDecidableEqSubtype
   decidableEq_P := Subtype.instDecidableEqSubtype
+  -- Using `⊤` won't work for computability
   selectableType_G := sorry
   selectableType_P := sorry
 

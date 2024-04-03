@@ -34,9 +34,8 @@ private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
   IO.println ("Num 2s: " ++ toString (xs.toList.count 2))
   IO.println ("Num 3s: " ++ toString (xs.toList.count 3))
   IO.println ("Num 4s: " ++ toString (xs.toList.count 4))
-  return ()
 
-#eval lawLargeNumsTest 1000
+#eval lawLargeNumsTest 2000
 
 private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   IO.println ("Initial Message: " ++ toString m.toList)
@@ -46,7 +45,6 @@ private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   IO.println ("Ciphertext: " ++ toString σ.toList)
   let m' ← ((oneTimePad n).exec <| (oneTimePad n).decrypt σ k).runIO
   IO.println ("Final Message: " ++ toString m'.toList)
-  -- return ()
 
 #eval testOTP (Vector.replicate 100 true)
 
