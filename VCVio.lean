@@ -3,7 +3,7 @@ import VCVio.CryptoConstructions.HHS_Elgamal
 import VCVio.CryptoConstructions.HHS_Signature
 import VCVio.CryptoConstructions.OneTimePad
 import VCVio.CryptoFoundations.AsymmEncAlg
-import VCVio.CryptoFoundations.HardHomogeneousSpace
+import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.SecExp
 import VCVio.CryptoFoundations.SymmEncAlg

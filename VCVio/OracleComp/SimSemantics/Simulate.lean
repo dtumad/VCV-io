@@ -159,9 +159,13 @@ section stateless
 /-- If the state type is `Subsingleton`, then we can represent simulation in terms of `simulate'`,
 adding back any state at the end of the computation. -/
 lemma simulate_eq_map_simulate'_of_subsingleton [Subsingleton σ] (oa : OracleComp spec α)
-    (s s' : σ) : simulate so oa s = (., s') <$> simulate' so oa s := by
+    (s s' : σ) : simulate so oa s = (·, s') <$> simulate' so oa s := by
   simp only [simulate', map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
   convert symm (bind_pure (simulate so oa s))
+
+lemma simulate_eq_map_simulate' (so : spec →ₛₒ spec') (oa : OracleComp spec α) (s : Unit) :
+    simulate so oa s = (·, ()) <$> simulate' so oa () :=
+  simulate_eq_map_simulate'_of_subsingleton so oa () ()
 
 end stateless
 
