@@ -14,15 +14,15 @@ We represent this as hardness assumptions on the corresponding hard homogenous s
 
 namespace DiffieHellman
 
-#check IsCyclic
+-- #check IsCyclic
 
-#check Multiplicative
+-- #check Multiplicative
 
--- #check Generators
+-- -- #check Generators
 
-#check IsPGroup
+-- #check IsPGroup
 
-#check Quotient
+-- #check Quotient
 
 def DHPoint (p : ℕ) : Type := ZMod p
 def DHVec (p : ℕ) : Type := ZMod p
@@ -67,9 +67,9 @@ instance (p : ℕ) [Fact (Nat.Prime p)] : Sub (DHVec p) := ⟨λ x y ↦ x.to_zm
 --     simp
 
 
-#check ZMod.instFieldZMod
+-- #check ZMod.instFieldZMod
 
-#check ZMod.nat_cast_val
+-- #check ZMod.nat_cast_val
 
 -- def DHHomogenousSpace (p : outParam ℕ) [Fact (Nat.Prime p)] :
 --     HomogeneousSpace (DHVec p) (DHPoint p) where
