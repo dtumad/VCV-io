@@ -16,9 +16,6 @@ namespace DiffieHellman
 
 def DHVec (p : ℕ) [Fact (Nat.Prime (p + 1))] : Type := { x : ZMod (p + 1) // x ≠ 0 }
 
-@[inline, reducible]
-def DHPoint (p : ℕ) [Fact (Nat.Prime (p + 1))] : Type := DHVec p
-
 -- Having `NeZero p` is reduntant but simplifies things
 variable (p : ℕ) [hp : Fact (Nat.Prime (p + 1))] [hp0 : NeZero p]
 
@@ -42,10 +39,13 @@ instance : AddGroup (DHVec p) where
   add_zero | ⟨x, hx⟩ => Subtype.ext (mul_one x)
   add_left_neg | ⟨x, hx⟩ => Subtype.ext (inv_mul_cancel hx)
 
+@[inline, reducible]
+def DHPoint (p : ℕ) [Fact (Nat.Prime (p + 1))] : Type := DHVec p
+
 /-- Homogenous space corresponding to discrete log problem in a finite field. -/
 def DHHomogenousSpace : HomogeneousSpace (DHVec p) (DHPoint p) where
   vadd | ⟨x, hx⟩, ⟨y, hy⟩ => ⟨y ^ (x.1 : ℕ), by simp [hy]⟩
-  vsub | ⟨x, hx⟩, ⟨y, hy⟩ => ⟨sorry, sorry⟩ -- Should be discrete log
+  vsub | ⟨⟨x, _⟩, hx⟩, ⟨⟨y, _⟩, hy⟩ => ⟨Nat.log x y, sorry⟩
   zero_vadd | ⟨x, hx⟩ => Subtype.ext (by show x ^ _ = x; simp [Nat.mod_eq, hp0.1])
   add_vadd | ⟨⟨x, _⟩, hx⟩, ⟨⟨y, _⟩, hy⟩, ⟨z, hz⟩ => Subtype.ext (by
     suffices z ^ (p + 1) = 1 by

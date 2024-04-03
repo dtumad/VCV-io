@@ -48,6 +48,6 @@ private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   IO.println ("Final Message: " ++ toString m'.toList)
   -- return ()
 
-#eval testOTP (true ::ᵥ true ::ᵥ true ::ᵥ true ::ᵥ Vector.nil)
+#eval testOTP (Vector.replicate 100 true)
 
 end OracleComp
