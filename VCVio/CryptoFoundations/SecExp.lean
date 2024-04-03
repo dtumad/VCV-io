@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
+import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
 # Security Experiments
@@ -47,9 +48,18 @@ namespace SecExp
 variable {spec : OracleSpec} {α β : Type}
 
 def runExp (exp : SecExp spec α β) : OracleComp unifSpec Bool :=
-  exp.exec (do let x ← exp.inpGen; let y ← exp.main x; return exp.isValid x y)
+  exp.exec (do
+    let x ← exp.inpGen
+    let y ← exp.main x
+    return exp.isValid x y)
 
-noncomputable def advantage (exp : SecExp spec α β) : ℝ≥0∞ :=
-  [= true | exp.runExp]
+@[simp]
+lemma runExp_eq (exp : SecExp spec α β) : exp.runExp = exp.exec
+    (do let x ← exp.inpGen; let y ← exp.main x; return exp.isValid x y) := rfl
+
+noncomputable def advantage (exp : SecExp spec α β) : ℝ≥0∞ := [= true | exp.runExp]
+
+@[simp]
+lemma advantage_eq (exp : SecExp spec α β) : exp.advantage = [= true | exp.runExp] := rfl
 
 end SecExp

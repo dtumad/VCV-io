@@ -28,7 +28,7 @@ variable {spec : OracleSpec} {α β : Type}
 /-- The `support` of a computation `oa` is the set of all possible output values,
 assuming that all output values of the oracles are possible.
 This is naturally compatible with `evalDist` where the oracles respond uniformly. -/
-def support : OracleComp spec α → Set α
+def support : (oa : OracleComp spec α) → Set α
   | pure' _ x => {x}
   | query_bind' _ _ _ oa => ⋃ u, (oa u).support
 
@@ -42,7 +42,7 @@ lemma support_query_bind' (i : spec.ι) (t : spec.domain i)
 a `Finset` of possible outputs. Without this we can't remove duplicate values from
 the list of outputs being constructed. This also relies on the `DecidableEq` instances
 on `spec.range i` that are included in the definition of `OracleSpec`. -/
-def finSupport [DecidableEq α] : OracleComp spec α → Finset α
+def finSupport [DecidableEq α] : (oa : OracleComp spec α) → Finset α
   | pure' _ x => {x}
   | query_bind' _ _ _ oa => Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport)
 
