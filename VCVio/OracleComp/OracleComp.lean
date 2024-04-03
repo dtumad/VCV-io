@@ -43,11 +43,6 @@ inductive OracleComp (spec : OracleSpec) : Type → Type 1
 
 namespace OracleComp
 
-/-- Represent an `OracleComp` via the `IO` monad, allowing actual execution. -/
-protected def runIO {α : Type} : OracleComp unifSpec α → IO α
-  | pure' α x => return x
-  | query_bind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
-
 /-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
 by assuming each query returns the `default` value given by the `Inhabited` instance. -/
 def defaultResult {spec : OracleSpec} : {α : Type} → OracleComp spec α → α

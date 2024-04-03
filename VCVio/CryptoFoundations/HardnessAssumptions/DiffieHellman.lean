@@ -12,80 +12,53 @@ This file gives a way to represent assumptions such as discrete log or Diffie He
 We represent this as hardness assumptions on the corresponding hard homogenous space.
 -/
 
--- namespace DiffieHellman
+namespace DiffieHellman
 
--- -- #check IsCyclic
+def DHVec (p : ℕ) [Fact (Nat.Prime (p + 1))] : Type := { x : ZMod (p + 1) // x ≠ 0 }
 
--- -- #check Multiplicative
+@[inline, reducible]
+def DHPoint (p : ℕ) [Fact (Nat.Prime (p + 1))] : Type := DHVec p
 
--- -- -- #check Generators
+-- Having `NeZero p` is reduntant but simplifies things
+variable (p : ℕ) [hp : Fact (Nat.Prime (p + 1))] [hp0 : NeZero p]
 
--- -- #check IsPGroup
+/-- "Fake" addition for the homogenous space, corresponding to multiplication in reality. -/
+instance : Add (DHVec p) where
+  add | ⟨x, hx⟩, ⟨y, hy⟩ => ⟨x * y, mul_ne_zero hx hy⟩
 
--- -- #check Quotient
+/-- The "zero" for this addition is the multiplicative identity. -/
+instance : Zero (DHVec p) where
+  zero := ⟨1, one_ne_zero⟩
 
--- def DHPoint (p : ℕ) : Type := ZMod p
--- def DHVec (p : ℕ) : Type := ZMod p
+/-- The "negation" for this addition is the multiplicative inverse. -/
+instance : Neg (DHVec p) where
+  neg | ⟨x, hx⟩ => ⟨x⁻¹, inv_ne_zero hx⟩
 
--- def DHPoint.to_zmod (x : DHPoint p) : ZMod p := x
--- def DHVec.to_zmod (x : DHVec p) : ZMod p := x
+instance : AddGroup (DHVec p) where
+  nsmul := nsmulRec
+  zsmul := zsmulRec
+  add_assoc | ⟨x, hx⟩, ⟨y, hy⟩, ⟨z, hz⟩ => Subtype.ext (mul_assoc x y z)
+  zero_add | ⟨x, hx⟩ => Subtype.ext (one_mul x)
+  add_zero | ⟨x, hx⟩ => Subtype.ext (mul_one x)
+  add_left_neg | ⟨x, hx⟩ => Subtype.ext (inv_mul_cancel hx)
 
--- -- @[simp] lemma DHPoint.to_zmod_def (x : DHPoint p) : x.to_zmod = x := rfl
--- -- @[simp] lemma DHVec.to_zmod_def (x : DHVec p) : x.to_zmod = x := rfl
+/-- Homogenous space corresponding to discrete log problem in a finite field. -/
+def DHHomogenousSpace : HomogeneousSpace (DHVec p) (DHPoint p) where
+  vadd | ⟨x, hx⟩, ⟨y, hy⟩ => ⟨y ^ (x.1 : ℕ), by simp [hy]⟩
+  vsub | ⟨x, hx⟩, ⟨y, hy⟩ => ⟨sorry, sorry⟩ -- Should be discrete log
+  zero_vadd | ⟨x, hx⟩ => Subtype.ext (by show x ^ _ = x; simp [Nat.mod_eq, hp0.1])
+  add_vadd | ⟨⟨x, _⟩, hx⟩, ⟨⟨y, _⟩, hy⟩, ⟨z, hz⟩ => Subtype.ext (by
+    suffices z ^ (p + 1) = 1 by
+      show z ^ _ = (z ^ _) ^ _
+      simp only [Nat.add_eq, Nat.add_zero, ← pow_mul, mul_comm y x]
+      exact (pow_eq_pow_mod (x * y) (this)).symm
+    sorry
+  )
+  vsub_vadd' | ⟨x, hx⟩, ⟨y, hy⟩ => sorry
+  vadd_vsub' | ⟨x, hx⟩, ⟨y, hy⟩ => sorry
+  decidableEq_G := Subtype.instDecidableEqSubtype
+  decidableEq_P := Subtype.instDecidableEqSubtype
+  selectableType_G := sorry
+  selectableType_P := sorry
 
--- -- instance (p : ℕ) : Coe (DHPoint p) (ZMod p) := ⟨id⟩
--- -- instance (p : ℕ) : Coe (DHVec p) (ZMod p) := ⟨id⟩
-
--- instance (p : ℕ) : Add (DHVec p) := ⟨λ x y ↦ x.to_zmod * y.to_zmod⟩
--- instance (p : ℕ) : Zero (DHVec p) := ⟨(1 : ZMod p)⟩
--- instance (p : ℕ) [Fact (Nat.Prime p)] : Neg (DHVec p) := ⟨λ x ↦ (x.to_zmod⁻¹ : ZMod p)⟩
--- instance (p : ℕ) [Fact (Nat.Prime p)] : Sub (DHVec p) := ⟨λ x y ↦ x.to_zmod / y.to_zmod⟩
-
--- @[simp] lemma DHVec.add_eq (x y : DHVec p) : x + y = x.to_zmod * y.to_zmod := rfl
--- @[simp] lemma DHVec.zero_eq : (0 : DHVec p) = (1 : ZMod p) := rfl
--- @[simp] lemma DHVec.neg_eq [Fact (Nat.Prime p)] (x : DHVec p) : - x = (x.to_zmod⁻¹ : ZMod p) := rfl
--- @[simp] lemma DHVec.sub_eq [Fact (Nat.Prime p)] (x y : DHVec p) :
---     x - y = x.to_zmod / y.to_zmod := rfl
-
--- -- instance (p : ℕ) [Fact (Nat.Prime p)] : AddGroup (DHVec p) where
--- --   add_assoc := λ x y z ↦ mul_assoc x.to_zmod y.to_zmod z.to_zmod
--- --   zero_add := λ x ↦ one_mul x.to_zmod
--- --   add_zero := λ x ↦ mul_one x.to_zmod
--- --   nsmul := nsmulRec
--- --   -- nsmul_zero := λ x ↦ rfl
--- --   -- nsmul_succ := λ x n ↦ rfl
--- --   -- sub_eq_add_neg := λ _ _ ↦ rfl
--- --   zsmul := zsmulRec
--- --   -- zsmul_zero' := λ
--- --   -- zsmul_succ' := _
--- --   -- zsmul_neg' := _
--- --   add_left_neg := λ x ↦ by
--- --     simp
--- --     show x.to_zmod⁻¹ * x.to_zmod = 1
--- --     -- refine (mul_comm _ _).trans ?_
--- --     refine inv_mul_cancel ?_
--- --     simp
-
-
--- -- #check ZMod.instFieldZMod
-
--- -- #check ZMod.nat_cast_val
-
--- -- def DHHomogenousSpace (p : outParam ℕ) [Fact (Nat.Prime p)] :
--- --     HomogeneousSpace (DHVec p) (DHPoint p) where
--- --   vadd := _
--- --   zero_vadd := _
--- --   add_vadd := _
--- --   vsub := _
--- --   vsub_vadd' := _
--- --   vadd_vsub' := _
-
--- --   nonempty := ⟨(0 : ZMod p)⟩
--- --   fintype_G := ZMod.fintype p
--- --   fintype_P := ZMod.fintype p
--- --   -- inhabited_G :=
--- --   -- inhabited_P := _
--- --   decidableEq_G := _
--- --   decidableEq_P := _
-
--- end DiffieHellman
+end DiffieHellman

@@ -23,10 +23,6 @@ with the additional assumption that both spaces are finite. -/
 class HomogeneousSpace (G : outParam Type) (P : semiOutParam Type)
     [outParam (AddGroup G)]
     extends AddTorsor G P where
-  fintype_G : Fintype G
-  fintype_P : Fintype P
-  -- `AddTorsor G P` only gives us a `Nonemtpy` instance
-  -- inhabited_P : Inhabited P
   decidableEq_G : DecidableEq G
   decidableEq_P : DecidableEq P
   selectableType_G : SelectableType G
@@ -35,11 +31,6 @@ class HomogeneousSpace (G : outParam Type) (P : semiOutParam Type)
 namespace HomogeneousSpace
 
 variable {G P : Type} [AddGroup G]
-
--- #check AddGroup.inhabited
-
-instance [h : HomogeneousSpace G P] : Fintype G := h.fintype_G
-instance [h : HomogeneousSpace G P] : Fintype P := h.fintype_P
 
 instance [h : HomogeneousSpace G P] : DecidableEq G := h.decidableEq_G
 instance [h : HomogeneousSpace G P] : DecidableEq P := h.decidableEq_P

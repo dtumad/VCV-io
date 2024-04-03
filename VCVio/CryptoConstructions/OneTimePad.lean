@@ -30,16 +30,4 @@ theorem isSound (n : ℕ) : (oneTimePad n).isSound := by
   sorry
   -- simp [Vector.zipWith_a
 
-def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
-  IO.println ("Initial Message: " ++ toString m.toList)
-  let k ← ((oneTimePad n).keygen ()).runIO
-  IO.println ("Key: " ++ toString k.toList)
-  let σ ← ((oneTimePad n).encrypt m k).runIO
-  IO.println ("Ciphertext: " ++ toString σ.toList)
-  let m' ← ((oneTimePad n).decrypt σ k).runIO
-  IO.println ("Final Message: " ++ toString m'.toList)
-  return ()
-
--- #eval testOTP (true ::ᵥ true ::ᵥ true ::ᵥ true ::ᵥ Vector.nil)
-
 end oneTimePad
