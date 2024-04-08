@@ -15,7 +15,7 @@ We use mathlib's `AddTorsor` type class to represent the bijection property,
 and extend this with finiteness and decidability conditions
 -/
 
-open OracleSpec OracleComp BigOperators
+open OracleSpec OracleComp OracleAlg BigOperators
 
 /-- A `HomogeneousSpace G P` is a group action of a group `G` on a set of points `P`,
 such that the action induces a bijection (represented by the `AddTorsor` class),
@@ -49,11 +49,12 @@ structure vectorizationAdv (G P : Type)
 The input generator randomly chooses the challenge points for the adversary,
 and a result is valid if it is exactly the vectorization of the challenge points. -/
 noncomputable def vectorizationExp [HomogeneousSpace G P]
-    (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) G where
-  inpGen := do let x₁ ← $ᵗ P; let x₂ ← $ᵗ P; return (x₁, x₂)
-  main := adv.run
-  isValid := λ ⟨x₁, x₂⟩ g ↦ g = x₁ -ᵥ x₂
-  __ := OracleAlg.baseOracleAlg
+    (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) where
+  inpGen := (·, ·) <$> ($ᵗ P) <*> ($ᵗ P)
+  main := λ (x₁, x₂) ↦ do
+    let g ← adv.run (x₁, x₂)
+    return g = x₁ -ᵥ x₂
+  __ := baseOracleAlg
 
 namespace vectorizationExp
 

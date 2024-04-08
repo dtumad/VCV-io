@@ -25,15 +25,18 @@ from `spec₁` to `spec₂` by first substituting queries using `so`, and then f
 substituting with the oracles in `so'`. -/
 def compose (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ) :
     spec₁ →[σ × τ]ₛₒ specₜ :=
-  λ i ⟨t, s₁, s₂⟩ ↦ (λ ⟨⟨t, s₁⟩, s₂⟩ ↦ ⟨t, s₁, s₂⟩) <$>
-    simulate so' (so i (t, s₁)) s₂
+  λ i t (s₁, s₂) ↦ do
+    let ((t, s₁), s₂) ← simulate so' (so i t s₁) s₂
+    return (t, (s₁, s₂))
+  -- (λ ((t, s₁), s₂) ↦ (t, (s₁, s₂))) <$>
+  --   simulate so' (so i t s₁) s₂
 
 infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 
 @[simp]
 lemma compose_apply (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ) (i : spec₁.ι) :
-    (so' ∘ₛₒ so) i = λ ⟨t, s₁, s₂⟩ ↦ (λ ⟨⟨t, s₁⟩, s₂⟩ ↦ ⟨t, s₁, s₂⟩) <$>
-      simulate so' (so i (t, s₁)) s₂ := rfl
+    (so' ∘ₛₒ so) i = λ t (s₁, s₂) ↦ (λ ((t, s₁), s₂) ↦ (t, (s₁, s₂))) <$>
+    simulate so' (so i t s₁) s₂ := rfl
 
 end compose
 
@@ -45,11 +48,11 @@ section maskState
 to move back and forth between the states as needed.
 This can be useful when operations such like `simOracle.append` add on a state of type `Unit`.-/
 def maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) : spec →[τ]ₛₒ specₜ :=
-  λ i ⟨t, s⟩ ↦ map id e <$> so i (t, e.symm s)
+  λ i t s ↦ map id e <$> so i t (e.symm s)
 
 @[simp]
 lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : spec.ι) :
-    so.maskState e i = λ ⟨t, s⟩ ↦ map id e <$> so i (t, e.symm s) := rfl
+    so.maskState e i = λ t s ↦ map id e <$> so i t (e.symm s) := rfl
 
 /-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
 @[simp]
@@ -57,7 +60,7 @@ lemma maskState_subsingleton [Subsingleton σ] (so : so →[σ]ₛₒ specₜ) (
     so.maskState e = so := by
   have he : ⇑e = id := funext (λ _ ↦ Subsingleton.elim _ _)
   have he' : ⇑e.symm = id := funext (λ _ ↦ Subsingleton.elim _ _)
-  refine funext (λ i ↦ funext (λ ⟨t, _⟩ ↦ ?_))
+  refine funext (λ i ↦ funext (λ t ↦ ?_))
   simp only [maskState_apply, he, he', map_id, id_map, id]
 
 end maskState
@@ -70,7 +73,7 @@ This doesn't use any internal state, which we model with the `Unit` type. -/
 -- @[inline, reducible]
 def statelessOracle {spec specₜ: OracleSpec}
     (f : (i : spec.ι) → spec.domain i → OracleComp specₜ (spec.range i)) : spec →ₛₒ specₜ :=
-  λ i ⟨t, ()⟩ ↦ ((·, ())) <$> f i t
+  λ i t () ↦ (·, ()) <$> f i t
 
 namespace statelessOracle
 
@@ -78,7 +81,7 @@ variable {spec specₜ: OracleSpec}
     (f : (i : spec.ι) → spec.domain i → OracleComp specₜ (spec.range i))
 
 @[simp]
-lemma apply_eq (i : spec.ι) : statelessOracle f i = λ ⟨t, ()⟩ ↦ ((·, ())) <$> f i t := rfl
+lemma apply_eq (i : spec.ι) : statelessOracle f i = λ t () ↦ (·, ()) <$> f i t := rfl
 
 end statelessOracle
 
@@ -93,14 +96,15 @@ This is importantly different than `unifOracle`, which preserves probabilities b
 changes the target oracle spec to `unifSpec` by explicitly choosing outputs randomly.
 
 The relevant spec can usually be inferred automatically, so we leave it implicit. -/
-def idOracle {spec : OracleSpec} : spec →ₛₒ spec := statelessOracle query
+def idOracle {spec : OracleSpec} : spec →ₛₒ spec :=
+  λ i t () ↦ (·, ()) <$> query i t
 
 namespace idOracle
 
 variable (spec : OracleSpec)
 
 @[simp]
-lemma apply_eq (i : spec.ι) : idOracle i = λ ⟨t, ()⟩ ↦ ((., ())) <$> query i t := rfl
+lemma apply_eq (i : spec.ι) : idOracle i = λ t () ↦ ((., ())) <$> query i t := rfl
 
 @[simp]
 lemma simulate_eq (oa : OracleComp spec α) :

@@ -32,12 +32,12 @@ variable [DecidableEq M]
 /-- Experiment for checking that an asymmetric encryption algorithm is sound,
 i.e. that decryption properly reverses encryption -/
 def soundnessExp (encAlg : SymmEncAlg spec M K C) (m : M) :
-    SecExp spec K M where
+    SecExp spec K where
   inpGen := encAlg.keygen ()
   main := λ k ↦ do
     let σ ← encAlg.encrypt m k
-    encAlg.decrypt σ k
-  isValid := λ _ m' ↦ m = m'
+    let m' ← encAlg.decrypt σ k
+    return m = m'
   __ := encAlg
 
 /-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/

@@ -29,12 +29,12 @@ variable {spec : OracleSpec} {M PK SK C : Type}
 /-- Experiment for checking that an asymmetric encryption algorithm is sound,
 i.e. that decryption properly reverses encryption -/
 def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C)
-    (m : M) : SecExp spec (PK × SK) M where
+    (m : M) : SecExp spec (PK × SK) where
   inpGen := encAlg.keygen ()
-  main := λ ⟨pk, sk⟩ ↦ do
+  main := λ (pk, sk) ↦ do
     let σ ← encAlg.encrypt m pk
-    encAlg.decrypt σ sk
-  isValid := λ _ m' ↦ m = m'
+    let m' ← encAlg.decrypt σ sk
+    return m = m'
   __ := encAlg
 
 namespace soundnessExp
@@ -66,7 +66,7 @@ the boolean chosen in `inp_gen`, finally asking the adversary to determine the b
 given the messages and resulting ciphertext. `is_valid` checks that this choice is correct.
 The simulation oracles are pulled in directly from the encryption algorithm. -/
 def IND_CPA_Exp [coinSpec ⊂ₒ spec] (encAlg : AsymmEncAlg spec M PK SK C)
-    (adv : IND_CPA_Adv encAlg) : SecExp spec (PK × Bool) Bool where
+    (adv : IND_CPA_Adv encAlg) : SecExp spec (PK × Bool) where
   inpGen := do
     let ⟨pk, _⟩ ← encAlg.keygen ()
     let b ← ↑coin
@@ -75,8 +75,8 @@ def IND_CPA_Exp [coinSpec ⊂ₒ spec] (encAlg : AsymmEncAlg spec M PK SK C)
     let ⟨m₁, m₂⟩ ← adv.run pk
     let m := if b then m₁ else m₂
     let c ← encAlg.encrypt m pk
-    adv.distinguish pk (m₁, m₂) c
-  isValid := λ ⟨_, b⟩ b' ↦ b = b'
+    let b' ← adv.distinguish pk (m₁, m₂) c
+    return b = b'
   __ := encAlg
 
 end IND_CPA

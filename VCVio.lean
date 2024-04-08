@@ -6,6 +6,7 @@ import VCVio.CryptoFoundations.AsymmEncAlg
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.SecExp
+import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
 import VCVio.OracleComp.Constructions.GenerateSeed
 import VCVio.OracleComp.Constructions.Replicate

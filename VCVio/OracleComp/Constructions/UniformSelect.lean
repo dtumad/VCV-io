@@ -144,7 +144,7 @@ end OracleComp
 /-- Simulation oracle for replacing queries with uniform random selection, using `unifSpec`.
 The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
-noncomputable def unifOracle {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] :
+def unifOracle {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] :
     spec →ₛₒ unifSpec :=
   statelessOracle (λ i _ ↦ $ᵗ (spec.range i))
 
@@ -153,7 +153,7 @@ namespace unifOracle
 variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
 
 @[simp]
-lemma apply_eq (i : spec.ι) : unifOracle i = λ _ ↦ ((., ())) <$> $ᵗ (spec.range i) := rfl
+lemma apply_eq (i : spec.ι) : unifOracle i = λ _ _ ↦ (., ()) <$> $ᵗ (spec.range i) := rfl
 
 @[simp]
 lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :

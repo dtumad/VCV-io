@@ -46,7 +46,7 @@ lemma exec_bind (alg : OracleAlg spec) (oa : OracleComp spec α) (ob : α → Or
 
 @[simp low]
 lemma exec_query (alg : OracleAlg spec) (i : spec.ι) (t : spec.domain i) :
-    alg.exec (query i t) = Prod.fst <$> alg.baseSimOracle i (t, alg.init_state) :=
+    alg.exec (query i t) = Prod.fst <$> alg.baseSimOracle i t alg.init_state :=
   simulate'_query alg.baseSimOracle i t alg.init_state
 
 @[simp low]

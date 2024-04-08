@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle
 
 /-!
 # Security Experiments
@@ -26,8 +27,18 @@ open OracleComp OracleSpec ENNReal
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes.
 This is useful both for asymptotic security as well as in some concrete security bounds. -/
-structure SecAdv (spec : OracleSpec) (α β : Type) where
+structure SecAdv (spec : OracleSpec)
+    (α β : Type) where
   run : α → OracleComp spec β
+  -- run_polyTime : polyTimeOracleComp run
+  activeOracles : List spec.ι
+  queryBound : QueryCount spec
+  -- queryBound_is_bound : ∀ qc x y,
+  --   (y, qc) ∈ (simulate countingOracle (run x) 0).support →
+  --     ∀ i, qc i ≤ queryBound i
+  -- mem_activeOracles_iff : ∀ i,
+  --   i ∈ activeOracles ↔ queryBound i ≠ 0
+
   -- runQueryBound : QueryCount spec
 
 namespace SecAdv
@@ -37,29 +48,28 @@ variable {spec : OracleSpec} {α β : Type}
 end SecAdv
 
 /-- A security experiment using oracles in `spec`, represented as an `OracleAlg`. -/
-structure SecExp (spec : OracleSpec) (α β : Type)
+structure SecExp (spec : OracleSpec) (α : Type)
     extends OracleAlg spec where
   inpGen : OracleComp spec α
-  main : α → OracleComp spec β
-  isValid : α → β → Bool
+  main : α → OracleComp spec Bool
 
 namespace SecExp
 
 variable {spec : OracleSpec} {α β : Type}
 
-def runExp (exp : SecExp spec α β) : OracleComp unifSpec Bool :=
-  exp.exec (do
-    let x ← exp.inpGen
-    let y ← exp.main x
-    return exp.isValid x y)
+def runExp (exp : SecExp spec α) :
+    OracleComp unifSpec Bool :=
+  exp.exec (exp.inpGen >>= exp.main)
 
 @[simp]
-lemma runExp_eq (exp : SecExp spec α β) : exp.runExp = exp.exec
-    (do let x ← exp.inpGen; let y ← exp.main x; return exp.isValid x y) := rfl
+lemma runExp_eq (exp : SecExp spec α) : exp.runExp = exp.exec
+    (exp.inpGen >>= exp.main) := rfl
 
-noncomputable def advantage (exp : SecExp spec α β) : ℝ≥0∞ := [= true | exp.runExp]
+noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
+  [= true | exp.exec (exp.inpGen >>= exp.main)]
 
 @[simp]
-lemma advantage_eq (exp : SecExp spec α β) : exp.advantage = [= true | exp.runExp] := rfl
+lemma advantage_eq (exp : SecExp spec α) :
+    exp.advantage = [= true | exp.runExp] := rfl
 
 end SecExp
