@@ -6,9 +6,6 @@ Authors: Devon Tuma
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.SignatureAlg
 import Mathlib.Data.Vector.Zip
-import VCVio.OracleComp.OracleSpec.Append
-import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
-import VCVio.OracleComp.SimSemantics.Append
 import VCVio.OracleComp.Constructions.Replicate
 
 open OracleSpec OracleComp Sum
