@@ -35,7 +35,7 @@ private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
   IO.println ("Num 3s: " ++ toString (xs.toList.count 3))
   IO.println ("Num 4s: " ++ toString (xs.toList.count 4))
 
-#eval lawLargeNumsTest 2000
+-- #eval lawLargeNumsTest 2000
 
 private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   IO.println ("Initial Message: " ++ toString m.toList)
@@ -46,10 +46,10 @@ private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   let m' ← ((oneTimePad n).exec <| (oneTimePad n).decrypt σ k).runIO
   IO.println ("Final Message: " ++ toString m'.toList)
 
-#eval testOTP (Vector.replicate 100 true)
+-- #eval testOTP (Vector.replicate 100 true)
 
 example (x y z : ℝ) (hy : 0 ≤ y)
     (hz : x + y = z) : x < z ∨ 0 = y := by
   simp [← hz, ← le_iff_lt_or_eq, hy]
- 
+
 end OracleComp

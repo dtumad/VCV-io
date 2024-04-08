@@ -8,6 +8,10 @@ import VCVio.CryptoFoundations.SignatureAlg
 import Mathlib.Data.Vector.Zip
 import VCVio.OracleComp.Constructions.Replicate
 
+/-!
+# HHS Based Schnorr Signature
+-/
+
 open OracleSpec OracleComp Sum
 
 -- TODO: This is needed for computability but we need a better interface

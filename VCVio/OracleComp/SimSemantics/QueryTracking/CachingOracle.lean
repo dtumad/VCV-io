@@ -37,7 +37,7 @@ def cachingOracle {spec : OracleSpec} :
         return (u, cache.cacheQuery t u)
 
 def randOracle {spec : OracleSpec}
-  [∀ i, SelectableType (spec.range i)] :
+    [∀ i, SelectableType (spec.range i)] :
     spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState
     (Equiv.prodPUnit (QueryCache spec))

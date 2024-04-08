@@ -40,8 +40,7 @@ def simulate (so : spec →[σ]ₛₒ specₜ) :
 
 /-- Version of `simulate` that tosses out the oracle state at the end. -/
 def simulate' (so : spec →[σ]ₛₒ specₜ)
-  (oa : OracleComp spec α) (s : σ) :
-    OracleComp specₜ α :=
+    (oa : OracleComp spec α) (s : σ) : OracleComp specₜ α :=
   fst <$> simulate so oa s
 
 lemma simulate'_def (so : spec →[σ]ₛₒ specₜ) (oa : OracleComp spec α) (s : σ) :

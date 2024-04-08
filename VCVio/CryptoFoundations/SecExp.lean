@@ -70,6 +70,6 @@ noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
 
 @[simp]
 lemma advantage_eq (exp : SecExp spec α) :
-  exp.advantage = [= true | exp.runExp] := rfl
+    exp.advantage = [= true | exp.runExp] := rfl
 
 end SecExp

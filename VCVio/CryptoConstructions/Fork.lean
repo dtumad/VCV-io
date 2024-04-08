@@ -6,6 +6,11 @@ Authors: Devon Tuma
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.GenerateSeed
 
+/-!
+# Forking Lemma
+
+-/
+
 open OracleSpec OracleComp OracleAlg Option ENNReal
 
 structure ForkAdv (spec : OracleSpec)
@@ -20,7 +25,7 @@ variable {spec : OracleSpec} [∀ j, SelectableType (spec.range j)]
   [unifSpec ⊂ₒ spec]
 
 def seedAndRun (adv : ForkAdv spec α β i)
-  (x : α) (initSeed : QuerySeed spec) :
+    (x : α) (initSeed : QuerySeed spec) :
   OracleComp spec (β × QuerySeed spec) := do
     let missingCount := adv.queryBound - initSeed.toCount
     let freshSeed : QuerySeed spec ← generateSeed missingCount adv.activeOracles
