@@ -18,7 +18,7 @@ respond uniformly to all queries.
 We also define functions `probOutput oa x` and `probEvent oa p` for the probabilities of a
 specific output of of a specific predicate holding on the output respectively.
 We introduce notation `[= x | oa]` and `[p | oa]` for these defintions as well.
-
+λ α ↦ (α → β)
 The behavior of more complex oracles should first be implemented using `OracleComp.simulate`
 before applying these constructions.
 
@@ -39,9 +39,11 @@ variable {spec : OracleSpec} {α β : Type}
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random. -/
-noncomputable def evalDist : {α : Type} → OracleComp spec α → PMF α
-| _, pure' α a => PMF.pure a
-| _, query_bind' i _ α oa => (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u))
+noncomputable def evalDist {α : Type} : OracleComp spec α → PMF α
+| pure' α a => PMF.pure a
+| query_bind' i _ α oa =>
+    let unif := PMF.uniformOfFintype (spec.range i)
+    unif.bind (λ u ↦ evalDist (oa u))
 
 lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
 

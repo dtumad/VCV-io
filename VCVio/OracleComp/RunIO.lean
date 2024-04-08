@@ -48,4 +48,8 @@ private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
 
 #eval testOTP (Vector.replicate 100 true)
 
+example (x y z : ℝ) (hy : 0 ≤ y)
+    (hz : x + y = z) : x < z ∨ 0 = y := by
+  simp [← hz, ← le_iff_lt_or_eq, hy]
+ 
 end OracleComp
