@@ -20,24 +20,27 @@ open OracleSpec OracleComp Prod Sum
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
 def SimOracle (spec specₜ : OracleSpec) (σ : Type) :=
-  (i : spec.ι) → spec.domain i × σ → OracleComp specₜ (spec.range i × σ)
+  (i : spec.ι) → spec.domain i → σ → OracleComp specₜ (spec.range i × σ)
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 notation : 55 spec " →ₛₒ " specₜ => SimOracle spec specₜ Unit
 
 instance (spec specₜ : OracleSpec) (σ : Type) :
-    Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ ⟨_, s⟩ ↦ pure (default, s)⟩
+    Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure (default, s)⟩
 
 /-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
 answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
-def simulate (so : spec →[σ]ₛₒ specₜ) : OracleComp spec α → σ → OracleComp specₜ (α × σ)
+def simulate (so : spec →[σ]ₛₒ specₜ) :
+    (oa : OracleComp spec α) → (s : σ) →
+      OracleComp specₜ (α × σ)
   | pure' α x, s => return (x, s)
   | query_bind' i t α oa, s => do
-      let ⟨u, s'⟩ ← so i (t, s)
+      let (u, s') ← so i t s
       simulate so (oa u) s'
 
 /-- Version of `simulate` that tosses out the oracle state at the end. -/
-def simulate' (so : spec →[σ]ₛₒ specₜ) (oa : OracleComp spec α) (s : σ) :
+def simulate' (so : spec →[σ]ₛₒ specₜ)
+  (oa : OracleComp spec α) (s : σ) :
     OracleComp specₜ α :=
   fst <$> simulate so oa s
 
@@ -77,12 +80,12 @@ lemma simulate'_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 
 @[simp]
 lemma simulate_query (i : spec.ι) (t : spec.domain i) (s : σ) :
-    simulate so (query i t) s = so i (t, s) := by
+    simulate so (query i t) s = so i t s := by
   simp_rw [query_def, simulate, Prod.mk.eta, bind_pure]
 
 @[simp]
 lemma simulate'_query (i : spec.ι) (t : spec.domain i) (s : σ) :
-    simulate' so (query i t) s = fst <$> so i (t, s) := by
+    simulate' so (query i t) s = fst <$> so i t s := by
   rw [simulate', simulate_query]
 
 @[simp]
@@ -132,7 +135,7 @@ end support
 
 section idem
 
-lemma simulate'_eq_self (so : spec →[σ]ₛₒ spec) (h : ∀ i t s, fst <$> so i (t, s) = query i t)
+lemma simulate'_eq_self (so : spec →[σ]ₛₒ spec) (h : ∀ i t s, fst <$> so i t s = query i t)
     (oa : OracleComp spec α) :
     ∀ s, simulate' so oa s = oa := by
   induction oa using OracleComp.inductionOn with
@@ -144,7 +147,7 @@ lemma simulate'_eq_self (so : spec →[σ]ₛₒ spec) (h : ∀ i t s, fst <$> s
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this -/
 lemma evalDist_simulate'_eq_evalDist (so : spec →[σ]ₛₒ specₜ)
-    (h : ∀ i t s, evalDist (fst <$> so i (t, s)) = PMF.uniformOfFintype (spec.range i))
+    (h : ∀ i t s, evalDist (fst <$> so i t s) = PMF.uniformOfFintype (spec.range i))
     (oa : OracleComp spec α) : ∀ s, evalDist (simulate' so oa s) = evalDist oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp

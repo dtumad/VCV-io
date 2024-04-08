@@ -36,7 +36,7 @@ open OracleComp OracleSpec
 
 def countingOracle {spec : OracleSpec} :
     spec →[QueryCount spec]ₛₒ spec :=
-  λ i ⟨t, qc⟩ ↦ (·, qc.increment i 1) <$> query i t
+  λ i t qc ↦ (·, qc.increment i 1) <$> query i t
 
 -- def countingOracle {spec : OracleSpec} :
 --   spec →[List spec.ι]ₛₒ spec :=

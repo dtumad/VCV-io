@@ -33,22 +33,22 @@ answering queries to either oracle set with queries to the corresponding simulat
 def append (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ) :
     spec₁ ++ spec₂ →[σ × τ]ₛₒ specₜ :=
   λ i ↦ match i with
-  | (inl i) => λ ⟨t, s₁, s₂⟩ ↦ do
-      let ⟨u, s₁'⟩ ← so i (t, s₁) return (u, s₁', s₂)
-  | (inr i) => λ ⟨t, s₁, s₂⟩ ↦ do
-      let ⟨u, s₂'⟩ ← so' i (t, s₂) return (u, s₁, s₂')
+  | (inl i) => λ t (s₁, s₂) ↦ do
+      let (u, s₁') ← so i t s₁ return (u, s₁', s₂)
+  | (inr i) => λ t (s₁, s₂) ↦ do
+      let (u, s₂') ← so' i t s₂ return (u, s₁, s₂')
 
 infixl : 65 " ++ₛₒ " => append
 
 @[simp]
 lemma append_apply_inl (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (i : spec₁.ι) : (so ++ₛₒ so') (inl i) = λ ⟨t, s₁, s₂⟩ ↦ do
-      let ⟨u, s₁'⟩ ← so i (t, s₁) return (u, s₁', s₂) := rfl
+    (i : spec₁.ι) : (so ++ₛₒ so') (inl i) = λ t (s₁, s₂) ↦ do
+      let (u, s₁') ← so i t s₁ return (u, s₁', s₂) := rfl
 
 @[simp]
 lemma append_apply_inr (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (i : spec₂.ι) : (so ++ₛₒ so') (inr i) = λ ⟨t, s₁, s₂⟩ ↦ do
-      let ⟨u, s₂'⟩ ← so' i (t, s₂) return (u, s₁, s₂') := rfl
+    (i : spec₂.ι) : (so ++ₛₒ so') (inr i) = λ t (s₁, s₂) ↦ do
+      let (u, s₂') ← so' i t s₂ return (u, s₁, s₂') := rfl
 
 section subSpec
 

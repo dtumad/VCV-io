@@ -153,7 +153,7 @@ namespace unifOracle
 variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
 
 @[simp]
-lemma apply_eq (i : spec.ι) : unifOracle i = λ _ ↦ ((., ())) <$> $ᵗ (spec.range i) := rfl
+lemma apply_eq (i : spec.ι) : unifOracle i = λ _ _ ↦ (., ()) <$> $ᵗ (spec.range i) := rfl
 
 @[simp]
 lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :

@@ -25,6 +25,6 @@ open OracleComp OracleSpec
 
 def loggingOracle {spec : OracleSpec} :
     spec →[QueryLog spec]ₛₒ spec :=
-  λ i ⟨t, log⟩ ↦ do
+  λ i t log ↦ do
     let u ← query i t
     return (u, log.logQuery t u)
