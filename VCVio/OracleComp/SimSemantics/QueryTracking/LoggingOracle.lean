@@ -19,6 +19,12 @@ def QueryLog.logQuery {spec : OracleSpec} (log : QueryLog spec) {i : spec.ι}
     (t : spec.domain i) (u : spec.range i) : QueryLog spec :=
   Function.update log i ((t, u) :: log i)
 
+def QueryLog.wasQueried {spec : OracleSpec} (log : QueryLog spec)
+    (i : spec.ι) (t : spec.domain i) : Bool :=
+  match (log i).find? (λ (t', _) ↦ t = t') with
+  | Option.some _ => true
+  | Option.none => false
+
 end OracleSpec
 
 open OracleComp OracleSpec

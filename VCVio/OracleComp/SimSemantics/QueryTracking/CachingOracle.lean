@@ -11,6 +11,8 @@ import VCVio.OracleComp.Constructions.UniformSelect
 
 -/
 
+open Option
+
 namespace OracleSpec
 
 def QueryCache (spec : OracleSpec) : Type :=
@@ -19,6 +21,8 @@ def QueryCache (spec : OracleSpec) : Type :=
 def QueryCache.cacheQuery {spec : OracleSpec} (cache : QueryCache spec) {i : spec.ι}
     (t : spec.domain i) (u : spec.range i) : QueryCache spec :=
   Function.update cache i (Function.update (cache i) t u)
+
+instance : EmptyCollection (QueryCache spec) := ⟨λ _ _ ↦ none⟩
 
 end OracleSpec
 
@@ -32,7 +36,7 @@ def cachingOracle {spec : OracleSpec} :
         let u ← query i t
         return (u, cache.cacheQuery t u)
 
-noncomputable def randOracle {spec : OracleSpec}
+def randOracle {spec : OracleSpec}
   [∀ i, SelectableType (spec.range i)] :
     spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState

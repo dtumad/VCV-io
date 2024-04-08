@@ -60,7 +60,7 @@ theorem le_fork_advantage
     let acc := [(· ≠ none) | adv.chooseFork x <$> adv.run x]
     let q : ℝ≥0∞ := adv.queryBound i + 1
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
-    (acc / q) ^ 2 - 1 / h ≤ frk :=
+    (acc / q) ^ 2 - acc / h ≤ frk :=
   sorry
 
 end OracleComp
