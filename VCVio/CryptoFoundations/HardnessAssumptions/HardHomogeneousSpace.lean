@@ -49,10 +49,11 @@ structure vectorizationAdv (G P : Type)
 The input generator randomly chooses the challenge points for the adversary,
 and a result is valid if it is exactly the vectorization of the challenge points. -/
 noncomputable def vectorizationExp [HomogeneousSpace G P]
-    (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) G where
+    (adv : vectorizationAdv G P) : SecExp unifSpec (P × P) where
   inpGen := (·, ·) <$> ($ᵗ P) <*> ($ᵗ P)
-  main := λ (x₁, x₂) ↦ adv.run (x₁, x₂)
-  isValid := λ (x₁, x₂) g ↦ g = x₁ -ᵥ x₂
+  main := λ (x₁, x₂) ↦ do
+    let g ← adv.run (x₁, x₂)
+    return g = x₁ -ᵥ x₂
   __ := baseOracleAlg
 
 namespace vectorizationExp

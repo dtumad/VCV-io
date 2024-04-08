@@ -48,30 +48,28 @@ variable {spec : OracleSpec} {α β : Type}
 end SecAdv
 
 /-- A security experiment using oracles in `spec`, represented as an `OracleAlg`. -/
-structure SecExp (spec : OracleSpec) (α β : Type)
+structure SecExp (spec : OracleSpec) (α : Type)
     extends OracleAlg spec where
   inpGen : OracleComp spec α
-  main : α → OracleComp spec β
-  isValid : α → β → Bool
+  main : α → OracleComp spec Bool
 
 namespace SecExp
 
 variable {spec : OracleSpec} {α β : Type}
 
-def runExp (exp : SecExp spec α β) :
+def runExp (exp : SecExp spec α) :
     OracleComp unifSpec Bool :=
-  exp.exec (do
-    let x ← exp.inpGen
-    let y ← exp.main x
-    return exp.isValid x y)
+  exp.exec (exp.inpGen >>= exp.main)
 
 @[simp]
-lemma runExp_eq (exp : SecExp spec α β) : exp.runExp = exp.exec
-    (do let x ← exp.inpGen; let y ← exp.main x; return exp.isValid x y) := rfl
+lemma runExp_eq (exp : SecExp spec α) : exp.runExp = exp.exec
+    (exp.inpGen >>= exp.main) := rfl
 
-noncomputable def advantage (exp : SecExp spec α β) : ℝ≥0∞ := [= true | exp.runExp]
+noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
+  [= true | exp.exec (exp.inpGen >>= exp.main)]
 
 @[simp]
-lemma advantage_eq (exp : SecExp spec α β) : exp.advantage = [= true | exp.runExp] := rfl
+lemma advantage_eq (exp : SecExp spec α) :
+  exp.advantage = [= true | exp.runExp] := rfl
 
 end SecExp

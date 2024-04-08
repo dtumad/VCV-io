@@ -35,12 +35,11 @@ variable {spec : OracleSpec}
     [Fintype S]
 
 def soundnessExp (sigAlg : SignatureAlg spec M PK SK S)
-    (m : M) : SecExp spec (PK × SK) Bool where
+    (m : M) : SecExp spec (PK × SK) where
   inpGen := sigAlg.keygen ()
   main := λ (pk, sk) ↦ do
     let σ ← sigAlg.sign pk sk m
     sigAlg.verify pk m σ
-  isValid := λ _ b ↦ b = true
   __ := sigAlg
 
 def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
@@ -54,8 +53,8 @@ def signingOracle (sigAlg : SignatureAlg spec M PK SK S)
     return (σ, log.logQuery m σ)
 
 def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
-    (adv : unforgeableAdv sigAlg) :
-    SecExp spec (PK × SK) Bool where
+    (adv : SecAdv (spec ++ (M →ₒ S)) PK (M × S)) :
+    SecExp spec (PK × SK) where
   inpGen := sigAlg.keygen ()
   main := λ ⟨pk, sk⟩ ↦ do
     let ((m, σ), ((), log)) ←
@@ -63,7 +62,6 @@ def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
         (adv.run pk) ((), λ _ ↦ [])
     let b ← sigAlg.verify pk m σ
     return (b && !(log.wasQueried () m))
-  isValid := λ _ b ↦ b = true
   __ := sigAlg
 
 
