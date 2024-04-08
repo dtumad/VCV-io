@@ -31,10 +31,11 @@ i.e. that decryption properly reverses encryption -/
 def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C)
     (m : M) : SecExp spec (PK × SK) M where
   inpGen := encAlg.keygen ()
-  main := λ ⟨pk, sk⟩ ↦ do
+  main := λ (pk, sk) ↦ do
     let σ ← encAlg.encrypt m pk
     encAlg.decrypt σ sk
   isValid := λ _ m' ↦ m = m'
+  -- Pull in oracles from `encAlg`
   __ := encAlg
 
 namespace soundnessExp

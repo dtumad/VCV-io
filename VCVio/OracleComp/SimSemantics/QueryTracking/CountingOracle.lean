@@ -18,6 +18,7 @@ open OracleComp
 
 namespace OracleSpec
 
+@[inline, reducible]
 def QueryCount (spec : OracleSpec) : Type := spec.ι → ℕ
 
 variable {spec : OracleSpec}

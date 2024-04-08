@@ -24,6 +24,11 @@ def QuerySeed (spec : OracleSpec) : Type :=
 
 namespace QuerySeed
 
+instance : Coe (QuerySeed spec) (QueryCount spec) where
+  coe := λ qs i ↦ (qs i).length
+
+def toCount (qs : QuerySeed spec) : QueryCount spec := λ i ↦ (qs i).length
+
 instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
 
 def addValues (qs : QuerySeed spec) {i : spec.ι}
@@ -34,28 +39,12 @@ def takeAtIndex (qs : QuerySeed spec) {i : spec.ι}
     (n : ℕ) : QuerySeed spec :=
   λ j ↦ if j = i then (qs j).take n else qs j
 
+def append (qs qs' : QuerySeed spec) : QuerySeed spec :=
+  λ i ↦ qs i ++ qs' i
+
 end QuerySeed
 
 end OracleSpec
-
-namespace OracleComp
-
-variable [∀ j, SelectableType (spec.range j)]
-
-def generateSeedAux (qc : QueryCount spec) :
-    List spec.ι → QuerySeed spec →
-      OracleComp unifSpec (QuerySeed spec)
-  | [], seed => return seed
-  | j :: js, seed => do
-      let xs ← replicate ($ᵗ (spec.range j)) (qc j)
-      let seed' := seed.addValues xs.toList
-      generateSeedAux qc js seed'
-
-def generateSeed (qc : QueryCount spec) (activeOracles : List spec.ι) :
-    OracleComp unifSpec (QuerySeed spec) :=
-  generateSeedAux qc activeOracles ∅
-
-end OracleComp
 
 def seededOracle : spec →[QuerySeed spec]ₛₒ spec :=
   λ i t seed ↦ match seed i with

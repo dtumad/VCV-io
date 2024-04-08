@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle
 
 /-!
 # Security Experiments
@@ -26,8 +27,18 @@ open OracleComp OracleSpec ENNReal
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes.
 This is useful both for asymptotic security as well as in some concrete security bounds. -/
-structure SecAdv (spec : OracleSpec) (α β : Type) where
+structure SecAdv (spec : OracleSpec)
+    (α β : Type) where
   run : α → OracleComp spec β
+  -- run_polyTime : polyTimeOracleComp run
+  activeOracles : List spec.ι
+  queryBound : QueryCount spec
+  -- queryBound_is_bound : ∀ qc x y,
+  --   (y, qc) ∈ (simulate countingOracle (run x) 0).support →
+  --     ∀ i, qc i ≤ queryBound i
+  -- mem_activeOracles_iff : ∀ i,
+  --   i ∈ activeOracles ↔ queryBound i ≠ 0
+
   -- runQueryBound : QueryCount spec
 
 namespace SecAdv
@@ -47,7 +58,8 @@ namespace SecExp
 
 variable {spec : OracleSpec} {α β : Type}
 
-def runExp (exp : SecExp spec α β) : OracleComp unifSpec Bool :=
+def runExp (exp : SecExp spec α β) :
+    OracleComp unifSpec Bool :=
   exp.exec (do
     let x ← exp.inpGen
     let y ← exp.main x
