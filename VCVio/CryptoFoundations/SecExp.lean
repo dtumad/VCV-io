@@ -57,19 +57,15 @@ namespace SecExp
 
 variable {spec : OracleSpec} {α β : Type}
 
-def runExp (exp : SecExp spec α) :
-    OracleComp unifSpec Bool :=
-  exp.exec (exp.inpGen >>= exp.main)
-
-@[simp]
-lemma runExp_eq (exp : SecExp spec α) : exp.runExp = exp.exec
-    (exp.inpGen >>= exp.main) := rfl
-
 noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
   [= true | exp.exec (exp.inpGen >>= exp.main)]
 
+lemma advantage_eq (exp : SecExp spec α) : exp.advantage =
+  [= true | exp.exec (exp.inpGen >>= exp.main)] := rfl
+
 @[simp]
-lemma advantage_eq (exp : SecExp spec α) :
-    exp.advantage = [= true | exp.runExp] := rfl
+lemma advantage_eq_one_iff (exp : SecExp spec α) : exp.advantage = 1 ↔
+    false ∉ (exp.exec (exp.inpGen >>= exp.main)).support :=
+  sorry
 
 end SecExp
