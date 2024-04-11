@@ -64,7 +64,7 @@ section baseOracleAlg
 
 /-- Simple base structure for defining algorithms using only uniform selection oracles.
 Usefull to auto-fill in fields with simple defaults in this case. -/
--- @[inline, reducible]
+@[inline, reducible]
 def baseOracleAlg : OracleAlg unifSpec where
   baseState := Unit
   init_state := ()
@@ -73,7 +73,7 @@ def baseOracleAlg : OracleAlg unifSpec where
 @[simp]
 lemma exec_baseOracleAlg (oa : OracleComp unifSpec α) :
     baseOracleAlg.exec oa = oa := by
-  simp only [baseOracleAlg, exec.def, idOracle.simulate'_eq]
+  simp only [exec.def, idOracle.simulate'_eq]
 
 end baseOracleAlg
 
