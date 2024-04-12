@@ -28,6 +28,7 @@ class Selectable (α : Type) (β : Type) where
   count : α → ℕ
   elemVec : (s : α) → Vector β (count s + 1)
 
+/-- Given a selectable object, we can get a random element by indexing into the element vector. -/
 def uniformSelect {α : Type} {β : Type} [h : Selectable α β] (s : α) :
     OracleComp unifSpec β := do
   let i ← $[0..h.count s]
@@ -49,6 +50,14 @@ lemma evalDist_uniformSelect [h : Selectable α β] (s : α) :
   sorry
 
 @[simp]
+lemma support_uniformSelect [h : Selectable α β] (s : α) :
+    ($ s).support = {x | x ∈ (h.elemVec s).toList} := sorry
+
+@[simp]
+lemma finSupport_uniformSelect [DecidableEq β] [h : Selectable α β] (s : α) :
+    ($ s).finSupport = (h.elemVec s).toList.toFinset := sorry
+
+@[simp]
 lemma probOutput_uniformSelect [DecidableEq β] [h : Selectable α β] (s : α) (x : β) :
     [= x | $ s] = ((h.elemVec s).toList.count x) / (h.count s + 1 : ℝ≥0∞) := by
   simp [probOutput.def]
@@ -64,19 +73,25 @@ lemma probEvent_uniformSelect [h : Selectable α β] (s : α)
 
 end Selectable
 
-instance (α : Type) (n : ℕ) [hn : NeZero n] :
+/-- Select uniformly from a (non-empty) vector, by choosing a random index. -/
+instance selectableVector (α : Type) (n : ℕ) [hn : NeZero n] :
     Selectable (Vector α n) α where
   count := λ _ ↦ n - 1
   elemVec := λ xs ↦ ⟨xs.1, symm (by simpa using Nat.succ_pred hn.out)⟩
 
-instance (α : Type) [Inhabited α] :
+/-- Select uniformly at random form a list by choosing a random index.
+We require the type be inhabited so we can return a defualt value for empty lists. -/
+instance selectableList (α : Type) [Inhabited α] :
     Selectable (List α) α where
   count := λ xs ↦ xs.length.pred
   elemVec := λ xs ↦ match xs with
     | [] => ⟨[default], rfl⟩
     | (x :: xs) => ⟨x :: xs, rfl⟩
 
-noncomputable instance (α : Type) [DecidableEq α] [Inhabited α] :
+/-- We can uniformly select from a finite set, but this is notably non-computable,
+since we don't have a canonical ordering of the elements.
+Generally selection from lists, vectors, etc. should be preferred. -/
+noncomputable instance SelectableFinset (α : Type) [DecidableEq α] [Inhabited α] :
     Selectable (Finset α) α where
   count := λ s ↦ s.card.pred
   elemVec := λ s ↦ if h : s = ∅
@@ -90,12 +105,15 @@ section SelectableType
 /-- A `SelectableType β` instance means that `β` is a finite inhabited type,
 with an explicit list of the elements in the type.
 We need to have an explicit vector, rather than just a `Finset` to make this computable. -/
+-- class SelectableType (β : Type) extends Fintype β, Inhabited β where
+--   elemVec : Vector β (Fintype.card β)
+--   mem_elemVec : ∀ b : β, b ∈ elemVec.toList
 class SelectableType (β : Type) extends Fintype β, Inhabited β where
-  elemVec : Vector β (Fintype.card β)
-  mem_elemVec : ∀ b : β, b ∈ elemVec.toList
+  selectElem : OracleComp unifSpec β
+  evelDist_selectElem : evalDist selectElem = PMF.uniformOfFintype β
 
 def uniformOfFintype (β : Type) [h : SelectableType β] :
-    OracleComp unifSpec β := $ h.elemVec
+    OracleComp unifSpec β := h.selectElem
 
 notation "$ᵗ" => uniformOfFintype
 
@@ -121,17 +139,19 @@ lemma probEvent_uniformOfFintype (p : α → Prop) [DecidablePred p] :
 
 end SelectableType
 
--- section instances
+section instances
 
--- instance : SelectableType Unit where
---   elemVec := () ::ᵥ Vector.nil
---   mem_elemVec := λ () ↦ by simp
+instance (α : Type) [Unique α] : SelectableType α where
+  selectElem := return default
+  evelDist_selectElem := by simpa [PMF.ext_iff] using Unique.eq_default
 
--- instance : SelectableType Bool where
---   elemVec := true ::ᵥ false ::ᵥ Vector.nil
---   mem_elemVec := λ b ↦ match b with
---     | true => by simp
---     | false => by simp
+instance : SelectableType Bool where
+  selectElem := $ [true, false]
+  evelDist_selectElem := by
+    simp [PMF.ext_iff]
+    sorry
+
+end instances
 
 -- /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
 -- noncomputable instance : coinSpec ⊂ₒ unifSpec where

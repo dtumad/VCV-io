@@ -58,10 +58,10 @@ namespace SecExp
 variable {spec : OracleSpec} {α β : Type}
 
 noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
-  [= true | exp.exec (exp.inpGen >>= exp.main)]
+    [= true | exp.exec (exp.inpGen >>= exp.main)]
 
-lemma advantage_eq (exp : SecExp spec α) : exp.advantage =
-  [= true | exp.exec (exp.inpGen >>= exp.main)] := rfl
+lemma advantage_eq (exp : SecExp spec α) :
+    exp.advantage = [= true | exp.exec (exp.inpGen >>= exp.main)] := rfl
 
 @[simp]
 lemma advantage_eq_one_iff (exp : SecExp spec α) : exp.advantage = 1 ↔

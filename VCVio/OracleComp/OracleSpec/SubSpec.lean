@@ -100,7 +100,7 @@ lemma coe_subSpec_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β
 @[simp low]
 lemma coe_subSpec_query (i : spec.ι) (t : spec.domain i) :
     (↑(query i t) : OracleComp super_spec (spec.range i)) = h.toFun i t := by
-  simp
+  -- simp
   sorry
   -- simp only [simulate'_query, statelessOracle.apply_eq, Functor.map_map, Function.comp, id_map']
 
