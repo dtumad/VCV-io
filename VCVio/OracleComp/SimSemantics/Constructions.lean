@@ -57,9 +57,9 @@ lemma simulate'_compose (oa : OracleComp spec₁ α) :
 
 end compose
 
-variable {spec specₜ : OracleSpec} {σ τ : Type}
-
 section maskState
+
+variable {spec specₜ : OracleSpec} {σ τ : Type}
 
 /-- Substitute an equivalent type for the state of a simulation oracle, by using the equivalence
 to move back and forth between the states as needed.

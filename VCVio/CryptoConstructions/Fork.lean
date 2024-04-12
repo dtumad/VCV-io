@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.GenerateSeed
+import VCVio.OracleComp.OracleSpec.SubSpec
 
 /-!
 # Forking Lemma

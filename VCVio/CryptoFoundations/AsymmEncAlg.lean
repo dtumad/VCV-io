@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.OracleComp.OracleSpec.SubSpec
 
 /-!
 # Asymmetric Encryption Schemes.
