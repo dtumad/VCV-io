@@ -97,15 +97,12 @@ end maskState
 
 end SimOracle
 
-/-- "Simulate" a computation using the original oracles by "replacing" queries with queries.
+/-- Simulate a computation using the original oracles by "replacing" queries with queries.
 This operates as an actual identity for `simulate'`, in that we get an exact equality
 between the new and original computation.
+
 This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
 in a larger set of oracles, leaving the behavior of other oracles unchanged.
-
-This is importantly different than `unifOracle`, which preserves probabilities but
-changes the target oracle spec to `unifSpec` by explicitly choosing outputs randomly.
-
 The relevant spec can usually be inferred automatically, so we leave it implicit. -/
 def idOracle {spec : OracleSpec} : spec →[Unit]ₛₒ spec :=
   λ i t () ↦ (·, ()) <$> query i t
@@ -188,3 +185,31 @@ lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop)
   sorry
 
 end unifOracle
+
+/-- Simulate a computation by having each oracle return the default value of the query output type
+for all queries. This gives a way to run arbitrary computations to get *some* output. -/
+def defaultOracle {spec : OracleSpec} : spec →[Unit]ₛₒ ∅ :=
+  λ _ _ _ ↦ return (default, ())
+
+namespace defaultOracle
+
+variable {spec : OracleSpec}
+
+@[simp]
+lemma apply_eq (i : spec.ι) : defaultOracle i = λ _ _ ↦ return (default, ()) := rfl
+
+@[simp]
+lemma simulate_eq (oa : OracleComp spec α) (s : Unit) :
+    simulate defaultOracle oa s = return (oa.defaultResult, ()) := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => simp only [simulate_eq_map_simulate', PUnit.default_eq_unit,
+      simulate'_pure, map_pure, defaultResult]
+  | h_query_bind i t oa hoa => simp only [simulate_bind, simulate_query, apply_eq, hoa, pure_bind,
+      defaultResult, OracleComp.bind'_eq_bind]
+
+@[simp]
+lemma simulate'_eq (oa : OracleComp spec α) (s : Unit) :
+    simulate' defaultOracle oa s = return oa.defaultResult := by
+  simp only [simulate'_def, simulate_eq, map_pure]
+
+end defaultOracle
