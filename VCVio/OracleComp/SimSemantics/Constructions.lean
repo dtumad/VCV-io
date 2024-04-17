@@ -46,7 +46,7 @@ lemma simulate_compose (oa : OracleComp spec₁ α) :
       return (x, s₁, s₂) := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
+  | h_queryBind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
 
 /-- Composition of simulatation oracles is exactly composition of simulation calls. -/
 @[simp]
@@ -85,7 +85,7 @@ lemma simulate_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (oa :
     ∀ s : τ, simulate (so.maskState e) oa s = map id e <$> simulate so oa (e.symm s) := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
+  | h_queryBind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
 
 /-- Masking the state doesn't affect the first output of a computation. -/
 @[simp]
@@ -125,7 +125,7 @@ lemma simulate'_eq (oa : OracleComp spec α) :
   refine funext (λ () ↦ ?_)
   induction oa using OracleComp.inductionOn with
   | h_pure x => rfl
-  | h_query_bind i t oa hoa =>
+  | h_queryBind i t oa hoa =>
       simp [Functor.map_map, Function.comp, hoa, seq_bind_eq]
 
 @[simp]
@@ -156,7 +156,7 @@ lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
   revert u
   induction oa using OracleComp.inductionOn with
   | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
-  | h_query_bind i t oa hoa => sorry --simp [PMF.map, hoa]
+  | h_queryBind i t oa hoa => sorry --simp [PMF.map, hoa]
 
 @[simp]
 lemma evalDist_simulate' (oa : OracleComp spec α) (u : PUnit) :
@@ -204,7 +204,7 @@ lemma simulate_eq (oa : OracleComp spec α) (s : Unit) :
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp only [simulate_eq_map_simulate', PUnit.default_eq_unit,
       simulate'_pure, map_pure, defaultResult]
-  | h_query_bind i t oa hoa => simp only [simulate_bind, simulate_query, apply_eq, hoa, pure_bind,
+  | h_queryBind i t oa hoa => simp only [simulate_bind, simulate_query, apply_eq, hoa, pure_bind,
       defaultResult, OracleComp.bind'_eq_bind]
 
 @[simp]

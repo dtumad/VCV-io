@@ -24,7 +24,7 @@ namespace OracleComp
 /-- Represent an `OracleComp` via the `IO` monad, allowing actual execution. -/
 protected def runIO {α : Type} : OracleComp unifSpec α → IO α
   | pure' α x => return x
-  | query_bind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
+  | queryBind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
 
 private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
   let xs ← (replicate $[0..4] trials).runIO

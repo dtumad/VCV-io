@@ -61,7 +61,7 @@ lemma simulate_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec�
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => sorry --simp [hoa, map_bind]
+  | h_queryBind i t oa hoa => sorry --simp [hoa, map_bind]
 
 @[simp]
 lemma simulate'_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)

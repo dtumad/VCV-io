@@ -125,7 +125,7 @@ lemma evalDist_coe_subSpec (oa : OracleComp spec α) :
     evalDist (↑oa : OracleComp super_spec α) = evalDist oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => simp [Function.comp, hoa]
+  | h_queryBind i t oa hoa => simp [Function.comp, hoa]
 
 @[simp]
 lemma probOutput_coe_subSpec (oa : OracleComp spec α) (x : α) :

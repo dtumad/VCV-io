@@ -38,7 +38,7 @@ def simulate (so : spec →[σ]ₛₒ specₜ) :
     (oa : OracleComp spec α) → (s : σ) →
       OracleComp specₜ (α × σ)
   | pure' α x, s => return (x, s)
-  | query_bind' i t α oa, s => do
+  | queryBind' i t α oa, s => do
       let (u, s') ← so i t s
       simulate so (oa u) s'
 
@@ -71,7 +71,7 @@ lemma simulate_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => exact (λ _ ↦ rfl)
-  | h_query_bind i t oa hoa =>
+  | h_queryBind i t oa hoa =>
       simp only [simulate, OracleComp.bind'_eq_bind, pure_bind, hoa, bind_assoc, implies_true]
 
 @[simp low]
@@ -124,7 +124,7 @@ lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa =>
+  | h_queryBind i t oa hoa =>
       simp [hoa]
       refine λ _ t s' _ ↦ Set.subset_iUnion_of_subset t (hoa t s')
 
@@ -144,7 +144,7 @@ lemma simulate'_eq_self (so : spec →[σ]ₛₒ spec) (h : ∀ i t s, fst <$> s
     ∀ s, simulate' so oa s = oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
+  | h_queryBind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
       hoa, ← h i t s, map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
 
 /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
@@ -155,7 +155,7 @@ lemma evalDist_simulate'_eq_evalDist (so : spec →[σ]ₛₒ specₜ)
     (oa : OracleComp spec α) : ∀ s, evalDist (simulate' so oa s) = evalDist oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => refine (λ s ↦
+  | h_queryBind i t oa hoa => refine (λ s ↦
       by simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
         evalDist_query, ← h i t s, evalDist_map, PMF.bind_map])
 

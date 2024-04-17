@@ -41,14 +41,14 @@ variable {spec : OracleSpec} {α β : Type}
 getting a given output assuming all oracles responded uniformly at random. -/
 noncomputable def evalDist {α : Type} : OracleComp spec α → PMF α
 | pure' α a => PMF.pure a
-| query_bind' i _ α oa =>
+| queryBind' i _ α oa =>
     let unif := PMF.uniformOfFintype (spec.range i)
     unif.bind (λ u ↦ evalDist (oa u))
 
 lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
 
-lemma evalDist_query_bind' (i : spec.ι) (t : spec.domain i)
-    (oa : spec.range i → OracleComp spec α) : evalDist (query_bind' i t α oa) =
+lemma evalDist_queryBind' (i : spec.ι) (t : spec.domain i)
+    (oa : spec.range i → OracleComp spec α) : evalDist (queryBind' i t α oa) =
       (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u)) := rfl
 
 /-- `[= x | oa]` is the probability of getting the given output `x` from the computation `oa`,
@@ -93,8 +93,8 @@ lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
     x ∈ (evalDist oa).support ↔ x ∈ oa.support := by
   induction oa using OracleComp.inductionOn with
   | h_pure => simp_rw [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, support_pure']
-  | h_query_bind i t oa hoa => simp_rw [← query_bind'_eq_query_bind, evalDist_query_bind',
-      PMF.support_bind, support_query_bind', PMF.support_uniformOfFintype, Set.mem_iUnion, hoa,
+  | h_queryBind i t oa hoa => simp_rw [← queryBind'_eq_queryBind, evalDist_queryBind',
+      PMF.support_bind, support_queryBind', PMF.support_uniformOfFintype, Set.mem_iUnion, hoa,
       Set.top_eq_univ, Set.mem_univ, exists_true_left]
 
 /-- The support of `evalDist oa` is exactly `support oa`. -/
@@ -306,7 +306,7 @@ variable (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 lemma evalDist_bind : evalDist (oa >>= ob) = (evalDist oa).bind (evalDist ∘ ob) :=
   by induction oa using OracleComp.inductionOn with
   | h_pure _ => simp only [pure_bind, evalDist_pure, PMF.pure_bind, Function.comp_apply]
-  | h_query_bind _ _ _ hoa => simp [bind_assoc, ← query_bind'_eq_query_bind, evalDist, hoa]
+  | h_queryBind _ _ _ hoa => simp [bind_assoc, ← queryBind'_eq_queryBind, evalDist, hoa]
 
 @[simp low]
 lemma probOutput_bind_eq_tsum (y : β) :
@@ -362,7 +362,7 @@ variable (i : spec.ι) (t : spec.domain i)
 
 @[simp]
 lemma evalDist_query : evalDist (query i t) = PMF.uniformOfFintype (spec.range i):= by
-  simp only [query_def, evalDist_query_bind', evalDist_pure, PMF.bind_pure]
+  simp only [query_def, evalDist_queryBind', evalDist_pure, PMF.bind_pure]
 
 @[simp]
 lemma probOutput_query (u : spec.range i) :
