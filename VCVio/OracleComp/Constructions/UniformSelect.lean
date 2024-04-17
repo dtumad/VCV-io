@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 -- import VCVio.OracleComp.SimSemantics.Constructions
--- import VCVio.OracleComp.OracleSpec.SubSpec
 import VCVio.OracleComp.DistSemantics.EvalDist
 import Mathlib.Data.Vector.Mem
 
@@ -42,8 +41,10 @@ variable {α : Type} {β : Type}
 lemma evalDist_uniformSelect [h : Selectable α β] (s : α) :
     evalDist ($ s) = PMF.ofMultiset (Multiset.ofList (h.elemVec s).toList)
       (by simp [← List.length_eq_zero]) := by
+  rw [uniformSelect]
   simp [uniformSelect, Function.comp]
   refine PMF.ext (λ x ↦ ?_)
+
   simp only [PMF.bind_apply, PMF.uniformOfFintype_apply, Fintype.card_fin, Nat.cast_add,
     Nat.cast_one, PMF.pure_apply, mul_ite, mul_one, mul_zero, PMF.ofMultiset_apply,
     Multiset.coe_count, Multiset.coe_card, Vector.toList_length]
@@ -74,6 +75,7 @@ lemma probEvent_uniformSelect [h : Selectable α β] (s : α)
 end Selectable
 
 /-- Select uniformly from a (non-empty) vector, by choosing a random index. -/
+@[simps]
 instance selectableVector (α : Type) (n : ℕ) [hn : NeZero n] :
     Selectable (Vector α n) α where
   count := λ _ ↦ n - 1
@@ -81,6 +83,7 @@ instance selectableVector (α : Type) (n : ℕ) [hn : NeZero n] :
 
 /-- Select uniformly at random form a list by choosing a random index.
 We require the type be inhabited so we can return a defualt value for empty lists. -/
+@[simps]
 instance selectableList (α : Type) [Inhabited α] :
     Selectable (List α) α where
   count := λ xs ↦ xs.length.pred
@@ -91,6 +94,7 @@ instance selectableList (α : Type) [Inhabited α] :
 /-- We can uniformly select from a finite set, but this is notably non-computable,
 since we don't have a canonical ordering of the elements.
 Generally selection from lists, vectors, etc. should be preferred. -/
+@[simps]
 noncomputable instance SelectableFinset (α : Type) [DecidableEq α] [Inhabited α] :
     Selectable (Finset α) α where
   count := λ s ↦ s.card.pred
@@ -117,25 +121,32 @@ def uniformOfFintype (β : Type) [h : SelectableType β] :
 
 notation "$ᵗ" => uniformOfFintype
 
-variables {α : Type} [SelectableType α]
-
 @[simp]
-lemma evalDist_uniformOfFintype : evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
+lemma evalDist_uniformOfFintype (α : Type) [SelectableType α] :
+    evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
   have : ∀ x : α, x ∈ Fintype.elems := Fintype.complete
-  simp [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card, this]
-  sorry
+  simp [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card, this,
+    SelectableType.evelDist_selectElem]
 
 @[simp]
-lemma probOutput_uniformOfFintype [DecidableEq α] (x : α) :
+lemma support_uniformOfFintype (α : Type) [SelectableType α] :
+    ($ᵗ α).support = Set.univ := by
+  simp [← support_evalDist]
+
+@[simp]
+lemma finSupport_uniformOfFintype (α : Type) [SelectableType α] [DecidableEq α] :
+    ($ᵗ α).finSupport = Finset.univ := by
+  simp [finSupport_eq_iff_support_eq_coe]
+
+@[simp]
+lemma probOutput_uniformOfFintype {α : Type} [SelectableType α] (x : α) :
     [= x | $ᵗ α] = (↑(Fintype.card α))⁻¹ := by
-  simp [uniformOfFintype, Fintype.complete, Finset.univ, Fintype.card]
-  sorry
+  simp only [probOutput, evalDist_uniformOfFintype, PMF.uniformOfFintype_apply]
 
 @[simp]
-lemma probEvent_uniformOfFintype (p : α → Prop) [DecidablePred p] :
+lemma probEvent_uniformOfFintype {α : Type} [SelectableType α] (p : α → Prop) [DecidablePred p] :
     [p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α := by
-  simp [uniformOfFintype, Finset.univ, Fintype.card]
-  sorry
+  simp [probEvent_eq_sum_filter_univ, div_eq_mul_inv]
 
 end SelectableType
 
@@ -147,17 +158,8 @@ instance (α : Type) [Unique α] : SelectableType α where
 
 instance : SelectableType Bool where
   selectElem := $ [true, false]
-  evelDist_selectElem := by
-    simp [PMF.ext_iff]
-    sorry
+  evelDist_selectElem := by simp [PMF.ext_iff]
 
 end instances
-
--- /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
--- noncomputable instance : coinSpec ⊂ₒ unifSpec where
---   toFun := λ () () ↦ $ᵗ Bool
---   evalDist_toFun' := λ i t ↦ sorry --by rw [evalDist_uniformOfFintype, evalDist_query i t]
-
--- end instances
 
 end OracleComp

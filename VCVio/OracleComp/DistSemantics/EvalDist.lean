@@ -256,6 +256,10 @@ lemma probEvent_eq_sum_fintype_ite [Fintype α] [DecidablePred p] :
     [p | oa] = ∑ x : α, if p x then [= x | oa] else 0 :=
   (probEvent_eq_tsum_ite oa p).trans (tsum_eq_sum' <| by simp)
 
+lemma probEvent_eq_sum_filter_univ [Fintype α] [DecidablePred p] :
+    [p | oa] = ∑ x in Finset.univ.filter p, [= x | oa] := by
+  rw [probEvent_eq_sum_fintype_ite, Finset.sum_filter]
+
 lemma probEvent_eq_sum_filter_finSupport [DecidableEq α] [DecidablePred p] :
     [p | oa] = ∑ x in oa.finSupport.filter p, [= x | oa] :=
   (probEvent_eq_tsum_ite oa p).trans <| (tsum_eq_sum' <| by simp; tauto).trans

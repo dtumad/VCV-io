@@ -146,16 +146,15 @@ protected def inductionOn {spec : OracleSpec}
     (λ u ↦ OracleComp.inductionOn h_pure h_query_bind (oa u))
 
 /-- Computations without access to any oracles are equivalent to values of the return type. -/
-lemma oracleComp_emptySpec_equiv (α : Type) :
-  OracleComp ∅ α ≃ α where
-    toFun := λ oa ↦ match oa with
-      | pure' α x => x
-      | query_bind' i _ _ _ => Empty.elim i
-    invFun := pure
-    left_inv := λ oa ↦ match oa with
-      | pure' α x => rfl
-      | query_bind' i _ _ _ => Empty.elim i
-    right_inv := λ _ ↦ rfl
+lemma oracleComp_emptySpec_equiv (α : Type) : OracleComp ∅ α ≃ α where
+  toFun := λ oa ↦ match oa with
+    | pure' α x => x
+    | query_bind' i _ _ _ => Empty.elim i
+  invFun := pure
+  left_inv := λ oa ↦ match oa with
+    | pure' α x => rfl
+    | query_bind' i _ _ _ => Empty.elim i
+  right_inv := λ _ ↦ rfl
 
 section inj
 
@@ -207,6 +206,9 @@ lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x
 lemma pure_eq_bind_iff : pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
   eq_comm.trans (bind_eq_pure_iff oa ob y)
 
+/-- If the final output type of a computation has decidable equality,
+then computations themselves have decidable equality.
+Note: This depends on the decidability instances in the oracle spec itself. -/
 protected instance decidableEq {α : Type} [h : DecidableEq α] : DecidableEq (OracleComp spec α)
   | pure' _ x, pure' _ x' => by simpa [pure_inj x x'] using h x x'
   | pure' _ x, query_bind' i t _ oa => by simpa using Decidable.isFalse not_false

@@ -75,6 +75,11 @@ lemma probEvent_toFun (i : spec.ι) (t : spec.domain i)
 
 end SubSpec
 
+-- /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
+-- noncomputable instance : coinSpec ⊂ₒ unifSpec where
+--   toFun := λ () () ↦ $ᵗ Bool
+--   evalDist_toFun' := λ i t ↦ sorry --by rw [evalDist_uniformOfFintype, evalDist_query i t]
+
 end OracleSpec
 
 namespace OracleComp
