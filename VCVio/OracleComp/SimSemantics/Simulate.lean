@@ -20,8 +20,6 @@ For example `idOracle` has no effect upon simulation, and we should apply that f
 
 open OracleSpec Prod
 
-variable {spec specₜ : OracleSpec} {α β γ : Type}
-
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
@@ -30,17 +28,14 @@ def SimOracle (spec specₜ : OracleSpec) (σ : Type) :=
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
-namespace SimOracle
-
-instance : Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure (default, s)⟩
-
-end SimOracle
+instance SimOracle.Inhabited : Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure (default, s)⟩
 
 namespace OracleComp
 
 /-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
 answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
-def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) : (oa : OracleComp spec α) → OracleComp specₜ (α × σ)
+def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) :
+    (oa : OracleComp spec α) → OracleComp specₜ (α × σ)
   | pure' α x => return (x, s)
   | queryBind' i t α oa => do
       let (u, s') ← so i t s

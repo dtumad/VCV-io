@@ -105,11 +105,11 @@ instance selectableVector (α : Type) (n : ℕ) :
   isOutput := λ xs x ↦ x ∈ xs.toList
   -- decidable_isOutput := _
   mem_support_select_iff_isOutput := by
-    simp
+    -- simp
     sorry
   count := λ xs ↦ n + 1
   probOutput_select := by
-    simp
+    -- simp
     sorry
 
 instance selectableList (α : Type) [Inhabited α] :
