@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.Constructions.UniformSelect
-import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle
+import VCVio.OracleComp.QueryBound
 
 /-!
 # Security Experiments
@@ -31,15 +31,10 @@ structure SecAdv (spec : OracleSpec)
     (α β : Type) where
   run : α → OracleComp spec β
   -- run_polyTime : polyTimeOracleComp run
-  activeOracles : List spec.ι
-  queryBound : QueryCount spec
-  -- queryBound_is_bound : ∀ qc x y,
-  --   (y, qc) ∈ (simulate countingOracle (run x) 0).support →
-  --     ∀ i, qc i ≤ queryBound i
-  -- mem_activeOracles_iff : ∀ i,
-  --   i ∈ activeOracles ↔ queryBound i ≠ 0
-
-  -- runQueryBound : QueryCount spec
+  queryBound : spec.ι → ℕ
+  -- queryBound_isQueryBound (x : α) : IsQueryBound (run x) queryBound
+  activeOracles : List spec.ι -- Canonical ordering of oracles
+  -- mem_activeOracles_iff : ∀ i, i ∈ activeOracles ↔ queryBound i ≠ 0
 
 namespace SecAdv
 

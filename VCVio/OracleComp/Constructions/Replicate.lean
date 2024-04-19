@@ -28,7 +28,8 @@ match n with
 lemma replicate_zero (oa : OracleComp spec α) :
     oa.replicate 0 = pure nil := rfl
 
-lemma replicate_zero' (oa : OracleComp spec α) :
-    oa.replicate' 0 = pure [] := rfl
+@[simp]
+lemma replicate_succ (oa : OracleComp spec α) (n : ℕ) :
+    oa.replicate (n + 1) = (· ::ᵥ ·) <$> oa <*> replicate oa n := rfl
 
 end OracleComp

@@ -50,23 +50,22 @@ def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) : (oa : Orac
 def simulate' (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) : OracleComp specₜ α :=
   fst <$> simulate so s oa
 
-lemma simulate'_def (so : spec →[σ]ₛₒ specₜ) (oa : OracleComp spec α) (s : σ) :
+lemma simulate'_def (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) :
     simulate' so s oa = fst <$> simulate so s oa := rfl
 
 section basic
 
-variable {σ : Type} (so : spec →[σ]ₛₒ spec)
+variable {σ : Type} (so : spec →[σ]ₛₒ specₜ)
 
 @[simp low]
-lemma simulate_pure (x : α) (s : σ) : simulate so s (pure x) = pure (x, s) := rfl
+lemma simulate_pure (s : σ) (x : α) : simulate so s (pure x) = pure (x, s) := rfl
 
 @[simp low]
-lemma simulate'_pure (x : α) (s : σ) : simulate' so s (pure x) = pure x := rfl
+lemma simulate'_pure (s : σ) (x : α) : simulate' so s (pure x) = pure x := rfl
 
 @[simp low]
-lemma simulate_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
-    (s : σ) : (simulate so s (oa >>= ob) = do
-      let z ← simulate so s oa; simulate so z.2 (ob z.1)) := by
+lemma simulate_bind (s : σ)  (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    (simulate so s (oa >>= ob) = do let z ← simulate so s oa; simulate so z.2 (ob z.1)) := by
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => exact (λ _ ↦ rfl)
@@ -74,39 +73,38 @@ lemma simulate_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
       simp only [simulate, OracleComp.bind'_eq_bind, pure_bind, hoa, bind_assoc, implies_true]
 
 @[simp low]
-lemma simulate'_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
-    (s : σ) : (simulate' so s (oa >>= ob) = do
-      let z ← simulate so s oa; simulate' so z.2 (ob z.1)) := by
+lemma simulate'_bind (s : σ) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    (simulate' so s (oa >>= ob) = do let z ← simulate so s oa; simulate' so z.2 (ob z.1)) := by
   simp only [simulate', simulate_bind, map_bind]
 
 @[simp low]
-lemma simulate_query (i : spec.ι) (t : spec.domain i) (s : σ) :
+lemma simulate_query (s : σ) (i : spec.ι) (t : spec.domain i) :
     simulate so s (query i t) = so i t s := by
   simp_rw [query_def, simulate, Prod.mk.eta, bind_pure]
 
 @[simp low]
-lemma simulate'_query (i : spec.ι) (t : spec.domain i) (s : σ) :
+lemma simulate'_query (s : σ) (i : spec.ι) (t : spec.domain i) :
     simulate' so s (query i t) = fst <$> so i t s := by
   rw [simulate', simulate_query]
 
 @[simp low]
-lemma simulate_map (oa : OracleComp spec α) (f : α → β) (s : σ) :
+lemma simulate_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate so s (f <$> oa) = (map f id) <$> simulate so s oa := by
   simp only [map_eq_bind_pure_comp, Function.comp, simulate_bind, simulate_pure, Prod_map, id_eq]
 
 @[simp low]
-lemma simulate'_map (oa : OracleComp spec α) (f : α → β) (s : σ) :
+lemma simulate'_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate' so s (f <$> oa) = f <$> simulate' so s oa := by
   simp only [simulate', simulate_map, Functor.map_map, Function.comp, Prod_map, id_eq]
 
 @[simp low]
-lemma simulate_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
+lemma simulate_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
     simulate so s (og <*> oa) = simulate so s og >>= λ z ↦
       (map z.1 id <$> simulate so z.2 oa) := by
   simp only [seq_eq_bind, simulate_bind, simulate_map]
 
 @[simp low]
-lemma simulate'_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
+lemma simulate'_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
     simulate' so s (og <*> oa) = simulate so s og >>= λ z ↦
       (z.1 <$> simulate' so z.2 oa) := by
   simp only [simulate', simulate_seq, map_bind, Functor.map_map, Function.comp, Prod_map, id_eq]
@@ -115,7 +113,7 @@ end basic
 
 section support
 
-variable {σ : Type} (so : spec →[σ]ₛₒ spec)
+variable {σ : Type} (so : spec →[σ]ₛₒ specₜ)
 
 /-- Since `support` assumes any possible query result, `simulate` will never reduce the support.
 In particular the support of a simulation lies in the preimage of the original support. -/

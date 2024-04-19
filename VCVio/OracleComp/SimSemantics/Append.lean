@@ -57,18 +57,19 @@ section subSpec
 @[simp]
 lemma simulate_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
     (oa : OracleComp spec₁ α) (s : σ × τ) :
-    simulate (so ++ₛₒ so') ↑oa s = (λ ⟨x, s'⟩ ↦ (x, (s', s.2))) <$> simulate so oa s.1 := by
-  revert s
-  induction oa using OracleComp.inductionOn with
+    simulate (so ++ₛₒ so') s ↑oa = (λ (x, s') ↦ (x, (s', s.2))) <$> simulate so s.1 oa := by
+  revert s; induction oa using OracleComp.inductionOn with
   | h_pure x => simp
   | h_queryBind i t oa hoa => sorry --simp [hoa, map_bind]
 
 @[simp]
 lemma simulate'_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
     (oa : OracleComp spec₁ α) (s : σ × τ) :
-    simulate' (so ++ₛₒ so') ↑oa s = simulate' so oa s.1 := by
+    simulate' (so ++ₛₒ so') s ↑oa = simulate' so s.1 oa := by
   rw [simulate'_def (so ++ₛₒ so'), simulate_coe_append_left, Functor.map_map,
     Function.comp, simulate'_def]
+
+-- port
 
 end subSpec
 

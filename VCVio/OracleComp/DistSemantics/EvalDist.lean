@@ -98,7 +98,7 @@ lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
       Set.top_eq_univ, Set.mem_univ, exists_true_left]
 
 /-- The support of `evalDist oa` is exactly `support oa`. -/
-@[simp] lemma support_evalDist (oa : OracleComp spec α) : (evalDist oa).support = oa.support :=
+lemma support_evalDist (oa : OracleComp spec α) : (evalDist oa).support = oa.support :=
   Set.ext (mem_support_evalDist_iff oa)
 
 lemma mem_support_evalDist_iff' [DecidableEq α] (oa : OracleComp spec α) (x : α) :
@@ -120,7 +120,8 @@ lemma probOutput_eq_zero_iff' [DecidableEq α] : [= x | oa] = 0 ↔ x ∉ oa.fin
 @[simp low]
 lemma probEvent_eq_zero_iff : [p | oa] = 0 ↔ ∀ x ∈ oa.support, ¬ p x := by
   simp [probEvent.def, PMF.toOuterMeasure_apply_eq_zero_iff,
-    Set.disjoint_iff, ← Set.subset_empty_iff, Set.subset_def]; rfl
+    Set.disjoint_iff, ← Set.subset_empty_iff, Set.subset_def, support_evalDist]; rfl
+
 @[simp]
 lemma probEvent_eq_zero_iff' [DecidableEq α] : [p | oa] = 0 ↔ ∀ x ∈ oa.finSupport, ¬ p x := by
   simp only [probEvent_eq_zero_iff, mem_finSupport_iff_mem_support]

@@ -29,10 +29,10 @@ namespace OracleAlg
 variable {spec : OracleSpec} {α β γ : Type}
 
 def exec (alg : OracleAlg spec) (oa : OracleComp spec α) : OracleComp unifSpec α :=
-  simulate' alg.baseSimOracle oa alg.init_state
+  simulate' alg.baseSimOracle alg.init_state oa
 
 lemma exec.def (alg : OracleAlg spec) (α : Type) :
-    alg.exec (α := α) = (simulate' alg.baseSimOracle · alg.init_state) := rfl
+    alg.exec (α := α) = simulate' alg.baseSimOracle alg.init_state := rfl
 
 @[simp low]
 lemma exec_pure (alg : OracleAlg spec) (x : α) : alg.exec (pure x) = pure x := rfl
@@ -40,25 +40,26 @@ lemma exec_pure (alg : OracleAlg spec) (x : α) : alg.exec (pure x) = pure x := 
 @[simp low]
 lemma exec_bind (alg : OracleAlg spec) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     alg.exec (oa >>= ob) = (do
-      let z ← simulate alg.baseSimOracle oa alg.init_state
-      simulate' alg.baseSimOracle (ob z.1) z.2) :=
-  simulate'_bind alg.baseSimOracle oa ob alg.init_state
+      let z ← simulate alg.baseSimOracle alg.init_state oa
+      simulate' alg.baseSimOracle z.2 (ob z.1)) :=
+  simulate'_bind alg.baseSimOracle  alg.init_state oa ob
 
 @[simp low]
 lemma exec_query (alg : OracleAlg spec) (i : spec.ι) (t : spec.domain i) :
     alg.exec (query i t) = Prod.fst <$> alg.baseSimOracle i t alg.init_state :=
-  simulate'_query alg.baseSimOracle i t alg.init_state
+  simulate'_query alg.baseSimOracle alg.init_state i t
 
 @[simp low]
 lemma exec_map (alg : OracleAlg spec) (oa : OracleComp spec α) (f : α → β) :
     alg.exec (f <$> oa) = f <$> alg.exec oa :=
-  simulate'_map alg.baseSimOracle oa f alg.init_state
+  simulate'_map alg.baseSimOracle alg.init_state oa f
 
 @[simp low]
 lemma exec_seq (alg : OracleAlg spec) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
-    alg.exec (og <*> oa) = (simulate alg.baseSimOracle og alg.init_state >>= λ ⟨f, s⟩ ↦
-      f <$> simulate' alg.baseSimOracle oa s) :=
-  simulate'_seq alg.baseSimOracle oa og
+    alg.exec (og <*> oa) = (do
+      let (f, s) ← simulate alg.baseSimOracle alg.init_state og
+      f <$> simulate' alg.baseSimOracle s oa) :=
+  simulate'_seq alg.baseSimOracle alg.init_state oa og
 
 section baseOracleAlg
 

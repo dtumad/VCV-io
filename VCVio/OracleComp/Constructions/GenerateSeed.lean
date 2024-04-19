@@ -27,29 +27,16 @@ variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
 
 variable [∀ j, SelectableType (spec.range j)]
 
-def generateSeedAux (qc : QueryCount spec) :
-    List spec.ι → QuerySeed spec →
-      OracleComp unifSpec (QuerySeed spec)
+def generateSeedAux (qc : spec.ι → ℕ) : List spec.ι → QuerySeed spec →
+    OracleComp unifSpec (QuerySeed spec)
   | [], seed => return seed
   | j :: js, seed => do
       let xs ← replicate ($ᵗ (spec.range j)) (qc j)
       let seed' := seed.addValues xs.toList
       generateSeedAux qc js seed'
 
-def generateSeed (qc : QueryCount spec) (activeOracles : List spec.ι) :
+def generateSeed (qc : spec.ι → ℕ) (activeOracles : List spec.ι) :
     OracleComp unifSpec (QuerySeed spec) :=
   generateSeedAux qc activeOracles ∅
-
--- def generateSeedAux (oa : OracleComp spec α) (count : QueryCount spec) :
---     List spec.ι → OracleComp unifSpec (QuerySeed spec)
---   | (j :: js) => do
---       let xs ← replicate ($ᵗ (spec.range j)) (count j)
---       let seed ← generateSeedAux oa count js
---       return Function.update seed j xs.toList
---   | [] => return ∅
-
--- noncomputable def generateSeed (oa : OracleComp spec α)
---     (count : QueryCount spec) : OracleComp unifSpec (QuerySeed spec) :=
---   generateSeedAux oa count oa.activeOracles.toList
 
 end OracleComp

@@ -50,7 +50,7 @@ def uniformSelect {α : Type} (β : Type) [h : Selectable α β] (xs : α) :
 
 -- def uniformSelect' {α β : Type}
 
-notation "$" => uniformSelect _
+prefix : 50 "$" => uniformSelect _
 
 variable {α : Type} {β : Type}
 
@@ -174,7 +174,7 @@ class SelectableType (β : Type) extends Fintype β, Inhabited β where
 def uniformOfFintype (β : Type) [h : SelectableType β] :
     OracleComp unifSpec β := h.selectElem
 
-notation "$ᵗ" => uniformOfFintype
+prefix : 90 "$ᵗ" => uniformOfFintype
 
 @[simp]
 lemma evalDist_uniformOfFintype (α : Type) [SelectableType α] :

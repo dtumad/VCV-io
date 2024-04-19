@@ -28,10 +28,10 @@ variable {spec : OracleSpec} [∀ j, SelectableType (spec.range j)]
 def seedAndRun (adv : ForkAdv spec α β i)
     (x : α) (initSeed : QuerySeed spec) :
   OracleComp spec (β × QuerySeed spec) := do
-    let missingCount := adv.queryBound - initSeed.toCount
+    let missingCount := adv.queryBound - (λ i ↦ (initSeed i).length)
     let freshSeed : QuerySeed spec ← generateSeed missingCount adv.activeOracles
     let fullSeed := λ i ↦ initSeed i ++ freshSeed i
-    let z ← simulate' seededOracle (adv.run x) fullSeed
+    let z ← simulate' seededOracle fullSeed <| adv.run x
     return (z, fullSeed)
 
 end ForkAdv
@@ -44,8 +44,9 @@ variable {spec : OracleSpec} [∀ j, SelectableType (spec.range j)]
 def fork (adv : ForkAdv spec α β i) :
     SecAdv spec α (Option (β × β)) where
   run := λ x ↦ do
-    let s ← $[0..adv.queryBound i] -- pre-choose fork point
-    let qc := adv.queryBound.decrement i s.1
+    -- pre-select where to fork execution
+    let s : Fin _ ← $[0..adv.queryBound i]
+    let qc := Function.update adv.queryBound i s
     -- Generate shared seed for both runs
     let sharedSeed ← generateSeed qc adv.activeOracles
     let ⟨y₁, seed₁⟩ ← adv.seedAndRun x sharedSeed
@@ -58,7 +59,6 @@ def fork (adv : ForkAdv spec α β i) :
       else return none
   queryBound := 2 • adv.queryBound
   activeOracles := adv.activeOracles
-  -- Other fields ommitted
 
 theorem le_fork_advantage
     (adv : ForkAdv spec α β i) (x : α) :

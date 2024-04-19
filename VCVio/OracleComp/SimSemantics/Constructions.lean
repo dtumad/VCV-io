@@ -25,10 +25,9 @@ variable {spec₁ spec₂ specₜ : OracleSpec} {σ τ : Type}
 from `spec₁` to `spec₂` by first substituting queries using `so`, and then further
 substituting with the oracles in `so'`. -/
 def compose (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ) :
-    spec₁ →[σ × τ]ₛₒ specₜ :=
-  λ i t (s₁, s₂) ↦ do
-    let ((t, s₁), s₂) ← simulate so' (so i t s₁) s₂
-    return (t, (s₁, s₂))
+    spec₁ →[σ × τ]ₛₒ specₜ := λ i t (s₁, s₂) ↦ do
+  let ((t, s₁'), s₂') ← simulate so' s₂ (so i t s₁)
+  return (t, (s₁', s₂'))
 
 infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 
@@ -37,13 +36,13 @@ variable (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ spec�
 @[simp]
 lemma compose_apply (i : spec₁.ι) : (so' ∘ₛₒ so) i =
     λ t (s₁, s₂) ↦ (λ ((t, s₁), s₂) ↦ (t, (s₁, s₂))) <$>
-      simulate so' (so i t s₁) s₂ := rfl
+      simulate so' s₂ (so i t s₁) := rfl
 
 @[simp]
 lemma simulate_compose (oa : OracleComp spec₁ α) :
-    ∀ s : σ × τ, simulate (so' ∘ₛₒ so) oa s = do
-      let ((x, s₁), s₂) ← simulate so' (simulate so oa s.1) s.2
-      return (x, s₁, s₂) := by
+    ∀ s : σ × τ, simulate (so' ∘ₛₒ so) s oa = do
+      let ((x, s₁), s₂) ← simulate so' s.2 (simulate so s.1 oa)
+      return (x, (s₁, s₂)) := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
   | h_queryBind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
@@ -51,8 +50,8 @@ lemma simulate_compose (oa : OracleComp spec₁ α) :
 /-- Composition of simulatation oracles is exactly composition of simulation calls. -/
 @[simp]
 lemma simulate'_compose (oa : OracleComp spec₁ α) :
-    ∀ s : σ × τ, simulate' (so' ∘ₛₒ so) oa s =
-      simulate' so' (simulate' so oa s.1) s.2 := by
+    ∀ s : σ × τ, simulate' (so' ∘ₛₒ so) s oa =
+      simulate' so' s.2 (simulate' so s.1 oa):= by
   simp [simulate'_def, map_eq_bind_pure_comp]
 
 end compose
@@ -81,16 +80,16 @@ lemma maskState_subsingleton [Subsingleton σ] (so : so →[σ]ₛₒ specₜ) (
   simp only [maskState_apply, he, he', map_id, id_map, id]
 
 @[simp]
-lemma simulate_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (oa : OracleComp spec α) :
-    ∀ s : τ, simulate (so.maskState e) oa s = map id e <$> simulate so oa (e.symm s) := by
-  induction oa using OracleComp.inductionOn with
+lemma simulate_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : τ) (oa : OracleComp spec α) :
+    simulate (so.maskState e) s oa = map id e <$> simulate so (e.symm s) oa := by
+  revert s; induction oa using OracleComp.inductionOn with
   | h_pure x => simp
   | h_queryBind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
 
-/-- Masking the state doesn't affect the first output of a computation. -/
+/-- Masking the state doesn't affect the main output of a simulation. -/
 @[simp]
-lemma simulate'_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (oa : OracleComp spec α) :
-    ∀ s : τ, simulate' (so.maskState e) oa s = simulate' so oa (e.symm s) := by
+lemma simulate'_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : τ) (oa : OracleComp spec α) :
+    simulate' (so.maskState e) s oa = simulate' so (e.symm s) (oa) := by
   simp only [simulate'_def, simulate_maskState, fst_map_prod_map, id_eq, implies_true]
 
 end maskState
@@ -114,24 +113,17 @@ variable (spec : OracleSpec)
 @[simp]
 lemma apply_eq (i : spec.ι) : idOracle i = λ t () ↦ ((., ())) <$> query i t := rfl
 
-example (oa : OracleComp spec α) (f : α → β)
-  (ob : β → OracleComp spec γ) :
-  (f <$> oa) >>= ob = oa >>= (ob ∘ f) := by
-  exact seq_bind_eq oa
-
 @[simp]
-lemma simulate'_eq (oa : OracleComp spec α) :
-    simulate' idOracle oa = λ _ ↦ oa := by
-  refine funext (λ () ↦ ?_)
+lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
+    simulate' idOracle u oa = oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => rfl
   | h_queryBind i t oa hoa =>
       simp [Functor.map_map, Function.comp, hoa, seq_bind_eq]
 
 @[simp]
-lemma simulate_eq (oa : OracleComp spec α) :
-    simulate idOracle oa = λ _ ↦ ((·, ())) <$> oa := by
-  refine funext (λ () ↦ ?_)
+lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :
+    simulate idOracle u oa = (·, ()) <$> oa := by
   rw [simulate_eq_map_simulate', simulate'_eq]
 
 end idOracle
@@ -140,48 +132,47 @@ end idOracle
 The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
 def unifOracle {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] :
-    spec →[PUnit]ₛₒ unifSpec :=
-  λ i _ _ ↦ (·, ()) <$> $ᵗ (spec.range i)
+    spec →[Unit]ₛₒ unifSpec :=
+  λ i _ _ ↦ (·, ()) <$> ($ᵗ spec.range i)
 
 namespace unifOracle
 
 variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
 
 @[simp]
-lemma apply_eq (i : spec.ι) : unifOracle i = λ _ _ ↦ (., ()) <$> $ᵗ (spec.range i) := rfl
+lemma apply_eq (i : spec.ι) : unifOracle i = λ _ _ ↦ (., ()) <$> ($ᵗ spec.range i) := rfl
 
 @[simp]
 lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
-    evalDist (simulate unifOracle oa u) = (evalDist oa).map ((., ())) := by
-  revert u
-  induction oa using OracleComp.inductionOn with
+    evalDist (simulate unifOracle u oa) = (evalDist oa).map (., ()) := by
+  revert u; induction oa using OracleComp.inductionOn with
   | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
   | h_queryBind i t oa hoa => sorry --simp [PMF.map, hoa]
 
 @[simp]
 lemma evalDist_simulate' (oa : OracleComp spec α) (u : PUnit) :
-    evalDist (simulate' unifOracle oa u) = evalDist oa := sorry
+    evalDist (simulate' unifOracle u oa) = evalDist oa := sorry
   -- by simpa [PMF.map_comp, Function.comp] using PMF.map_id (evalDist oa)
 
 @[simp]
 lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
-    [= z | simulate unifOracle oa u] = [= z.1 | oa] := by
+    [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
   rw [simulate_eq_map_simulate']
   sorry
 
 @[simp]
 lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
-    [= x | simulate' unifOracle oa u] = [= x | oa] := by
+    [= x | simulate' unifOracle u oa] = [= x | oa] := by
   sorry
 
 @[simp]
 lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
-    [p | simulate unifOracle oa u] = [λ x ↦ p (x, ()) | oa] := by
+    [p | simulate unifOracle u oa] = [λ x ↦ p (x, ()) | oa] := by
   sorry
 
 @[simp]
 lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
-    [p | simulate' unifOracle oa u] = [p | oa] := by
+    [p | simulate' unifOracle u oa] = [p | oa] := by
   sorry
 
 end unifOracle
@@ -199,8 +190,8 @@ variable {spec : OracleSpec}
 lemma apply_eq (i : spec.ι) : defaultOracle i = λ _ _ ↦ return (default, ()) := rfl
 
 @[simp]
-lemma simulate_eq (oa : OracleComp spec α) (s : Unit) :
-    simulate defaultOracle oa s = return (oa.defaultResult, ()) := by
+lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :
+    simulate defaultOracle u oa = return (oa.defaultResult, ()) := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp only [simulate_eq_map_simulate', PUnit.default_eq_unit,
       simulate'_pure, map_pure, defaultResult]
@@ -208,8 +199,8 @@ lemma simulate_eq (oa : OracleComp spec α) (s : Unit) :
       defaultResult, OracleComp.bind'_eq_bind]
 
 @[simp]
-lemma simulate'_eq (oa : OracleComp spec α) (s : Unit) :
-    simulate' defaultOracle oa s = return oa.defaultResult := by
+lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
+    simulate' defaultOracle u oa = return oa.defaultResult := by
   simp only [simulate'_def, simulate_eq, map_pure]
 
 end defaultOracle

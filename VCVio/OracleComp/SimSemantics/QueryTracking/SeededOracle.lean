@@ -24,10 +24,10 @@ def QuerySeed (spec : OracleSpec) : Type :=
 
 namespace QuerySeed
 
-instance : Coe (QuerySeed spec) (QueryCount spec) where
-  coe := λ qs i ↦ (qs i).length
+-- instance : Coe (QuerySeed spec) (QueryCount spec) where
+--   coe := λ qs i ↦ (qs i).length
 
-def toCount (qs : QuerySeed spec) : QueryCount spec := λ i ↦ (qs i).length
+-- def toCount (qs : QuerySeed spec) : QueryCount spec := λ i ↦ (qs i).length
 
 instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
 

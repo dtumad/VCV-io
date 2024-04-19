@@ -36,8 +36,20 @@ def cachingOracle {spec : OracleSpec} :
         let u ← query i t
         return (u, cache.cacheQuery t u)
 
+namespace cachingOracle
+
+-- ort
+
+end cachingOracle
+
 def randOracle {spec : OracleSpec}
     [∀ i, SelectableType (spec.range i)] :
     spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState
     (Equiv.prodPUnit (QueryCache spec))
+
+namespace randOracle
+
+-- port
+
+end randOracle
