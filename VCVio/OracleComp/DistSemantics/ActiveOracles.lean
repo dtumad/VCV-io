@@ -27,7 +27,7 @@ variable {spec : OracleSpec} {α : Type}
 
 def activeOracles : (oa : OracleComp spec α) → Finset spec.ι
   | pure' _ _ => ∅
-  | query_bind' i _ _ oa => insert i
+  | queryBind' i _ _ oa => insert i
       (Finset.univ.biUnion (λ j ↦ activeOracles (oa j)))
 
 end OracleComp

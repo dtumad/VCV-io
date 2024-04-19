@@ -75,6 +75,11 @@ lemma probEvent_toFun (i : spec.ι) (t : spec.domain i)
 
 end SubSpec
 
+-- /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
+-- noncomputable instance : coinSpec ⊂ₒ unifSpec where
+--   toFun := λ () () ↦ $ᵗ Bool
+--   evalDist_toFun' := λ i t ↦ sorry --by rw [evalDist_uniformOfFintype, evalDist_query i t]
+
 end OracleSpec
 
 namespace OracleComp
@@ -120,7 +125,7 @@ lemma evalDist_coe_subSpec (oa : OracleComp spec α) :
     evalDist (↑oa : OracleComp super_spec α) = evalDist oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => simp [Function.comp, hoa]
+  | h_queryBind i t oa hoa => simp [Function.comp, hoa]
 
 @[simp]
 lemma probOutput_coe_subSpec (oa : OracleComp spec α) (x : α) :

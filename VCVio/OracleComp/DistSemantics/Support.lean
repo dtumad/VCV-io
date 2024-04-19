@@ -30,13 +30,13 @@ assuming that all output values of the oracles are possible.
 This is naturally compatible with `evalDist` where the oracles respond uniformly. -/
 def support : (oa : OracleComp spec α) → Set α
   | pure' _ x => {x}
-  | query_bind' _ _ _ oa => ⋃ u, (oa u).support
+  | queryBind' _ _ _ oa => ⋃ u, (oa u).support
 
 lemma support_pure' (x : α) : support (pure' α x : OracleComp spec α) = {x} := rfl
 
-lemma support_query_bind' (i : spec.ι) (t : spec.domain i)
+lemma support_queryBind' (i : spec.ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) :
-    support (query_bind' i t α oa) = ⋃ u, (oa u).support := rfl
+    support (queryBind' i t α oa) = ⋃ u, (oa u).support := rfl
 
 /-- Given a `DecidableEq` instance on the return type, we can construct
 a `Finset` of possible outputs. Without this we can't remove duplicate values from
@@ -44,14 +44,14 @@ the list of outputs being constructed. This also relies on the `DecidableEq` ins
 on `spec.range i` that are included in the definition of `OracleSpec`. -/
 def finSupport [DecidableEq α] : (oa : OracleComp spec α) → Finset α
   | pure' _ x => {x}
-  | query_bind' _ _ _ oa => Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport)
+  | queryBind' _ _ _ oa => Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport)
 
 lemma finSupport_pure' [DecidableEq α] (x : α) :
     finSupport (pure' α x : OracleComp spec α) = {x} := rfl
 
-lemma finSupport_query_bind' [DecidableEq α] (i : spec.ι) (t : spec.domain i)
+lemma finSupport_queryBind' [DecidableEq α] (i : spec.ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) :
-  finSupport (query_bind' i t α oa) =
+  finSupport (queryBind' i t α oa) =
     Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport) := rfl
 
 section basic
@@ -74,8 +74,8 @@ lemma support_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (oa >>= ob).support = ⋃ x ∈ oa.support, (ob x).support := by
   induction oa using OracleComp.inductionOn with
   | h_pure _ => simp
-  | h_query_bind i t oa hoa =>
-      simpa [bind_assoc, ← query_bind'_eq_query_bind, support, hoa]
+  | h_queryBind i t oa hoa =>
+      simpa [bind_assoc, ← queryBind'_eq_queryBind, support, hoa]
         using Set.iUnion_comm _
 
 @[simp]
@@ -84,22 +84,22 @@ lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     (oa >>= ob).finSupport = oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) := by
   induction oa using OracleComp.inductionOn with
   | h_pure _ => simp
-  | h_query_bind i t oa hoa =>
+  | h_queryBind i t oa hoa =>
       intros hα hβ; apply Finset.coe_inj.1
-      simpa [bind_assoc, ← query_bind'_eq_query_bind, finSupport, hoa] using Set.iUnion_comm _
+      simpa [bind_assoc, ← queryBind'_eq_queryBind, finSupport, hoa] using Set.iUnion_comm _
 
 /-- The support of a computation is finite when viewed as a type. -/
 instance support_finite (oa : OracleComp spec α) : Finite ↥oa.support := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => exact Set.finite_singleton x
-  | h_query_bind _ _ oa hoa => exact Set.finite_iUnion hoa
+  | h_queryBind _ _ oa hoa => exact Set.finite_iUnion hoa
 
 /-- With a `DecidableEq` instance we can show that the support is actually a `Fintype`,
 rather than just `Finite` as in `support_finite`. -/
 instance support_fintype : {α : Type} → [DecidableEq α] →
     (oa : OracleComp spec α) → Fintype ↥oa.support
   | _, _, pure' _ x => Fintype.subtypeEq x
-  | _, _, query_bind' _ _ _ oa =>
+  | _, _, queryBind' _ _ _ oa =>
       have : ∀ u, Fintype (oa u).support := λ u ↦ support_fintype (oa u)
       Set.fintypeiUnion _
 
@@ -112,7 +112,7 @@ section coe
 lemma coe_finSupport : {α : Type} → [DecidableEq α] →
     (oa : OracleComp spec α) → ↑oa.finSupport = oa.support
   | _, _, pure' _ x => by simp
-  | _, _, query_bind' i t _ oa =>
+  | _, _, queryBind' i t _ oa =>
     have : ∀ u, ↑(oa u).finSupport = (oa u).support := λ u ↦ coe_finSupport (oa u)
     by simp [this]
 
@@ -145,7 +145,7 @@ variable (oa : OracleComp spec α)
 lemma defaultResult_mem_support : oa.defaultResult ∈ oa.support := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp only [defaultResult, support_pure, Set.mem_singleton_iff]
-  | h_query_bind i t oa hoa =>
+  | h_queryBind i t oa hoa =>
       have : ∃ u, defaultResult (oa default) ∈ (oa u).support := ⟨default, hoa default⟩
       simpa only [defaultResult, OracleComp.bind'_eq_bind, pure_bind, support_bind, support_query,
         Set.mem_univ, Set.iUnion_true, Set.mem_iUnion] using this
