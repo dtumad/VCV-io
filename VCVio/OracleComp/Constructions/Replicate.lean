@@ -24,12 +24,18 @@ match n with
 | 0 => return Vector.nil
 | (n + 1) => (· ::ᵥ ·) <$> oa <*> replicate oa n
 
+def replicate' (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) := do
+    let mut xs : List α := []
+    for _ in List.range n do
+        let x ← oa
+        xs ← pure (x :: xs)
+    return xs
+
 @[simp]
 lemma replicate_zero (oa : OracleComp spec α) :
     oa.replicate 0 = pure nil := rfl
 
-@[simp]
-lemma replicate_succ (oa : OracleComp spec α) (n : ℕ) :
-    oa.replicate (n + 1) = (· ::ᵥ ·) <$> oa <*> replicate oa n := rfl
+lemma replicate_zero' (oa : OracleComp spec α) :
+    oa.replicate' 0 = pure [] := rfl
 
 end OracleComp
