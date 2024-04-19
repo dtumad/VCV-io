@@ -146,16 +146,15 @@ protected def inductionOn {spec : OracleSpec}
     (λ u ↦ OracleComp.inductionOn h_pure h_query_bind (oa u))
 
 /-- Computations without access to any oracles are equivalent to values of the return type. -/
-lemma oracleComp_emptySpec_equiv (α : Type) :
-  OracleComp ∅ α ≃ α where
-    toFun := λ oa ↦ match oa with
-      | pure' α x => x
-      | query_bind' i _ _ _ => Empty.elim i
-    invFun := pure
-    left_inv := λ oa ↦ match oa with
-      | pure' α x => rfl
-      | query_bind' i _ _ _ => Empty.elim i
-    right_inv := λ _ ↦ rfl
+lemma oracleComp_emptySpec_equiv (α : Type) : OracleComp ∅ α ≃ α where
+  toFun := λ oa ↦ match oa with
+    | pure' α x => x
+    | query_bind' i _ _ _ => Empty.elim i
+  invFun := pure
+  left_inv := λ oa ↦ match oa with
+    | pure' α x => rfl
+    | query_bind' i _ _ _ => Empty.elim i
+  right_inv := λ _ ↦ rfl
 
 section inj
 
