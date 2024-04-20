@@ -147,17 +147,18 @@ lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
     evalDist (simulate unifOracle u oa) = (evalDist oa).map (., ()) := by
   revert u; induction oa using OracleComp.inductionOn with
   | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
-  | h_queryBind i t oa hoa => sorry --simp [PMF.map, hoa]
+  | h_queryBind i t oa hoa => simp [PMF.map, hoa]
 
 @[simp]
 lemma evalDist_simulate' (oa : OracleComp spec α) (u : PUnit) :
-    evalDist (simulate' unifOracle u oa) = evalDist oa := sorry
-  -- by simpa [PMF.map_comp, Function.comp] using PMF.map_id (evalDist oa)
+    evalDist (simulate' unifOracle u oa) = evalDist oa := by
+  simp [simulate'_def, PMF.map_comp, Function.comp]
+  refine PMF.map_id (evalDist oa)
 
 @[simp]
 lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
     [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
-  rw [simulate_eq_map_simulate']
+  rw [probOutput.def, evalDist_simulate]
   sorry
 
 @[simp]
@@ -174,6 +175,8 @@ lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit �
 lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
     [p | simulate' unifOracle u oa] = [p | oa] := by
   sorry
+
+-- port
 
 end unifOracle
 

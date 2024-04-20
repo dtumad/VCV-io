@@ -59,6 +59,10 @@ def DHHomogenousSpace : HomogeneousSpace (DHVec p) (DHPoint p) where
   vadd_vsub' | ⟨x, hx⟩, ⟨y, hy⟩ => sorry
   decidableEq_G := Subtype.instDecidableEqSubtype
   decidableEq_P := Subtype.instDecidableEqSubtype
+  inhabited_G := sorry
+  inhabited_P := sorry
+  fintype_G := sorry
+  fintype_P := sorry
   -- Using `⊤` won't work for computability
   selectableType_G := sorry
   selectableType_P := sorry

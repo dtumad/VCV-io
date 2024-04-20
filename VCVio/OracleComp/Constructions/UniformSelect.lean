@@ -79,38 +79,36 @@ section SelectableType
 /-- A `SelectableType β` instance means that `β` is a finite inhabited type,
 with an explicit list of the elements in the type (usually some non-canonical choice).
 We need to have an explicit vector, rather than just a `Finset` to make this computable. -/
-class SelectableType (β : Type) extends Fintype β, Inhabited β where
+class SelectableType (β : Type) [Fintype β] [Inhabited β] where
   selectElem : OracleComp unifSpec β
   probOutput_selectElem (x : β) : [= x | selectElem] = (↑(Fintype.card β))⁻¹
 
-def uniformOfFintype (β : Type) [h : SelectableType β] :
+def uniformOfFintype (β : Type) [Fintype β] [Inhabited β] [h : SelectableType β] :
     OracleComp unifSpec β := h.selectElem
 
 prefix : 90 "$ᵗ" => uniformOfFintype
 
+variable (α : Type) [Fintype α] [Inhabited α] [SelectableType α]
+
 @[simp]
-lemma evalDist_uniformOfFintype (α : Type) [SelectableType α] :
-    evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
+lemma evalDist_uniformOfFintype : evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
   simpa [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card] using
     SelectableType.probOutput_selectElem
 
 @[simp]
-lemma support_uniformOfFintype (α : Type) [SelectableType α] :
-    ($ᵗ α).support = Set.univ := by
+lemma support_uniformOfFintype : ($ᵗ α).support = Set.univ := by
   simp [← support_evalDist]
 
 @[simp]
-lemma finSupport_uniformOfFintype (α : Type) [SelectableType α] [DecidableEq α] :
-    ($ᵗ α).finSupport = Finset.univ := by
+lemma finSupport_uniformOfFintype [DecidableEq α] : ($ᵗ α).finSupport = Finset.univ := by
   simp [finSupport_eq_iff_support_eq_coe]
 
 @[simp]
-lemma probOutput_uniformOfFintype {α : Type} [SelectableType α] (x : α) :
-    [= x | $ᵗ α] = (↑(Fintype.card α))⁻¹ := by
+lemma probOutput_uniformOfFintype (x : α) : [= x | $ᵗ α] = (↑(Fintype.card α))⁻¹ := by
   simp only [probOutput, evalDist_uniformOfFintype, PMF.uniformOfFintype_apply]
 
 @[simp]
-lemma probEvent_uniformOfFintype {α : Type} [SelectableType α] (p : α → Prop) [DecidablePred p] :
+lemma probEvent_uniformOfFintype (p : α → Prop) [DecidablePred p] :
     [p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α := by
   simp [probEvent_eq_sum_filter_univ, div_eq_mul_inv]
 
