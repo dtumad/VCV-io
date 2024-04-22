@@ -156,27 +156,48 @@ lemma evalDist_simulate' (oa : OracleComp spec α) (u : PUnit) :
   refine PMF.map_id (evalDist oa)
 
 @[simp]
+lemma support_simulate (oa : OracleComp spec α) :
+    (simulate unifOracle u oa).support = {z | z.1 ∈ oa.support} := by
+  simp [← support_evalDist, Set.ext_iff]
+
+@[simp]
+lemma support_simulate' (oa : OracleComp spec α) :
+    (simulate' unifOracle u oa).support = oa.support := by
+  simp [simulate', Set.ext_iff]
+
+@[simp]
+lemma finSupport_simulate [DecidableEq α] (oa : OracleComp spec α) :
+    (simulate unifOracle u oa).finSupport = oa.finSupport.image (·, ()) := by
+  simp [finSupport_eq_iff_support_eq_coe, Set.ext_iff]
+
+@[simp]
+lemma finSupport_simulate' [DecidableEq α] (oa : OracleComp spec α) :
+    (simulate' unifOracle u oa).finSupport = oa.finSupport := by
+  simp [simulate'_def, Finset.ext_iff]
+
+@[simp]
 lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
     [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
-  rw [probOutput.def, evalDist_simulate]
-  sorry
+  rw [simulate_eq_map_simulate', PUnit.default_eq_unit,
+    ← probEvent_eq_eq_probOutput, probEvent_map]
+  simp [Function.comp, Prod.eq_iff_fst_eq_snd_eq]
+  simp [probOutput.def]
 
 @[simp]
 lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
     [= x | simulate' unifOracle u oa] = [= x | oa] := by
-  sorry
+  simp [probOutput.def]
 
 @[simp]
 lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
     [p | simulate unifOracle u oa] = [λ x ↦ p (x, ()) | oa] := by
-  sorry
+  rw [simulate_eq_map_simulate', probEvent_map, PUnit.default_eq_unit, Function.comp]
+  refine probEvent_congr <| evalDist_simulate' oa u
 
 @[simp]
 lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
-    [p | simulate' unifOracle u oa] = [p | oa] := by
-  sorry
-
--- port
+    [p | simulate' unifOracle u oa] = [p | oa] :=
+  probEvent_congr <| evalDist_simulate' oa u
 
 end unifOracle
 

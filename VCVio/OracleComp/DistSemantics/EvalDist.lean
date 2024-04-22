@@ -188,6 +188,11 @@ lemma probEvent_mono (h : ∀ x ∈ oa.support, p x → q x) : [p | oa] ≤ [q |
 lemma probEvent_mono' [DecidableEq α] (h : ∀ x ∈ oa.finSupport, p x → q x) : [p | oa] ≤ [q | oa] :=
   PMF.toOuterMeasure_mono _ (λ x hx ↦ h x ((oa.mem_support_evalDist_iff' x).1 hx.2) hx.1)
 
+lemma probOutput_congr (h : evalDist oa = evalDist oa') : [= x | oa] = [= x | oa'] := by
+  simp only [probOutput.def, h]
+lemma probEvent_congr (h : evalDist oa = evalDist oa') : [p | oa] = [p | oa'] := by
+  simp only [probEvent.def, h]
+
 lemma probEvent_ext (h : ∀ x ∈ oa.support, p x ↔ q x) : [p | oa] = [q | oa] :=
   le_antisymm (probEvent_mono <| λ x hx hp ↦ (h x hx).1 hp)
     (probEvent_mono <| λ x hx hp ↦ (h x hx).2 hp)

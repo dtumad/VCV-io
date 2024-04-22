@@ -172,6 +172,8 @@ lemma simulate_eq_map_simulate' [Inhabited σ] (oa : OracleComp spec α) (s : σ
     simulate so s oa = (·, default) <$> simulate' so s oa :=
   simulate_eq_map_simulate'_of_subsingleton so oa s default
 
+-- TODO: versions for dist semantics stuff
+
 end subsingleton
 
 end OracleComp
