@@ -15,6 +15,8 @@ This file defines and proves the security of the one-time pad encryption algorit
 
 open OracleSpec OracleComp OracleAlg ENNReal BigOperators
 
+variable [SelectableType Bool]
+
 def oneTimePad (n : ℕ) : SymmEncAlg unifSpec
     (Vector Bool n) (Vector Bool n) (Vector Bool n) where
   keygen := λ _ ↦ replicate ($ᵗ Bool) n

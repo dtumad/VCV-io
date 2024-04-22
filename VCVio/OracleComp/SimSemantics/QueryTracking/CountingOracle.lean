@@ -8,41 +8,38 @@ import VCVio.OracleComp.SimSemantics.Simulate
 /-!
 # Counting Queries Made by a Computation
 
-This file defines a simulation oracle `countingOracle spec` for counting the number of queries made
-while running the computation. The count is represented by a type `queryCount spec`,
-which
-
+This file defines a simulation oracle `countingOracle` for counting the number of queries made
+while running the computation. The count is represented by a function from oracle indices to
+counts, allowing each oracle to be tracked individually.
 -/
 
 open OracleComp
 
-namespace OracleSpec
+-- namespace OracleSpec
 
-@[inline, reducible]
-def QueryCount (spec : OracleSpec) : Type := spec.ι → ℕ
+-- @[inline, reducible]
+-- def QueryCount (spec : OracleSpec) : Type := spec.ι → ℕ
 
-variable {spec : OracleSpec}
+-- variable {spec : OracleSpec}
 
-def QueryCount.increment (qc : spec.QueryCount) (i : spec.ι) (n : ℕ) : spec.QueryCount :=
-  Function.update qc i (qc i + n)
+-- def QueryCount.increment (qc : spec.QueryCount) (i : spec.ι) (n : ℕ) : spec.QueryCount :=
+--   Function.update qc i (qc i + n)
 
-def QueryCount.decrement (qc : spec.QueryCount) (i : spec.ι) (n : ℕ) : spec.QueryCount :=
-  Function.update qc i (qc i - n)
+-- def QueryCount.decrement (qc : spec.QueryCount) (i : spec.ι) (n : ℕ) : spec.QueryCount :=
+--   Function.update qc i (qc i - n)
 
-instance : Zero (QueryCount spec) := ⟨λ _ ↦ 0⟩
+-- instance : Zero (QueryCount spec) := ⟨λ _ ↦ 0⟩
 
-end OracleSpec
+-- end OracleSpec
 
 open OracleComp OracleSpec
 
 def countingOracle {spec : OracleSpec} :
-    spec →[QueryCount spec]ₛₒ spec :=
-  λ i t qc ↦ (·, qc.increment i 1) <$> query i t
-
--- def countingOracle {spec : OracleSpec} :
---   spec →[List spec.ι]ₛₒ spec :=
--- λ i ⟨t, qc⟩ ↦ (·, i :: qc) <$> query i t
+    spec →[spec.ι → ℕ]ₛₒ spec :=
+  λ i t qc ↦ (·, Function.update qc i (qc i + 1)) <$> query i t
 
 namespace countingOracle
+
+-- port
 
 end countingOracle

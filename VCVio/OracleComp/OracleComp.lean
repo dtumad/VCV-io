@@ -12,7 +12,7 @@ import Mathlib.Topology.Instances.ENNReal
 A value `oa : OracleComp spec α` represents a computation with return type `α`,
 with access to any of the oracles specified by `spec : OracleSpec`.
 Returning a value `x` corresponds to the computation `pure' α x`.
-The computation `query_bind' i t α oa` represents querying the oracle corresponding to index `i`
+The computation `queryBind' i t α oa` represents querying the oracle corresponding to index `i`
 on input `t`, getting a result `u : spec.range i`, and then running `oa u`.
 
 `pure' α a` gives a monadic `pure` operation, while a more general `>>=` operator
@@ -38,7 +38,7 @@ calling `oa` on the result of the oracle call.
 We recursively define a more general monadic bind operation later. -/
 inductive OracleComp (spec : OracleSpec) : Type → Type 1
   | pure' (α : Type) (x : α) : OracleComp spec α
-  | query_bind' (i : spec.ι) (t : spec.domain i) (α : Type)
+  | queryBind' (i : spec.ι) (t : spec.domain i) (α : Type)
       (oa : spec.range i → OracleComp spec α) : OracleComp spec α
 
 namespace OracleComp
@@ -47,7 +47,7 @@ namespace OracleComp
 by assuming each query returns the `default` value given by the `Inhabited` instance. -/
 def defaultResult {spec : OracleSpec} : {α : Type} → OracleComp spec α → α
   | _, pure' α x => x
-  | _, query_bind' _ _ α oa => defaultResult (oa default)
+  | _, queryBind' _ _ α oa => defaultResult (oa default)
 
 instance (spec : OracleSpec) (α : Type) [h : Nonempty α] :
   Nonempty (OracleComp spec α) := h.elim (λ x ↦ ⟨pure' α x⟩)
@@ -66,7 +66,7 @@ section Monad
 /-- Bind operator on `OracleComp spec` operation used in the monad definition. -/
 def bind' : (α β : Type) → OracleComp spec α → (α → OracleComp spec β) → OracleComp spec β
   | _, _, pure' α a, ob => ob a
-  | _, β, query_bind' i t α oa, ob => query_bind' i t β (λ u ↦ bind' α β (oa u) ob)
+  | _, β, queryBind' i t α oa, ob => queryBind' i t β (λ u ↦ bind' α β (oa u) ob)
 
 /-- `OracleComp spec` forms a monad under `OracleComp.pure'` and `OracleComp.bind'`. -/
 instance (spec : OracleSpec) : Monad (OracleComp spec) :=
@@ -82,11 +82,11 @@ instance (spec : OracleSpec) : LawfulMonad (OracleComp spec) :=
   LawfulMonad.mk' _
     (λ oa ↦ by
       induction' oa with α a i t α oa hoa; · rfl
-      · exact congr_arg (query_bind' i t α) (funext (λ u ↦ hoa u)))
+      · exact congr_arg (queryBind' i t α) (funext (λ u ↦ hoa u)))
     (λ x ob ↦ rfl)
     (λ oa ob oc ↦ by
       induction' oa with α a i t α oa hoa; · rfl
-      · exact congr_arg (query_bind' i t _) <| funext (λ u ↦ hoa u ob))
+      · exact congr_arg (queryBind' i t _) <| funext (λ u ↦ hoa u ob))
 
 protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' :=
@@ -104,14 +104,14 @@ section query
 /-- `query i t` represents querying the oracle corresponding to `i` on input `t`.
 The continuation for the computation in this case just returns the original result-/
 def query {spec : OracleSpec} (i : spec.ι) (t : spec.domain i) : OracleComp spec (spec.range i) :=
-  query_bind' i t (spec.range i) pure
+  queryBind' i t (spec.range i) pure
 
 variable (i : spec.ι) (t : spec.domain i)
 
-lemma query_def : query i t = query_bind' i t (spec.range i) pure := rfl
+lemma query_def : query i t = queryBind' i t (spec.range i) pure := rfl
 
-@[simp] lemma query_bind'_eq_query_bind (oa : spec.range i → OracleComp spec α) :
-    query_bind' i t α oa = query i t >>= oa := rfl
+@[simp] lemma queryBind'_eq_queryBind (oa : spec.range i → OracleComp spec α) :
+    queryBind' i t α oa = query i t >>= oa := rfl
 
 end query
 
@@ -137,13 +137,24 @@ example : OracleComp unifSpec ℕ := do
 protected def inductionOn {spec : OracleSpec}
     {C : Π {α : Type}, OracleComp spec α → Prop}
     (h_pure : ∀ {α : Type} (a : α), C (pure a))
-    (h_query_bind : ∀ (i : spec.ι) (t : spec.domain i) {α : Type}
+    (h_queryBind : ∀ (i : spec.ι) (t : spec.domain i) {α : Type}
       (oa : spec.range i → OracleComp spec α),
       (∀ u, C (oa u)) → C (query i t >>= oa)) :
     {α : Type} → (oa : OracleComp spec α) → C oa
   | _, (pure' α a) => h_pure a
-  | _, (query_bind' i t α oa) => h_query_bind i t oa
-    (λ u ↦ OracleComp.inductionOn h_pure h_query_bind (oa u))
+  | _, (queryBind' i t α oa) => h_queryBind i t oa
+    (λ u ↦ OracleComp.inductionOn h_pure h_queryBind (oa u))
+
+/-- Computations without access to any oracles are equivalent to values of the return type. -/
+lemma oracleComp_emptySpec_equiv (α : Type) : OracleComp ∅ α ≃ α where
+  toFun := λ oa ↦ match oa with
+    | pure' α x => x
+    | queryBind' i _ _ _ => Empty.elim i
+  invFun := pure
+  left_inv := λ oa ↦ match oa with
+    | pure' α x => rfl
+    | queryBind' i _ _ _ => Empty.elim i
+  right_inv := λ _ ↦ rfl
 
 section inj
 
@@ -154,11 +165,11 @@ section inj
   ⟨λ h ↦ OracleComp.noConfusion h (λ _ ht _ _ ↦ eq_of_heq ht), λ h ↦ h ▸ rfl⟩
 
 @[simp]
-lemma query_bind_inj (i i' : spec.ι) (t : spec.domain i) (t' : spec.domain i')
+lemma queryBind_inj (i i' : spec.ι) (t : spec.domain i) (t' : spec.domain i')
     (oa : spec.range i → OracleComp spec α) (oa' : spec.range i' → OracleComp spec α) :
     query i t >>= oa = query i' t' >>= oa' ↔ ∃ h : i = i', h ▸ t = t' ∧ h ▸ oa = oa' := by
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
-  · rw [← query_bind'_eq_query_bind, ← query_bind'_eq_query_bind] at h
+  · rw [← queryBind'_eq_queryBind, ← queryBind'_eq_queryBind] at h
     refine OracleComp.noConfusion h ?_
     rintro rfl ⟨rfl⟩ _ ⟨rfl⟩
     exact ⟨rfl, rfl, rfl⟩
@@ -173,8 +184,8 @@ variable (i : spec.ι) (t : spec.domain i) (u : spec.range i) (x : α)
 
 @[simp] lemma pure_ne_query : pure u ≠ query i t := OracleComp.noConfusion
 @[simp] lemma query_ne_pure : query i t ≠ pure u := OracleComp.noConfusion
-@[simp] lemma pure_ne_query_bind : pure x ≠ query i t >>= ou := OracleComp.noConfusion
-@[simp] lemma query_bind_ne_pure : query i t >>= ou ≠ (pure x) := OracleComp.noConfusion
+@[simp] lemma pure_ne_queryBind : pure x ≠ query i t >>= ou := OracleComp.noConfusion
+@[simp] lemma queryBind_ne_pure : query i t >>= ou ≠ (pure x) := OracleComp.noConfusion
 
 end ne
 
@@ -187,7 +198,7 @@ lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
   · match oa with
     | pure' _ x => exact ⟨x, rfl, h⟩
-    | query_bind' i t _ oa => simp at h
+    | queryBind' i t _ oa => simp at h
   · obtain ⟨x, hxa, hxb⟩ := h
     rw [hxa, pure_bind, hxb]
 
@@ -195,11 +206,14 @@ lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x
 lemma pure_eq_bind_iff : pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
   eq_comm.trans (bind_eq_pure_iff oa ob y)
 
+/-- If the final output type of a computation has decidable equality,
+then computations themselves have decidable equality.
+Note: This depends on the decidability instances in the oracle spec itself. -/
 protected instance decidableEq {α : Type} [h : DecidableEq α] : DecidableEq (OracleComp spec α)
   | pure' _ x, pure' _ x' => by simpa [pure_inj x x'] using h x x'
-  | pure' _ x, query_bind' i t _ oa => by simpa using Decidable.isFalse not_false
-  | query_bind' i t _ oa, pure' _ x => by simpa using Decidable.isFalse not_false
-  | query_bind' i t _ oa, query_bind' i' t' _ oa' => by
+  | pure' _ x, queryBind' i t _ oa => by simpa using Decidable.isFalse not_false
+  | queryBind' i t _ oa, pure' _ x => by simpa using Decidable.isFalse not_false
+  | queryBind' i t _ oa, queryBind' i' t' _ oa' => by
     by_cases hi : i = i'
     · induction hi; simp
       suffices Decidable (oa = oa') from inferInstance

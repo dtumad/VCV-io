@@ -25,6 +25,10 @@ class HomogeneousSpace (G : outParam Type) (P : semiOutParam Type)
     extends AddTorsor G P where
   decidableEq_G : DecidableEq G
   decidableEq_P : DecidableEq P
+  fintype_G : Fintype G
+  fintype_P : Fintype P
+  inhabited_G : Inhabited G
+  inhabited_P : Inhabited P
   selectableType_G : SelectableType G
   selectableType_P : SelectableType P
 
@@ -34,7 +38,10 @@ variable {G P : Type} [AddGroup G]
 
 instance [h : HomogeneousSpace G P] : DecidableEq G := h.decidableEq_G
 instance [h : HomogeneousSpace G P] : DecidableEq P := h.decidableEq_P
-
+instance [h : HomogeneousSpace G P] : Fintype G := h.fintype_G
+instance [h : HomogeneousSpace G P] : Fintype P := h.fintype_P
+instance [h : HomogeneousSpace G P] : Inhabited G := h.inhabited_G
+instance [h : HomogeneousSpace G P] : Inhabited P := h.inhabited_P
 instance [h : HomogeneousSpace G P] : SelectableType G := h.selectableType_G
 instance [h : HomogeneousSpace G P] : SelectableType P := h.selectableType_P
 

@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.OracleSpec.Append
 
 /-!
@@ -50,25 +50,27 @@ lemma append_apply_inr (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[�
     (i : spec₂.ι) : (so ++ₛₒ so') (inr i) = λ t (s₁, s₂) ↦ do
       let (u, s₂') ← so' i t s₂ return (u, s₁, s₂') := rfl
 
+end append
+
 section subSpec
 
 @[simp]
 lemma simulate_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
     (oa : OracleComp spec₁ α) (s : σ × τ) :
-    simulate (so ++ₛₒ so') ↑oa s = (λ ⟨x, s'⟩ ↦ (x, (s', s.2))) <$> simulate so oa s.1 := by
-  revert s
-  induction oa using OracleComp.inductionOn with
+    simulate (so ++ₛₒ so') s ↑oa = (λ (x, s') ↦ (x, (s', s.2))) <$> simulate so s.1 oa := by
+  revert s; induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_query_bind i t oa hoa => simp [hoa, map_bind]
+  | h_queryBind i t oa hoa => sorry --simp [hoa, map_bind]
 
 @[simp]
 lemma simulate'_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
     (oa : OracleComp spec₁ α) (s : σ × τ) :
-    simulate' (so ++ₛₒ so') ↑oa s = simulate' so oa s.1 := by
+    simulate' (so ++ₛₒ so') s ↑oa = simulate' so s.1 oa := by
   rw [simulate'_def (so ++ₛₒ so'), simulate_coe_append_left, Functor.map_map,
     Function.comp, simulate'_def]
 
+-- port
 
 end subSpec
 
-end append
+end SimOracle

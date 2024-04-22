@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
@@ -36,8 +36,20 @@ def cachingOracle {spec : OracleSpec} :
         let u ← query i t
         return (u, cache.cacheQuery t u)
 
+namespace cachingOracle
+
+-- ort
+
+end cachingOracle
+
 def randOracle {spec : OracleSpec}
     [∀ i, SelectableType (spec.range i)] :
     spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState
     (Equiv.prodPUnit (QueryCache spec))
+
+namespace randOracle
+
+-- port
+
+end randOracle

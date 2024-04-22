@@ -17,5 +17,5 @@ open ENNReal
 
 lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
   Finset.sum Finset.univ (λ _ ↦ (Fintype.card α)⁻¹ : α → ℝ≥0∞) = 1 := by
-  simp only [Finset.card_univ, one_div, Finset.sum_const, nsmul_eq_mul]
-  exact ENNReal.mul_inv_cancel (by simp) (nat_ne_top _)
+  rw [Finset.sum_eq_card_nsmul (λ _ _ ↦ rfl), Finset.card_univ,
+    nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
