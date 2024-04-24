@@ -64,13 +64,13 @@ lemma finSupport_toFun (i : spec.ι) (t : spec.domain i) :
 @[simp]
 lemma probOutput_toFun (i : spec.ι) (t : spec.domain i) (u : spec.range i) :
     [= u | h.toFun i t] = (↑(Fintype.card (spec.range i)) : ℝ≥0∞)⁻¹ :=
-  by rw [probOutput.def, evalDist_toFun, PMF.uniformOfFintype_apply]
+  by rw [probOutput_def, evalDist_toFun, PMF.uniformOfFintype_apply]
 
 @[simp]
 lemma probEvent_toFun (i : spec.ι) (t : spec.domain i)
     (p : spec.range i → Prop) [DecidablePred p] :
     [p | h.toFun i t] = (Finset.univ.filter p).card / Fintype.card (spec.range i) := by
-  rw [probEvent.def, h.evalDist_toFun, ← evalDist_query i t, ← probEvent.def,
+  rw [probEvent_def, h.evalDist_toFun, ← evalDist_query i t, ← probEvent_def,
     probEvent_query_eq_div]
 
 end SubSpec
@@ -134,11 +134,11 @@ lemma finSupport_coe_subSpec [DecidableEq α] (oa : OracleComp spec α) :
 @[simp]
 lemma probOutput_coe_subSpec (oa : OracleComp spec α) (x : α) :
     [= x | (↑oa : OracleComp super_spec α)] = [= x | oa] := by
-  simp only [probOutput.def, evalDist_coe_subSpec]
+  simp only [probOutput_def, evalDist_coe_subSpec]
 
 @[simp]
 lemma probEvent_coe_subSpec (oa : OracleComp spec α) (p : α → Prop) :
     [p | (↑oa : OracleComp super_spec α)] = [p | oa] := by
-  simp only [probEvent.def, evalDist_coe_subSpec]
+  simp only [probEvent_def, evalDist_coe_subSpec]
 
 end OracleComp

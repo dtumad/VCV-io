@@ -181,12 +181,12 @@ lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) 
   rw [simulate_eq_map_simulate', PUnit.default_eq_unit,
     ← probEvent_eq_eq_probOutput, probEvent_map]
   simp [Function.comp, Prod.eq_iff_fst_eq_snd_eq]
-  simp [probOutput.def]
+  simp [probOutput_def]
 
 @[simp]
 lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
     [= x | simulate' unifOracle u oa] = [= x | oa] := by
-  simp [probOutput.def]
+  simp [probOutput_def]
 
 @[simp]
 lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
