@@ -45,13 +45,14 @@ variable {α : Type} [Inhabited α]
 
 @[simp]
 lemma uniformSelectList_nil (α : Type) [Inhabited α] :
-  ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
+    ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
 
 lemma uniformSelectList_cons (x : α) (xs : List α) :
     ($ x :: xs : OracleComp unifSpec α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
 
 @[simp]
-lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) = match xs with
+lemma evalDist_uniformSelectList (xs : List α) :
+    evalDist ($ xs) = match xs with
     | [] => PMF.pure default
     | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map ((x :: xs)[·]) := by
   match xs with
@@ -118,7 +119,7 @@ instance hasUniformSelectVector (α : Type) (n : ℕ) :
 variable {α : Type} {n : ℕ}
 
 lemma uniformSelectVector_def (xs : Vector α (n + 1)) :
-  ($ xs) = (xs[·]) <$> $[0..n] := rfl
+    ($ xs) = (xs[·]) <$> $[0..n] := rfl
 
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
