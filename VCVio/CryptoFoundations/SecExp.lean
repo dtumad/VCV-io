@@ -60,7 +60,19 @@ lemma advantage_eq (exp : SecExp spec α) :
 
 @[simp]
 lemma advantage_eq_one_iff (exp : SecExp spec α) : exp.advantage = 1 ↔
-    false ∉ (exp.exec (exp.inpGen >>= exp.main)).support :=
-  sorry
+    false ∉ (exp.exec (exp.inpGen >>= exp.main)).support := by
+  simp only [advantage_eq, probOutput_eq_one_iff, OracleAlg.exec_bind, support_bind,
+    Set.subset_singleton_iff, Set.mem_iUnion, exists_prop, Prod.exists, forall_exists_index,
+    and_imp, Bool.forall_bool, imp_false, implies_true, and_true, not_exists, not_and]
+
+@[simp]
+lemma advantage_eq_zero_iff (exp : SecExp spec α) : exp.advantage = 0 ↔
+    true ∉ (exp.exec (exp.inpGen >>= exp.main)).support := by
+  rw [advantage_eq, probOutput_eq_zero_iff]
+
+@[simp]
+lemma advantage_pos_iff (exp : SecExp spec α) : 0 < exp.advantage ↔
+    true ∈ (exp.exec (exp.inpGen >>= exp.main)).support := by
+  rw [pos_iff_ne_zero, ne_eq, advantage_eq_zero_iff, not_not]
 
 end SecExp
