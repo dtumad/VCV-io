@@ -35,7 +35,7 @@ namespace OracleComp
 
 open ENNReal BigOperators
 
-variable {spec : OracleSpec} {α β : Type}
+variable {spec spec' : OracleSpec} {α β : Type}
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random. -/
@@ -188,9 +188,11 @@ lemma probEvent_mono (h : ∀ x ∈ oa.support, p x → q x) : [p | oa] ≤ [q |
 lemma probEvent_mono' [DecidableEq α] (h : ∀ x ∈ oa.finSupport, p x → q x) : [p | oa] ≤ [q | oa] :=
   PMF.toOuterMeasure_mono _ (λ x hx ↦ h x ((oa.mem_support_evalDist_iff' x).1 hx.2) hx.1)
 
-lemma probOutput_congr (h : evalDist oa = evalDist oa') : [= x | oa] = [= x | oa'] := by
+lemma probOutput_congr {oa : OracleComp spec α} {oa' : OracleComp spec' α}
+    (h : evalDist oa = evalDist oa') : [= x | oa] = [= x | oa'] := by
   simp only [probOutput_def, h]
-lemma probEvent_congr (h : evalDist oa = evalDist oa') : [p | oa] = [p | oa'] := by
+lemma probEvent_congr {oa : OracleComp spec α} {oa' : OracleComp spec' α}
+    (h : evalDist oa = evalDist oa') : [p | oa] = [p | oa'] := by
   simp only [probEvent_def, h]
 
 lemma probEvent_ext (h : ∀ x ∈ oa.support, p x ↔ q x) : [p | oa] = [q | oa] :=
@@ -210,10 +212,12 @@ lemma function_support_probEvent : Function.support ([. | oa]) = {p | ∃ x ∈ 
 
 end support
 
-@[simp] lemma probEvent_eq_eq_probOutput (oa : OracleComp spec α) : [(. = x) | oa] = [= x | oa] :=
+@[simp] lemma probEvent_eq_eq_probOutput (oa : OracleComp spec α) (x : α) :
+    [(. = x) | oa] = [= x | oa] :=
   PMF.toOuterMeasure_apply_singleton (evalDist oa) x
-@[simp] lemma probEvent_eq_eq_probOutput' (oa : OracleComp spec α) : [(x = .) | oa] = [= x | oa] :=
-  (probEvent_ext (λ _ _ ↦ eq_comm)).trans (probEvent_eq_eq_probOutput oa)
+@[simp] lemma probEvent_eq_eq_probOutput' (oa : OracleComp spec α) (x : α) :
+    [(x = .) | oa] = [= x | oa] :=
+  (probEvent_ext (λ _ _ ↦ eq_comm)).trans (probEvent_eq_eq_probOutput oa x)
 
 section sums
 

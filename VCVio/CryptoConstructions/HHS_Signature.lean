@@ -22,7 +22,7 @@ instance (G P M : Type) [DecidableEq M]
 section commits
 
 variable {G P M : Type} [DecidableEq M]
-    [AddCommGroup G] [HomogeneousSpace G P]
+    [AddCommGroup G] [HomogeneousSpace G P] {n : ℕ}
 
 def zipCommits (sk : G) (gs : Vector G n)
     (bs : Vector Bool n) : Vector G n :=

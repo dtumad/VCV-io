@@ -23,9 +23,9 @@ open OracleSpec OracleComp Prod Sum
 
 namespace SimOracle
 
-section append
+variable {spec₁ spec₂ specₜ : OracleSpec} {σ τ α β : Type}
 
-variable {spec₁ spec₂ specₜ : OracleSpec} {σ τ : Type}
+section append
 
 /-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
 with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,

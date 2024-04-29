@@ -56,7 +56,7 @@ instance (spec : OracleSpec) (α : Type) [Inhabited α] :
 instance (spec : OracleSpec) (α : Type) [h : IsEmpty α] :
   IsEmpty (OracleComp spec α) := ⟨λ oa ↦ h.1 (defaultResult oa)⟩
 
-variable {spec : OracleSpec} {α : Type}
+variable {spec : OracleSpec} {α β : Type}
 
 /-- Extract an `Inhabited` instance on the output type of a computation. -/
 def baseInhabited (oa : OracleComp spec α) : Inhabited α := ⟨oa.defaultResult⟩
@@ -69,8 +69,9 @@ def bind' : (α β : Type) → OracleComp spec α → (α → OracleComp spec β
   | _, β, queryBind' i t α oa, ob => queryBind' i t β (λ u ↦ bind' α β (oa u) ob)
 
 /-- `OracleComp spec` forms a monad under `OracleComp.pure'` and `OracleComp.bind'`. -/
-instance (spec : OracleSpec) : Monad (OracleComp spec) :=
-  { pure := @pure' spec, bind := @bind' spec }
+instance (spec : OracleSpec) : Monad (OracleComp spec) where
+  pure := @pure' spec
+  bind := @bind' spec
 
 @[simp] protected lemma pure'_eq_pure (spec : OracleSpec) (a : α) :
   pure' α a = (pure a : OracleComp spec α) := rfl

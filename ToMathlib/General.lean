@@ -21,7 +21,7 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
 
 /-- Summing `1` over list indices that satisfy a predicate is just `countP` applied to `p`. -/
-lemma List.countP_eq_sum_fin_ite (xs : List α) (p : α → Bool) :
+lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
     (∑ i : Fin (xs.length), if p xs[i] then 1 else 0) = xs.countP p := by
   induction xs with
   | nil => simp only [List.countP_nil, List.length_nil, Finset.univ_eq_empty, getElem_fin,
@@ -36,5 +36,5 @@ lemma List.countP_eq_sum_fin_ite (xs : List α) (p : α → Bool) :
     · sorry }
 
 @[simp]
-lemma Vector.getElem_eq_get (xs : Vector α n) (i : ℕ) (h : i < n) :
+lemma Vector.getElem_eq_get {α n} (xs : Vector α n) (i : ℕ) (h : i < n) :
   xs[i]'h = xs.get ⟨i, h⟩ := rfl

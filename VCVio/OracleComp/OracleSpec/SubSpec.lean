@@ -44,7 +44,7 @@ infix : 50 " ⊂ₒ " => SubSpec
 
 namespace SubSpec
 
-variable {spec super_spec : OracleSpec} [h : spec ⊂ₒ super_spec]
+variable {spec super_spec : OracleSpec} [h : spec ⊂ₒ super_spec] {α β : Type}
 
 @[simp]
 lemma evalDist_toFun (i : spec.ι) (t : spec.domain i) :
@@ -83,6 +83,8 @@ instance : coinSpec ⊂ₒ unifSpec where
 end OracleSpec
 
 namespace OracleComp
+
+variable {α β : Type}
 
 /-- Coerce a computation using the replacement function defined in a `SubSpec` instance. -/
 instance (spec super_spec : OracleSpec) [h : spec ⊂ₒ super_spec] (α : Type)  :

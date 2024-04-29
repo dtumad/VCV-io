@@ -19,6 +19,8 @@ open OracleSpec
 
 namespace OracleComp
 
+variable {spec : OracleSpec} {α : Type}
+
 /-- Bound on the number of queries made by a computation, given by a map from oracles to counts. -/
 def IsQueryBound (oa : OracleComp spec α) (qb : spec.ι → ℕ) : Prop :=
   ∀ count ∈ (Prod.snd <$> simulate countingOracle 0 oa).support,

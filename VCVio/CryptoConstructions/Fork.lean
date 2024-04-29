@@ -23,7 +23,7 @@ structure ForkAdv (spec : OracleSpec)
 namespace ForkAdv
 
 variable {spec : OracleSpec} [∀ j, SelectableType (spec.range j)]
-  [unifSpec ⊂ₒ spec]
+  [unifSpec ⊂ₒ spec] {α β : Type} {i : spec.ι}
 
 def seedAndRun (adv : ForkAdv spec α β i)
     (x : α) (initSeed : QuerySeed spec) :
@@ -39,7 +39,7 @@ end ForkAdv
 namespace OracleComp
 
 variable {spec : OracleSpec} [∀ j, SelectableType (spec.range j)]
-  [unifSpec ⊂ₒ spec]
+  [unifSpec ⊂ₒ spec] {α β : Type} {i : spec.ι}
 
 def fork (adv : ForkAdv spec α β i) :
     SecAdv spec α (Option (β × β)) where

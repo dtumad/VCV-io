@@ -18,6 +18,8 @@ open OracleSpec Vector
 
 namespace OracleComp
 
+variable {spec : OracleSpec} {α β : Type}
+
 /-- Run the computation `oa` `n` times to get a `Vector α n` -/
 def replicate (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (Vector α n) :=
 match n with

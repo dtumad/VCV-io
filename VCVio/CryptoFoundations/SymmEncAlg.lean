@@ -24,7 +24,7 @@ structure SymmEncAlg (spec : OracleSpec) (M K C : Type)
 
 namespace SymmEncAlg
 
-variable {spec : OracleSpec} {M PK SK C : Type}
+variable {spec : OracleSpec} {M K C : Type}
 
 section sound
 

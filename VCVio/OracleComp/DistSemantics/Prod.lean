@@ -17,10 +17,10 @@ open OracleSpec ENNReal BigOperators Prod
 
 namespace OracleComp
 
-variable {spec : OracleSpec} {α β : Type}
+variable {spec : OracleSpec} {α β γ δ : Type}
 
 @[simp]
-lemma probOutput_prod_mk (oa : OracleComp spec (α × β)) (x : α) :
+lemma probOutput_prod_mk (oa : OracleComp spec (α × β)) (x : α) (y : β) :
     [= (x, y) | oa] = [λ z ↦ z.1 = x ∧ z.2 = y | oa] := by
   simp [← probEvent_eq_eq_probOutput, eq_iff_fst_eq_snd_eq]
 

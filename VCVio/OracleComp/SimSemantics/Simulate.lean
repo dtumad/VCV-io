@@ -28,6 +28,8 @@ def SimOracle (spec specₜ : OracleSpec) (σ : Type) :=
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
+variable {spec specₜ : OracleSpec} {α β σ : Type}
+
 instance SimOracle.Inhabited : Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure (default, s)⟩
 
 namespace OracleComp
