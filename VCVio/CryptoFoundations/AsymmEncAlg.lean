@@ -47,6 +47,14 @@ end soundnessExp
 def sound [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
   ∀ m : M, (soundnessExp encAlg m).advantage = 1
 
+lemma sound_iff [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : encAlg.sound ↔
+    ∀ m m' : M, ∀ pk : PK, ∀ sk : SK, ∀ σ : C, ∀ s₁ s₂ s₃,
+    ((pk, sk), s₁) ∈ (simulate encAlg.baseSimOracle encAlg.init_state (encAlg.keygen ())).support →
+    (σ, s₂) ∈ (simulate encAlg.baseSimOracle s₁ (encAlg.encrypt m pk)).support →
+    (m', s₃) ∈ (simulate encAlg.baseSimOracle s₂ (encAlg.decrypt σ sk)).support → m = m' := by
+  simp [sound, soundnessExp]
+  sorry
+
 section IND_CPA
 
 /-- `IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an

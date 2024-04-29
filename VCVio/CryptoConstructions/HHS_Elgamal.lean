@@ -37,8 +37,15 @@ namespace elgamalAsymmEnc
 theorem elgamalAsymmEnc_sound (G P : Type)
     [AddCommGroup G] [HomogeneousSpace G P] [Group P] :
     (elgamalAsymmEnc G P).sound := by
-  intro m
-  simp [AsymmEncAlg.soundnessExp, elgamalAsymmEnc]
+  suffices h : ∀ (m x : P) (g₁ g₂ : G), m = m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) by
+
+    simpa only [AsymmEncAlg.sound, AsymmEncAlg.soundnessExp, elgamalAsymmEnc, pure_bind, bind_assoc,
+      SecExp.advantage_eq_one_iff, OracleAlg.exec_baseOracleAlg, OracleComp.support_bind,
+      OracleComp.support_uniformOfFintype, Set.mem_univ, OracleComp.support_pure, Set.iUnion_true,
+      Set.iUnion_singleton_eq_range, Set.mem_iUnion, Set.mem_range, decide_eq_false_iff_not,
+      not_exists, not_not, h]
+
+
   sorry
 
 end elgamalAsymmEnc
