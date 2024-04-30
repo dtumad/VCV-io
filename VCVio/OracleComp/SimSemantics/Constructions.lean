@@ -18,7 +18,7 @@ namespace SimOracle
 
 section compose
 
-variable {spec₁ spec₂ specₜ : OracleSpec} {σ τ : Type}
+variable {spec₁ spec₂ specₜ : OracleSpec} {α β σ τ : Type}
 
 /-- Given a simulation oracle `so` from `spec₁` to `spec₂` and a simulation oracle `so'` from
 `spec₂` to a final target set of oracles `specₜ`, construct a new simulation oracle
@@ -58,7 +58,7 @@ end compose
 
 section maskState
 
-variable {spec specₜ : OracleSpec} {σ τ : Type}
+variable {spec specₜ : OracleSpec} {α β σ τ : Type}
 
 /-- Substitute an equivalent type for the state of a simulation oracle, by using the equivalence
 to move back and forth between the states as needed.
@@ -72,7 +72,7 @@ lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : spe
 
 /-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
 @[simp]
-lemma maskState_subsingleton [Subsingleton σ] (so : so →[σ]ₛₒ specₜ) (e : σ ≃ σ) :
+lemma maskState_subsingleton [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ σ) :
     so.maskState e = so := by
   have he : ⇑e = id := funext (λ _ ↦ Subsingleton.elim _ _)
   have he' : ⇑e.symm = id := funext (λ _ ↦ Subsingleton.elim _ _)
@@ -108,7 +108,7 @@ def idOracle {spec : OracleSpec} : spec →[Unit]ₛₒ spec :=
 
 namespace idOracle
 
-variable (spec : OracleSpec)
+variable {spec : OracleSpec} {α β : Type}
 
 @[simp]
 lemma apply_eq (i : spec.ι) : idOracle i = λ t () ↦ ((., ())) <$> query i t := rfl
@@ -137,7 +137,7 @@ def unifOracle {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] :
 
 namespace unifOracle
 
-variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
+variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] {α β : Type}
 
 @[simp]
 lemma apply_eq (i : spec.ι) : unifOracle i = λ _ _ ↦ (., ()) <$> ($ᵗ spec.range i) := rfl
@@ -150,33 +150,54 @@ lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
   | h_queryBind i t oa hoa => simp [PMF.map, hoa]
 
 @[simp]
-lemma evalDist_simulate' (oa : OracleComp spec α) (u : PUnit) :
+lemma evalDist_simulate' (oa : OracleComp spec α) (u : Unit) :
     evalDist (simulate' unifOracle u oa) = evalDist oa := by
   simp [simulate'_def, PMF.map_comp, Function.comp]
   refine PMF.map_id (evalDist oa)
 
 @[simp]
+lemma support_simulate (oa : OracleComp spec α) (u : Unit) :
+    (simulate unifOracle u oa).support = {z | z.1 ∈ oa.support} := by
+  simp [← support_evalDist, Set.ext_iff]
+
+@[simp]
+lemma support_simulate' (oa : OracleComp spec α) (u : Unit) :
+    (simulate' unifOracle u oa).support = oa.support := by
+  simp [simulate', Set.ext_iff]
+
+@[simp]
+lemma finSupport_simulate [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
+    (simulate unifOracle u oa).finSupport = oa.finSupport.image (·, ()) := by
+  simp [finSupport_eq_iff_support_eq_coe, Set.ext_iff]
+
+@[simp]
+lemma finSupport_simulate' [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
+    (simulate' unifOracle u oa).finSupport = oa.finSupport := by
+  simp [simulate'_def, Finset.ext_iff]
+
+@[simp]
 lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
     [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
-  rw [probOutput.def, evalDist_simulate]
-  sorry
+  rw [simulate_eq_map_simulate', PUnit.default_eq_unit,
+    ← probEvent_eq_eq_probOutput, probEvent_map]
+  simp [Function.comp, Prod.eq_iff_fst_eq_snd_eq]
+  simp [probOutput_def]
 
 @[simp]
 lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
     [= x | simulate' unifOracle u oa] = [= x | oa] := by
-  sorry
+  simp [probOutput_def]
 
 @[simp]
 lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
     [p | simulate unifOracle u oa] = [λ x ↦ p (x, ()) | oa] := by
-  sorry
+  rw [simulate_eq_map_simulate', probEvent_map, PUnit.default_eq_unit, Function.comp]
+  refine probEvent_congr <| evalDist_simulate' oa u
 
 @[simp]
 lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :
-    [p | simulate' unifOracle u oa] = [p | oa] := by
-  sorry
-
--- port
+    [p | simulate' unifOracle u oa] = [p | oa] :=
+  probEvent_congr <| evalDist_simulate' oa u
 
 end unifOracle
 
@@ -187,7 +208,7 @@ def defaultOracle {spec : OracleSpec} : spec →[Unit]ₛₒ ∅ :=
 
 namespace defaultOracle
 
-variable {spec : OracleSpec}
+variable {spec : OracleSpec} {α : Type}
 
 @[simp]
 lemma apply_eq (i : spec.ι) : defaultOracle i = λ _ _ ↦ return (default, ()) := rfl

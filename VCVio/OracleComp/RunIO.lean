@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleComp
+import VCVio.OracleComp.Constructions.Replicate
 import VCVio.CryptoConstructions.OneTimePad
 
 /-!
@@ -28,15 +29,13 @@ protected def runIO {α : Type} : OracleComp unifSpec α → IO α
 
 private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
   let xs ← (replicate $[0..4] trials).runIO
-  IO.println ("Num 0s: " ++ toString (xs.toList.count 0))
-  IO.println ("Num 1s: " ++ toString (xs.toList.count 1))
-  IO.println ("Num 2s: " ++ toString (xs.toList.count 2))
-  IO.println ("Num 3s: " ++ toString (xs.toList.count 3))
-  IO.println ("Num 4s: " ++ toString (xs.toList.count 4))
+  IO.println ("Num 0s: " ++ toString (xs.count 0))
+  IO.println ("Num 1s: " ++ toString (xs.count 1))
+  IO.println ("Num 2s: " ++ toString (xs.count 2))
+  IO.println ("Num 3s: " ++ toString (xs.count 3))
+  IO.println ("Num 4s: " ++ toString (xs.count 4))
 
 -- #eval lawLargeNumsTest 2000
-
-variable [SelectableType Bool]
 
 private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   IO.println ("Initial Message: " ++ toString m.toList)
@@ -48,9 +47,5 @@ private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
   IO.println ("Final Message: " ++ toString m'.toList)
 
 -- #eval testOTP (Vector.replicate 100 true)
-
-example (x y z : ℝ) (hy : 0 ≤ y)
-    (hz : x + y = z) : x < z ∨ 0 = y := by
-  simp [← hz, ← le_iff_lt_or_eq, hy]
 
 end OracleComp

@@ -10,16 +10,14 @@ import Mathlib.Data.Vector.Zip
 /-!
 # One Time Pad
 
-This file defines and proves the security of the one-time pad encryption algorithm.
+This file defines and proves the perfect secrecy of the one-time pad encryption algorithm.
 -/
 
 open OracleSpec OracleComp OracleAlg ENNReal BigOperators
 
-variable [SelectableType Bool]
-
 def oneTimePad (n : ℕ) : SymmEncAlg unifSpec
     (Vector Bool n) (Vector Bool n) (Vector Bool n) where
-  keygen := λ _ ↦ replicate ($ᵗ Bool) n
+  keygen := λ _ ↦ $ᵗ Vector Bool n -- random bitvec
   encrypt := λ m k ↦ return m.zipWith xor k
   decrypt := λ σ k ↦ return σ.zipWith xor k
   __ := OracleAlg.baseOracleAlg
@@ -27,9 +25,8 @@ def oneTimePad (n : ℕ) : SymmEncAlg unifSpec
 namespace oneTimePad
 
 theorem isSound (n : ℕ) : (oneTimePad n).isSound := by
-  intro m
-  simp [oneTimePad, SymmEncAlg.soundnessExp]
-  sorry
-  -- simp [Vector.zipWith_a
+  have : ∀ ys xs : Vector Bool n, (ys.zipWith xor xs).zipWith xor xs = ys :=
+    λ ys xs ↦ Vector.ext (λ i ↦ by simp)
+  simpa [oneTimePad, SymmEncAlg.soundnessExp] using this
 
 end oneTimePad

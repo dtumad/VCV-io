@@ -44,8 +44,16 @@ namespace soundnessExp
 end soundnessExp
 
 /-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
-def sound [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
+def isSound [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
   ∀ m : M, (soundnessExp encAlg m).advantage = 1
+
+lemma sound_iff [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : encAlg.isSound ↔
+    ∀ m : M, ∀ m' ∈ (encAlg.exec <| do
+      let (pk, sk) ← encAlg.keygen ()
+      let σ ← encAlg.encrypt m pk
+      encAlg.decrypt σ sk).support, m = m' := by
+  simp only [isSound, SecExp.advantage_eq_one_iff]
+  sorry
 
 section IND_CPA
 
@@ -66,7 +74,7 @@ structure IND_CPA_Adv (encAlg : AsymmEncAlg spec M PK SK C)
 the boolean chosen in `inp_gen`, finally asking the adversary to determine the boolean
 given the messages and resulting ciphertext. `is_valid` checks that this choice is correct.
 The simulation oracles are pulled in directly from the encryption algorithm. -/
-def IND_CPA_Exp [coinSpec ⊂ₒ spec] (encAlg : AsymmEncAlg spec M PK SK C)
+def IND_CPA_Exp [coinSpec ⊂ₒ spec] {encAlg : AsymmEncAlg spec M PK SK C}
     (adv : IND_CPA_Adv encAlg) : SecExp spec (PK × Bool) where
   inpGen := do
     let ⟨pk, _⟩ ← encAlg.keygen ()

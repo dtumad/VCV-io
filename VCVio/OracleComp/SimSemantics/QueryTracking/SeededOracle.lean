@@ -31,16 +31,20 @@ namespace QuerySeed
 
 instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
 
+def addValue (qs : QuerySeed spec) (i : spec.ι) (u : spec.range i) : QuerySeed spec :=
+  Function.update qs i (qs i ++ [u])
+
 def addValues (qs : QuerySeed spec) {i : spec.ι}
     (us : List (spec.range i)) : QuerySeed spec :=
-  λ j ↦ qs j ++ if h : j = i then h ▸ us else ∅
+  Function.update qs i (qs i ++ us)
+--   -- λ j ↦ qs j ++ if h : j = i then h ▸ us else ∅
 
-def takeAtIndex (qs : QuerySeed spec) {i : spec.ι}
-    (n : ℕ) : QuerySeed spec :=
-  λ j ↦ if j = i then (qs j).take n else qs j
+-- def takeAtIndex (qs : QuerySeed spec) {i : spec.ι}
+--     (n : ℕ) : QuerySeed spec :=
+--   λ j ↦ if j = i then (qs j).take n else qs j
 
-def append (qs qs' : QuerySeed spec) : QuerySeed spec :=
-  λ i ↦ qs i ++ qs' i
+-- def append (qs qs' : QuerySeed spec) : QuerySeed spec :=
+--   λ i ↦ qs i ++ qs' i
 
 end QuerySeed
 

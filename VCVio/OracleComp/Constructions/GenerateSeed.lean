@@ -24,16 +24,12 @@ namespace OracleComp
 
 variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
 
-
-variable [∀ j, SelectableType (spec.range j)]
-
 def generateSeedAux (qc : spec.ι → ℕ) : List spec.ι → QuerySeed spec →
     OracleComp unifSpec (QuerySeed spec)
   | [], seed => return seed
   | j :: js, seed => do
       let xs ← replicate ($ᵗ (spec.range j)) (qc j)
-      let seed' := seed.addValues xs.toList
-      generateSeedAux qc js seed'
+      generateSeedAux qc js (Function.update seed j (seed j ++ xs))
 
 def generateSeed (qc : spec.ι → ℕ) (activeOracles : List spec.ι) :
     OracleComp unifSpec (QuerySeed spec) :=
