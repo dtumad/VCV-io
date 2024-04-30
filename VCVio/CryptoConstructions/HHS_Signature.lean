@@ -6,7 +6,7 @@ Authors: Devon Tuma
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.SignatureAlg
 import Mathlib.Data.Vector.Zip
-import VCVio.OracleComp.Constructions.Replicate
+import VCVio.CryptoConstructions.Fork
 
 /-!
 # HHS Based Schnorr Signature
@@ -59,3 +59,63 @@ def HHS_signature (G P M : Type) [DecidableEq M]
   baseSimOracle := SimOracle.maskState
     (idOracle ++ₛₒ randOracle) (Equiv.punitProd _)
   init_state := ∅
+
+#check SignatureAlg.signingOracle
+
+namespace HHS_signature
+
+variable {G P M : Type} [DecidableEq M]
+    [AddCommGroup G] [HomogeneousSpace G P] {n : ℕ}
+
+variable [(j : (unifSpec ++ (Unit →ₒ Vector Bool n)).ι) →
+  SelectableType ((unifSpec ++ (Unit →ₒ Vector Bool n)).range j)]
+
+def il {spec spec' : OracleSpec} (i : spec.ι) : (spec ++ spec').ι := inl i
+def ir {spec spec' : OracleSpec} (i : spec'.ι) : (spec ++ spec').ι := inr i
+
+def su {α β : Type} [Inhabited β] [DecidableEq α] [DecidableEq β] [Fintype β] : (α →ₒ β).ι := ()
+
+def mockSignOracle  (x₀ pk : P) :
+    let randSpec := (Vector P n × M) →ₒ Vector Bool n
+    let sigSpec := M →ₒ (Vector G n × Vector Bool n)
+    ((unifSpec ++ randSpec) ++ sigSpec)
+      →[Bool × QueryCache randSpec]ₛₒ
+        (unifSpec ++ (Unit →ₒ Vector Bool n)) :=
+  λ i ↦ match i with
+  | inl (inl k) => λ () (crpt, cache) ↦
+      (·, crpt, cache) <$> query (il k) ()
+  | inl (inr ()) => λ (xs, m) (crpt, cache) ↦ match cache () (xs, m) with
+    | none => do
+        let bs : Vector Bool n ← query (ir su) ()
+        return (bs, crpt, cache.cacheQuery () (xs, m) bs)
+    | some bs => return (bs, crpt, cache)
+  | inr () => λ m (crpt, cache) ↦ do
+      let zs ←$ᵗ (Vector G n)
+      let bs ← query (ir su) ()
+      let xs := unzipCommits x₀ pk zs bs
+      -- already exists in cache
+      let bad := (cache () (xs, m)).isSome
+      let cache' := (cache.cacheQuery () (xs, m) bs)
+      return ((zs, bs), crpt || bad, cache')
+
+def forkReduction (adv : (HHS_signature G P M n).unforgeableAdv) :
+    ForkAdv (unifSpec ++ (Unit →ₒ Vector Bool n)) (P × P)
+      ((M × Vector G n × Vector Bool n) × Bool ×
+        QueryCache ((Vector P n × M) →ₒ Vector Bool n)) (inr ()) where
+  run := λ (x₀, pk) ↦ simulate (mockSignOracle x₀ pk)
+    (false, ∅) (adv.run (x₀, pk))
+  chooseFork := λ (x₀, pk) ↦ sorry
+  queryBound := sorry
+  activeOracles := sorry
+
+def vectorizationReduction (adv : (HHS_signature G P M n).unforgeableAdv) :
+    HomogeneousSpace.vectorizationAdv G P where
+  run := λ (x₀, pk) ↦ simulate' unifOracle () <| do
+    let z ← (fork (forkReduction adv)).run (x₀, pk)
+    match z with
+    | some (((m, σ), crpt, cache), z) => sorry
+    | none => return default
+  queryBound := sorry
+  activeOracles := sorry
+
+end HHS_signature
