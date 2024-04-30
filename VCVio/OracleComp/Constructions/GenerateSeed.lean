@@ -29,7 +29,7 @@ def generateSeedAux (qc : spec.ι → ℕ) : List spec.ι → QuerySeed spec →
   | [], seed => return seed
   | j :: js, seed => do
       let xs ← replicate ($ᵗ (spec.range j)) (qc j)
-      generateSeedAux qc js (seed.addValues xs)
+      generateSeedAux qc js (Function.update seed j (seed j ++ xs))
 
 def generateSeed (qc : spec.ι → ℕ) (activeOracles : List spec.ι) :
     OracleComp unifSpec (QuerySeed spec) :=
