@@ -90,7 +90,7 @@ def mockSignOracle  (x₀ pk : P) :
         return (bs, crpt, cache.cacheQuery () (xs, m) bs)
     | some bs => return (bs, crpt, cache)
   | inr () => λ m (crpt, cache) ↦ do
-      let zs ←$ᵗ (Vector G n)
+      let zs ← $ᵗ (Vector G n)
       let bs ← query (ir su) ()
       let xs := unzipCommits x₀ pk zs bs
       -- already exists in cache
