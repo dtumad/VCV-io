@@ -14,11 +14,6 @@ import VCVio.OracleComp.Constructions.Replicate
 
 open OracleSpec OracleComp Sum
 
--- TODO: This is needed for computability but we need a better interface
-instance (G P M : Type) [DecidableEq M]
-    [AddCommGroup G] [HomogeneousSpace G P] (n : ℕ) : ∀ i, SelectableType
-  <| ((((Vector P n × M) →ₒ Vector Bool n))).range i := sorry
-
 section commits
 
 variable {G P M : Type} [DecidableEq M]
@@ -34,7 +29,6 @@ def unzipCommits (x₀ pk : P) (zs : Vector G n)
   Vector.zipWith (λ z b ↦
     if b then z +ᵥ pk else z +ᵥ x₀) zs hash
 
-
 end commits
 
 def HHS_signature (G P M : Type) [DecidableEq M]
@@ -47,8 +41,9 @@ def HHS_signature (G P M : Type) [DecidableEq M]
   -- Sign a message by choosing `n` random commitments, and querying the oracle on them
   -- For each 1 bit in the resulting hash, subtract the secret key from corresponding commitment
   sign := λ (_, pk) sk m ↦ do
-    let gs : Vector G n ← replicate ($ᵗ G) n
+    let gs ← $ᵗ Vector G n
     let xs : Vector P n := gs.map (· +ᵥ pk)
+    -- Note: would be better if we didn't need to do this. Outparam issue?
     let j : (unifSpec ++ ((Vector P n × M) →ₒ Vector Bool n)).ι := inr ()
     let bs : Vector Bool n ← query j (xs, m)
     let zs : Vector G n := zipCommits sk gs bs
