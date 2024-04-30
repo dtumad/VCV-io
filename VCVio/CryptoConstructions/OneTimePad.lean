@@ -15,11 +15,9 @@ This file defines and proves the perfect secrecy of the one-time pad encryption 
 
 open OracleSpec OracleComp OracleAlg ENNReal BigOperators
 
-variable [SelectableType Bool]
-
 def oneTimePad (n : ℕ) : SymmEncAlg unifSpec
     (Vector Bool n) (Vector Bool n) (Vector Bool n) where
-  keygen := λ _ ↦ replicate ($ᵗ Bool) n
+  keygen := λ _ ↦ $ᵗ Vector Bool n -- random bitvec
   encrypt := λ m k ↦ return m.zipWith xor k
   decrypt := λ σ k ↦ return σ.zipWith xor k
   __ := OracleAlg.baseOracleAlg
