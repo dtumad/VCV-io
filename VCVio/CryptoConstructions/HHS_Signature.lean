@@ -60,8 +60,6 @@ def HHS_signature (G P M : Type) [DecidableEq M]
     (idOracle ++ₛₒ randOracle) (Equiv.punitProd _)
   init_state := ∅
 
-#check SignatureAlg.signingOracle
-
 namespace HHS_signature
 
 variable {G P M : Type} [DecidableEq M]
