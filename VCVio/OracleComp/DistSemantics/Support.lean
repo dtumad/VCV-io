@@ -206,7 +206,7 @@ example : support (do
     let x ← (if b && b' then return 0 else return 1);
     let z ← (if b && b' then return x else return 0);
     return (x * z)) = {0} :=
-  by simp
+  by simp [Set.eq_singleton_iff_unique_mem]
 
 example : finSupport (do
     let b ← coin; let b' ← coin

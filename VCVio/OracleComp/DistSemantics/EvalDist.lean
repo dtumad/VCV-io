@@ -500,8 +500,8 @@ lemma probEvent_coin (p : Bool → Prop) [DecidablePred p] : [p | coin] =
 /-- The xor of two coin flips looks like flipping a single coin -/
 example (x : Bool) : [= x | do let b ← coin; let b' ← coin; return xor b b'] = [= x | coin] := by
   have : (↑2 : ℝ≥0∞) ≠ ∞ := by simp
-  have : (↑2 : ℝ≥0∞)⁻¹ * 2 = 1 := ENNReal.inv_mul_cancel two_ne_zero this
-  cases x <;> simp [← mul_two, mul_assoc, this]
+  cases x <;> simp [← mul_two, mul_comm (2 : ℝ≥0∞), mul_assoc,
+    ENNReal.inv_mul_cancel two_ne_zero this]
 
 end coin
 

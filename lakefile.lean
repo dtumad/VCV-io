@@ -11,6 +11,7 @@ package VCVio where
   ]
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "master"
 require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 
 -- Main folder for crypto-specific constructions and definitions

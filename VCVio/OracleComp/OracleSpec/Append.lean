@@ -42,8 +42,6 @@ open OracleComp Sum
 
 namespace OracleSpec
 
-section append
-
 /-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
 `inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
 -- @[inline, reducible]
@@ -56,28 +54,28 @@ def append (spec₁ spec₂ : OracleSpec) : OracleSpec where
     | inl i => spec₁.range i
     | inr i => spec₂.range i
   range_inhabited' := λ i ↦ Sum.recOn i spec₁.range_inhabited spec₂.range_inhabited
-  ι_decidableEq' := Sum.instDecidableEqSum
+  ι_decidableEq' := instDecidableEqSum
   domain_decidableEq' := λ i ↦ Sum.recOn i spec₁.domain_decidableEq spec₂.domain_decidableEq
   range_decidableEq' := λ i ↦ Sum.recOn i spec₁.range_decidableEq spec₂.range_decidableEq
   range_fintype' := λ i ↦ Sum.recOn i spec₁.range_fintype spec₂.range_fintype
 
--- @[simp]
 instance : Append OracleSpec := ⟨OracleSpec.append⟩
 
 variable (spec₁ spec₂ : OracleSpec)
 
-end append
-
 section instances
 
-@[simps]
 instance subSpec_append_right (spec₁ spec₂ : OracleSpec) : spec₂ ⊂ₒ (spec₁ ++ spec₂) where
   toFun := λ i t ↦ query (spec := spec₁ ++ spec₂) (inr i) t
   evalDist_toFun' := by simp [append]; exact λ _ _ ↦ rfl
 
-@[simps]
+@[inline, reducible]
+def query₁ {spec₁ spec₂ : OracleSpec} (i : spec₁.ι) (t : spec₁.domain i) :
+    OracleComp (spec₁ ++ spec₂) (spec₁.range i) :=
+  query (spec := spec₁ ++ spec₂) (inl i) t
+
 instance subSpec_append_left (spec₁ spec₂ : OracleSpec) : spec₁ ⊂ₒ (spec₁ ++ spec₂) where
-  toFun := λ i t ↦ query (spec := spec₁ ++ spec₂) (inl i) t
+  toFun := query₁
   evalDist_toFun' := by simp [append]; exact λ _ _ ↦ rfl
 
 end instances
