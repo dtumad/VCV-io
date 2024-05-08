@@ -49,7 +49,7 @@ jobs:
         uses: liskin/gh-problem-matcher-wrap@v2
         with:
           linters: gcc
-          run: env LEAN_ABORT_ON_PANIC=1 lake exe shake --gh-style
+          run: env LEAN_ABORT_ON_PANIC=1 lake exe shake VCVio --gh-style
 
   lint:
     name: Lint Files
