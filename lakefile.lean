@@ -13,8 +13,10 @@ package VCVio where
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git"
 require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 
+-- Main folder for crypto-specific constructions and definitions
 @[default_target] lean_lib VCVio
 
+-- Seperate section of the project for things that should be ported
 lean_lib ToMathlib
 
 -- Unused import detection, copied from mathlib

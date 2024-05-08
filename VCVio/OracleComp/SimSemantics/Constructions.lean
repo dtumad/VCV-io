@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Simulate
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.OracleComp.DistSemantics.Prod
 
 /-!
 # Basic Constructions of Simulation Oracles

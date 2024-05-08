@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.SignatureAlg
+import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
 import Mathlib.Data.Vector.Zip
 import VCVio.CryptoConstructions.Fork
 
