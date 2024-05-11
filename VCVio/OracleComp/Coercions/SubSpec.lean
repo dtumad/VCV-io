@@ -97,15 +97,6 @@ def liftComp {ι₁ ι₂ α : Type} {spec : OracleSpec ι₁} {superSpec : Orac
 instance (α : Type) : Coe (OracleComp coinSpec α) (OracleComp unifSpec α) where
   coe := liftComp
 
--- Note: we need to change to this because of the index set move
-class hasUnifSelect {ι : Type} (spec : OracleSpec ι) : Type 1 where
-  toFun (n : ℕ) : OracleComp spec (Fin (n + 1))
-
-instance {ι : Type} {spec : OracleSpec ι}
-    [hasUnifSelect spec] {α : Type} :
-    Coe (OracleComp unifSpec α) (OracleComp spec α) where
-  coe := sorry
-
 
 -- /-- Coerce a computation using the replacement function defined in a `SubSpec` instance. -/
 -- instance {ι₁ : Type} (spec : outParam (OracleSpec ι₁))
