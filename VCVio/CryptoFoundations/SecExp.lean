@@ -5,7 +5,6 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.Constructions.UniformSelect
-import VCVio.OracleComp.QueryBound
 
 /-!
 # Security Experiments
@@ -27,30 +26,30 @@ open OracleComp OracleSpec ENNReal
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes.
 This is useful both for asymptotic security as well as in some concrete security bounds. -/
-structure SecAdv (spec : OracleSpec)
+structure SecAdv {ι : Type} (spec : OracleSpec ι)
     (α β : Type) where
   run : α → OracleComp spec β
   -- run_polyTime : polyTimeOracleComp run
-  queryBound : spec.ι → ℕ
+  queryBound : ι → ℕ
   -- queryBound_isQueryBound (x : α) : IsQueryBound (run x) queryBound
-  activeOracles : List spec.ι -- Canonical ordering of oracles
+  activeOracles : List ι -- Canonical ordering of oracles
   -- mem_activeOracles_iff : ∀ i, i ∈ activeOracles ↔ queryBound i ≠ 0
 
 namespace SecAdv
 
-variable {spec : OracleSpec} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 end SecAdv
 
 /-- A security experiment using oracles in `spec`, represented as an `OracleAlg`. -/
-structure SecExp (spec : OracleSpec) (α : Type)
+structure SecExp {ι : Type} (spec : OracleSpec ι) (α : Type)
     extends OracleAlg spec where
   inpGen : OracleComp spec α
   main : α → OracleComp spec Bool
 
 namespace SecExp
 
-variable {spec : OracleSpec} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
     [= true | exp.exec (exp.inpGen >>= exp.main)]

@@ -3,9 +3,8 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
--- import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.DistSemantics.EvalDist
-import Mathlib.Data.Vector.Mem
+import ToMathlib.General
 
 /-!
 # Selecting Uniformly From a Collection

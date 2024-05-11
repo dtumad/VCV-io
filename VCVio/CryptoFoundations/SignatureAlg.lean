@@ -7,8 +7,6 @@ import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.OracleSpec.Append
 import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle
-
-import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
 import VCVio.OracleComp.SimSemantics.Append
 
 /-!
@@ -21,7 +19,7 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 
 open OracleSpec OracleComp BigOperators ENNReal
 
-structure SignatureAlg (spec : OracleSpec)
+structure SignatureAlg {ι : Type} (spec : OracleSpec ι)
     (M PK SK S : Type) extends OracleAlg spec where
   keygen : Unit → OracleComp spec (PK × SK)
   sign : PK → SK → M → OracleComp spec S
@@ -29,7 +27,7 @@ structure SignatureAlg (spec : OracleSpec)
 
 namespace SignatureAlg
 
-variable {spec : OracleSpec} {M PK SK S : Type}
+variable {ι : Type} {spec : OracleSpec ι} {M PK SK S : Type}
 
 section sound
 
@@ -64,10 +62,10 @@ section unforgeable
 variable [Inhabited S] [DecidableEq M] [DecidableEq S] [Fintype S]
 
 def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
-SecAdv (spec ++ (M →ₒ S)) PK (M × S)
+SecAdv (spec ++ₒ (M →ₒ S)) PK (M × S)
 
 def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
-    (adv : SecAdv (spec ++ (M →ₒ S)) PK (M × S)) :
+    (adv : SecAdv (spec ++ₒ (M →ₒ S)) PK (M × S)) :
     SecExp spec (PK × SK) where
   inpGen := sigAlg.keygen ()
   main := λ ⟨pk, sk⟩ ↦ do

@@ -23,7 +23,7 @@ noncomputability due to the use of real numbers, and also makes defining `finSup
 
 namespace OracleComp
 
-variable {spec : OracleSpec} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 /-- The `support` of a computation `oa` is the set of all possible output values,
 assuming that all output values of the oracles are possible.
@@ -34,7 +34,7 @@ def support : (oa : OracleComp spec α) → Set α
 
 lemma support_pure' (x : α) : support (pure' α x : OracleComp spec α) = {x} := rfl
 
-lemma support_queryBind' (i : spec.ι) (t : spec.domain i)
+lemma support_queryBind' (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) :
     support (queryBind' i t α oa) = ⋃ u, (oa u).support := rfl
 
@@ -49,7 +49,7 @@ def finSupport [DecidableEq α] : (oa : OracleComp spec α) → Finset α
 lemma finSupport_pure' [DecidableEq α] (x : α) :
     finSupport (pure' α x : OracleComp spec α) = {x} := rfl
 
-lemma finSupport_queryBind' [DecidableEq α] (i : spec.ι) (t : spec.domain i)
+lemma finSupport_queryBind' [DecidableEq α] (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) :
   finSupport (queryBind' i t α oa) =
     Finset.biUnion Finset.univ (λ u ↦ (oa u).finSupport) := rfl
@@ -61,11 +61,11 @@ section basic
 @[simp] lemma finSupport_pure (x : α) [DecidableEq α] :
   (pure x : OracleComp spec α).finSupport = {x} := rfl
 
-@[simp] lemma support_query (i : spec.ι) (t : spec.domain i) :
+@[simp] lemma support_query (i : ι) (t : spec.domain i) :
     (query i t).support = Set.univ := by
   simpa only [query_def, support] using Set.iUnion_of_singleton (spec.range i)
 
-@[simp] lemma finSupport_query (i : spec.ι) (t : spec.domain i) :
+@[simp] lemma finSupport_query (i : ι) (t : spec.domain i) :
     (query i t).finSupport = Finset.univ := by
   simpa only [query_def, finSupport] using Finset.biUnion_singleton_eq_self
 
@@ -196,17 +196,17 @@ end nonempty
 @[simp] lemma finSupport_coin : coin.finSupport = {true, false} :=
   by simp [finSupport_eq_iff_support_eq_coe]
 
-@[simp] lemma support_uniformFin (n : unifSpec.ι) : ($[0..n]).support = Set.univ :=
-  support_query n ()
-@[simp] lemma finSupport_uniformFin (n : unifSpec.ι) : ($[0..n]).finSupport = Finset.univ :=
-  finSupport_query n ()
+@[simp] lemma support_uniformFin (n : ℕ) : ($[0..n]).support = Set.univ :=
+  support_query n _
+@[simp] lemma finSupport_uniformFin (n : ℕ) : ($[0..n]).finSupport = Finset.univ :=
+  finSupport_query n _
 
 example : support (do
     let b ← coin; let b' ← coin
     let x ← (if b && b' then return 0 else return 1);
     let z ← (if b && b' then return x else return 0);
     return (x * z)) = {0} :=
-  by simp
+  by simp [Set.eq_singleton_iff_unique_mem]
 
 example : finSupport (do
     let b ← coin; let b' ← coin

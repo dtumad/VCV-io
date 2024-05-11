@@ -34,8 +34,8 @@ open OracleComp
 
 open OracleComp OracleSpec
 
-def countingOracle {spec : OracleSpec} :
-    spec →[spec.ι → ℕ]ₛₒ spec :=
+def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
+    spec →[ι → ℕ]ₛₒ spec :=
   λ i t qc ↦ (·, Function.update qc i (qc i + 1)) <$> query i t
 
 namespace countingOracle

@@ -10,15 +10,14 @@ package VCVio where
     ⟨`relaxedAutoImplicit, false⟩
   ]
 
-require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git"
-
-require Qq from git "https://github.com/leanprover-community/quote4" @ "master"
+require mathlib from git "https://github.com/leanprover-community/mathlib4.git"
+require aesop from git "https://github.com/leanprover-community/aesop" @ "master"
 require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 
-@[default_target]
-lean_lib VCVio
+-- Main folder for crypto-specific constructions and definitions
+@[default_target] lean_lib VCVio
 
+-- Seperate section of the project for things that should be ported
 lean_lib ToMathlib
 
 -- Unused import detection, copied from mathlib

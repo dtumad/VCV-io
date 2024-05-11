@@ -16,7 +16,7 @@ secret keys of type `K`, and ciphertext space `C`.
 
 open OracleSpec OracleComp OracleAlg BigOperators
 
-structure SymmEncAlg (spec : OracleSpec) (M K C : Type)
+structure SymmEncAlg {ι : Type} (spec : OracleSpec ι) (M K C : Type)
   extends OracleAlg spec :=
 (keygen : Unit → OracleComp spec K)
 (encrypt : M → K → OracleComp spec C)
@@ -24,7 +24,7 @@ structure SymmEncAlg (spec : OracleSpec) (M K C : Type)
 
 namespace SymmEncAlg
 
-variable {spec : OracleSpec} {M K C : Type}
+variable {ι : Type} {spec : OracleSpec ι} {M K C : Type}
 
 section sound
 
