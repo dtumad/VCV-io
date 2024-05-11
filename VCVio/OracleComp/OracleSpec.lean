@@ -47,6 +47,23 @@ instance range_fintype : Fintype (spec.range i) := spec.range_fintype' i
 @[simp] lemma card_range_ne_zero (i : ι) :
   Fintype.card (spec.range i) ≠ 0 := Fintype.card_ne_zero
 
+/-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
+`inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
+def append {ι₁ ι₂ : Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
+    OracleSpec (ι₁ ⊕ ι₂) where
+  domain := λ i ↦ match i with
+    | Sum.inl i => spec₁.domain i
+    | Sum.inr i => spec₂.domain i
+  range := λ i ↦ match i with
+    | Sum.inl i => spec₁.range i
+    | Sum.inr i => spec₂.range i
+  range_inhabited' := λ i ↦ Sum.recOn i spec₁.range_inhabited spec₂.range_inhabited
+  domain_decidableEq' := λ i ↦ Sum.recOn i spec₁.domain_decidableEq spec₂.domain_decidableEq
+  range_decidableEq' := λ i ↦ Sum.recOn i spec₁.range_decidableEq spec₂.range_decidableEq
+  range_fintype' := λ i ↦ Sum.recOn i spec₁.range_fintype spec₂.range_fintype
+
+infixl : 65 " ++ₒ " => OracleSpec.append
+
 end OracleSpec
 
 /-- Access to no oracles, represented by an empty indexing set.
