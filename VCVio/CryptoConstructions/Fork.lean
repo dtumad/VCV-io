@@ -4,8 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
-import VCVio.OracleComp.Constructions.GenerateSeed
-import VCVio.OracleComp.OracleSpec.SubSpec
+-- import VCVio.OracleComp.Constructions.GenerateSeed
+-- import VCVio.OracleComp.OracleSpec.SubSpec
 
 /-!
 # Forking Lemma
@@ -36,8 +36,8 @@ structure ForkAdv {ι : Type} (spec : OracleSpec ι) (α β : Type) (i : ι)
 
 namespace OracleComp
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ j, SelectableType (spec.range j)]
-  [unifSpec ⊂ₒ spec] {α β : Type} {i : ι}
+-- variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ j, SelectableType (spec.range j)]
+--   [unifSpec ⊂ₒ spec] {α β : Type} {i : ι}
 
 -- -- def fork (adv : ForkAdv spec α β i) :
 -- --     SecAdv spec α (Option (β × β)) where

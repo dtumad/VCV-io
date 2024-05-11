@@ -9,6 +9,11 @@ import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
 import Mathlib.Data.Vector.Zip
 import VCVio.CryptoConstructions.Fork
 
+
+
+import VCVio.OracleComp.Constructions.Replicate
+
+
 /-!
 # HHS Based Schnorr Signature
 -/
