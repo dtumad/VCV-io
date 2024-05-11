@@ -19,7 +19,8 @@ namespace SimOracle
 
 section compose
 
-variable {spec₁ spec₂ specₜ : OracleSpec} {α β σ τ : Type}
+variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
+  {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {α β σ τ : Type}
 
 /-- Given a simulation oracle `so` from `spec₁` to `spec₂` and a simulation oracle `so'` from
 `spec₂` to a final target set of oracles `specₜ`, construct a new simulation oracle
@@ -35,7 +36,7 @@ infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 variable (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ)
 
 @[simp]
-lemma compose_apply (i : spec₁.ι) : (so' ∘ₛₒ so) i =
+lemma compose_apply (i : ι₁) : (so' ∘ₛₒ so) i =
     λ t (s₁, s₂) ↦ (λ ((t, s₁), s₂) ↦ (t, (s₁, s₂))) <$>
       simulate so' s₂ (so i t s₁) := rfl
 
@@ -59,7 +60,7 @@ end compose
 
 section maskState
 
-variable {spec specₜ : OracleSpec} {α β σ τ : Type}
+variable {ι ιₜ : Type} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {α β σ τ : Type}
 
 /-- Substitute an equivalent type for the state of a simulation oracle, by using the equivalence
 to move back and forth between the states as needed.
@@ -68,7 +69,7 @@ def maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) : spec →[τ]�
   λ i t s ↦ map id e <$> so i t (e.symm s)
 
 @[simp]
-lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : spec.ι) :
+lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : ι) :
     so.maskState e i = λ t s ↦ map id e <$> so i t (e.symm s) := rfl
 
 /-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
@@ -104,15 +105,16 @@ between the new and original computation.
 This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
 in a larger set of oracles, leaving the behavior of other oracles unchanged.
 The relevant spec can usually be inferred automatically, so we leave it implicit. -/
-def idOracle {spec : OracleSpec} : spec →[Unit]ₛₒ spec :=
+def idOracle {ι : Type} {spec : OracleSpec ι} : spec →[Unit]ₛₒ spec :=
   λ i t () ↦ (·, ()) <$> query i t
 
 namespace idOracle
 
-variable {spec : OracleSpec} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 @[simp]
-lemma apply_eq (i : spec.ι) : idOracle i = λ t () ↦ ((., ())) <$> query i t := rfl
+lemma apply_eq (i : ι) :
+    idOracle (spec := spec) i = λ t _ ↦ ((., ())) <$> query i t := rfl
 
 @[simp]
 lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
@@ -132,16 +134,16 @@ end idOracle
 /-- Simulation oracle for replacing queries with uniform random selection, using `unifSpec`.
 The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
-def unifOracle {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] :
+def unifOracle {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)] :
     spec →[Unit]ₛₒ unifSpec :=
   λ i _ _ ↦ (·, ()) <$> ($ᵗ spec.range i)
 
 namespace unifOracle
 
-variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)] {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)] {α β : Type}
 
 @[simp]
-lemma apply_eq (i : spec.ι) : unifOracle i = λ _ _ ↦ (., ()) <$> ($ᵗ spec.range i) := rfl
+lemma apply_eq (i : ι) : unifOracle i = λ _ _ ↦ (., ()) <$> ($ᵗ spec.range i) := rfl
 
 @[simp]
 lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
@@ -204,15 +206,15 @@ end unifOracle
 
 /-- Simulate a computation by having each oracle return the default value of the query output type
 for all queries. This gives a way to run arbitrary computations to get *some* output. -/
-def defaultOracle {spec : OracleSpec} : spec →[Unit]ₛₒ ∅ :=
+def defaultOracle {ι : Type} {spec : OracleSpec ι} : spec →[Unit]ₛₒ []ₒ :=
   λ _ _ _ ↦ return (default, ())
 
 namespace defaultOracle
 
-variable {spec : OracleSpec} {α : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α : Type}
 
 @[simp]
-lemma apply_eq (i : spec.ι) : defaultOracle i = λ _ _ ↦ return (default, ()) := rfl
+lemma apply_eq (i : ι) : defaultOracle (spec := spec) i = λ _ _ ↦ return (default, ()) := rfl
 
 @[simp]
 lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :

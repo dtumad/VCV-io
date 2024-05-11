@@ -44,9 +44,8 @@ namespace OracleSpec
 
 /-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
 `inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
--- @[inline, reducible]
-def append (spec₁ spec₂ : OracleSpec) : OracleSpec where
-  ι := spec₁.ι ⊕ spec₂.ι
+def append {ι₁ ι₂ : Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
+    OracleSpec (ι₁ ⊕ ι₂) where
   domain := λ i ↦ match i with
     | inl i => spec₁.domain i
     | inr i => spec₂.domain i
@@ -54,29 +53,31 @@ def append (spec₁ spec₂ : OracleSpec) : OracleSpec where
     | inl i => spec₁.range i
     | inr i => spec₂.range i
   range_inhabited' := λ i ↦ Sum.recOn i spec₁.range_inhabited spec₂.range_inhabited
-  ι_decidableEq' := instDecidableEqSum
   domain_decidableEq' := λ i ↦ Sum.recOn i spec₁.domain_decidableEq spec₂.domain_decidableEq
   range_decidableEq' := λ i ↦ Sum.recOn i spec₁.range_decidableEq spec₂.range_decidableEq
   range_fintype' := λ i ↦ Sum.recOn i spec₁.range_fintype spec₂.range_fintype
 
-instance : Append OracleSpec := ⟨OracleSpec.append⟩
+-- instance : Append OracleSpec := ⟨OracleSpec.append⟩
 
-variable (spec₁ spec₂ : OracleSpec)
+infixl : 65 " ++ₒ " => OracleSpec.append
+
+variable {ι₁ ι₂ : Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
 
 section instances
 
-instance subSpec_append_right (spec₁ spec₂ : OracleSpec) : spec₂ ⊂ₒ (spec₁ ++ spec₂) where
-  toFun := λ i t ↦ query (spec := spec₁ ++ spec₂) (inr i) t
-  evalDist_toFun' := by simp [append]; exact λ _ _ ↦ rfl
+instance subSpec_append_left : spec₁ ⊂ₒ (spec₁ ++ₒ spec₂) where
+  toFun := λ i t ↦ query (inl i) t
+  evalDist_toFun' := by simp [append]
 
-@[inline, reducible]
-def query₁ {spec₁ spec₂ : OracleSpec} (i : spec₁.ι) (t : spec₁.domain i) :
-    OracleComp (spec₁ ++ spec₂) (spec₁.range i) :=
-  query (spec := spec₁ ++ spec₂) (inl i) t
+instance {α : Type} : Coe (OracleComp spec₁ α) (OracleComp (spec₁ ++ₒ spec₂) α) where
+  coe := liftComp
 
-instance subSpec_append_left (spec₁ spec₂ : OracleSpec) : spec₁ ⊂ₒ (spec₁ ++ spec₂) where
-  toFun := query₁
-  evalDist_toFun' := by simp [append]; exact λ _ _ ↦ rfl
+instance subSpec_append_right : spec₂ ⊂ₒ (spec₁ ++ₒ spec₂) where
+  toFun := λ i t ↦ query (inr i) t
+  evalDist_toFun' := by simp [append]
+
+instance {α : Type} : Coe (OracleComp spec₂ α) (OracleComp (spec₁ ++ₒ spec₂) α) where
+  coe := liftComp
 
 end instances
 
@@ -87,16 +88,21 @@ section tests
 variable {spec₁ spec₂ spec₃ spec₄}
 
 -- This set of examples serves as sort of a "unit test" for the coercions above
-variable (α : Type) (spec spec' spec'' spec''' : OracleSpec)
-  (coe_spec coe_spec' : OracleSpec)
+variable (α : Type) {ι1 ι2 ι3 ι4 ι5 ι6 : Type}
+  (spec : OracleSpec ι1)
+  (spec' : OracleSpec ι2)
+  (spec'' : OracleSpec ι3)
+  (spec''' : OracleSpec ι4)
+  (coe_spec : OracleSpec ι5)
+  (coe_spec' : OracleSpec ι6)
   [coe_spec ⊂ₒ coe_spec']
 
 -- coerce a single `coin_spec` and then append extra oracles
+example [coe_spec ⊂ₒ coe_spec'] (oa : OracleComp coe_spec α) :
+  OracleComp (coe_spec ++ₒ spec') α := ↑oa
 example (oa : OracleComp coe_spec α) :
-  OracleComp (coe_spec' ++ spec' ++ spec'') α := ↑oa
+  OracleComp (spec ++ₒ coe_spec ++ₒ spec') α := ↑oa
 example (oa : OracleComp coe_spec α) :
-  OracleComp (spec ++ coe_spec' ++ spec') α := ↑oa
-example (oa : OracleComp coe_spec α) :
-  OracleComp (spec ++ spec' ++ coe_spec') α := ↑oa
+  OracleComp (spec ++ₒ spec' ++ₒ coe_spec) α := ↑oa
 
 end tests

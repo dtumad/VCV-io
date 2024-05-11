@@ -19,7 +19,7 @@ open OracleSpec ENNReal BigOperators
 
 namespace OracleComp
 
-variable {spec : OracleSpec} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 
 

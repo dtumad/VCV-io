@@ -18,7 +18,7 @@ open OracleSpec Vector
 
 namespace OracleComp
 
-variable {spec : OracleSpec} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 /-- Run the computation `oa` repeatedly `n` times to get a list of `n` results. -/
 def replicate (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) :=

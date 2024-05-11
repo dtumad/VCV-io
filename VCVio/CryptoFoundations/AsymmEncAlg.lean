@@ -17,7 +17,7 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 
 open OracleSpec OracleComp
 
-structure AsymmEncAlg (spec : OracleSpec) (M PK SK C : Type)
+structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι) (M PK SK C : Type)
     extends OracleAlg spec where
   keygen : Unit → OracleComp spec (PK × SK)
   encrypt : M → PK → OracleComp spec C
@@ -25,7 +25,7 @@ structure AsymmEncAlg (spec : OracleSpec) (M PK SK C : Type)
 
 namespace AsymmEncAlg
 
-variable {spec : OracleSpec} {M PK SK C : Type}
+variable {ι : Type} {spec : OracleSpec ι} {M PK SK C : Type}
 
 /-- Experiment for checking that an asymmetric encryption algorithm is sound,
 i.e. that decryption properly reverses encryption -/
@@ -78,8 +78,8 @@ def IND_CPA_Exp [coinSpec ⊂ₒ spec] {encAlg : AsymmEncAlg spec M PK SK C}
     (adv : IND_CPA_Adv encAlg) : SecExp spec (PK × Bool) where
   inpGen := do
     let ⟨pk, _⟩ ← encAlg.keygen ()
-    let b ← ↑coin
-    return (pk, b)
+    -- let b ← ↑coin TODO: fix
+    return (pk, true)
   main := λ ⟨pk, b⟩ ↦ do
     let ⟨m₁, m₂⟩ ← adv.run pk
     let m := if b then m₁ else m₂

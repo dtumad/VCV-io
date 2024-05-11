@@ -12,12 +12,12 @@ import VCVio.OracleComp.SimSemantics.Simulate
 
 open OracleComp OracleSpec BigOperators
 
-variable {spec : OracleSpec}
+variable {ι : Type} {spec : OracleSpec ι}
 
 namespace OracleSpec
 
-def QuerySeed (spec : OracleSpec) : Type :=
-  (i : spec.ι) → List (spec.range i)
+def QuerySeed (spec : OracleSpec ι) : Type :=
+  (i : ι) → List (spec.range i)
 
 namespace QuerySeed
 
@@ -28,10 +28,10 @@ namespace QuerySeed
 
 instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
 
-def addValue (qs : QuerySeed spec) (i : spec.ι) (u : spec.range i) : QuerySeed spec :=
+def addValue [DecidableEq ι] (qs : QuerySeed spec) (i : ι) (u : spec.range i) : QuerySeed spec :=
   Function.update qs i (qs i ++ [u])
 
-def addValues (qs : QuerySeed spec) {i : spec.ι}
+def addValues [DecidableEq ι] (qs : QuerySeed spec) {i : ι}
     (us : List (spec.range i)) : QuerySeed spec :=
   Function.update qs i (qs i ++ us)
 --   -- λ j ↦ qs j ++ if h : j = i then h ▸ us else ∅
@@ -47,7 +47,7 @@ end QuerySeed
 
 end OracleSpec
 
-def seededOracle : spec →[QuerySeed spec]ₛₒ spec :=
+def seededOracle [DecidableEq ι] : spec →[QuerySeed spec]ₛₒ spec :=
   λ i t seed ↦ match seed i with
     | u :: us => return (u, Function.update seed i us)
     | [] => (·, ∅) <$> query i t

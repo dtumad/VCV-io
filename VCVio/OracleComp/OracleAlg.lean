@@ -19,14 +19,14 @@ according to the specified simulation oracle
 
 open OracleSpec OracleComp
 
-structure OracleAlg (spec : OracleSpec) where
+structure OracleAlg {ι : Type} (spec : OracleSpec ι) where
   baseState : Type
   init_state : baseState
   baseSimOracle : spec →[baseState]ₛₒ unifSpec
 
 namespace OracleAlg
 
-variable {spec : OracleSpec} {α β γ : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
 
 def exec (alg : OracleAlg spec) (oa : OracleComp spec α) : OracleComp unifSpec α :=
   simulate' alg.baseSimOracle alg.init_state oa
@@ -45,7 +45,7 @@ lemma exec_bind (alg : OracleAlg spec) (oa : OracleComp spec α) (ob : α → Or
   simulate'_bind alg.baseSimOracle  alg.init_state oa ob
 
 @[simp low]
-lemma exec_query (alg : OracleAlg spec) (i : spec.ι) (t : spec.domain i) :
+lemma exec_query (alg : OracleAlg spec) (i : ι) (t : spec.domain i) :
     alg.exec (query i t) = Prod.fst <$> alg.baseSimOracle i t alg.init_state :=
   simulate'_query alg.baseSimOracle alg.init_state i t
 

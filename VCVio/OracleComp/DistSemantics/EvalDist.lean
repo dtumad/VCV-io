@@ -34,7 +34,7 @@ namespace OracleComp
 
 open ENNReal BigOperators
 
-variable {spec spec' : OracleSpec} {α β : Type}
+variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β : Type}
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random. -/
@@ -46,7 +46,7 @@ noncomputable def evalDist {α : Type} : OracleComp spec α → PMF α
 
 lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
 
-lemma evalDist_queryBind' (i : spec.ι) (t : spec.domain i)
+lemma evalDist_queryBind' (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) : evalDist (queryBind' i t α oa) =
       (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u)) := rfl
 
@@ -367,7 +367,7 @@ end bind
 
 section query
 
-variable (i : spec.ι) (t : spec.domain i)
+variable (i : ι) (t : spec.domain i)
 
 @[simp]
 lemma evalDist_query : evalDist (query i t) = PMF.uniformOfFintype (spec.range i):= by

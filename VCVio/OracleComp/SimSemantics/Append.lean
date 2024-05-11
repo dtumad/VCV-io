@@ -22,7 +22,8 @@ open OracleSpec OracleComp Prod Sum
 
 namespace SimOracle
 
-variable {spec₁ spec₂ specₜ : OracleSpec} {σ τ α β : Type}
+variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
+  {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type}
 
 section append
 
@@ -30,7 +31,7 @@ section append
 with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
 answering queries to either oracle set with queries to the corresponding simulation oracle. -/
 def append (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ) :
-    spec₁ ++ spec₂ →[σ × τ]ₛₒ specₜ :=
+    spec₁ ++ₒ spec₂ →[σ × τ]ₛₒ specₜ :=
   λ i ↦ match i with
   | (inl i) => λ t (s₁, s₂) ↦ do
       let (u, s₁') ← so i t s₁ return (u, s₁', s₂)
@@ -41,34 +42,34 @@ infixl : 65 " ++ₛₒ " => append
 
 @[simp]
 lemma append_apply_inl (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (i : spec₁.ι) : (so ++ₛₒ so') (inl i) = λ t (s₁, s₂) ↦ do
+    (i : ι₁) : (so ++ₛₒ so') (inl i) = λ t (s₁, s₂) ↦ do
       let (u, s₁') ← so i t s₁ return (u, s₁', s₂) := rfl
 
 @[simp]
 lemma append_apply_inr (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (i : spec₂.ι) : (so ++ₛₒ so') (inr i) = λ t (s₁, s₂) ↦ do
+    (i : ι₂) : (so ++ₛₒ so') (inr i) = λ t (s₁, s₂) ↦ do
       let (u, s₂') ← so' i t s₂ return (u, s₁, s₂') := rfl
 
 end append
 
 section subSpec
 
-@[simp]
-lemma simulate_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (oa : OracleComp spec₁ α) (s : σ × τ) :
-    simulate (so ++ₛₒ so') s ↑oa = (λ (x, s') ↦ (x, (s', s.2))) <$> simulate so s.1 oa := by
-  revert s; induction oa using OracleComp.inductionOn with
-  | h_pure x => simp
-  | h_queryBind i t oa hoa =>
-      simp only [subSpec_append_left_toFun] at hoa
-      simp [hoa, map_bind]
+-- @[simp]
+-- lemma simulate_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
+--     (oa : OracleComp spec₁ α) (s : σ × τ) :
+--     simulate (so ++ₛₒ so') s ↑oa = (λ (x, s') ↦ (x, (s', s.2))) <$> simulate so s.1 oa := by
+--   revert s; induction oa using OracleComp.inductionOn with
+--   | h_pure x => simp
+--   | h_queryBind i t oa hoa =>
+--       simp only [subSpec_append_left_toFun] at hoa
+--       simp [hoa, map_bind]
 
-@[simp]
-lemma simulate'_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (oa : OracleComp spec₁ α) (s : σ × τ) :
-    simulate' (so ++ₛₒ so') s ↑oa = simulate' so s.1 oa := by
-  rw [simulate'_def (so ++ₛₒ so'), simulate_coe_append_left, Functor.map_map,
-    Function.comp, simulate'_def]
+-- @[simp]
+-- lemma simulate'_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
+--     (oa : OracleComp spec₁ α) (s : σ × τ) :
+--     simulate' (so ++ₛₒ so') s ↑oa = simulate' so s.1 oa := by
+--   rw [simulate'_def (so ++ₛₒ so'), simulate_coe_append_left, Functor.map_map,
+--     Function.comp, simulate'_def]
 
 -- port: remaining lemmas here
 

@@ -20,16 +20,16 @@ open OracleSpec ENNReal BigOperators
 
 namespace OracleComp
 
-variable {spec : OracleSpec} [∀ i, SelectableType (spec.range i)]
+variable {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)]
 
-def generateSeedAux (qc : spec.ι → ℕ) : List spec.ι → QuerySeed spec →
+def generateSeedAux [DecidableEq ι] (qc : ι → ℕ) : List ι → QuerySeed spec →
     OracleComp unifSpec (QuerySeed spec)
   | [], seed => return seed
   | j :: js, seed => do
       let xs ← replicate ($ᵗ (spec.range j)) (qc j)
       generateSeedAux qc js (Function.update seed j (seed j ++ xs))
 
-def generateSeed (qc : spec.ι → ℕ) (activeOracles : List spec.ι) :
+def generateSeed [DecidableEq ι] (qc : ι → ℕ) (activeOracles : List ι) :
     OracleComp unifSpec (QuerySeed spec) :=
   generateSeedAux qc activeOracles ∅
 

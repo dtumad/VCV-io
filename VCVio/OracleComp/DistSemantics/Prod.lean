@@ -17,7 +17,7 @@ open OracleSpec ENNReal BigOperators Prod
 
 namespace OracleComp
 
-variable {spec : OracleSpec} {α β γ δ : Type}
+variable {ι : Type} {spec : OracleSpec ι} {α β γ δ : Type}
 
 @[simp]
 lemma probOutput_prod_mk (oa : OracleComp spec (α × β)) (x : α) (y : β) :

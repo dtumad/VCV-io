@@ -23,12 +23,12 @@ open OracleSpec Prod
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
-def SimOracle (spec specₜ : OracleSpec) (σ : Type) :=
-  (i : spec.ι) → spec.domain i → σ → OracleComp specₜ (spec.range i × σ)
+def SimOracle {ι ιₜ : Type} (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) :=
+  (i : ι) → spec.domain i → σ → OracleComp specₜ (spec.range i × σ)
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
-variable {spec specₜ : OracleSpec} {α β σ : Type}
+variable {ι ιₜ : Type} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {α β σ : Type}
 
 instance SimOracle.Inhabited : Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure (default, s)⟩
 
@@ -75,12 +75,12 @@ lemma simulate'_bind (s : σ) (oa : OracleComp spec α) (ob : α → OracleComp 
   simp only [simulate', simulate_bind, map_bind]
 
 @[simp low]
-lemma simulate_query (s : σ) (i : spec.ι) (t : spec.domain i) :
+lemma simulate_query (s : σ) (i : ι) (t : spec.domain i) :
     simulate so s (query i t) = so i t s := by
   simp_rw [query_def, simulate, Prod.mk.eta, bind_pure]
 
 @[simp low]
-lemma simulate'_query (s : σ) (i : spec.ι) (t : spec.domain i) :
+lemma simulate'_query (s : σ) (i : ι) (t : spec.domain i) :
     simulate' so s (query i t) = fst <$> so i t s := by
   rw [simulate', simulate_query]
 
