@@ -10,7 +10,7 @@ import Mathlib.Data.Vector.Zip
 import VCVio.CryptoConstructions.Fork
 
 
-import VCVio.OracleComp.Coercions.HasUnifSelect
+-- import VCVio.OracleComp.Coercions.HasUnifSelect
 import VCVio.OracleComp.Coercions.Append
 import VCVio.OracleComp.Constructions.Replicate
 
