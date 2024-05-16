@@ -19,6 +19,7 @@ require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 
 -- Seperate section of the project for things that should be ported
 lean_lib ToMathlib
+lean_lib Examples
 
 -- Unused import detection, copied from mathlib
 lean_exe shake where
