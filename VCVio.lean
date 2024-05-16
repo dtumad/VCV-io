@@ -1,4 +1,5 @@
 import VCVio.CryptoFoundations.AsymmEncAlg
+import VCVio.CryptoFoundations.Fork
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.SecExp

@@ -4,12 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio
-
-
--- import VCVio.OracleComp.Coercions.HasUnifSelect
-import VCVio.OracleComp.Coercions.Append
-import VCVio.OracleComp.Constructions.Replicate
-
+import Mathlib.Data.Vector.Zip
 
 /-!
 # HHS Based Schnorr Signature
