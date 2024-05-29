@@ -11,6 +11,8 @@ import VCVio.OracleComp.Coercions.SubSpec
 This file defines a typeclass `hasUnifSelect` for oracle sets that contain `unifSpec`.
 This allows computations like `coin` or `$[0..n]` to be automatically coerced to one with oracles
 like `spec ++ₒ unifSpec`.
+
+TODO: do we still need this?
 -/
 
 namespace OracleSpec
