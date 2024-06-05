@@ -11,3 +11,5 @@ import VCVio.CryptoFoundations.IdentAlg
 
 This file defines a basic version of the Fiat-Shamir transform for constructing signatures.
 -/
+
+-- TODO

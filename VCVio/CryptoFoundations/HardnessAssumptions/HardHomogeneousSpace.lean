@@ -15,7 +15,63 @@ We use mathlib's `AddTorsor` type class to represent the bijection property,
 and extend this with finiteness and decidability conditions
 -/
 
-open OracleSpec OracleComp OracleAlg BigOperators
+open OracleSpec OracleComp OracleAlg BigOperators ENNReal
+
+section testing
+
+
+class HomogeneousSpace' (G : semiOutParam (ℕ → Type))
+    (P : semiOutParam (ℕ → Type)) :=
+  AddGroup_G (sp : ℕ) : AddGroup (G sp)
+  AddTorsor_GP (sp : ℕ) : AddTorsor (G sp) (P sp)
+  decidableEq_G (sp : ℕ) : DecidableEq (G sp)
+  decidableEq_P (sp : ℕ) : DecidableEq (P sp)
+  fintype_G (sp : ℕ) : Fintype (G sp)
+  fintype_P (sp : ℕ) : Fintype (P sp)
+  inhabited_G (sp : ℕ) : Inhabited (G sp)
+  inhabited_P (sp : ℕ) : Inhabited (P sp)
+  selectableType_G (sp : ℕ) : SelectableType (G sp)
+  selectableType_P (sp : ℕ) : SelectableType (P sp)
+
+variable (G P : ℕ → Type)
+
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : AddGroup (G sp) := h.AddGroup_G sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : AddTorsor (G sp) (P sp) := h.AddTorsor_GP sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : DecidableEq (G sp) := h.decidableEq_G sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : DecidableEq (P sp) := h.decidableEq_P sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : Fintype (G sp) := h.fintype_G sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : Fintype (P sp) := h.fintype_P sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : Inhabited (G sp) := h.inhabited_G sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : Inhabited (P sp) := h.inhabited_P sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : SelectableType (G sp) := h.selectableType_G sp
+instance [h : HomogeneousSpace' G P] (sp : ℕ) : SelectableType (P sp) := h.selectableType_P sp
+
+
+structure VectorizationAdv' (G P : (sp : ℕ) → Type) where
+  run (sp : ℕ) : P sp × P sp → OracleComp unifSpec (G sp)
+
+def vectorizationExp' (G P : ℕ → Type)
+    [HomogeneousSpace' G P]
+    (adv : VectorizationAdv' G P) (sp : ℕ) :
+    OracleComp unifSpec Bool := do
+      let x₁ ← $ᵗ (P sp)
+      let x₂ ← $ᵗ (P sp)
+      let g ← adv.run sp (x₁, x₂)
+      return g = x₁ -ᵥ x₂
+
+noncomputable def vectorizationAdvantage' (G P : ℕ → Type)
+    [HomogeneousSpace' G P]
+    (adv : VectorizationAdv' G P) (sp : ℕ) : ℝ≥0∞ :=
+    [= true | vectorizationExp' G P adv sp]
+
+-- TODO: fix
+def negligible (f : ℕ → ℝ≥0∞) : Prop := f ≠ λ _ ↦ ∞
+
+def vectorizationHard' (G P : ℕ → Type)
+    [HomogeneousSpace' G P] : Prop :=
+  ∀ adv, negligible (λ sp ↦ vectorizationAdvantage' G P adv sp)
+
+end testing
 
 /-- A `HomogeneousSpace G P` is a group action of a group `G` on a set of points `P`,
 such that the action induces a bijection (represented by the `AddTorsor` class),
