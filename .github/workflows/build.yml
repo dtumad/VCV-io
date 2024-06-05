@@ -21,6 +21,7 @@ jobs:
       - name: update VCVio.lean
         run: |
           git ls-files 'VCVio/*.lean' | LC_ALL=C sort | sed 's/\.lean//;s,/,.,g;s/^/import /' > VCVio.lean
+          git ls-files 'Examples/*.lean' | LC_ALL=C sort | sed 's/\.lean//;s,/,.,g;s/^/import /' > Examples.lean
 
       - name: check that all files are imported
         run: git diff --exit-code
@@ -43,6 +44,10 @@ jobs:
           lake exe cache clean
           lake exe cache get
           lake build
+
+      - name: build examples
+        run: |
+          lake build Examples
 
       - name: check for unused imports
         id: shake

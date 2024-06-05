@@ -1,3 +1,3 @@
-import Examples.CryptoConstructions.HHS_Elgamal
-import Examples.CryptoConstructions.HHS_Signature
-import Examples.CryptoConstructions.OneTimePad
+import Examples.HHS_Elgamal
+import Examples.HHS_Signature
+import Examples.OneTimePad
