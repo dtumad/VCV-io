@@ -50,7 +50,8 @@ lemma uniformSelectList_cons {α : Type} [Inhabited α] (x : α) (xs : List α) 
 variable {α : Type} [Inhabited α]
 
 @[simp]
-lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) = match xs with
+lemma evalDist_uniformSelectList (xs : List α) :
+    evalDist ($ xs) = match xs with
     | [] => PMF.pure default
     | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map ((x :: xs)[·]) := by
   match xs with
