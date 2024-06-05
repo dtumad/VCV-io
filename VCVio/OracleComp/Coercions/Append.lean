@@ -3,10 +3,10 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.OracleSpec.SubSpec
+import VCVio.OracleComp.Coercions.SubSpec
 
 /-!
-# Appending Sets of Oracles
+# Coercing Computations to Larger Oracle Sets
 
 This file defines an append operation on `OracleSpec` to combine different sets of oracles.
 We use `Sum` to combine the indexing sets, so this operation is "ordered"
@@ -41,25 +41,6 @@ and avoid an infinite typeclass search whether or not an instance exists.
 open OracleComp Sum
 
 namespace OracleSpec
-
-/-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
-`inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
-def append {ι₁ ι₂ : Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
-    OracleSpec (ι₁ ⊕ ι₂) where
-  domain := λ i ↦ match i with
-    | inl i => spec₁.domain i
-    | inr i => spec₂.domain i
-  range := λ i ↦ match i with
-    | inl i => spec₁.range i
-    | inr i => spec₂.range i
-  range_inhabited' := λ i ↦ Sum.recOn i spec₁.range_inhabited spec₂.range_inhabited
-  domain_decidableEq' := λ i ↦ Sum.recOn i spec₁.domain_decidableEq spec₂.domain_decidableEq
-  range_decidableEq' := λ i ↦ Sum.recOn i spec₁.range_decidableEq spec₂.range_decidableEq
-  range_fintype' := λ i ↦ Sum.recOn i spec₁.range_fintype spec₂.range_fintype
-
--- instance : Append OracleSpec := ⟨OracleSpec.append⟩
-
-infixl : 65 " ++ₒ " => OracleSpec.append
 
 variable {ι₁ ι₂ : Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
 

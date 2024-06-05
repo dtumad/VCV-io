@@ -5,7 +5,6 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleComp
 import VCVio.OracleComp.Constructions.Replicate
-import VCVio.CryptoConstructions.OneTimePad
 
 /-!
 # Executing Computations
@@ -37,14 +36,14 @@ private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
 
 -- #eval lawLargeNumsTest 2000
 
-private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
-  IO.println ("Initial Message: " ++ toString m.toList)
-  let k ← ((oneTimePad n).exec <| (oneTimePad n).keygen ()).runIO
-  IO.println ("Key: " ++ toString k.toList)
-  let σ ← ((oneTimePad n).exec <| (oneTimePad n).encrypt m k).runIO
-  IO.println ("Ciphertext: " ++ toString σ.toList)
-  let m' ← ((oneTimePad n).exec <| (oneTimePad n).decrypt σ k).runIO
-  IO.println ("Final Message: " ++ toString m'.toList)
+-- private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
+--   IO.println ("Initial Message: " ++ toString m.toList)
+--   let k ← ((oneTimePad n).exec <| (oneTimePad n).keygen ()).runIO
+--   IO.println ("Key: " ++ toString k.toList)
+--   let σ ← ((oneTimePad n).exec <| (oneTimePad n).encrypt m k).runIO
+--   IO.println ("Ciphertext: " ++ toString σ.toList)
+--   let m' ← ((oneTimePad n).exec <| (oneTimePad n).decrypt σ k).runIO
+--   IO.println ("Final Message: " ++ toString m'.toList)
 
 -- #eval testOTP (Vector.replicate 100 true)
 

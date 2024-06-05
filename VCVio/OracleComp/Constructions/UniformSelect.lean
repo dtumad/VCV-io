@@ -40,14 +40,14 @@ instance hasUniformSelectList (α : Type) [Inhabited α] :
     | [] => return default
     | x :: xs => ((x :: xs)[·]) <$> $[0..xs.length]
 
-variable {α : Type} [Inhabited α]
-
 @[simp]
 lemma uniformSelectList_nil (α : Type) [Inhabited α] :
     ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
 
-lemma uniformSelectList_cons (x : α) (xs : List α) :
+lemma uniformSelectList_cons {α : Type} [Inhabited α] (x : α) (xs : List α) :
     ($ x :: xs : OracleComp unifSpec α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
+
+variable {α : Type} [Inhabited α]
 
 @[simp]
 lemma evalDist_uniformSelectList (xs : List α) :
@@ -115,10 +115,10 @@ instance hasUniformSelectVector (α : Type) (n : ℕ) :
     HasUniformSelect (Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
 
-variable {α : Type} {n : ℕ}
-
-lemma uniformSelectVector_def (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_def {α : Type} {n : ℕ} (xs : Vector α (n + 1)) :
     ($ xs) = (xs[·]) <$> $[0..n] := rfl
+
+variable {α : Type} {n : ℕ}
 
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
@@ -171,7 +171,59 @@ noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] :
     HasUniformSelect (Finset α) α where
   uniformSelect := λ s ↦ $ s.toList
 
--- port
+lemma uniformSelectFinset_def {α : Type} [Inhabited α] (s : Finset α) :
+    ($ s) = ($ s.toList) := rfl
+
+variable {α : Type} [Inhabited α]
+
+@[simp]
+lemma support_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+    ($ s).support = if s.Nonempty then ↑s else {default} := by
+  simp [Finset.nonempty_iff_ne_empty]
+  split_ifs with hs <;> simp [hs, uniformSelectFinset_def]
+
+@[simp]
+lemma finSupport_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+    ($ s).finSupport = if s.Nonempty then s else {default} := by
+  split_ifs with hs <;> simp only [hs, finSupport_eq_iff_support_eq_coe,
+    support_uniformSelectFinset, if_true, if_false, Finset.coe_singleton]
+
+@[simp]
+lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+    evalDist ($ s) = if hs : s.Nonempty then PMF.uniformOfFinset s hs else PMF.pure default := by
+  rw [uniformSelectFinset_def, evalDist_uniformSelectList]
+  split_ifs with hs
+  · have : s.toList ≠ [] := by simp [hs, ← Finset.nonempty_iff_ne_empty]
+    obtain ⟨y, xs, hys⟩ := List.exists_cons_of_ne_nil this
+    -- have hyxs : (y :: xs).Nodup := sorry
+    simp [hys, PMF.uniformOfFintype]
+    -- TODO: image thing
+    sorry
+    -- simp [PMF.ext_iff, ← hys]
+    -- intro x
+    -- have := hyxs.getEquiv
+    -- -- have := this.symm.tsum_eq
+    -- refine (this.symm.tsum_eq _ ).symm.trans ?_
+
+    -- rw [← this.symm.tsum_eq]
+    -- have := Equiv.tsum_eq this
+    -- rw [List.length_cons] at this
+    -- have := List.duplicate_iff_exists_distinct_get
+
+  · rw [Finset.nonempty_iff_ne_empty, not_not] at hs
+    simp [hs]
+
+@[simp]
+lemma probOutput_uniformSelectFinset [DecidableEq α] (s : Finset α) (x : α) :
+    [= x | $ s] = if x ∈ s then (s.card : ℝ≥0∞)⁻¹ else if s.Nonempty then 0
+      else if x = default then 1 else 0 := by
+  split_ifs with hx hs hxd
+  · have hs' : s.Nonempty := ⟨x, hx⟩
+    simp [probOutput_def, hs', hx]
+  · simp [hs, hx]
+  · simp [hs, hxd]
+  · simp [hs, hxd]
+
 
 end uniformSelectFinset
 

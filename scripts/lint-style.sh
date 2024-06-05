@@ -38,6 +38,7 @@ set -exo pipefail
 touch scripts/style-exceptions.txt
 
 git ls-files 'VCVio/*.lean' | xargs ./scripts/lint-style.py "$@"
+git ls-files 'Examples/*.lean' | xargs ./scripts/lint-style.py "$@"
 # These can be linted on port really
 # git ls-files 'ToMathlib/*.lean' | xargs ./scripts/lint-style.py "$@"
 
