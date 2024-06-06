@@ -46,9 +46,58 @@ instance [h : HomogeneousSpace' G P] (sp : ℕ) : Inhabited (P sp) := h.inhabite
 instance [h : HomogeneousSpace' G P] (sp : ℕ) : SelectableType (G sp) := h.selectableType_G sp
 instance [h : HomogeneousSpace' G P] (sp : ℕ) : SelectableType (P sp) := h.selectableType_P sp
 
+structure SecAdv' {ι : Type}
+    (spec : ℕ → OracleSpec ι)
+    (α β : ℕ → Type) where
+  run (sp : ℕ) : α sp → OracleComp (spec sp) (β sp)
 
-structure VectorizationAdv' (G P : (sp : ℕ) → Type) where
-  run (sp : ℕ) : P sp × P sp → OracleComp unifSpec (G sp)
+structure OracleAlg' {ι : Type} (spec : ℕ → OracleSpec ι) where
+  baseState (sp : ℕ) : Type
+  init_state (sp : ℕ) : baseState sp
+  baseSimOracle (sp : ℕ) : spec sp →[baseState sp]ₛₒ unifSpec
+
+@[inline, reducible]
+def baseOracleAlg' : OracleAlg' (λ _ ↦ unifSpec) where
+  baseState := λ _ ↦ Unit
+  init_state := λ _ ↦ ()
+  baseSimOracle := λ _ ↦ idOracle
+
+structure SecExp' {ι : Type} (spec : ℕ → OracleSpec ι)
+    (α : ℕ → Type)
+    extends OracleAlg' spec where
+  inpGen (sp : ℕ) : OracleComp (spec sp) (α sp)
+  main (sp : ℕ) : α sp → OracleComp (spec sp) Bool
+
+structure SecExp'' {ι : Type} (spec : ℕ → OracleSpec ι)
+    -- (α : ℕ → Type)
+    extends OracleAlg' spec where
+  -- inpGen (sp : ℕ) : OracleComp (spec sp) (α sp)
+  main (sp : ℕ) : OracleComp (spec sp) Bool
+
+def VectorizationAdv' (G P : (sp : ℕ) → Type) :=
+  SecAdv' (λ _ ↦ unifSpec) (λ sp ↦ P sp × P sp) (λ sp ↦ G sp)
+
+def vectorizationExp'' (G P : ℕ → Type)
+    [HomogeneousSpace' G P]
+    (adv : VectorizationAdv' G P) :
+    SecExp' (λ _ ↦ unifSpec)
+      (λ sp ↦ P sp × P sp) where
+  inpGen := λ sp ↦ (·, ·) <$> ($ᵗ P sp) <*> ($ᵗ P sp)
+  main := λ sp (x₁, x₂) ↦ do
+    let g ← adv.run sp (x₁, x₂)
+    return g = x₁ -ᵥ x₂
+  __ := baseOracleAlg'
+
+def vectorizationExp''' (G P : ℕ → Type)
+    [HomogeneousSpace' G P]
+    (adv : VectorizationAdv' G P) :
+    SecExp'' (λ _ ↦ unifSpec) where
+  main := λ sp ↦ do
+    let x₁ ← $ᵗ P sp
+    let x₂ ← $ᵗ P sp
+    let g ← adv.run sp (x₁, x₂)
+    return g = x₁ -ᵥ x₂
+  __ := baseOracleAlg'
 
 def vectorizationExp' (G P : ℕ → Type)
     [HomogeneousSpace' G P]
