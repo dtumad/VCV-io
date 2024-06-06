@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
+import VCVio.CryptoFoundations.Negligible
 -- import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
@@ -119,8 +120,6 @@ noncomputable def vectorizationAdvantage' (G P : ℕ → Type)
 --     (adv : VectorizationAdv' G P) (sp : ℕ) : ℝ≥0∞ :=
 --     [= true | (vectorizationExp''' G P adv).main sp] -- TODO: simulate
 
--- TODO: fix
-def negligible (f : ℕ → ℝ≥0∞) : Prop := f ≠ λ _ ↦ ∞
 
 def vectorizationHard' (G P : ℕ → Type)
     [HomogeneousSpace' G P] : Prop :=
