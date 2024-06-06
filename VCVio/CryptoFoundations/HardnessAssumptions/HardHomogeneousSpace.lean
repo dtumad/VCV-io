@@ -68,11 +68,11 @@ structure SecExp' {ι : Type} (spec : ℕ → OracleSpec ι)
   inpGen (sp : ℕ) : OracleComp (spec sp) (α sp)
   main (sp : ℕ) : α sp → OracleComp (spec sp) Bool
 
-structure SecExp'' {ι : Type} (spec : ℕ → OracleSpec ι)
-    -- (α : ℕ → Type)
-    extends OracleAlg' spec where
-  -- inpGen (sp : ℕ) : OracleComp (spec sp) (α sp)
-  main (sp : ℕ) : OracleComp (spec sp) Bool
+-- structure SecExp'' {ι : Type} (spec : ℕ → OracleSpec ι)
+--     -- (α : ℕ → Type)
+--     extends OracleAlg' spec where
+--   -- inpGen (sp : ℕ) : OracleComp (spec sp) (α sp)
+--   main (sp : ℕ) : OracleComp (spec sp) Bool
 
 def VectorizationAdv' (G P : (sp : ℕ) → Type) :=
   SecAdv' (λ _ ↦ unifSpec) (λ sp ↦ P sp × P sp) (λ sp ↦ G sp)
@@ -88,16 +88,16 @@ def vectorizationExp'' (G P : ℕ → Type)
     return g = x₁ -ᵥ x₂
   __ := baseOracleAlg'
 
-def vectorizationExp''' (G P : ℕ → Type)
-    [HomogeneousSpace' G P]
-    (adv : VectorizationAdv' G P) :
-    SecExp'' (λ _ ↦ unifSpec) where
-  main := λ sp ↦ do
-    let x₁ ← $ᵗ P sp
-    let x₂ ← $ᵗ P sp
-    let g ← adv.run sp (x₁, x₂)
-    return g = x₁ -ᵥ x₂
-  __ := baseOracleAlg'
+-- def vectorizationExp''' (G P : ℕ → Type)
+--     [HomogeneousSpace' G P]
+--     (adv : VectorizationAdv' G P) :
+--     SecExp'' (λ _ ↦ unifSpec) where
+--   main := λ sp ↦ do
+--     let x₁ ← $ᵗ P sp
+--     let x₂ ← $ᵗ P sp
+--     let g ← adv.run sp (x₁, x₂)
+--     return g = x₁ -ᵥ x₂
+--   __ := baseOracleAlg'
 
 def vectorizationExp' (G P : ℕ → Type)
     [HomogeneousSpace' G P]
@@ -112,6 +112,12 @@ noncomputable def vectorizationAdvantage' (G P : ℕ → Type)
     [HomogeneousSpace' G P]
     (adv : VectorizationAdv' G P) (sp : ℕ) : ℝ≥0∞ :=
     [= true | vectorizationExp' G P adv sp]
+
+
+-- noncomputable def vectorizationAdvantage'' (G P : ℕ → Type)
+--     [HomogeneousSpace' G P]
+--     (adv : VectorizationAdv' G P) (sp : ℕ) : ℝ≥0∞ :=
+--     [= true | (vectorizationExp''' G P adv).main sp] -- TODO: simulate
 
 -- TODO: fix
 def negligible (f : ℕ → ℝ≥0∞) : Prop := f ≠ λ _ ↦ ∞
