@@ -17,3 +17,7 @@ def negligible (f : ℕ → ℝ≥0∞) : Prop :=
 SuperpolynomialDecay atTop (λ x ↦ ↑x) f
 
 lemma negligible_zero : negligible 0 := superpolynomialDecay_zero _ _
+
+lemma negligible_of_zero {f : ℕ → ℝ≥0∞} (hf : ∀ n, f n = 0) : negligible f := by
+  convert negligible_zero
+  refine funext hf

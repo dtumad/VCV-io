@@ -18,44 +18,35 @@ Messages are base points in `P` (in practice this is some encoding of messages),
 The public key is a pair of base points in `P` chosen uniformly at random,
 and the secret key is their vectorization in `G`. Signatures are also a pair of base points. -/
 @[simps]
-noncomputable def elgamalAsymmEnc (G P : ℕ → Type) [HomogeneousSpace G P] [Π sp, Group (P sp)] :
+noncomputable def elgamalAsymmEnc (G P : ℕ → Type)
+    [HomogeneousSpace G P] [Π sp, Group (P sp)] :
     AsymmEncAlg (λ _ ↦ unifSpec) (M := λ sp ↦ P sp)
       (PK := λ sp ↦ P sp × P sp) (SK := λ sp ↦ G sp) (C := λ sp ↦ P sp × P sp) where
   keygen := λ sp ↦ do
     let x₀ ←$ᵗ P sp
     let sk ←$ᵗ G sp
-    let pk := sk +ᵥ x₀
-    return ((x₀, pk), sk)
+    return ((x₀, sk +ᵥ x₀), sk)
   encrypt := λ sp m ⟨x₀, pk⟩ ↦ do
-    let g ← $ᵗ G sp
+    let g ←$ᵗ G sp
     return (g +ᵥ x₀, m * (g +ᵥ pk))
   decrypt := λ _ (c₁, c₂) sk ↦ do
     return c₂ / (sk +ᵥ c₁)
   __ := OracleAlg.baseOracleAlg -- no extra oracles
 
--- noncomputable def elgamalAsymmEnc (G P : Type)
---     [AddCommGroup G] [HomogeneousSpace G P] [Group P] :
---     AsymmEncAlg unifSpec P (P × P) G (P × P) where
---   keygen := λ () ↦ do
---     let x₀ ← $ᵗ P
---     let sk ← $ᵗ G
---     let pk := sk +ᵥ x₀
---     return ((x₀, pk), sk)
---   encrypt := λ m ⟨x₀, pk⟩ ↦ do
---     let g ← $ᵗ G
---     return (g +ᵥ x₀, m * (g +ᵥ pk))
---   decrypt := λ ⟨c₁, c₂⟩ sk ↦ do
---     return c₂ / (sk +ᵥ c₁)
---   __ := OracleAlg.baseOracleAlg
-
 namespace elgamalAsymmEnc
 
--- theorem isSound (G P : Type) [AddCommGroup G] [HomogeneousSpace G P] [Group P] :
---     (elgamalAsymmEnc G P).isSound := by
---   suffices h : ∀ (m x : P) (g₁ g₂ : G), m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = m
---     by simp [AsymmEncAlg.sound_iff, h]
---   intros m x g₁ g₂
---   rw [vadd_comm, mul_div_cancel_right]
+variable (G P : ℕ → Type) [HomogeneousSpace G P] [Π sp, Group (P sp)]
+
+section sound
+
+theorem isSound : (elgamalAsymmEnc G P).isSound := by
+  sorry
+  -- suffices h : ∀ sp (m x : P sp) (g₁ g₂ : G sp), m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = m
+  --   by simp [AsymmEncAlg.sound_iff, h]
+  -- intros m x g₁ g₂
+  -- rw [vadd_comm, mul_div_cancel_right]
+
+end sound
 
 section IND_CPA
 
