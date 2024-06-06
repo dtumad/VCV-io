@@ -19,62 +19,63 @@ according to the specified simulation oracle
 
 open OracleSpec OracleComp
 
-structure OracleAlg {ι : Type} (spec : OracleSpec ι) where
-  baseState : Type
-  init_state : baseState
-  baseSimOracle : spec →[baseState]ₛₒ unifSpec
+structure OracleAlg {ι : Type} (spec : ℕ → OracleSpec ι) where
+  baseState (sp : ℕ) : Type
+  init_state (sp : ℕ) : baseState sp
+  baseSimOracle (sp : ℕ) : spec sp →[baseState sp]ₛₒ unifSpec
 
 namespace OracleAlg
 
-variable {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
+variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β γ : Type}
 
-def exec (alg : OracleAlg spec) (oa : OracleComp spec α) : OracleComp unifSpec α :=
-  simulate' alg.baseSimOracle alg.init_state oa
+def exec (alg : OracleAlg spec) (sp : ℕ)
+    (oa : OracleComp (spec sp) α) : OracleComp unifSpec α :=
+  simulate' (alg.baseSimOracle sp) (alg.init_state sp) oa
 
-lemma exec.def (alg : OracleAlg spec) (α : Type) :
-    alg.exec (α := α) = simulate' alg.baseSimOracle alg.init_state := rfl
+-- lemma exec.def (alg : OracleAlg spec) (α : Type) :
+--     alg.exec (α := α) = simulate' alg.baseSimOracle alg.init_state := rfl
 
-@[simp low]
-lemma exec_pure (alg : OracleAlg spec) (x : α) : alg.exec (pure x) = pure x := rfl
+-- @[simp low]
+-- lemma exec_pure (alg : OracleAlg spec) (x : α) : alg.exec (pure x) = pure x := rfl
 
-@[simp low]
-lemma exec_bind (alg : OracleAlg spec) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    alg.exec (oa >>= ob) = (do
-      let z ← simulate alg.baseSimOracle alg.init_state oa
-      simulate' alg.baseSimOracle z.2 (ob z.1)) :=
-  simulate'_bind alg.baseSimOracle  alg.init_state oa ob
+-- @[simp low]
+-- lemma exec_bind (alg : OracleAlg spec) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+--     alg.exec (oa >>= ob) = (do
+--       let z ← simulate alg.baseSimOracle alg.init_state oa
+--       simulate' alg.baseSimOracle z.2 (ob z.1)) :=
+--   simulate'_bind alg.baseSimOracle  alg.init_state oa ob
 
-@[simp low]
-lemma exec_query (alg : OracleAlg spec) (i : ι) (t : spec.domain i) :
-    alg.exec (query i t) = Prod.fst <$> alg.baseSimOracle i t alg.init_state :=
-  simulate'_query alg.baseSimOracle alg.init_state i t
+-- @[simp low]
+-- lemma exec_query (alg : OracleAlg spec) (i : ι) (t : spec.domain i) :
+--     alg.exec (query i t) = Prod.fst <$> alg.baseSimOracle i t alg.init_state :=
+--   simulate'_query alg.baseSimOracle alg.init_state i t
 
-@[simp low]
-lemma exec_map (alg : OracleAlg spec) (oa : OracleComp spec α) (f : α → β) :
-    alg.exec (f <$> oa) = f <$> alg.exec oa :=
-  simulate'_map alg.baseSimOracle alg.init_state oa f
+-- @[simp low]
+-- lemma exec_map (alg : OracleAlg spec) (oa : OracleComp spec α) (f : α → β) :
+--     alg.exec (f <$> oa) = f <$> alg.exec oa :=
+--   simulate'_map alg.baseSimOracle alg.init_state oa f
 
-@[simp low]
-lemma exec_seq (alg : OracleAlg spec) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
-    alg.exec (og <*> oa) = (do
-      let (f, s) ← simulate alg.baseSimOracle alg.init_state og
-      f <$> simulate' alg.baseSimOracle s oa) :=
-  simulate'_seq alg.baseSimOracle alg.init_state oa og
+-- @[simp low]
+-- lemma exec_seq (alg : OracleAlg spec) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
+--     alg.exec (og <*> oa) = (do
+--       let (f, s) ← simulate alg.baseSimOracle alg.init_state og
+--       f <$> simulate' alg.baseSimOracle s oa) :=
+--   simulate'_seq alg.baseSimOracle alg.init_state oa og
 
 section baseOracleAlg
 
 /-- Simple base structure for defining algorithms using only uniform selection oracles.
 Usefull to auto-fill in fields with simple defaults in this case. -/
 @[inline, reducible]
-def baseOracleAlg : OracleAlg unifSpec where
-  baseState := Unit
-  init_state := ()
-  baseSimOracle := idOracle
+def baseOracleAlg : OracleAlg (λ _ ↦ unifSpec) where
+  baseState := λ _ ↦ Unit
+  init_state := λ _ ↦ ()
+  baseSimOracle := λ _ ↦ idOracle
 
-@[simp]
-lemma exec_baseOracleAlg (oa : OracleComp unifSpec α) :
-    baseOracleAlg.exec oa = oa := by
-  simp only [exec.def, idOracle.simulate'_eq]
+-- @[simp]
+-- lemma exec_baseOracleAlg (oa : OracleComp unifSpec α) :
+--     baseOracleAlg.exec oa = oa := by
+--   simp only [exec.def, idOracle.simulate'_eq]
 
 end baseOracleAlg
 

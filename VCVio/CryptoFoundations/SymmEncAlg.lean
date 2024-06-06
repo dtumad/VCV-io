@@ -16,49 +16,53 @@ secret keys of type `K`, and ciphertext space `C`.
 
 open OracleSpec OracleComp OracleAlg BigOperators
 
-structure SymmEncAlg {ι : Type} (spec : OracleSpec ι) (M K C : Type)
-  extends OracleAlg spec :=
-(keygen : Unit → OracleComp spec K)
-(encrypt : M → K → OracleComp spec C)
-(decrypt : C → K → OracleComp spec M)
+structure SymmEncAlg {ι : Type}
+    (spec : ℕ → OracleSpec ι) (M K C : ℕ → Type)
+    extends OracleAlg spec where
+  (keygen (sp : ℕ) : OracleComp (spec sp) (K sp))
+  (encrypt (sp : ℕ) : M sp → K sp → OracleComp (spec sp) (C sp))
+  (decrypt (sp : ℕ) : C sp → K sp → OracleComp (spec sp) (M sp))
 
 namespace SymmEncAlg
 
-variable {ι : Type} {spec : OracleSpec ι} {M K C : Type}
+variable {ι : Type} {spec : ℕ → OracleSpec ι} {M K C : ℕ → Type}
 
 section sound
 
-variable [DecidableEq M]
+variable [Π sp, DecidableEq (M sp)]
 
 /-- Experiment for checking that a symmetric encryption algorithm is sound,
 i.e. that decryption properly reverses encryption -/
 @[simp]
-def soundnessExp (encAlg : SymmEncAlg spec M K C) (m : M) :
-    SecExp spec K where
-  inpGen := encAlg.keygen ()
-  main := λ k ↦ do
-    let σ ← encAlg.encrypt m k
-    let m' ← encAlg.decrypt σ k
+def soundnessExp (encAlg : SymmEncAlg spec M K C)
+    (mDist : (sp : ℕ) → OracleComp (spec sp) (M sp)) :
+    SecExp spec where
+  main := λ sp ↦ do
+    let m ← mDist sp
+    let k ← encAlg.keygen sp
+    let σ ← encAlg.encrypt sp m k
+    let m' ← encAlg.decrypt sp σ k
     return m = m'
   __ := encAlg
 
 /-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
 def isSound (encAlg : SymmEncAlg spec M K C) : Prop :=
-  ∀ m : M, (soundnessExp encAlg m).advantage = 1
+  ∀ mDist, negligible (1 - (soundnessExp encAlg mDist).advantage)
 
 variable (encAlg : SymmEncAlg spec M K C)
 
 @[simp]
 lemma isSound_iff_forall (encAlg : SymmEncAlg spec M K C) :
-    encAlg.isSound ↔ ∀ m : M, (encAlg.exec (do
-      let k ← encAlg.keygen ()
-      let σ ← encAlg.encrypt m k
-      encAlg.decrypt σ k)).support ⊆ {m} := by
-  refine forall_congr' (λ m ↦ ?_)
-  simp only [soundnessExp, @eq_comm _ m, bind_pure_comp, ← map_bind, SecExp.advantage_eq_one_iff,
-    exec_map, exec_bind, simulate'_bind, support_map, support_bind, Set.mem_image, Set.mem_iUnion,
-    exists_prop, Prod.exists, decide_eq_false_iff_not, not_exists, not_and, not_not,
-    forall_exists_index, and_imp, Set.subset_singleton_iff]
+    encAlg.isSound ↔ ∀ sp : ℕ, ∀ m : M sp, (encAlg.exec sp (do
+      let k ← encAlg.keygen sp
+      let σ ← encAlg.encrypt sp m k
+      encAlg.decrypt sp σ k)).support ⊆ {m} := by
+  sorry
+  -- refine forall_congr' (λ m ↦ ?_)
+  -- simp only [soundnessExp, @eq_comm _ m, bind_pure_comp, ← map_bind, SecExp.advantage_eq_one_iff,
+  --   exec_map, exec_bind, simulate'_bind, support_map, support_bind, Set.mem_image, Set.mem_iUnion,
+  --   exists_prop, Prod.exists, decide_eq_false_iff_not, not_exists, not_and, not_not,
+  --   forall_exists_index, and_imp, Set.subset_singleton_iff]
 
 end sound
 

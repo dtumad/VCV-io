@@ -14,9 +14,9 @@ import VCVio.CryptoFoundations.SecExp
 
 open OracleSpec OracleComp OracleAlg Option ENNReal
 
-structure ForkAdv {ι : Type} (spec : OracleSpec ι) (α β : Type) (i : ι)
-    extends SecAdv spec α β where
-  chooseFork : α → β → Option (Fin (queryBound i + 1))
+-- structure ForkAdv {ι : Type} (spec : OracleSpec ι) (α β : Type) (i : ι)
+--     extends SecAdv spec α β where
+--   chooseFork : α → β → Option (Fin (queryBound i + 1))
 
 -- namespace ForkAdv
 
