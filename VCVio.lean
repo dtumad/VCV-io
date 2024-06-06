@@ -6,6 +6,7 @@ import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.IdentAlg
 import VCVio.CryptoFoundations.SecExp
+import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
 import VCVio.OracleComp.Coercions.Append
