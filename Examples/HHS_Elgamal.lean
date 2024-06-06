@@ -22,8 +22,8 @@ noncomputable def elgamalAsymmEnc (G P : ℕ → Type) [HomogeneousSpace G P] [�
     AsymmEncAlg (λ _ ↦ unifSpec) (M := λ sp ↦ P sp)
       (PK := λ sp ↦ P sp × P sp) (SK := λ sp ↦ G sp) (C := λ sp ↦ P sp × P sp) where
   keygen := λ sp ↦ do
-    let x₀ ← $ᵗ P sp
-    let sk ← $ᵗ G sp
+    let x₀ ←$ᵗ P sp
+    let sk ←$ᵗ G sp
     let pk := sk +ᵥ x₀
     return ((x₀, pk), sk)
   encrypt := λ sp m ⟨x₀, pk⟩ ↦ do
