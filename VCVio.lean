@@ -1,10 +1,10 @@
 import VCVio.CryptoFoundations.AsymmEncAlg
+import VCVio.CryptoFoundations.Asymptotics.Negligible
 import VCVio.CryptoFoundations.FiatShamir
 import VCVio.CryptoFoundations.Fork
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.IdentAlg
-import VCVio.CryptoFoundations.Negligible
 import VCVio.CryptoFoundations.SecExp
 import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg

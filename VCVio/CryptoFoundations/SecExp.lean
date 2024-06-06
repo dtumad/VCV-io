@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.Constructions.UniformSelect
-import VCVio.CryptoFoundations.Negligible
+import VCVio.CryptoFoundations.Asymptotics.Negligible
 
 /-!
 # Security Experiments
