@@ -24,6 +24,11 @@ structure OracleAlg {ι : Type} (spec : ℕ → OracleSpec ι) where
   init_state (sp : ℕ) : baseState sp
   baseSimOracle (sp : ℕ) : spec sp →[baseState sp]ₛₒ unifSpec
 
+structure Protocol {ι : Type} (spec : ℕ → OracleSpec ι) where
+  baseState (sp : ℕ) : Type
+  init_state (sp : ℕ) : baseState sp
+  baseSimOracle (sp : ℕ) : spec sp →[baseState sp]ₛₒ unifSpec
+
 namespace OracleAlg
 
 variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β γ : Type}

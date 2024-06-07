@@ -38,7 +38,7 @@ def FiatShamir (M : ℕ → Type) [Π sp, DecidableEq (M sp)]
   sign := λ sp pk sk m ↦ do
     let (c, e) ← sigmaAlg.commit sp pk sk
     let r ← query (Sum.inr ()) (m, c)
-    let s ← sigmaAlg.prove sp pk sk c e r
+    let s ← sigmaAlg.prove sp pk sk e r
     return (c, s)
   verify := λ sp pk m (c, s) ↦ do
     let r' ← query (Sum.inr ()) (m, c)
