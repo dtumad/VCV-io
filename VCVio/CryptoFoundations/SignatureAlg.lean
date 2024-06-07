@@ -19,36 +19,41 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 open OracleSpec OracleComp BigOperators ENNReal
 
 structure SignatureAlg {ι : Type} (spec : ℕ → OracleSpec ι)
-    (M : Type) (PK SK S : ℕ → Type) extends OracleAlg spec where
+  (M PK SK S : ℕ → Type) extends OracleAlg spec where
   keygen (sp : ℕ) : OracleComp (spec sp) (PK sp × SK sp)
-  sign (sp : ℕ) : PK sp → SK sp → M → OracleComp (spec sp) (S sp)
-  verify (sp : ℕ) : PK sp → M → S sp → OracleComp (spec sp) Bool
+  sign (sp : ℕ) : PK sp → SK sp → M sp → OracleComp (spec sp) (S sp)
+  verify (sp : ℕ) : PK sp → M sp → S sp → OracleComp (spec sp) Bool
 
 namespace SignatureAlg
 
-variable {ι : Type} {spec : ℕ → OracleSpec ι} {M : Type} {PK SK S : ℕ → Type}
+variable {ι : Type} {spec : ℕ → OracleSpec ι} {M PK SK S : ℕ → Type}
 
 section sound
 
-def soundnessExp (sigAlg : SignatureAlg spec M PK SK S) (m : M) :
+def soundnessExp (sigAlg : SignatureAlg spec M PK SK S)
+    (mDist : (sp : ℕ) → OracleComp (spec sp) (M sp)) :
     SecExp spec where
-  -- inpGen :=
   main := λ sp ↦ do
+    let m ← mDist sp
     let (pk, sk) ← sigAlg.keygen sp
     let σ ← sigAlg.sign sp pk sk m
     sigAlg.verify sp pk m σ
   __ := sigAlg
 
+def isSound (sigAlg : SignatureAlg spec M PK SK S) : Prop :=
+  ∀ mDist, negligible (1 - (soundnessExp sigAlg mDist).advantage)
+
+
 end sound
 
 section signingOracle
 
-variable [Π sp, Inhabited (S sp)] [DecidableEq M]
+variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
   [Π sp, DecidableEq (S sp)] [Π sp, Fintype (S sp)]
 
 def signingOracle (sigAlg : SignatureAlg spec M PK SK S)
     (sp : ℕ) (pk : PK sp) (sk : SK sp) :
-    (M →ₒ S sp) →[QueryLog (M →ₒ S sp)]ₛₒ spec sp :=
+    (M sp →ₒ S sp) →[QueryLog (M sp →ₒ S sp)]ₛₒ spec sp :=
   λ () m log ↦ do
     let σ ← sigAlg.sign sp pk sk m
     return (σ, log.logQuery m σ)
@@ -59,11 +64,11 @@ end signingOracle
 
 section unforgeable
 
-variable [Π sp, Inhabited (S sp)] [DecidableEq M]
+variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
   [Π sp, DecidableEq (S sp)] [Π sp, Fintype (S sp)]
 
 def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
-SecAdv (λ sp ↦ spec sp ++ₒ (M →ₒ S sp)) PK (λ sp ↦ M × S sp)
+SecAdv (λ sp ↦ spec sp ++ₒ (M sp →ₒ S sp)) PK (λ sp ↦ M sp × S sp)
 
 def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
     (adv : unforgeableAdv sigAlg) :

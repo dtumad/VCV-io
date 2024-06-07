@@ -20,8 +20,10 @@ and proofs in `P`.
 
 We leave properties like special soundness as seperate definitions for better modularity.-/
 structure SigmaAlg {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W M C P : ℕ → Type) (p : (sp : ℕ) → X sp → W sp)
+    (X W C Γ Ω P : ℕ → Type) (r : (sp : ℕ) → X sp → W sp → Prop)
     extends OracleAlg spec where
-  gen (sp : ℕ) : X sp → W sp → OracleComp (spec sp) (M sp)
-  prove (sp : ℕ) : X sp → W sp → M sp → C sp → OracleComp (spec sp) (P sp)
-  verify (sp : ℕ) : X sp → M sp → C sp → P sp → OracleComp (spec sp) Bool
+  commit (sp : ℕ) : X sp → W sp → OracleComp (spec sp) (C sp × Γ sp)
+  prove (sp : ℕ) : X sp → W sp → C sp → Γ sp → Ω sp → OracleComp (spec sp) (P sp)
+  verify (sp : ℕ) : X sp → C sp → Ω sp → P sp → OracleComp (spec sp) Bool
+  sim (sp : ℕ) : X sp → OracleComp (spec sp) (C sp)
+  extract (sp : ℕ) : P sp → P sp → OracleComp (spec sp) (W sp)

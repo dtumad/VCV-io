@@ -19,7 +19,7 @@ open OracleSpec OracleComp OracleAlg BigOperators ENNReal
 
 class HomogeneousSpace (G : semiOutParam (ℕ → Type))
     (P : semiOutParam (ℕ → Type)) :=
-  AddGroup_G (sp : ℕ) : AddGroup (G sp)
+  AddGroup_G (sp : ℕ) : AddCommGroup (G sp)
   AddTorsor_GP (sp : ℕ) : AddTorsor (G sp) (P sp)
   decidableEq_G (sp : ℕ) : DecidableEq (G sp)
   decidableEq_P (sp : ℕ) : DecidableEq (P sp)
@@ -34,7 +34,7 @@ namespace HomogeneousSpace
 
 variable (G P : ℕ → Type)
 
-instance [h : HomogeneousSpace G P] (sp : ℕ) : AddGroup (G sp) := h.AddGroup_G sp
+instance [h : HomogeneousSpace G P] (sp : ℕ) : AddCommGroup (G sp) := h.AddGroup_G sp
 instance [h : HomogeneousSpace G P] (sp : ℕ) : AddTorsor (G sp) (P sp) := h.AddTorsor_GP sp
 instance [h : HomogeneousSpace G P] (sp : ℕ) : DecidableEq (G sp) := h.decidableEq_G sp
 instance [h : HomogeneousSpace G P] (sp : ℕ) : DecidableEq (P sp) := h.decidableEq_P sp
@@ -55,8 +55,8 @@ def vectorizationExp (G P : ℕ → Type)
     (adv : vectorizationAdv G P) :
     SecExp (λ _ ↦ unifSpec) where
   main := λ sp ↦ do
-    let x₁ ← $ᵗ P sp
-    let x₂ ← $ᵗ P sp
+    let x₁ ←$ᵗ P sp
+    let x₂ ←$ᵗ P sp
     let g ← adv.run sp (x₁, x₂)
     return g = x₁ -ᵥ x₂
   __ := baseOracleAlg
