@@ -60,7 +60,8 @@ lemma isSound_iff_forall (encAlg : SymmEncAlg spec M K C) :
   sorry
   -- refine forall_congr' (λ m ↦ ?_)
   -- simp only [soundnessExp, @eq_comm _ m, bind_pure_comp, ← map_bind, SecExp.advantage_eq_one_iff,
-  --   exec_map, exec_bind, simulate'_bind, support_map, support_bind, Set.mem_image, Set.mem_iUnion,
+  --   exec_map, exec_bind, simulate'_bind, support_map,
+  -- support_bind, Set.mem_image, Set.mem_iUnion,
   --   exists_prop, Prod.exists, decide_eq_false_iff_not, not_exists, not_and, not_not,
   --   forall_exists_index, and_imp, Set.subset_singleton_iff]
 

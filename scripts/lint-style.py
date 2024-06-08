@@ -391,8 +391,9 @@ def format_errors(errors):
             output_message(path, line_nr, "ERR_CLN", "Put : and := before line breaks, not after")
         if errno == ERR_IND:
             output_message(path, line_nr, "ERR_IND", "If the theorem/def statement requires multiple lines, indent it correctly (4 spaces or 2 for `|`)")
-        if errno == ERR_ARR:
-            output_message(path, line_nr, "ERR_ARR", "Missing space after '←'.")
+        # We choose to skip this to allow \<-$ notation for prob computation. could specialize this more instead
+        # if errno == ERR_ARR:
+        #     output_message(path, line_nr, "ERR_ARR", "Missing space after '←'.")
         if errno == ERR_NSP:
             output_message(path, line_nr, "ERR_NSP", "Non-terminal simp. Replace with `simp?` and use the suggested output")
 
