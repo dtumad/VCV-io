@@ -291,6 +291,12 @@ instance : SelectableType Bool where
           Finset.sum_insert this]
         simpa [getElem] using one_add_one_eq_two
 
+instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
+    [SelectableType α] [SelectableType β] : SelectableType (α × β) where
+  selectElem := (·, ·) <$> ($ᵗ α) <*> ($ᵗ β)
+  probOutput_selectElem := λ (x, y) ↦ by
+    sorry
+
 end instances
 
 end SelectableType

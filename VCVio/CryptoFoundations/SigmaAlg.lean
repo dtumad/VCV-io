@@ -3,26 +3,46 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.CryptoFoundations.SecExp
+import VCVio.CryptoFoundations.HardnessAssumptions.HardRelation
 
 /-!
 # Sigma Protocol
 
-This file defines a structure type for identification protocols.
+This file defines a structure type for Σ-protocols.
 -/
 
-open OracleSpec OracleComp ENNReal
+open OracleSpec OracleComp
 
 /-- A sigma protocol for statements in `X`, witnesses in `W`,
-commitments in `C`, extra state in `Γ`, verifier challenges in `Ω`,
+commitments in `PC`/`SC`, verifier challenges in `Ω`,
 and proofs in `P`. `r` is the relation on statements and witnesses to be proven.
+
+We have two types for the commitments in order to allow for a public part in `PC`
+and secret part in `SC`. Only the commitment in `PC` is revealed to the verifier,
+but the `prove` function may still use `SC` in generating a proof.
 
 We leave properties like special soundness as seperate definitions for better modularity.-/
 structure SigmaAlg {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W PC SC Ω P : ℕ → Type) (r : (sp : ℕ) → X sp → W sp → Prop)
+    (X W PC SC Ω P : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
     extends OracleAlg spec where
-  commit (sp : ℕ) : X sp → W sp → OracleComp (spec sp) (PC sp × SC sp)
-  prove (sp : ℕ) : X sp → W sp → SC sp → Ω sp → OracleComp (spec sp) (P sp)
-  verify (sp : ℕ) : X sp → PC sp → Ω sp → P sp → OracleComp (spec sp) Bool
-  sim (sp : ℕ) : X sp → OracleComp (spec sp) (PC sp)
-  extract (sp : ℕ) : P sp → P sp → OracleComp (spec sp) (W sp)
+  commit (n : ℕ) : X n → W n → OracleComp (spec n) (PC n × SC n)
+  prove (n : ℕ) : X n → W n → SC n → Ω n → OracleComp (spec n) (P n)
+  verify (n : ℕ) : X n → PC n → Ω n → P n → OracleComp (spec n) Bool
+  sim (n : ℕ) : X n → OracleComp (spec n) (PC n)
+  extract (n : ℕ) : P n → P n → OracleComp (spec n) (W n)
+
+namespace SigmaAlg
+
+section complete
+
+-- TODO
+
+end complete
+
+section speciallySound
+
+-- TODO
+
+end speciallySound
+
+end SigmaAlg

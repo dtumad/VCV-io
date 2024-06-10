@@ -19,30 +19,42 @@ For simplicity we construct signature schemes rather than general proofs of know
 open OracleComp OracleSpec
 
 variable {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W C E Ω P : ℕ → Type) (r : (sp : ℕ) → X sp → W sp → Prop)
-    [Π sp, Inhabited (Ω sp)]
-    [Π sp, DecidableEq (C sp)]
+    (X W PC SC Ω P : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    [Π n, Inhabited (Ω n)]
+    [Π n, DecidableEq (PC n)]
+    [Π n, DecidableEq (Ω n)]
+    [Π n, Fintype (Ω n)]
+    [Π n, SelectableType (Ω n)]
 
-    [Π sp, DecidableEq (Ω sp)]
-    [Π sp, Fintype (Ω sp)]
-    [Π sp, SelectableType (Ω sp)]
-
-
-def FiatShamir (M : ℕ → Type) [Π sp, DecidableEq (M sp)]
-    (sigmaAlg : SigmaAlg spec X W C E Ω P r)
-    (keygen : (sp : ℕ) → OracleComp (spec sp) (X sp × W sp)) :
-    SignatureAlg (λ sp ↦ spec sp ++ₒ (M sp × C sp →ₒ Ω sp))
+/-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
+challenge values for the Σ-protocol, including the message in the hash input. -/
+def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W PC SC Ω P r)
+    [Π n, DecidableEq (M n)] [hr : GenerableRelation X W r]
+    [Π n, unifSpec ⊂ₒ spec n] :
+    SignatureAlg (λ n ↦ spec n ++ₒ (M n × PC n →ₒ Ω n))
       (M := M) (PK := X) (SK := W)
-      (S := λ sp ↦ C sp × P sp) where
-  keygen := λ sp ↦ keygen sp
-  sign := λ sp pk sk m ↦ do
-    let (c, e) ← sigmaAlg.commit sp pk sk
+      (S := λ n ↦ PC n × P n) where
+  -- Use the existing algorithm for generating relation members
+  keygen := λ n ↦ sorry --↑(hr.gen n)
+  -- Sign by running the sigma protocol using a hash as the challenge
+  sign := λ n pk sk m ↦ do
+    let (c, e) ← sigmaAlg.commit n pk sk
     let r ← query (Sum.inr ()) (m, c)
-    let s ← sigmaAlg.prove sp pk sk e r
+    let s ← sigmaAlg.prove n pk sk e r
     return (c, s)
-  verify := λ sp pk m (c, s) ↦ do
+  -- Verify a signature by checking the challenge returned by the random oracle
+  verify := λ n pk m (c, s) ↦ do
     let r' ← query (Sum.inr ()) (m, c)
-    sigmaAlg.verify sp pk c r' s
-  baseState := λ sp ↦ sigmaAlg.baseState sp × QueryCache _
-  init_state := λ sp ↦ (sigmaAlg.init_state sp, ∅)
-  baseSimOracle := λ sp ↦ sigmaAlg.baseSimOracle sp ++ₛₒ randOracle
+    sigmaAlg.verify n pk c r' s
+  -- Simulation includes an additional cache for random oracle
+  baseState := λ n ↦ sigmaAlg.baseState n × QueryCache _
+  -- Add an empty cache to initial state
+  init_state := λ n ↦ (sigmaAlg.init_state n, ∅)
+  -- Simulate the additional oracle as a random oracle
+  baseSimOracle := λ n ↦ sigmaAlg.baseSimOracle n ++ₛₒ randOracle
+
+namespace FiatShamir
+
+-- TODO
+
+end FiatShamir
