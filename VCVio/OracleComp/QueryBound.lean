@@ -14,7 +14,7 @@ This is useful for showing that some simulated computation is polynomial time,
 and in things like seeding query values for a computation.
 -/
 
-open OracleSpec
+open OracleSpec Prod
 
 namespace OracleComp
 
@@ -22,9 +22,23 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α : Type}
 
 /-- Bound on the number of queries made by a computation, given by a map from oracles to counts. -/
 def IsQueryBound (oa : OracleComp spec α) (qb : ι → ℕ) : Prop :=
-  ∀ count ∈ (Prod.snd <$> simulate countingOracle 0 oa).support,
-    ∀ i : ι, count i ≤ qb i
+  ∀ count ∈ (snd <$> simulate countingOracle 0 oa).support, count ≤ qb
 
--- port
+lemma isQueryBound_def (oa : OracleComp spec α) (qb : ι → ℕ) : IsQueryBound oa qb ↔
+  ∀ count ∈ (snd <$> simulate countingOracle 0 oa).support, count ≤ qb := Iff.rfl
+
+lemma isQueryBound_query_iff (i : ι) (t : spec.domain i) (qb : ι → ℕ) :
+    IsQueryBound (query i t) qb ↔ 0 < qb i := by
+  simp [isQueryBound_def, Nat.lt_iff_add_one_le, zero_add]
+  refine ⟨?_, ?_⟩
+  · intro h
+    specialize h i
+    rwa [Function.update_same] at h
+  · intro h
+    intro j
+    by_cases hij : j = i
+    · induction hij
+      simpa using h
+    · simp [Function.update_noteq hij]
 
 end OracleComp

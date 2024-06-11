@@ -230,8 +230,9 @@ end uniformSelectFinset
 section SelectableType
 
 /-- A `SelectableType β` instance means that `β` is a finite inhabited type,
-with an explicit list of the elements in the type (usually some non-canonical choice).
-We need to have an explicit vector, rather than just a `Finset` to make this computable. -/
+with a computation that selects uniformly at random from the type.
+In general this isn't possible without the axiom of choice, so we include this
+to get a computable version of selection. -/
 class SelectableType (β : Type) [Fintype β] [Inhabited β] where
   selectElem : OracleComp unifSpec β
   probOutput_selectElem (x : β) : [= x | selectElem] = (↑(Fintype.card β))⁻¹

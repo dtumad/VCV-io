@@ -66,6 +66,8 @@ end sound
 
 section IND_CPA
 
+variable [DecidableEq ι]
+
 /-- `IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an
 asymmetric encryption algorithm with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
 Adversary is given a public key and returns a pair of messages that it thinks

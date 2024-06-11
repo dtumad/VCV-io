@@ -66,6 +66,7 @@ section unforgeable
 
 variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
   [Π sp, DecidableEq (S sp)] [Π sp, Fintype (S sp)]
+  [DecidableEq ι]
 
 def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
 SecAdv (λ sp ↦ spec sp ++ₒ (M sp →ₒ S sp)) PK (λ sp ↦ M sp × S sp)
