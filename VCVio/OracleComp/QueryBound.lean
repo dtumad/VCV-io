@@ -18,6 +18,8 @@ open OracleSpec Prod
 
 namespace OracleComp
 
+section IsQueryBound
+
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α : Type}
 
 /-- Bound on the number of queries made by a computation, given by a map from oracles to counts. -/
@@ -40,5 +42,17 @@ lemma isQueryBound_query_iff (i : ι) (t : spec.domain i) (qb : ι → ℕ) :
     · induction hij
       simpa using h
     · simp [Function.update_noteq hij]
+
+end IsQueryBound
+
+section PolyQueries
+
+structure PolyQueries {ι : Type} [DecidableEq ι] {spec : ℕ → OracleSpec ι}
+  {α β : ℕ → Type} (oa : (n : ℕ) → α n → OracleComp (spec n) (β n)) where
+  qb : ι → Polynomial ℕ
+  qb_isQueryBound (n : ℕ) (x : α n) :
+    IsQueryBound (oa n x) (λ i ↦ (qb i).eval n)
+
+end PolyQueries
 
 end OracleComp

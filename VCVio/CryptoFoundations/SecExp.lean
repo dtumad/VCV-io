@@ -34,9 +34,7 @@ Port: We should eventually include polynomial time in this -/
 structure SecAdv {ι : Type} [DecidableEq ι]
     (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
   run (n : ℕ) : α n → OracleComp (spec n) (β n)
-  qb : ι → Polynomial ℕ
-  qb_isQueryBound (n : ℕ) (x : α n) :
-    IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
+  polyQueries_run : PolyQueries run
 
 namespace SecAdv
 
