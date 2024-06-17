@@ -87,12 +87,13 @@ lemma simulate'_query (s : σ) (i : ι) (t : spec.domain i) :
 @[simp low]
 lemma simulate_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate so s (f <$> oa) = (map f id) <$> simulate so s oa := by
-  simp only [map_eq_bind_pure_comp, Function.comp, simulate_bind, simulate_pure, Prod_map, id_eq]
+  simp only [map_eq_bind_pure_comp, Function.comp, simulate_bind, simulate_pure,
+    Prod.map_apply, id_eq]
 
 @[simp low]
 lemma simulate'_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate' so s (f <$> oa) = f <$> simulate' so s oa := by
-  simp only [simulate', simulate_map, Functor.map_map, Function.comp, Prod_map, id_eq]
+  simp only [simulate', simulate_map, Functor.map_map, Function.comp, Prod.map_apply, id_eq]
 
 @[simp low]
 lemma simulate_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
@@ -104,7 +105,8 @@ lemma simulate_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α 
 lemma simulate'_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
     simulate' so s (og <*> oa) = simulate so s og >>= λ z ↦
       (z.1 <$> simulate' so z.2 oa) := by
-  simp only [simulate', simulate_seq, map_bind, Functor.map_map, Function.comp, Prod_map, id_eq]
+  simp only [simulate', simulate_seq, map_bind, Functor.map_map, Function.comp,
+    Prod.map_apply, id_eq]
 
 end basic
 

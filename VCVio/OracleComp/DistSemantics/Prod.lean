@@ -29,12 +29,12 @@ section map
 @[simp]
 lemma fst_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β → δ) :
     fst <$> map f g <$> oa = (λ x ↦ f x.1) <$> oa := by
-  simp only [Functor.map_map, Function.comp, Prod_map]
+  simp only [Functor.map_map, Function.comp, Prod.map_apply]
 
 @[simp]
 lemma snd_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β → δ) :
     snd <$> map f g <$> oa = (λ x ↦ g x.2) <$> oa := by
-  simp only [Functor.map_map, Function.comp, Prod_map]
+  simp only [Functor.map_map, Function.comp, Prod.map_apply]
 
 end map
 
