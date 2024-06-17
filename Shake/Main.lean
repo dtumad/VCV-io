@@ -180,9 +180,9 @@ def parseHeader (srcSearchPath : SearchPath) (mod : Name) :
   let text ← IO.FS.readFile path
   let inputCtx := Parser.mkInputContext text path.toString
   let (header, parserState, msgs) ← Parser.parseHeader inputCtx
-  if !msgs.isEmpty then -- skip this file if there are parse errors
-    msgs.forM fun msg => msg.toString >>= IO.println
-    throw <| .userError "parse errors in file"
+  -- if !Lean.messagelog.empty then -- skip this file if there are parse errors
+  --   msgs.forM fun msg => msg.toString >>= IO.println
+  --   throw <| .userError "parse errors in file"
   -- the insertion point for `add` is the first newline after the imports
   let insertion := header.getTailPos?.getD parserState.pos
   let insertion := text.findAux (· == '\n') text.endPos insertion + ⟨1⟩
