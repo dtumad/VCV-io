@@ -19,7 +19,8 @@ For simplicity we construct signature schemes rather than general proofs of know
 open OracleComp OracleSpec
 
 variable {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W PC SC Ω P : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    (X W : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    (PC SC Ω P : ℕ → Type)
     [Π n, Inhabited (Ω n)]
     [Π n, DecidableEq (PC n)]
     [Π n, DecidableEq (Ω n)]
@@ -28,7 +29,7 @@ variable {ι : Type} (spec : ℕ → OracleSpec ι)
 
 /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
 challenge values for the Σ-protocol, including the message in the hash input. -/
-def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W PC SC Ω P r)
+def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W r PC SC Ω P)
     [Π n, DecidableEq (M n)] [hr : GenerableRelation X W r]
     [Π n, unifSpec ⊂ₒ spec n] :
     SignatureAlg (λ n ↦ spec n ++ₒ (M n × PC n →ₒ Ω n))
@@ -40,7 +41,7 @@ def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W PC SC Ω P r)
   sign := λ n pk sk m ↦ do
     let (c, e) ← sigmaAlg.commit n pk sk
     let r ← query (Sum.inr ()) (m, c)
-    let s ← sigmaAlg.prove n pk sk e r
+    let s ← sigmaAlg.respond n pk sk e r
     return (c, s)
   -- Verify a signature by checking the challenge returned by the random oracle
   verify := λ n pk m (c, s) ↦ do

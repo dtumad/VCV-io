@@ -35,27 +35,38 @@ end commits
 def SchnorrSigmaAlg (G P : ℕ → Type)
     [HomogeneousSpace G P] :
   SigmaAlg (λ _ ↦ unifSpec)
-    (X := λ sp ↦ P sp × P sp)
-    (W := λ sp ↦ G sp)
-    (C := λ sp ↦ Vector (P sp) sp)
-    (Γ := λ sp ↦ Vector (G sp) sp)
-    (Ω := λ sp ↦ Vector Bool sp)
-    (P := λ sp ↦ Vector (G sp) sp)
-    (r := λ sp (x₀, pk) sk ↦ pk = sk +ᵥ x₀) where
-  commit := λ sp (x₀, pk) sk ↦ do
-    let gs ←$ᵗ Vector (G sp) sp
+    -- Relation is the knowledge of vectorization `sk`
+    (r := λ (x₀, pk) sk ↦ pk = sk +ᵥ x₀)
+    -- Public statement is a pair of points
+    (X := λ n ↦ P n × P n)
+    -- Witness is their vectorization
+    (W := λ n ↦ G n)
+    -- Publicly commit to a list of points
+    (PC := λ n ↦ Vector (P n) (n + 1))
+    -- Secretely commit to a list of vectors
+    (SC := λ n ↦ Vector (G n) (n + 1))
+    -- Challenge is a list of random bits
+    (Ω := λ n ↦ Vector Bool (n + 1))
+    -- Responses are a list of points
+    (P := λ n ↦ Vector (G n) (n + 1)) where
+  commit := λ n (x₀, pk) _ ↦ do
+    let gs ←$ᵗ Vector (G n) (n + 1)
     let xs := gs.map (· +ᵥ pk)
     return (xs, gs)
-  prove := λ sp (x₀, pk) sk xs gs bs ↦ do
+  respond := λ n _ sk gs bs ↦ do
     return gs.zipWith (λ g b ↦
       if b then g else g + sk) bs
-  verify := λ sp (x₀, pk) xs bs zs ↦ do
+  verify := λ n (x₀, pk) xs bs zs ↦ do
     let xs' := zs.zipWith (λ z b ↦
       if b then z +ᵥ pk else z +ᵥ x₀) bs
     return xs = xs'
-  sim := sorry
-  extract := sorry
+  sim := λ n _ ↦ do
+    $ᵗ Vector (P n) (n + 1)
+  extract := λ n _ zs₁ _ zs₂ ↦ do
+    return zs₁[0] - zs₂[0]
   __ := baseOracleAlg
+
+
 
 -- def HHS_signature (G P M : Type) [DecidableEq M]
 --     [AddCommGroup G] [HomogeneousSpace G P] (n : ℕ) :

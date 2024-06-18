@@ -23,13 +23,13 @@ but the `prove` function may still use `SC` in generating a proof.
 
 We leave properties like special soundness as seperate definitions for better modularity.-/
 structure SigmaAlg {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W PC SC Ω P : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
-    extends OracleAlg spec where
+    (X W : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    (PC SC Ω P : ℕ → Type) extends OracleAlg spec where
   commit (n : ℕ) : X n → W n → OracleComp (spec n) (PC n × SC n)
-  prove (n : ℕ) : X n → W n → SC n → Ω n → OracleComp (spec n) (P n)
+  respond (n : ℕ) : X n → W n → SC n → Ω n → OracleComp (spec n) (P n)
   verify (n : ℕ) : X n → PC n → Ω n → P n → OracleComp (spec n) Bool
   sim (n : ℕ) : X n → OracleComp (spec n) (PC n)
-  extract (n : ℕ) : P n → P n → OracleComp (spec n) (W n)
+  extract (n : ℕ) : Ω n → P n → Ω n → P n → OracleComp (spec n) (W n)
 
 namespace SigmaAlg
 
