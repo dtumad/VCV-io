@@ -49,12 +49,9 @@ jobs:
         run: |
           lake build Examples
 
-          #      - name: check for unused imports
-          #id: shake
-          #uses: liskin/gh-problem-matcher-wrap@v2
-          #with:
-          #linters: gcc
-          #run: env LEAN_ABORT_ON_PANIC=1 lake exe shake VCVio --gh-style
+      # - name: shake imports
+      #   run: |
+      #     lake exe shake VCVio
 
   lint:
     name: Lint Files
