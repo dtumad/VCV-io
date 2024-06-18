@@ -16,11 +16,12 @@ jobs:
     name: Check Library File Imports
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: update VCVio.lean
         run: |
           git ls-files 'VCVio/*.lean' | LC_ALL=C sort | sed 's/\.lean//;s,/,.,g;s/^/import /' > VCVio.lean
+          git ls-files 'Examples/*.lean' | LC_ALL=C sort | sed 's/\.lean//;s,/,.,g;s/^/import /' > Examples.lean
 
       - name: check that all files are imported
         run: git diff --exit-code
@@ -36,7 +37,7 @@ jobs:
           ./elan-init -y --default-toolchain none
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: build project
         run: |
@@ -44,12 +45,13 @@ jobs:
           lake exe cache get
           lake build
 
-      - name: check for unused imports
-        id: shake
-        uses: liskin/gh-problem-matcher-wrap@v2
-        with:
-          linters: gcc
-          run: env LEAN_ABORT_ON_PANIC=1 lake exe shake VCVio --gh-style
+      - name: build examples
+        run: |
+          lake build Examples
+
+      # - name: shake imports
+      #   run: |
+      #     lake exe shake VCVio
 
   lint:
     name: Lint Files
@@ -57,11 +59,11 @@ jobs:
     steps:
       - name: install Python
         if: ${{ 'ubuntu-latest' == 'ubuntu-latest' }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: lint
         run: |

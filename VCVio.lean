@@ -1,10 +1,13 @@
 import VCVio.CryptoFoundations.AsymmEncAlg
+import VCVio.CryptoFoundations.Asymptotics.Negligible
+import VCVio.CryptoFoundations.Asymptotics.PolyTimeOC
 import VCVio.CryptoFoundations.FiatShamir
 import VCVio.CryptoFoundations.Fork
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
-import VCVio.CryptoFoundations.IdentAlg
+import VCVio.CryptoFoundations.HardnessAssumptions.HardRelation
 import VCVio.CryptoFoundations.SecExp
+import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
 import VCVio.OracleComp.Coercions.Append

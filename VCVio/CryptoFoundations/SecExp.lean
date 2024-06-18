@@ -5,6 +5,8 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.CryptoFoundations.Asymptotics.Negligible
+import VCVio.OracleComp.QueryBound
 
 /-!
 # Security Experiments
@@ -24,16 +26,15 @@ The main definition is `SecExp spec α β`, which extends `OracleAlg` with three
 
 open OracleComp OracleSpec ENNReal
 
-/-- A security adversary bundling a computation with a bound on the number of queries it makes.
-This is useful both for asymptotic security as well as in some concrete security bounds. -/
-structure SecAdv {ι : Type} (spec : OracleSpec ι)
-    (α β : Type) where
-  run : α → OracleComp spec β
-  -- run_polyTime : polyTimeOracleComp run
-  queryBound : ι → ℕ
-  -- queryBound_isQueryBound (x : α) : IsQueryBound (run x) queryBound
-  activeOracles : List ι -- Canonical ordering of oracles
-  -- mem_activeOracles_iff : ∀ i, i ∈ activeOracles ↔ queryBound i ≠ 0
+/-- A security adversary bundling a computation with a bound on the number of queries it makes,
+where the bound is given by a polynomial that is evaluated for each security parameter.
+This is useful both for asymptotic security as well as in some concrete security bounds.
+
+Port: We should eventually include polynomial time in this -/
+structure SecAdv {ι : Type} [DecidableEq ι]
+    (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
+  run (n : ℕ) : α n → OracleComp (spec n) (β n)
+  polyQueries_run : PolyQueries run
 
 namespace SecAdv
 
@@ -41,37 +42,35 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 end SecAdv
 
-/-- A security experiment using oracles in `spec`, represented as an `OracleAlg`. -/
-structure SecExp {ι : Type} (spec : OracleSpec ι) (α : Type)
+structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
     extends OracleAlg spec where
-  inpGen : OracleComp spec α
-  main : α → OracleComp spec Bool
+  main (n : ℕ) : OracleComp (spec n) Bool
 
 namespace SecExp
 
-variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
+variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β : Type}
 
-noncomputable def advantage (exp : SecExp spec α) : ℝ≥0∞ :=
-    [= true | exp.exec (exp.inpGen >>= exp.main)]
+noncomputable def advantage (exp : SecExp spec) (n : ℕ) : ℝ≥0∞ :=
+    [= true | exp.exec n (exp.main n)]
 
-lemma advantage_eq (exp : SecExp spec α) :
-    exp.advantage = [= true | exp.exec (exp.inpGen >>= exp.main)] := rfl
+-- lemma advantage_eq (exp : SecExp spec α) :
+--     exp.advantage = [= true | exp.exec (exp.inpGen >>= exp.main)] := rfl
 
-@[simp]
-lemma advantage_eq_one_iff (exp : SecExp spec α) : exp.advantage = 1 ↔
-    false ∉ (exp.exec (exp.inpGen >>= exp.main)).support := by
-  simp only [advantage_eq, probOutput_eq_one_iff, OracleAlg.exec_bind, support_bind,
-    Set.subset_singleton_iff, Set.mem_iUnion, exists_prop, Prod.exists, forall_exists_index,
-    and_imp, Bool.forall_bool, imp_false, implies_true, and_true, not_exists, not_and]
+-- @[simp]
+-- lemma advantage_eq_one_iff (exp : SecExp spec α) : exp.advantage = 1 ↔
+--     false ∉ (exp.exec (exp.inpGen >>= exp.main)).support := by
+--   simp only [advantage_eq, probOutput_eq_one_iff, OracleAlg.exec_bind, support_bind,
+--     Set.subset_singleton_iff, Set.mem_iUnion, exists_prop, Prod.exists, forall_exists_index,
+--     and_imp, Bool.forall_bool, imp_false, implies_true, and_true, not_exists, not_and]
 
-@[simp]
-lemma advantage_eq_zero_iff (exp : SecExp spec α) : exp.advantage = 0 ↔
-    true ∉ (exp.exec (exp.inpGen >>= exp.main)).support := by
-  rw [advantage_eq, probOutput_eq_zero_iff]
+-- @[simp]
+-- lemma advantage_eq_zero_iff (exp : SecExp spec α) : exp.advantage = 0 ↔
+--     true ∉ (exp.exec (exp.inpGen >>= exp.main)).support := by
+--   rw [advantage_eq, probOutput_eq_zero_iff]
 
-@[simp]
-lemma advantage_pos_iff (exp : SecExp spec α) : 0 < exp.advantage ↔
-    true ∈ (exp.exec (exp.inpGen >>= exp.main)).support := by
-  rw [pos_iff_ne_zero, ne_eq, advantage_eq_zero_iff, not_not]
+-- @[simp]
+-- lemma advantage_pos_iff (exp : SecExp spec α) : 0 < exp.advantage ↔
+--     true ∈ (exp.exec (exp.inpGen >>= exp.main)).support := by
+--   rw [pos_iff_ne_zero, ne_eq, advantage_eq_zero_iff, not_not]
 
 end SecExp

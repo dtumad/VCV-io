@@ -49,16 +49,14 @@ section instances
 instance subSpec_append_left : spec₁ ⊂ₒ (spec₁ ++ₒ spec₂) where
   toFun := λ i t ↦ query (inl i) t
   evalDist_toFun' := by simp [append]
-
-instance {α : Type} : Coe (OracleComp spec₁ α) (OracleComp (spec₁ ++ₒ spec₂) α) where
-  coe := liftComp
+instance {α : Type} : Coe (OracleComp spec₁ α) (OracleComp (spec₁ ++ₒ spec₂) α)
+  where coe := liftComp
 
 instance subSpec_append_right : spec₂ ⊂ₒ (spec₁ ++ₒ spec₂) where
   toFun := λ i t ↦ query (inr i) t
   evalDist_toFun' := by simp [append]
-
-instance {α : Type} : Coe (OracleComp spec₂ α) (OracleComp (spec₁ ++ₒ spec₂) α) where
-  coe := liftComp
+instance {α : Type} : Coe (OracleComp spec₂ α) (OracleComp (spec₁ ++ₒ spec₂) α)
+  where coe := liftComp
 
 end instances
 

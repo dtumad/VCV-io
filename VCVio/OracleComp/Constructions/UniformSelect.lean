@@ -56,7 +56,7 @@ lemma evalDist_uniformSelectList (xs : List α) :
     | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map ((x :: xs)[·]) := by
   match xs with
   | [] => rfl
-  | x :: xs => simp only [uniformSelectList_cons, getElem_fin, List.getElem_eq_get,
+  | x :: xs => simp only [uniformSelectList_cons, Fin.getElem_fin, List.getElem_eq_get,
       List.length_cons, Fin.eta, evalDist_map, evalDist_uniformFin]
 
 @[simp]
@@ -82,7 +82,7 @@ lemma probOutput_uniformSelectList [DecidableEq α] (xs : List α) (x : α) :
   | cons y ys _ =>
       rw [probOutput_def, uniformSelectList_cons, List.count, ← List.countP_eq_sum_fin_ite,
         div_eq_mul_inv, Nat.cast_sum, Finset.sum_mul, List.isEmpty_cons]
-      simp only [getElem_fin, List.getElem_eq_get, List.length_cons, Fin.eta, evalDist_map,
+      simp only [Fin.getElem_fin, List.getElem_eq_get, List.length_cons, Fin.eta, evalDist_map,
         evalDist_uniformFin, PMF.map_apply, PMF.uniformOfFintype_apply, Fintype.card_fin,
         Nat.cast_add, Nat.cast_one, ↓reduceIte, beq_iff_eq, Nat.cast_ite, CharP.cast_eq_zero,
         Nat.cast_succ, ite_mul, one_mul, zero_mul, tsum_fintype, @eq_comm _ x, zero_add, one_mul]
@@ -96,7 +96,7 @@ lemma probEvent_uniformSelectList (xs : List α) (p : α → Prop) [DecidablePre
   | cons y ys _ =>
       rw [probEvent_def, uniformSelectList_cons, ← List.countP_eq_sum_fin_ite,
           div_eq_mul_inv, Nat.cast_sum, Finset.sum_mul, List.isEmpty_cons]
-      simp only [getElem_fin, List.getElem_eq_get, List.length_cons, Fin.eta, evalDist_map,
+      simp only [Fin.getElem_fin, List.getElem_eq_get, List.length_cons, Fin.eta, evalDist_map,
         evalDist_uniformFin, PMF.toOuterMeasure_map_apply, Set.preimage, Set.mem_def,
         PMF.toOuterMeasure_apply_fintype, Set.indicator, PMF.uniformOfFintype_apply,
         Fintype.card_fin, Nat.cast_add, Nat.cast_one, Set.mem_setOf_eq, ↓reduceIte,
@@ -134,7 +134,7 @@ lemma uniformSelectVector_eq_uniformSelectList [Inhabited α] (xs : Vector α (n
 @[simp]
 lemma evalDist_uniformSelectVector (xs : Vector α (n + 1)) :
     evalDist ($ xs) = (PMF.uniformOfFintype (Fin (n + 1))).map (xs[·]) := by
-  simp only [uniformSelectVector_def, getElem_fin, evalDist_map, evalDist_uniformFin]
+  simp only [uniformSelectVector_def, Fin.getElem_fin, evalDist_map, evalDist_uniformFin]
 
 @[simp]
 lemma support_uniformSelectVector (xs : Vector α (n + 1)) :
@@ -230,8 +230,9 @@ end uniformSelectFinset
 section SelectableType
 
 /-- A `SelectableType β` instance means that `β` is a finite inhabited type,
-with an explicit list of the elements in the type (usually some non-canonical choice).
-We need to have an explicit vector, rather than just a `Finset` to make this computable. -/
+with a computation that selects uniformly at random from the type.
+In general this isn't possible without the axiom of choice, so we include this
+to get a computable version of selection. -/
 class SelectableType (β : Type) [Fintype β] [Inhabited β] where
   selectElem : OracleComp unifSpec β
   probOutput_selectElem (x : β) : [= x | selectElem] = (↑(Fintype.card β))⁻¹
@@ -290,6 +291,12 @@ instance : SelectableType Bool where
           Finset.card_filter, Finset.sum_fin_eq_sum_range, Finset.range_succ,
           Finset.sum_insert this]
         simpa [getElem] using one_add_one_eq_two
+
+instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
+    [SelectableType α] [SelectableType β] : SelectableType (α × β) where
+  selectElem := (·, ·) <$> ($ᵗ α) <*> ($ᵗ β)
+  probOutput_selectElem := λ (x, y) ↦ by
+    sorry
 
 end instances
 

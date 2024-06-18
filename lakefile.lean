@@ -11,7 +11,6 @@ package VCVio where
   ]
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "master"
--- require aesop from git "https://github.com/leanprover-community/aesop" @ "master"
 require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 
 -- Main folder for crypto-specific constructions and definitions
@@ -20,8 +19,3 @@ require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 -- Seperate section of the project for things that should be ported
 lean_lib ToMathlib
 lean_lib Examples
-
--- Unused import detection, copied from mathlib
-lean_exe shake where
-  root := `Shake.Main
-  supportInterpreter := true

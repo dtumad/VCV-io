@@ -24,7 +24,7 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
 lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
     (∑ i : Fin (xs.length), if p xs[i] then 1 else 0) = xs.countP p := by
   induction xs with
-  | nil => simp only [List.countP_nil, List.length_nil, Finset.univ_eq_empty, getElem_fin,
+  | nil => simp only [List.countP_nil, List.length_nil, Finset.univ_eq_empty, Fin.getElem_fin,
       List.getElem_eq_get, Fin.eta, Finset.sum_boole, Finset.filter_congr_decidable,
       Finset.not_mem_empty, IsEmpty.forall_iff, Finset.filter_true_of_mem, Finset.card_empty,
       CharP.cast_eq_zero]

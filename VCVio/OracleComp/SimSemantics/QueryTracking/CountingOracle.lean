@@ -32,14 +32,18 @@ open OracleComp
 
 -- end OracleSpec
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec Function
 
-def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
-    spec →[ι → ℕ]ₛₒ spec :=
-  λ i t qc ↦ (·, Function.update qc i (qc i + 1)) <$> query i t
+def countingOracle {ι : Type} [DecidableEq ι]
+    {spec : OracleSpec ι} : spec →[ι → ℕ]ₛₒ spec :=
+  λ i t qc ↦ (·, update qc i (qc i + 1)) <$> query i t
 
 namespace countingOracle
 
--- port
+variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
+
+@[simp]
+lemma apply_eq (i : ι) (t : spec.domain i) :
+    countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
 
 end countingOracle
