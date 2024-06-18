@@ -46,7 +46,7 @@ def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W r PC SC Ω P)
   -- Verify a signature by checking the challenge returned by the random oracle
   verify := λ n pk m (c, s) ↦ do
     let r' ← query (Sum.inr ()) (m, c)
-    sigmaAlg.verify n pk c r' s
+    return sigmaAlg.verify n pk c r' s
   -- Simulation includes an additional cache for random oracle
   baseState := λ n ↦ sigmaAlg.baseState n × QueryCache _
   -- Add an empty cache to initial state
