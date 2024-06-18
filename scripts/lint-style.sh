@@ -6,7 +6,7 @@ set -exo pipefail
 
 # ## Usage
 
-# Run this script from the root of project using:
+# Run this script from the root of mathlib using:
 # ./scripts/lint-style.sh
 
 # ## Purpose
@@ -39,10 +39,8 @@ touch scripts/style-exceptions.txt
 
 git ls-files 'VCVio/*.lean' | xargs ./scripts/lint-style.py "$@"
 git ls-files 'Examples/*.lean' | xargs ./scripts/lint-style.py "$@"
-# These can be linted on port really
-# git ls-files 'ToMathlib/*.lean' | xargs ./scripts/lint-style.py "$@"
 
-# 2. Global checks on the project repository
+# 2. Global checks on the mathlib repository
 
 # 2.1 Check for executable bit on Lean files
 
