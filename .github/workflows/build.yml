@@ -16,7 +16,7 @@ jobs:
     name: Check Library File Imports
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout
+      - uses: actions/checkout@v4
 
       - name: update VCVio.lean
         run: |
@@ -37,7 +37,7 @@ jobs:
           ./elan-init -y --default-toolchain none
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - uses: actions/checkout
+      - uses: actions/checkout@v4
 
       - name: build project
         run: |
@@ -63,7 +63,7 @@ jobs:
         with:
           python-version: 3.8
 
-      - uses: actions/checkout
+      - uses: actions/checkout@v4
 
       - name: lint
         run: |
