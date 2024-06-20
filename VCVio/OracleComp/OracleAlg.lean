@@ -20,20 +20,20 @@ according to the specified simulation oracle
 open OracleSpec OracleComp
 
 structure OracleAlg {ι : Type} (spec : ℕ → OracleSpec ι) where
-  baseState (sp : ℕ) : Type
-  init_state (sp : ℕ) : baseState sp
-  baseSimOracle (sp : ℕ) : spec sp →[baseState sp]ₛₒ unifSpec
+  baseState (n : ℕ) : Type
+  init_state (n : ℕ) : baseState sp
+  baseSimOracle (n : ℕ) : spec n →[baseState sp]ₛₒ unifSpec
 
 structure Protocol {ι : Type} (spec : ℕ → OracleSpec ι) where
-  baseState (sp : ℕ) : Type
-  init_state (sp : ℕ) : baseState sp
-  baseSimOracle (sp : ℕ) : spec sp →[baseState sp]ₛₒ unifSpec
+  baseState (n : ℕ) : Type
+  init_state (n : ℕ) : baseState sp
+  baseSimOracle (n : ℕ) : spec n →[baseState n]ₛₒ unifSpec
 
 namespace OracleAlg
 
 variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β γ : Type}
 
-def exec (alg : OracleAlg spec) (sp : ℕ)
+def exec (alg : OracleAlg spec) (n : ℕ)
     (oa : OracleComp (spec sp) α) : OracleComp unifSpec α :=
   simulate' (alg.baseSimOracle sp) (alg.init_state sp) oa
 

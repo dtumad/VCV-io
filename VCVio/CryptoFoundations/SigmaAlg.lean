@@ -14,8 +14,10 @@ This file defines a structure type for Σ-protocols.
 open OracleSpec OracleComp
 
 /-- A sigma protocol for statements in `X`, witnesses in `W`,
+where `p` is the proposition that is proven by the Σ-protocol.
+
 commitments in `PC`/`SC`, verifier challenges in `Ω`,
-and proofs in `P`. `r` is the relation on statements and witnesses to be proven.
+and responses in `P`. `r` is the relation on statements and witnesses to be proven.
 
 We have two types for the commitments in order to allow for a public part in `PC`
 and secret part in `SC`. Only the commitment in `PC` is revealed to the verifier,
@@ -23,7 +25,7 @@ but the `prove` function may still use `SC` in generating a proof.
 
 We leave properties like special soundness as seperate definitions for better modularity.-/
 structure SigmaAlg {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    (X W : ℕ → Type) (p : {n : ℕ} → X n → W n → Bool)
     (PC SC Ω P : ℕ → Type) extends OracleAlg spec where
   commit (n : ℕ) : X n → W n → OracleComp (spec n) (PC n × SC n)
   respond (n : ℕ) : X n → W n → SC n → Ω n → OracleComp (spec n) (P n)

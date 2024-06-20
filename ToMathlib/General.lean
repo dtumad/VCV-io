@@ -20,6 +20,15 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
   rw [Finset.sum_eq_card_nsmul (λ _ _ ↦ rfl), Finset.card_univ,
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
 
+-- lemma Fin.sum_succ {α β : Type} [AddCommMonoid β]
+--     (n : ℕ) (f : Fin (n + 1) → β) :
+--     ∑ i : Fin (n + 1), f i = (∑ i : Fin n, f i) + f n := by
+--   simp
+--   rw [Fin.sum_univ_eq_sum_range]
+
+
+
+
 /-- Summing `1` over list indices that satisfy a predicate is just `countP` applied to `p`. -/
 lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
     (∑ i : Fin (xs.length), if p xs[i] then 1 else 0) = xs.countP p := by
@@ -28,12 +37,21 @@ lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
       List.getElem_eq_get, Fin.eta, Finset.sum_boole, Finset.filter_congr_decidable,
       Finset.not_mem_empty, IsEmpty.forall_iff, Finset.filter_true_of_mem, Finset.card_empty,
       CharP.cast_eq_zero]
-  | cons x xs h => {
+  | cons y xs h => {
     rw [List.countP_cons]
-    cases hp : p x
+    simp_rw [← h, length_cons]
+    simp only [Nat.succ_eq_add_one, Fin.getElem_fin, getElem_eq_get, length_cons, Fin.eta,
+      Finset.sum_boole, Nat.cast_id]
+
+    cases hp : p y
+    · simp [h]
+
+      -- rw [Multiset.countP_eq_card_filter]
+      sorry
     · simp [h]
       sorry
-    · sorry }
+      -- simp_rw [get_cons]
+       }
 
 @[simp]
 lemma Vector.getElem_eq_get {α n} (xs : Vector α n) (i : ℕ) (h : i < n) :
