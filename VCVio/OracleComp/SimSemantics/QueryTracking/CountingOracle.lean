@@ -11,6 +11,9 @@ import VCVio.OracleComp.SimSemantics.Simulate
 This file defines a simulation oracle `countingOracle` for counting the number of queries made
 while running the computation. The count is represented by a function from oracle indices to
 counts, allowing each oracle to be tracked individually.
+
+Tracking individually is not necessary, but gives tighter security bounds in some cases.
+It also allows for generating things like seed values for a computation more tightly.
 -/
 
 open OracleComp
@@ -40,10 +43,66 @@ def countingOracle {ι : Type} [DecidableEq ι]
 
 namespace countingOracle
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
+variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
 @[simp]
 lemma apply_eq (i : ι) (t : spec.domain i) :
     countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
+
+/-- Reduce membership in the support of simulation with counting to membership in simulation
+starting with the count at `0`. -/
+lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
+    z ∈ (simulate countingOracle qc oa).support ↔
+      ∃ qc', (z.1, qc') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc' = z.2 := by
+  revert qc
+  induction oa using OracleComp.inductionOn with
+  | h_pure a => {
+    simp [Prod.eq_iff_fst_eq_snd_eq, and_assoc, eq_comm]
+  }
+  | h_queryBind i t oa hoa => {
+    simp
+    intro qc
+    refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
+    · obtain ⟨u, hu⟩ := h
+      rw [hoa] at hu
+      obtain ⟨qc', hqc', hqc''⟩ := hu
+      refine ⟨update qc' i (qc' i + 1), ⟨u, ?_⟩, ?_⟩
+      · rw [hoa]
+        simp
+        refine ⟨qc', hqc', ?_⟩
+        simp [funext_iff]
+        intro j
+        by_cases hij : j = i
+        · induction hij
+          simp [add_comm 1]
+        · simp [Function.update_noteq hij]
+      · simp [funext_iff, ← hqc'']
+        intro j
+        by_cases hij : j = i
+        · induction hij
+          simp [add_comm 1]
+          ring_nf
+        · simp [Function.update_noteq hij]
+    · obtain ⟨qc', ⟨u, hu⟩, hqc'⟩ := h
+      refine ⟨u, ?_⟩
+      rw [hoa]
+      rw [hoa] at hu
+      simp at hu
+      obtain ⟨qc'', hqc'', hu⟩ := hu
+      refine ⟨qc'', hqc'', ?_⟩
+      rw [← hqc', ← hu]
+      simp [funext_iff]
+      intro j
+      by_cases hij : j = i
+      · induction hij
+        simp
+        ring_nf
+      · simp [Function.update_noteq hij]
+  }
+
+lemma support_simulate_mono (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
+    (h : z ∈ (simulate countingOracle qc oa).support) : qc ≤ z.2 := by
+  -- rw [mem_support_]
+  sorry
 
 end countingOracle
