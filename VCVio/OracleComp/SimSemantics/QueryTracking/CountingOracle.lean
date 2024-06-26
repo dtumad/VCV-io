@@ -16,29 +16,10 @@ Tracking individually is not necessary, but gives tighter security bounds in som
 It also allows for generating things like seed values for a computation more tightly.
 -/
 
-open OracleComp
-
--- namespace OracleSpec
-
--- @[inline, reducible]
--- def QueryCount (spec : OracleSpec) : Type := spec.ι → ℕ
-
--- variable {spec : OracleSpec}
-
--- def QueryCount.increment (qc : spec.QueryCount) (i : spec.ι) (n : ℕ) : spec.QueryCount :=
---   Function.update qc i (qc i + n)
-
--- def QueryCount.decrement (qc : spec.QueryCount) (i : spec.ι) (n : ℕ) : spec.QueryCount :=
---   Function.update qc i (qc i - n)
-
--- instance : Zero (QueryCount spec) := ⟨λ _ ↦ 0⟩
-
--- end OracleSpec
-
 open OracleComp OracleSpec Function
 
-def countingOracle {ι : Type} [DecidableEq ι]
-    {spec : OracleSpec ι} : spec →[ι → ℕ]ₛₒ spec :=
+def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
+    spec →[ι → ℕ]ₛₒ spec :=
   λ i t qc ↦ (·, update qc i (qc i + 1)) <$> query i t
 
 namespace countingOracle
@@ -50,17 +31,18 @@ lemma apply_eq (i : ι) (t : spec.domain i) :
     countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
 
 /-- Reduce membership in the support of simulation with counting to membership in simulation
-starting with the count at `0`. -/
+starting with the count at `0`.
+TODO: lemmas like this suggest maybe support shouldn't auto reduce? -/
 lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
     z ∈ (simulate countingOracle qc oa).support ↔
       ∃ qc', (z.1, qc') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc' = z.2 := by
   revert qc
   induction oa using OracleComp.inductionOn with
-  | h_pure a => {
-    simp [Prod.eq_iff_fst_eq_snd_eq, and_assoc, eq_comm]
-  }
+  | h_pure a => simp [Prod.eq_iff_fst_eq_snd_eq, and_assoc, eq_comm]
   | h_queryBind i t oa hoa => {
-    simp
+    simp only [simulate_bind, simulate_query, apply_eq, support_bind, support_map, support_query,
+      Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Set.mem_iUnion,
+      Pi.zero_apply, zero_add]
     intro qc
     refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
     · obtain ⟨u, hu⟩ := h
@@ -68,7 +50,6 @@ lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : 
       obtain ⟨qc', hqc', hqc''⟩ := hu
       refine ⟨update qc' i (qc' i + 1), ⟨u, ?_⟩, ?_⟩
       · rw [hoa]
-        simp
         refine ⟨qc', hqc', ?_⟩
         simp [funext_iff]
         intro j
@@ -102,7 +83,7 @@ lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : 
 
 lemma support_simulate_mono (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
     (h : z ∈ (simulate countingOracle qc oa).support) : qc ≤ z.2 := by
-  -- rw [mem_support_]
-  sorry
+  rw [mem_support_simulate_iff] at h
+  exact let ⟨qc', _, h⟩ := h; h ▸ le_self_add
 
 end countingOracle

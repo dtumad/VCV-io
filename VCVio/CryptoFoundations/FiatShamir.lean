@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
-import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
+import VCVio.OracleComp.SimSemantics.QueryTracking.RandOracle
 import VCVio.OracleComp.Coercions.Append
 
 /-!
