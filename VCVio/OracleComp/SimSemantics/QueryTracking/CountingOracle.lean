@@ -18,6 +18,8 @@ It also allows for generating things like seed values for a computation more tig
 
 open OracleComp OracleSpec Function
 
+/-- Oracle for counting the number of queries made by a computation. The count is stored as a
+function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
     spec →[ι → ℕ]ₛₒ spec :=
   λ i t qc ↦ (·, update qc i (qc i + 1)) <$> query i t
@@ -30,60 +32,39 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 lemma apply_eq (i : ι) (t : spec.domain i) :
     countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
 
+/-- We can always reduce the initial state of simulation with a counting oracle to start with a
+count of zero, and add the initial count back on at the end. -/
+lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
+    (simulate countingOracle qc oa).support =
+      Prod.map id (qc + ·) '' (simulate countingOracle 0 oa).support := by
+  revert qc
+  induction oa using OracleComp.inductionOn with
+  | h_pure a => simp
+  | h_queryBind i t oa hoa =>
+      refine λ qc ↦ ?_
+      simp only [simulate_bind, simulate_query, apply_eq, support_bind, support_map, support_query,
+        Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Prod.map_apply,
+        id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
+      refine Set.iUnion_congr (λ u ↦ ?_)
+      simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
+        ← Set.image_comp, Function.comp, Prod.map_apply, id_eq, ← add_assoc]
+      refine Set.image_congr' (λ z ↦ Prod.eq_iff_fst_eq_snd_eq.2 ⟨rfl, funext (λ j ↦ ?_)⟩)
+      by_cases hij : j = i <;> simp [hij]
+
 /-- Reduce membership in the support of simulation with counting to membership in simulation
 starting with the count at `0`.
 TODO: lemmas like this suggest maybe support shouldn't auto reduce? -/
-lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
+lemma mem_support_simulate_iff_exists (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
     z ∈ (simulate countingOracle qc oa).support ↔
       ∃ qc', (z.1, qc') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc' = z.2 := by
-  revert qc
-  induction oa using OracleComp.inductionOn with
-  | h_pure a => simp [Prod.eq_iff_fst_eq_snd_eq, and_assoc, eq_comm]
-  | h_queryBind i t oa hoa => {
-    simp only [simulate_bind, simulate_query, apply_eq, support_bind, support_map, support_query,
-      Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Set.mem_iUnion,
-      Pi.zero_apply, zero_add]
-    intro qc
-    refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
-    · obtain ⟨u, hu⟩ := h
-      rw [hoa] at hu
-      obtain ⟨qc', hqc', hqc''⟩ := hu
-      refine ⟨update qc' i (qc' i + 1), ⟨u, ?_⟩, ?_⟩
-      · rw [hoa]
-        refine ⟨qc', hqc', ?_⟩
-        simp [funext_iff]
-        intro j
-        by_cases hij : j = i
-        · induction hij
-          simp [add_comm 1]
-        · simp [Function.update_noteq hij]
-      · simp [funext_iff, ← hqc'']
-        intro j
-        by_cases hij : j = i
-        · induction hij
-          simp [add_comm 1]
-          ring_nf
-        · simp [Function.update_noteq hij]
-    · obtain ⟨qc', ⟨u, hu⟩, hqc'⟩ := h
-      refine ⟨u, ?_⟩
-      rw [hoa]
-      rw [hoa] at hu
-      simp at hu
-      obtain ⟨qc'', hqc'', hu⟩ := hu
-      refine ⟨qc'', hqc'', ?_⟩
-      rw [← hqc', ← hu]
-      simp [funext_iff]
-      intro j
-      by_cases hij : j = i
-      · induction hij
-        simp
-        ring_nf
-      · simp [Function.update_noteq hij]
-  }
+  rw [support_simulate]
+  simp only [Prod.map_apply, id_eq, Set.mem_image, Prod.eq_iff_fst_eq_snd_eq, Prod.exists]
+  refine ⟨λ h ↦ let ⟨x, qc', h, hx, hqc'⟩ := h; ⟨qc', hx ▸ ⟨h, hqc'⟩⟩,
+    λ h ↦ let ⟨qc', h, hqc'⟩ := h; ⟨z.1, qc', h, rfl, hqc'⟩⟩
 
-lemma support_simulate_mono (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
+lemma le_of_mem_support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
     (h : z ∈ (simulate countingOracle qc oa).support) : qc ≤ z.2 := by
-  rw [mem_support_simulate_iff] at h
+  rw [mem_support_simulate_iff_exists] at h
   exact let ⟨qc', _, h⟩ := h; h ▸ le_self_add
 
 end countingOracle
