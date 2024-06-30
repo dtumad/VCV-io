@@ -53,7 +53,7 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
 
 /-- Reduce membership in the support of simulation with counting to membership in simulation
 starting with the count at `0`.
-TODO: lemmas like this suggest maybe support shouldn't auto reduce? -/
+TODO: lemmas like this suggest maybe support shouldn't auto reduce on the computation type? -/
 lemma mem_support_simulate_iff_exists (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
     z ∈ (simulate countingOracle qc oa).support ↔
       ∃ qc', (z.1, qc') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc' = z.2 := by

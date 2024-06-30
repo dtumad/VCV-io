@@ -9,6 +9,9 @@ import VCVio.OracleComp.Constructions.UniformSelect
 /-!
 # Caching Queries Made by a Computation
 
+This file defines a simulation oracle `cachingOracle` for caching queries to the oracles,
+querying fresh values if needed. This is mainly used for constructing random oracles that will
+further respond uniformly to queries.
 -/
 
 open OracleComp OracleSpec
@@ -71,8 +74,7 @@ end QueryCache
 end OracleSpec
 
 /-- Oracle for caching queries to the oracles in `spec`, querying fresh values if needed. -/
-def cachingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
-    spec →[QueryCache spec]ₛₒ spec :=
+def cachingOracle : spec →[QueryCache spec]ₛₒ spec :=
   λ i t cache ↦ cache.lookup_or_else i t (query i t)
 
 namespace cachingOracle

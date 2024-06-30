@@ -31,7 +31,9 @@ random new value if it doesn't already exist. -/
 @[simp]
 lemma apply_eq (i : ι) (t : spec.domain i) (cache : QueryCache spec) :
     randOracle i t cache = cache.lookup_or_else i t ($ᵗ spec.range i) := by
-  simp [randOracle, Functor.map_map, Function.comp, QueryCache.lookup_or_else]
+  simp only [randOracle, SimOracle.maskState_apply, Equiv.prodPUnit_symm_apply,
+    SimOracle.compose_apply, cachingOracle.apply_eq, QueryCache.lookup_or_else, Functor.map_map,
+    Function.comp, Prod.map_apply, id_eq, Equiv.prodPUnit_apply, Prod.mk.eta]
   cases cache i t
   · simp [map_eq_bind_pure_comp]
   · simp
