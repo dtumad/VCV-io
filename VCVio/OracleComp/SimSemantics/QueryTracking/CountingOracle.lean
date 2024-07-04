@@ -49,7 +49,7 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
       simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
         ← Set.image_comp, Function.comp, Prod.map_apply, id_eq, ← add_assoc]
       refine Set.image_congr' (λ z ↦ Prod.eq_iff_fst_eq_snd_eq.2 ⟨rfl, funext (λ j ↦ ?_)⟩)
-      by_cases hij : j = i <;> simp [hij]
+      by_cases hij : j = i <;> simp [hij, add_assoc]
 
 /-- Reduce membership in the support of simulation with counting to membership in simulation
 starting with the count at `0`.

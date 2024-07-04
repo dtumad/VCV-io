@@ -34,13 +34,13 @@ lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
     (∑ i : Fin (xs.length), if p xs[i] then 1 else 0) = xs.countP p := by
   induction xs with
   | nil => simp only [List.countP_nil, List.length_nil, Finset.univ_eq_empty, Fin.getElem_fin,
-      List.getElem_eq_get, Fin.eta, Finset.sum_boole, Finset.filter_congr_decidable,
+      getElem?_eq_getElem, Fin.eta, Finset.sum_boole, Finset.filter_congr_decidable,
       Finset.not_mem_empty, IsEmpty.forall_iff, Finset.filter_true_of_mem, Finset.card_empty,
       CharP.cast_eq_zero]
   | cons y xs h => {
     rw [List.countP_cons]
     simp_rw [← h, length_cons]
-    simp only [Nat.succ_eq_add_one, Fin.getElem_fin, getElem_eq_get, length_cons, Fin.eta,
+    simp only [Nat.succ_eq_add_one, Fin.getElem_fin, getElem?_eq_getElem, length_cons, Fin.eta,
       Finset.sum_boole, Nat.cast_id]
 
     cases hp : p y
