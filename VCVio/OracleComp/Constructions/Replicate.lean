@@ -14,7 +14,7 @@ returning the result as a list of length `n`.
 Note that while the executions are independent, they may no longer be after calling `simulate`.
 -/
 
-open OracleSpec Vector
+open OracleSpec Mathlib
 
 namespace OracleComp
 

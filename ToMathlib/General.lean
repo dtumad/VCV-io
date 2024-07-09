@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import Mathlib.Data.Finset.Card
 import Mathlib.Topology.Instances.ENNReal
+import Mathlib.Data.Vector.Defs
 
 /-!
 # Lemmas to be Ported to Mathlib
@@ -13,7 +14,7 @@ This file gives a centralized location to add lemmas that belong better
 in general mathlib than in the project itself.
 -/
 
-open BigOperators ENNReal
+open Mathlib BigOperators ENNReal
 
 lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
   Finset.sum Finset.univ (λ _ ↦ (Fintype.card α)⁻¹ : α → ℝ≥0∞) = 1 := by
@@ -56,6 +57,3 @@ lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
 @[simp]
 lemma Vector.getElem_eq_get {α n} (xs : Vector α n) (i : ℕ) (h : i < n) :
   xs[i]'h = xs.get ⟨i, h⟩ := rfl
-
--- Tracking things to port vs. new generated `sorry`
-axiom alignPort {α : Sort*} : α

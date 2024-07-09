@@ -13,7 +13,7 @@ This file defines some computations for selecting uniformly at random from a num
 of different collections, using `unifSpec` to make the random choices.
 -/
 
-open OracleSpec BigOperators ENNReal
+open Mathlib OracleSpec BigOperators ENNReal
 
 namespace OracleComp
 
