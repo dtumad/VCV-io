@@ -36,7 +36,7 @@ def SchnorrSigmaAlg (G P : ℕ → Type)
     [HomogeneousSpace G P] :
   SigmaAlg (λ _ ↦ unifSpec)
     -- Relation is the knowledge of vectorization `sk`
-    (r := λ (x₀, pk) sk ↦ pk = sk +ᵥ x₀)
+    (p := λ (x₀, pk) sk ↦ pk = sk +ᵥ x₀)
     -- Public statement is a pair of points
     (X := λ n ↦ P n × P n)
     -- Witness is their vectorization
@@ -56,10 +56,9 @@ def SchnorrSigmaAlg (G P : ℕ → Type)
   respond := λ n _ sk gs bs ↦ do
     return gs.zipWith (λ g b ↦
       if b then g else g + sk) bs
-  verify := λ n (x₀, pk) xs bs zs ↦ do
-    let xs' := zs.zipWith (λ z b ↦
+  verify := λ n (x₀, pk) xs bs zs ↦
+    xs = zs.zipWith (λ z b ↦
       if b then z +ᵥ pk else z +ᵥ x₀) bs
-    return xs = xs'
   sim := λ n _ ↦ do
     $ᵗ Vector (P n) (n + 1)
   extract := λ n _ zs₁ _ zs₂ ↦ do

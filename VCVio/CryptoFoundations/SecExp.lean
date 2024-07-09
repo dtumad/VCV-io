@@ -53,6 +53,8 @@ variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β : Type}
 noncomputable def advantage (exp : SecExp spec) (n : ℕ) : ℝ≥0∞ :=
     [= true | exp.exec n (exp.main n)]
 
+
+
 -- lemma advantage_eq (exp : SecExp spec α) :
 --     exp.advantage = [= true | exp.exec (exp.inpGen >>= exp.main)] := rfl
 

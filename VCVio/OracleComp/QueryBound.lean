@@ -20,28 +20,53 @@ namespace OracleComp
 
 section IsQueryBound
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α : Type}
+variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
 /-- Bound on the number of queries made by a computation, given by a map from oracles to counts. -/
 def IsQueryBound (oa : OracleComp spec α) (qb : ι → ℕ) : Prop :=
-    ∀ count ∈ (snd <$> simulate countingOracle 0 oa).support, count ≤ qb
+    ∀ qc ∈ (snd <$> simulate countingOracle 0 oa).support, qc ≤ qb
 
 lemma isQueryBound_def (oa : OracleComp spec α) (qb : ι → ℕ) : IsQueryBound oa qb ↔
-    ∀ count ∈ (snd <$> simulate countingOracle 0 oa).support, count ≤ qb := Iff.rfl
+    ∀ qc ∈ (snd <$> simulate countingOracle 0 oa).support, qc ≤ qb := Iff.rfl
 
+@[simp]
+lemma isQueryBound_pure (a : α) (qb : ι → ℕ) :
+    IsQueryBound (pure a : OracleComp spec α) qb := by
+  simp [isQueryBound_def]
+
+@[simp]
 lemma isQueryBound_query_iff (i : ι) (t : spec.domain i) (qb : ι → ℕ) :
     IsQueryBound (query i t) qb ↔ 0 < qb i := by
   simp [isQueryBound_def, Nat.lt_iff_add_one_le, zero_add]
-  refine ⟨?_, ?_⟩
-  · intro h
-    specialize h i
-    rwa [Function.update_same] at h
-  · intro h
-    intro j
-    by_cases hij : j = i
-    · induction hij
-      simpa using h
-    · simp [Function.update_noteq hij]
+  refine ⟨λ h ↦ le_of_eq_of_le (symm <| Function.update_same i 1 0) (h i), λ h j ↦ ?_⟩
+  by_cases hij : j = i
+  · induction hij
+    simpa using h
+  · simp [Function.update_noteq hij]
+
+lemma isQueryBound_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) (qb₁ qb₂ : ι → ℕ)
+    (h1 : IsQueryBound oa qb₁) (h2 : ∀ x, IsQueryBound (ob x) qb₂) :
+    IsQueryBound (oa >>= ob) (qb₁ + qb₂) := by
+  intros count h
+  simp at h
+  obtain ⟨y, x, count', h, h'⟩ := h
+  specialize h1 count'
+  rw [support_map] at h1
+
+  specialize h1 ⟨⟨x, count'⟩, h, rfl⟩
+  sorry
+
+
+-- lemma isQueryBound_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (qb : ι → ℕ) :
+--     IsQueryBound (oa >>= ob) qb ↔ ∃ (qb₁ : ι → ℕ) (qb₂ : α → ι → ℕ), IsQueryBound oa qb₁ ∧
+--       ∀ x, IsQueryBound (ob x) (qb₂ x) ∧ qb ≤ qb₁ + qb₂ x  := by
+--   simp_rw [isQueryBound_def (oa >>= ob), simulate_bind, map_bind, mem_support_bind_iff]
+--   sorry
+
+@[simp]
+lemma isQueryBound_map_iff (oa : OracleComp spec α) (f : α → β) (qb : ι → ℕ) :
+    IsQueryBound (f <$> oa) qb ↔ IsQueryBound oa qb := by
+  simp [isQueryBound_def]
 
 end IsQueryBound
 

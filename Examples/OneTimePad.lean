@@ -23,10 +23,9 @@ def oneTimePad : SymmEncAlg (λ _ ↦ unifSpec)
 
 namespace oneTimePad
 
-theorem isSound (n : ℕ) : (oneTimePad).isSound := by
-  have : ∀ ys xs : Vector Bool n, (ys.zipWith xor xs).zipWith xor xs = ys :=
-    λ ys xs ↦ Vector.ext (λ i ↦ by simp)
-  sorry
+-- theorem isSound (n : ℕ) : (oneTimePad).isSound := by
+--   have : ∀ ys xs : Vector Bool n, (ys.zipWith xor xs).zipWith xor xs = ys :=
+--     λ ys xs ↦ Vector.ext (λ i ↦ by simp)
   -- simpa [oneTimePad, SymmEncAlg.soundnessExp] using this
 
 end oneTimePad

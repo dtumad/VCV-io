@@ -78,15 +78,23 @@ lemma support_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
       simpa [bind_assoc, ← queryBind'_eq_queryBind, support, hoa]
         using Set.iUnion_comm _
 
+lemma mem_support_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
+    y ∈ (oa >>= ob).support ↔ ∃ x ∈ oa.support, y ∈ (ob x).support := by simp
+
 @[simp]
-lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    [DecidableEq α] → [DecidableEq β] →
-    (oa >>= ob).finSupport = oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) := by
+lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
+    [hoa : DecidableEq α] [hob : DecidableEq β] : (oa >>= ob).finSupport =
+      oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) := by
+  revert hoa; revert hob
   induction oa using OracleComp.inductionOn with
   | h_pure _ => simp
   | h_queryBind i t oa hoa =>
       intros hα hβ; apply Finset.coe_inj.1
       simpa [bind_assoc, ← queryBind'_eq_queryBind, finSupport, hoa] using Set.iUnion_comm _
+
+lemma mem_finSupport_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β)
+    [hoa : DecidableEq α] [hob : DecidableEq β] (y : β) : y ∈ (oa >>= ob).finSupport ↔
+      ∃ x ∈ oa.finSupport, y ∈ (ob x).finSupport := by simp
 
 /-- The support of a computation is finite when viewed as a type. -/
 instance support_finite (oa : OracleComp spec α) : Finite ↥oa.support := by

@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
-import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
+import VCVio.OracleComp.SimSemantics.QueryTracking.RandOracle
 import VCVio.OracleComp.Coercions.Append
 
 /-!
@@ -19,7 +19,7 @@ For simplicity we construct signature schemes rather than general proofs of know
 open OracleComp OracleSpec
 
 variable {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    (X W : ℕ → Type) (p : {n : ℕ} → X n → W n → Bool)
     (PC SC Ω P : ℕ → Type)
     [Π n, Inhabited (Ω n)]
     [Π n, DecidableEq (PC n)]
@@ -29,8 +29,8 @@ variable {ι : Type} (spec : ℕ → OracleSpec ι)
 
 /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
 challenge values for the Σ-protocol, including the message in the hash input. -/
-def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W r PC SC Ω P)
-    [Π n, DecidableEq (M n)] [hr : GenerableRelation X W r]
+def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W p PC SC Ω P)
+    [Π n, DecidableEq (M n)] [hr : GenerableRelation X W p]
     [Π n, unifSpec ⊂ₒ spec n] :
     SignatureAlg (λ n ↦ spec n ++ₒ (M n × PC n →ₒ Ω n))
       (M := M) (PK := X) (SK := W)
@@ -46,7 +46,7 @@ def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W r PC SC Ω P)
   -- Verify a signature by checking the challenge returned by the random oracle
   verify := λ n pk m (c, s) ↦ do
     let r' ← query (Sum.inr ()) (m, c)
-    sigmaAlg.verify n pk c r' s
+    return sigmaAlg.verify n pk c r' s
   -- Simulation includes an additional cache for random oracle
   baseState := λ n ↦ sigmaAlg.baseState n × QueryCache _
   -- Add an empty cache to initial state

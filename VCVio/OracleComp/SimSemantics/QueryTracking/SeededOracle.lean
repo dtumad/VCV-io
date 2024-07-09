@@ -8,40 +8,40 @@ import VCVio.OracleComp.SimSemantics.Simulate
 /-!
 # Seeding Results of Queries
 
+This file defines a simulation oracle `seededOracle` for pre-choosing the responses to queries.
+The internal state is a list of seeded values for each oracle, and the simulation will use these
+when possible, defaulting back to the original behavior if the seed doesn't have enough values.
+
+We also clear the remaining seed if any single oracle fails to have enough seed values.
+This simplifies a number of lemmas by making the computation revert to its original behavior.
 -/
 
 open OracleComp OracleSpec BigOperators
 
-variable {ι : Type} {spec : OracleSpec ι}
+variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
 
 namespace OracleSpec
 
+/-- Type to represent a store of seed values to use in a computation, represented as a function.
+Updates to individual seed lists are performed via continuation passing. -/
 def QuerySeed (spec : OracleSpec ι) : Type :=
   (i : ι) → List (spec.range i)
 
 namespace QuerySeed
 
--- instance : Coe (QuerySeed spec) (QueryCount spec) where
---   coe := λ qs i ↦ (qs i).length
-
--- def toCount (qs : QuerySeed spec) : QueryCount spec := λ i ↦ (qs i).length
-
 instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
 
-def addValue [DecidableEq ι] (qs : QuerySeed spec) (i : ι) (u : spec.range i) : QuerySeed spec :=
-  Function.update qs i (qs i ++ [u])
+/-- Add a list of values to the query seed.-/
+def addValues (seed : QuerySeed spec) {i : ι} (us : List (spec.range i)) : QuerySeed spec :=
+  Function.update seed i (seed i ++ us)
 
-def addValues [DecidableEq ι] (qs : QuerySeed spec) {i : ι}
-    (us : List (spec.range i)) : QuerySeed spec :=
-  Function.update qs i (qs i ++ us)
---   -- λ j ↦ qs j ++ if h : j = i then h ▸ us else ∅
+/-- Add a single value into the seed, by adding a singleton list -/
+def addValue (seed : QuerySeed spec) {i : ι} (u : spec.range i) : QuerySeed spec :=
+  seed.addValues [u]
 
--- def takeAtIndex (qs : QuerySeed spec) {i : spec.ι}
---     (n : ℕ) : QuerySeed spec :=
---   λ j ↦ if j = i then (qs j).take n else qs j
-
--- def append (qs qs' : QuerySeed spec) : QuerySeed spec :=
---   λ i ↦ qs i ++ qs' i
+/-- Take only the first `n` values of the seed at index `i`. -/
+def takeAtIndex (seed : QuerySeed spec) (i : ι) (n : ℕ) : QuerySeed spec :=
+  Function.update seed i ((seed i).take n)
 
 end QuerySeed
 
