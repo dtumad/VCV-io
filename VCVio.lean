@@ -31,5 +31,6 @@ import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle
+import VCVio.OracleComp.SimSemantics.QueryTracking.RandOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.SeededOracle
 import VCVio.OracleComp.SimSemantics.Simulate
