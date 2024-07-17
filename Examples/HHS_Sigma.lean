@@ -13,7 +13,7 @@ import Mathlib.Data.Vector.Zip
 TODO: this should come from Fiat-Shamir instead
 -/
 
-open OracleSpec OracleComp OracleAlg Sum
+open Mathlib OracleSpec OracleComp OracleAlg Sum
 
 section commits
 
