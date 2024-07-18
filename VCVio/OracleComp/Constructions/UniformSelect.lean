@@ -19,13 +19,19 @@ namespace OracleComp
 
 /-- Typeclass to implement the notation `$ xs` for selecting an object uniformly from a collection.
 The container type is given by `cont` with the resulting type given by `β`. -/
-class HasUniformSelect (cont : Type) (β : outParam Type) where
+class HasUniformSelect (cont : Type) (β : outParam Type) [DecidableEq β] where
   uniformSelect : cont → OracleComp unifSpec β
-  supp : cont → Set β
+  supp : cont → Finset β
+  supp_nonempty (xs : cont) : (supp xs).Nonempty
+  evalDist_uniformSelect (xs : cont) :
+    evalDist (uniformSelect xs) = PMF.uniformOfFinset (supp xs) (supp_nonempty xs)
+  -- probOutput_uniformSelect (xs : cont) (x : β) :
+  --   [= x | uniformSelect xs] = if x ∈ (supp xs) then ((supp xs).card : ℝ≥0∞)⁻¹ else 0
 
 /-- Given a selectable object, we can get a random element by indexing into the element vector. -/
-def uniformSelect {cont : Type} (β : Type) [h : HasUniformSelect cont β] (xs : cont) :
-    OracleComp unifSpec β := h.uniformSelect xs
+def uniformSelect {cont : Type} (β : Type) [DecidableEq β]
+    [h : HasUniformSelect cont β] (xs : cont) : OracleComp unifSpec β :=
+  h.uniformSelect xs
 
 prefix : 50 "$" => uniformSelect _
 
@@ -35,21 +41,29 @@ section uniformSelectList
 If the list is empty we instead just return the default value from an `Inhabited` instance.
 This means selecting from a vector is often preferable, as we can prove at the type level
 that there is an element in the list, avoiding the defualt case on empty lists. -/
-instance hasUniformSelectList (α : Type) [Inhabited α] :
+instance hasUniformSelectList (α : Type) [Inhabited α] [DecidableEq α] :
     HasUniformSelect (List α) α where
   uniformSelect := λ xs ↦ match xs with
     | [] => return default
     | x :: xs => ((x :: xs)[·]) <$> $[0..xs.length]
-  supp := λ xs ↦ {x | x ∈ xs}
+  supp := λ xs ↦ if xs = [] then {default} else xs.toFinset
+  supp_nonempty := λ xs ↦ by cases xs <;> simp
+  evalDist_uniformSelect := λ xs ↦ by match xs with
+    | [] => {
+      refine PMF.ext (λ x ↦ ?_)
+      simp
+      congr
+    }
+    | x :: xs => sorry
 
 @[simp]
-lemma uniformSelectList_nil (α : Type) [Inhabited α] :
+lemma uniformSelectList_nil (α : Type) [Inhabited α] [DecidableEq α] :
     ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
 
-lemma uniformSelectList_cons {α : Type} [Inhabited α] (x : α) (xs : List α) :
+lemma uniformSelectList_cons {α : Type} [Inhabited α] [DecidableEq α] (x : α) (xs : List α) :
     ($ x :: xs : OracleComp unifSpec α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
 
-variable {α : Type} [Inhabited α]
+variable {α : Type} [Inhabited α] [DecidableEq α]
 
 @[simp]
 lemma evalDist_uniformSelectList (xs : List α) :
@@ -113,15 +127,17 @@ end uniformSelectList
 section uniformSelectVector
 
 /-- Select a random element from a vector by indexing into it with a uniform value. -/
-instance hasUniformSelectVector (α : Type) (n : ℕ) :
+instance hasUniformSelectVector (α : Type) [DecidableEq α] (n : ℕ) :
     HasUniformSelect (Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
-  supp := λ xs ↦ {x | x ∈ xs.toList}
+  supp := λ xs ↦ xs.toList.toFinset
+  supp_nonempty := sorry
+  evalDist_uniformSelect := sorry
 
-lemma uniformSelectVector_def {α : Type} {n : ℕ} (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Vector α (n + 1)) :
     ($ xs) = (xs[·]) <$> $[0..n] := rfl
 
-variable {α : Type} {n : ℕ}
+variable {α : Type} [DecidableEq α] {n : ℕ}
 
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
@@ -170,12 +186,14 @@ section uniformSelectFinset
 /-- Choose a random element from a finite set, by converting to a list and choosing from that.
 This is noncomputable as we don't have a canoncial ordering for the resulting list,
 so generally this should be avoided when possible. -/
-noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] :
+noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] [DecidableEq α] :
     HasUniformSelect (Finset α) α where
   uniformSelect := λ s ↦ $ s.toList
-  supp := λ s ↦ ↑s
+  supp := λ s ↦ if s.Nonempty then s else {default}
+  supp_nonempty := sorry
+  evalDist_uniformSelect := sorry
 
-lemma uniformSelectFinset_def {α : Type} [Inhabited α] (s : Finset α) :
+lemma uniformSelectFinset_def {α : Type} [Inhabited α] [DecidableEq α] (s : Finset α) :
     ($ s) = ($ s.toList) := rfl
 
 variable {α : Type} [Inhabited α]
