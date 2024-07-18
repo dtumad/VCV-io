@@ -21,6 +21,7 @@ namespace OracleComp
 The container type is given by `cont` with the resulting type given by `β`. -/
 class HasUniformSelect (cont : Type) (β : outParam Type) where
   uniformSelect : cont → OracleComp unifSpec β
+  supp : cont → Set β
 
 /-- Given a selectable object, we can get a random element by indexing into the element vector. -/
 def uniformSelect {cont : Type} (β : Type) [h : HasUniformSelect cont β] (xs : cont) :
@@ -39,6 +40,7 @@ instance hasUniformSelectList (α : Type) [Inhabited α] :
   uniformSelect := λ xs ↦ match xs with
     | [] => return default
     | x :: xs => ((x :: xs)[·]) <$> $[0..xs.length]
+  supp := λ xs ↦ {x | x ∈ xs}
 
 @[simp]
 lemma uniformSelectList_nil (α : Type) [Inhabited α] :
@@ -114,6 +116,7 @@ section uniformSelectVector
 instance hasUniformSelectVector (α : Type) (n : ℕ) :
     HasUniformSelect (Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
+  supp := λ xs ↦ {x | x ∈ xs.toList}
 
 lemma uniformSelectVector_def {α : Type} {n : ℕ} (xs : Vector α (n + 1)) :
     ($ xs) = (xs[·]) <$> $[0..n] := rfl
@@ -170,6 +173,7 @@ so generally this should be avoided when possible. -/
 noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] :
     HasUniformSelect (Finset α) α where
   uniformSelect := λ s ↦ $ s.toList
+  supp := λ s ↦ ↑s
 
 lemma uniformSelectFinset_def {α : Type} [Inhabited α] (s : Finset α) :
     ($ s) = ($ s.toList) := rfl

@@ -122,8 +122,6 @@ lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n
   --   }
   -- }
 
-#check Vector
-
 @[simp]
 lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
     (replicate oa n).support = {xs | ∀ x ∈ xs.toList, x ∈ oa.support} := by
@@ -135,5 +133,13 @@ instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
     SelectableType (Vector α n) where
   selectElem := (λ xs ↦ Vector.ofFn (λ i ↦ xs[i]!)) <$> replicate ($ᵗ α) n
   probOutput_selectElem := sorry
+
+/-- Choosing `n` random elements uniformly at random is the same as choosing
+a vector of length `n` uniformly at random. -/
+lemma evalDist_replicate_uniformFintype (α : Type) [Fintype α] [Inhabited α]
+    [SelectableType α] (n : ℕ) :
+    evalDist (($ᵗ α).replicate n) = evalDist ($ᵗ Vector α n) :=
+  sorry
+
 
 end OracleComp

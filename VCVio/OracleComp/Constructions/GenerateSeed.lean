@@ -16,7 +16,7 @@ which
 
 -/
 
-open OracleSpec ENNReal BigOperators
+open Mathlib OracleSpec ENNReal BigOperators
 
 namespace OracleComp
 
@@ -26,7 +26,7 @@ def generateSeedAux [DecidableEq ι] (qc : ι → ℕ) : List ι → QuerySeed s
     OracleComp unifSpec (QuerySeed spec)
   | [], seed => return seed
   | j :: js, seed => do
-      let xs ← replicate ($ᵗ (spec.range j)) (qc j)
+      let xs ← Vector.toList <$> replicate ($ᵗ (spec.range j)) (qc j)
       generateSeedAux qc js (Function.update seed j (seed j ++ xs))
 
 def generateSeed [DecidableEq ι] (qc : ι → ℕ) (activeOracles : List ι) :
