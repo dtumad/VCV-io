@@ -27,12 +27,12 @@ protected def runIO {α : Type} : OracleComp unifSpec α → IO α
   | queryBind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
 
 private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
-  let xs ← (replicate $[0..4] trials).runIO
-  IO.println ("Num 0s: " ++ toString (xs.count 0))
-  IO.println ("Num 1s: " ++ toString (xs.count 1))
-  IO.println ("Num 2s: " ++ toString (xs.count 2))
-  IO.println ("Num 3s: " ++ toString (xs.count 3))
-  IO.println ("Num 4s: " ++ toString (xs.count 4))
+  let xs ← (replicateᵥ $[0..4] trials).runIO
+  IO.println ("Num 0s: " ++ toString (xs.1.count 0))
+  IO.println ("Num 1s: " ++ toString (xs.1.count 1))
+  IO.println ("Num 2s: " ++ toString (xs.1.count 2))
+  IO.println ("Num 3s: " ++ toString (xs.1.count 3))
+  IO.println ("Num 4s: " ++ toString (xs.1.count 4))
 
 -- #eval lawLargeNumsTest 2000
 

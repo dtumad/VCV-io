@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.OracleComp.DistSemantics.Seq
 
 /-!
 # Running a Computation Multiple Times
@@ -21,15 +22,19 @@ namespace OracleComp
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 /-- Run the computation `oa` repeatedly `n` times to get a list of `n` results. -/
-def replicate (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) :=
-  match n with
-    | 0 => return []
-    | (n + 1) => (· :: ·) <$> oa <*> replicate oa n
+def replicate (oa : OracleComp spec α) : ℕ → OracleComp spec (List α)
+  | 0 => return []
+  | n + 1 => (· :: ·) <$> oa <*> replicate oa n
 
-@[simp low]
+-- TODO: Decide if a version like this is better?
+def replicateᵥ (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Vector α n)
+  | 0 => return Vector.nil
+  | n + 1 => (· ::ᵥ ·) <$> oa <*> replicateᵥ oa n
+
+@[simp]
 lemma replicate_zero (oa : OracleComp spec α) : oa.replicate 0 = return [] := rfl
 
-@[simp low]
+@[simp]
 lemma replicate_succ (oa : OracleComp spec α) (n : ℕ) :
     oa.replicate (n + 1) = (· :: ·) <$> oa <*> replicate oa n := rfl
 
@@ -42,20 +47,34 @@ lemma replicate_add (oa : OracleComp spec α) (n m : ℕ) :
   | succ n hn => simp only [Nat.succ_add, replicate_succ, map_eq_bind_pure_comp,
       Function.comp, hn, seq_eq_bind, bind_assoc, pure_bind, List.cons_append]
 
+lemma List.Injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
+  sorry
+
 @[simp]
 lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : List α) :
     [= xs | replicate oa n] = if xs.length = n then (xs.map ([= · | oa])).prod else 0 := by
-  induction n with
-  | zero => {
+  match xs with
+  | [] => sorry
+  | x :: xs => {
+    induction n with
+    | zero => sorry
+    | succ n hn => {
       sorry
-      -- cases xs
-      -- · simp
-      -- · simp
+    }
   }
-  | succ n => {
-      -- simp
-      sorry
-  }
+  -- induction n with
+  -- | zero => cases xs <;> simp
+  -- | succ n hn => {
+  --   match xs with
+  --   | [] => simp
+  --   | x :: xs => {
+  --     rw [replicate_succ]
+  --     rw [probOutput_seq_map_eq_mul_of_injective2 _ _ _ (List.Injective2_cons)]
+
+
+
+  --   }
+  -- }
 
 @[simp]
 lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
