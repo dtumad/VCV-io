@@ -134,7 +134,8 @@ variable {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
 
 -- @[simp] lemma fin_support_seq_map [decidable_eq α] [decidable_eq β] [decidable_eq γ] :
 --   (f <$> oa <*> ob).fin_support = finset.image₂ f oa.fin_support ob.fin_support :=
--- by simp_rw [fin_support_eq_iff_support_eq_coe, finset.coe_image₂, coe_fin_support, support_seq_map]
+-- by simp_rw [fin_support_eq_iff_support_eq_coe, finset.coe_image₂,
+  --coe_fin_support, support_seq_map]
 
 -- lemma eval_dist_seq_map : ⁅f <$> oa <*> ob⁆ = (⁅oa⁆.map f).seq ⁅ob⁆ :=
 -- by rw [eval_dist_seq, eval_dist_map]
