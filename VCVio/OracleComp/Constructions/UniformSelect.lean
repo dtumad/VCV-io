@@ -131,7 +131,7 @@ instance hasUniformSelectVector (α : Type) [DecidableEq α] (n : ℕ) :
     HasUniformSelect (Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
   supp := λ xs ↦ xs.toList.toFinset
-  supp_nonempty := sorry
+  supp_nonempty := λ xs ↦ match xs with | ⟨x :: xs, _⟩ => by simp
   evalDist_uniformSelect := sorry
 
 lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Vector α (n + 1)) :
@@ -190,7 +190,8 @@ noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] [Decida
     HasUniformSelect (Finset α) α where
   uniformSelect := λ s ↦ $ s.toList
   supp := λ s ↦ if s.Nonempty then s else {default}
-  supp_nonempty := sorry
+  supp_nonempty := λ xs ↦ by
+    by_cases hxs : xs.Nonempty <;> simp [hxs]
   evalDist_uniformSelect := sorry
 
 lemma uniformSelectFinset_def {α : Type} [Inhabited α] [DecidableEq α] (s : Finset α) :
