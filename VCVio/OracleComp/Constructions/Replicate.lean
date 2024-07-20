@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.Seq
+import VCVio.OracleComp.DistSemantics.HEq
 
 /-!
 # Running a Computation Multiple Times
@@ -63,14 +64,14 @@ lemma replicate_zero_add (n : ℕ) : oa.replicate (0 + n) = (zero_add n).symm �
   eq_of_heq <| (replicate_zero_add_heq oa n).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
 
 lemma support_replicate_zero_add_heq (n : ℕ) :
-    HEq (oa.replicate (0 + n)).support (oa.replicate n).support := by
-  cases h : 0 + n <;> {rw [zero_add] at h; cases h; rfl}
+    HEq (oa.replicate (0 + n)).support (oa.replicate n).support :=
+  support_heq_of_heq <| replicate_zero_add_heq oa n
 
 lemma support_replicate_zero_add (n : ℕ) : (oa.replicate (0 + n)).support =
     (zero_add n).symm ▸ (oa.replicate n).support :=
-  eq_of_heq <|  (support_replicate_zero_add_heq oa n).trans <|
-    (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+  eq_of_heq <| (heq_eqRec_iff_heq _ _ _).2 (support_replicate_zero_add_heq oa n)
 
+-- TODO: update with heq proofs
 lemma finSupport_replicate_zero_add_heq (n : ℕ) [DecidableEq α]:
     HEq (oa.replicate (0 + n)).finSupport (oa.replicate n).finSupport := by
   cases h : 0 + n <;> {rw [zero_add] at h; cases h; rfl}
