@@ -126,7 +126,8 @@ lemma replicate_add_comm_heq (n m : ℕ) : HEq (oa.replicate (n + m)) (oa.replic
       cases h
       rfl
 
-lemma replicate_add_comm (n m : ℕ) : oa.replicate (n + m) = add_comm n m ▸ oa.replicate (m + n) := by
+lemma replicate_add_comm (n m : ℕ) : oa.replicate (n + m) =
+    add_comm n m ▸ oa.replicate (m + n) := by
   refine eq_of_heq <| (replicate_add_comm_heq oa n m).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
 
 end comm

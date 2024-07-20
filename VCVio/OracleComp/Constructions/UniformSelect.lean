@@ -51,7 +51,8 @@ instance hasUniformSelectList (α : Type) [Inhabited α] [DecidableEq α] :
   evalDist_uniformSelect := λ xs ↦ by match xs with
     | [] => {
       refine PMF.ext (λ x ↦ ?_)
-      simp
+      simp only [evalDist_pure, PMF.pure_apply, ↓reduceIte, PMF.uniformOfFinset_apply,
+        Finset.mem_singleton, Finset.card_singleton, Nat.cast_one, inv_one]
       congr
     }
     | x :: xs => sorry
