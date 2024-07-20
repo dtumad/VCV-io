@@ -31,27 +31,80 @@ def replicate (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Vector 
   | 0 => pure Vector.nil
   | n + 1 => (· ::ᵥ ·) <$> oa <*> replicate oa n
 
-variable (oa : OracleComp spec α) (n m : ℕ)
+variable (oa : OracleComp spec α)-- (n : ℕ)
 
 @[simp]
 lemma replicate_zero : oa.replicate 0 = pure Vector.nil := rfl
 
 @[simp]
-lemma replicate_succ : oa.replicate (n + 1) = (· ::ᵥ ·) <$> oa <*> replicate oa n := rfl
+lemma replicate_succ (n : ℕ) : oa.replicate (n + 1) = (· ::ᵥ ·) <$> oa <*> replicate oa n := rfl
 
-lemma replicate_add_zero : oa.replicate (n + 0) = oa.replicate n := by simp
+@[simp] -- mathlib
+lemma vector_eq_nil (xs : Vector α 0) : xs = Vector.nil :=
+  Vector.ext (IsEmpty.forall_iff.2 True.intro)
+
+/-- Repeating a specific value just returns a list of that element repeated. -/
+lemma replicate_pure (x : α) (n : ℕ) :
+    (pure x : OracleComp spec α).replicate n = pure (Vector.replicate n x) := by
+  induction n with
+  | zero => simp
+  | succ n hn => simp [hn]
 
 section zero_add
 
 /-- Running a computation `0 + n` times is the same as running it `n` times.
 Because `0 + n` and `n` are not definitionally equal, regular equality will not typecheck. -/
-lemma replicate_zero_add_heq : HEq (oa.replicate (0 + n)) (oa.replicate n) := by
+lemma replicate_zero_add_heq (n : ℕ) : HEq (oa.replicate (0 + n)) (oa.replicate n) := by
   cases h : 0 + n <;> {rw [zero_add] at h; cases h; rfl}
 
 /-- Running a computation `0 + n` times is the same as running it `n` times.
 Requires substituting the equality between the two to properly typecheck the vector types. -/
-lemma replicate_zero_add : oa.replicate (0 + n) = (zero_add n).symm ▸ oa.replicate n := by
-  refine eq_of_heq <| (replicate_zero_add_heq oa n).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+lemma replicate_zero_add (n : ℕ) : oa.replicate (0 + n) = (zero_add n).symm ▸ oa.replicate n :=
+  eq_of_heq <| (replicate_zero_add_heq oa n).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+
+lemma support_replicate_zero_add_heq (n : ℕ) :
+    HEq (oa.replicate (0 + n)).support (oa.replicate n).support := by
+  cases h : 0 + n <;> {rw [zero_add] at h; cases h; rfl}
+
+lemma support_replicate_zero_add (n : ℕ) : (oa.replicate (0 + n)).support =
+    (zero_add n).symm ▸ (oa.replicate n).support :=
+  eq_of_heq <|  (support_replicate_zero_add_heq oa n).trans <|
+    (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+
+lemma finSupport_replicate_zero_add_heq (n : ℕ) [DecidableEq α]:
+    HEq (oa.replicate (0 + n)).finSupport (oa.replicate n).finSupport := by
+  cases h : 0 + n <;> {rw [zero_add] at h; cases h; rfl}
+
+lemma finSupport_replicate_zero_add (n : ℕ) [DecidableEq α] :
+    (oa.replicate (0 + n)).finSupport = (zero_add n).symm ▸ (oa.replicate n).finSupport :=
+  eq_of_heq <| (finSupport_replicate_zero_add_heq oa n).trans <|
+    (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+
+lemma evalDist_replicate_zero_add_heq (n : ℕ) :
+    HEq (evalDist (oa.replicate (0 + n))) (evalDist (oa.replicate n)) := by
+  cases h : 0 + n <;> {rw [zero_add] at h; cases h; rfl}
+
+lemma evalDist_replicate_zero_add (n : ℕ) :
+    evalDist (oa.replicate (0 + n)) = (zero_add n).symm ▸ evalDist (oa.replicate n) :=
+  eq_of_heq <| (evalDist_replicate_zero_add_heq oa n).trans <|
+    (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+
+@[simp]
+lemma probOutput_replicate_zero_add (n : ℕ) (xs : Vector α (0 + n)) :
+    let hxs : xs.1.length = n := (Vector.length_val xs).trans (zero_add n)
+    [= xs | oa.replicate (0 + n)] = [= ⟨xs.1, hxs⟩ | oa.replicate n] := by
+  have h : [= xs | oa.replicate (0 + n)] = [= (zero_add n).symm ▸ xs | oa.replicate n] :=
+  by congr <;> simp
+  refine h.trans ?_
+  congr
+  refine eq_of_heq (HEq.symm ?_)
+  rw [heq_eqRec_iff_heq]
+  congr <;> try simp
+
+-- @[simp]
+lemma probEvent_replicate_zero_add (n : ℕ) (xss : Set (Vector α (0 + n))) :
+    [xss | oa.replicate (0 + n)] = [(zero_add n).symm ▸ xss | oa.replicate n] := by
+  congr <;> simp
 
 end zero_add
 
@@ -59,7 +112,7 @@ section comm
 
 /-- Running a computation `n + m` times is the same as running it `n` times then `m` times.
 Because `n + m` and `m + n` are not definitionally equal, regular equality will not typecheck. -/
-lemma replicate_add_comm_heq : HEq (oa.replicate (n + m)) (oa.replicate (m + n)) := by
+lemma replicate_add_comm_heq (n m : ℕ) : HEq (oa.replicate (n + m)) (oa.replicate (m + n)) := by
   cases h : n + m
   · cases h' : m + n
     · exact HEq.rfl
@@ -72,7 +125,7 @@ lemma replicate_add_comm_heq : HEq (oa.replicate (n + m)) (oa.replicate (m + n))
       cases h
       rfl
 
-lemma replicate_add_comm : oa.replicate (n + m) = add_comm n m ▸ oa.replicate (m + n) := by
+lemma replicate_add_comm (n m : ℕ) : oa.replicate (n + m) = add_comm n m ▸ oa.replicate (m + n) := by
   refine eq_of_heq <| (replicate_add_comm_heq oa n m).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
 
 end comm
@@ -83,9 +136,9 @@ lemma replicate_add (oa : OracleComp spec α) (n m : ℕ) :
     (replicate oa (n + m)) = Vector.append <$> replicate oa n <*> replicate oa m := by
   induction n with
   | zero => {
+    simp [seq_eq_bind]
     refine eq_of_heq ((replicate_zero_add_heq oa m).trans ?_)
 
-    simp [seq_eq_bind, map_eq_bind_pure_comp, Function.comp]
     sorry
   }
   | succ n hn => {
@@ -93,7 +146,8 @@ lemma replicate_add (oa : OracleComp spec α) (n m : ℕ) :
   }
 
 lemma List.Injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
-  sorry
+  intro x y xs ys h
+  simpa only [List.cons.injEq] using h -- TODO
 
 @[simp]
 lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n) :
