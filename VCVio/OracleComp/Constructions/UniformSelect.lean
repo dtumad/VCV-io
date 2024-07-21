@@ -55,7 +55,12 @@ instance hasUniformSelectList (α : Type) [Inhabited α] [DecidableEq α] :
         Finset.mem_singleton, Finset.card_singleton, Nat.cast_one, inv_one]
       congr
     }
-    | x :: xs => sorry
+    | x :: xs => {
+      refine PMF.ext (λ y ↦ ?_)
+      simp
+      sorry
+
+    }
 
 @[simp]
 lemma uniformSelectList_nil (α : Type) [Inhabited α] [DecidableEq α] :
@@ -193,7 +198,15 @@ noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] [Decida
   supp := λ s ↦ if s.Nonempty then s else {default}
   supp_nonempty := λ xs ↦ by
     by_cases hxs : xs.Nonempty <;> simp [hxs]
-  evalDist_uniformSelect := sorry
+  evalDist_uniformSelect := λ xs ↦
+    by induction xs using Finset.induction_on with
+    | empty => {
+      refine PMF.ext (λ y ↦ ?_)
+      by_cases h : y = default
+      simp [h]
+      simp [h]
+    }
+    | insert h h' => sorry
 
 lemma uniformSelectFinset_def {α : Type} [Inhabited α] [DecidableEq α] (s : Finset α) :
     ($ s) = ($ s.toList) := rfl
