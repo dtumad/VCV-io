@@ -181,7 +181,10 @@ lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n
 @[simp]
 lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
     (replicate oa n).support = {xs | ∀ x ∈ xs.toList, x ∈ oa.support} := by
-  sorry
+  refine Set.ext (λ xs ↦ ?_)
+  rw [← probOutput_pos_iff, probOutput_replicate]
+  simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
+    and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, Set.mem_setOf_eq]
 
 /-- Vectors can be selected uniformly if the underlying type can be.
 Note: this isn't very efficient as an actual implementation in practice. -/
