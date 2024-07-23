@@ -12,6 +12,16 @@ import Mathlib.Data.Vector.Zip
 TODO: this should come from Fiat-Shamir instead
 -/
 
+-- def statelessSimOracle {ι : Type} {spec : OracleSpec}
+
+open OracleSpec OracleComp
+
+-- Given a computation that answers queries, construct a `SimOracle`
+def statelessOracle {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+    (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i)) :
+    spec →[Unit]ₛₒ spec' :=
+  λ i t _ ↦ (·, ()) <$> f i t
+
 -- open OracleSpec OracleComp Sum
 
 -- section commits
