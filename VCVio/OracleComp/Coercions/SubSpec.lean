@@ -78,32 +78,39 @@ lemma probEvent_toFun (i : ι₁) (t : spec.domain i)
   rw [probEvent_def, h.evalDist_toFun, ← evalDist_query i t, ← probEvent_def,
     probEvent_query_eq_div]
 
-end SubSpec
+section instances
+
+/-- The empty set of oracles is a subspec of any other oracle set.
+We require `ι` to be inhabited to prevent the reflexive case.  -/
+instance {ι : Type} [Inhabited ι] {spec : OracleSpec ι} : []ₒ ⊂ₒ spec where
+  toFun := λ i ↦ Empty.elim i
+  evalDist_toFun' := λ i ↦ Empty.elim i
 
 /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
 instance : coinSpec ⊂ₒ unifSpec where
   toFun := λ () () ↦ $ᵗ Bool
   evalDist_toFun' := λ i t ↦ by simp [evalDist_query i t]
 
+end instances
+
+end SubSpec
+
+
 end OracleSpec
 
 namespace OracleComp
 
-def liftComp {ι₁ ι₂ α : Type} {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂}
-    [h : spec ⊂ₒ superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
+variable {ι₁ ι₂ : Type} {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂} {α β γ : Type}
+
+def liftComp [h : spec ⊂ₒ superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
   simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa
 
-/-- Index change: we may need to manually add these types of instances. Could auto-simp them. -/
-instance (α : Type) : Coe (OracleComp coinSpec α) (OracleComp unifSpec α) where
-  coe := liftComp
-
-
 -- /-- Coerce a computation using the replacement function defined in a `SubSpec` instance. -/
--- instance {ι₁ : Type} (spec : outParam (OracleSpec ι₁))
+-- instance {ι₁ : Type} (spec : OracleSpec ι₁)
 --     {ι₂ : Type} (superSpec : OracleSpec ι₂)
 --     [h : spec ⊂ₒ superSpec] (α : Type) :
 --     Coe (OracleComp spec α) (OracleComp superSpec α) where
---       coe := λ oa ↦ simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa
+--   coe := liftComp
 
 -- variable {ι₁ ι₂ : Type} {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂}
 --   [h : spec ⊂ₒ superSpec] {α β : Type}
@@ -157,5 +164,21 @@ instance (α : Type) : Coe (OracleComp coinSpec α) (OracleComp unifSpec α) whe
 -- lemma probEvent_coe_subSpec (oa : OracleComp spec α) (p : α → Prop) :
 --     [p | (↑oa : OracleComp superSpec α)] = [p | oa] := by
 --   simp only [probEvent_def, evalDist_coe_subSpec]
+
+/-- A computation with no oracles can be viewed as one with any other set of oracles. -/
+instance coe_subSpec_empty {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type} :
+    Coe (OracleComp []ₒ α) (OracleComp spec α) where
+  coe := liftComp
+
+lemma coe_subSpec_empty_eq_liftComp {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp []ₒ α) : (↑oa : OracleComp spec α) = liftComp oa := rfl
+
+/-- Index change: we may need to manually add these types of instances. Could auto-simp them. -/
+instance coe_subSpec_coinSpec_unifSpec {α : Type} :
+    Coe (OracleComp coinSpec α) (OracleComp unifSpec α) where
+  coe := liftComp
+
+lemma coe_subSpec_coinSpec_unifSpec_eq_liftComp {α : Type} (oa : OracleComp coinSpec α) :
+    (↑oa : OracleComp unifSpec α) = liftComp oa := rfl
 
 end OracleComp
