@@ -12,6 +12,10 @@ import Mathlib.Data.Vector.Zip
 TODO: this should come from Fiat-Shamir instead
 -/
 
+-- def statelessSimOracle {ι : Type} {spec : OracleSpec}
+
+open OracleSpec OracleComp
+
 -- open OracleSpec OracleComp Sum
 
 -- section commits

@@ -67,7 +67,7 @@ lemma probOutput_def (oa : OracleComp spec α) : probOutput oa = ⇑(evalDist oa
 lemma probEvent_def (oa : OracleComp spec α) : probEvent oa = ⇑(evalDist oa).toOuterMeasure := rfl
 
 noncomputable example : ℝ≥0∞ := [= 5 | do let x ← $[0..4]; return x + 1] -- = 1/4
-noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ← $[0..4]; return x] -- = 1/4
+noncomputable example : ℝ≥0∞ := [(· + 1 = 5) | do let x ← $[0..4]; return x] -- = 1/4
 
 section bounds
 
@@ -202,20 +202,20 @@ lemma probEvent_ext' [DecidableEq α] (h : ∀ x ∈ oa.finSupport, p x ↔ q x)
     (probEvent_mono' <| λ x hx hp ↦ (h x hx).2 hp)
 
 @[simp]
-lemma function_support_probOutput : Function.support ([= . | oa]) = oa.support := by
+lemma function_support_probOutput : Function.support ([= · | oa]) = oa.support := by
   simp only [Function.support, ne_eq, probOutput_eq_zero_iff, not_not, Set.setOf_mem_eq]
 
 @[simp]
-lemma function_support_probEvent : Function.support ([. | oa]) = {p | ∃ x ∈ oa.support, p x} := by
+lemma function_support_probEvent : Function.support ([· | oa]) = {p | ∃ x ∈ oa.support, p x} := by
   simp only [Function.support, ne_eq, probEvent_eq_zero_iff, not_forall, not_not, exists_prop]
 
 end support
 
 @[simp] lemma probEvent_eq_eq_probOutput (oa : OracleComp spec α) (x : α) :
-    [(. = x) | oa] = [= x | oa] :=
+    [(· = x) | oa] = [= x | oa] :=
   PMF.toOuterMeasure_apply_singleton (evalDist oa) x
 @[simp] lemma probEvent_eq_eq_probOutput' (oa : OracleComp spec α) (x : α) :
-    [(x = .) | oa] = [= x | oa] :=
+    [(x = ·) | oa] = [= x | oa] :=
   (probEvent_ext (λ _ _ ↦ eq_comm)).trans (probEvent_eq_eq_probOutput oa x)
 
 section sums
@@ -301,6 +301,17 @@ lemma probOutput_pure [DecidableEq α] (y : α) :
   · exact PMF.pure_apply_of_ne _ _ h
 
 @[simp]
+lemma probOutput_pure_self (x : α) :
+    [= x | (pure x : OracleComp spec α)] = 1 := by
+  simp only [probOutput_eq_one_iff, support_pure,
+    Set.subset_singleton_iff, Set.mem_singleton_iff, imp_self, implies_true]
+
+@[simp]
+lemma probOutput_pure_subsingleton [Subsingleton α] (x y : α) :
+    [= x | (pure y : OracleComp spec α)] = 1 := by
+  simp only [Subsingleton.elim x y, probOutput_pure, ↓reduceIte]
+
+@[simp]
 lemma probEvent_pure (p : α → Prop) [DecidablePred p] :
     [p | (pure x : OracleComp spec α)] = if p x then 1 else 0 :=
   (PMF.toOuterMeasure_pure_apply x p).trans (by congr)
@@ -317,11 +328,11 @@ lemma evalDist_bind : evalDist (oa >>= ob) = (evalDist oa).bind (evalDist ∘ ob
   | h_pure _ => simp only [pure_bind, evalDist_pure, PMF.pure_bind, Function.comp_apply]
   | h_queryBind _ _ _ hoa => simp [bind_assoc, ← queryBind'_eq_queryBind, evalDist, hoa]
 
-@[simp low]
+-- @[simp low]
 lemma probOutput_bind_eq_tsum (y : β) :
     [= y | oa >>= ob] = ∑' x : α, [= x | oa] * [= y | ob x] :=
   by simp [probOutput_def]
-@[simp low]
+-- @[simp low]
 lemma probEvent_bind_eq_tsum (q : β → Prop) :
     [q | oa >>= ob] = ∑' x : α, [= x | oa] * [q | ob x] :=
   by simp [probEvent_def, probOutput_def]
@@ -345,20 +356,20 @@ lemma probEvent_bind_eq_tsum_subtype (q : β → Prop) :
   · rw [Set.indicator_of_mem hx]
   · rw [Set.indicator_of_not_mem hx, probOutput_eq_zero hx, zero_mul]
 
-@[simp]
+-- @[simp]
 lemma probOutput_bind_eq_sum_fintype [Fintype α] (y : β) :
     [= y | oa >>= ob] = ∑ x : α, [= x | oa] * [= y | ob x] :=
   (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum' <| by simp)
-@[simp]
+-- @[simp]
 lemma probEvent_bind_eq_sum_fintype [Fintype α] (q : β → Prop) :
     [q | oa >>= ob] = ∑ x : α, [= x | oa] * [q | ob x] :=
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_eq_sum' <| by simp)
 
-@[simp]
+-- @[simp]
 lemma probOutput_bind_eq_sum_finSupport [DecidableEq α] (y : β) :
     [= y | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [= y | ob x] :=
   (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum' <| by simp)
-@[simp]
+-- @[simp]
 lemma probEvent_bind_eq_sum_finSupport [DecidableEq α] (q : β → Prop) :
     [q | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [q | ob x] :=
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_eq_sum' <| by simp)
@@ -405,7 +416,7 @@ lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
 over all outputs such that they map to the correct final output, using subtypes.
 This lemma notably doesn't require decidable equality on the final type, unlike most
 lemmas about probability when mapping a computation. -/
-@[simp low - 1]
+-- @[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype (y : β) :
     [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
   have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
@@ -415,17 +426,17 @@ lemma probOutput_map_eq_tsum_subtype (y : β) :
   refine (tsum_congr (λ x ↦ ?_))
   by_cases hy : y = f x <;> by_cases hx : x ∈ oa.support <;> simp [hy, hx]
 
-@[simp low - 1]
+-- @[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : oa.support, if y = f x then [= x | oa] else 0 := by
   simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum_subtype]
 
-@[simp low - 1]
+-- @[simp low - 1]
 lemma probOutput_map_eq_tsum_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
-  simp [map_eq_bind_pure_comp]
+  simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum]
 
-@[simp low]
+-- @[simp low]
 lemma probOutput_map_eq_sum_fintype_ite [Fintype α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x : α, if y = f x then [= x | oa] else 0 :=
   (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <| by simp)
@@ -435,9 +446,9 @@ lemma probOutput_map_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq β] (y 
   (probOutput_map_eq_tsum_ite oa f y).trans
     (tsum_eq_sum' <| by simp [mem_finSupport_iff_mem_support])
 
-@[simp]
+-- @[simp]
 lemma probOutput_map_eq_sum_filter_finSupport [DecidableEq α] [DecidableEq β] (y : β) :
-    [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f .), [= x | oa] := by
+    [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f ·), [= x | oa] := by
   rw [Finset.sum_filter, probOutput_map_eq_sum_finSupport_ite]
 
 @[simp]
@@ -487,7 +498,7 @@ lemma evalDist_coin : evalDist coin = PMF.bernoulli 2⁻¹ (by simp) := by
 lemma probOutput_coin (b : Bool) : [= b | coin] = 2⁻¹ := by
   simp [probOutput_def]
 
-@[simp low]
+-- @[simp low]
 lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) : [p | coin] = ∑' x : {x | p x}, 2⁻¹ := by
   simp [probEvent_eq_tsum_subtype]
 
@@ -501,7 +512,8 @@ lemma probEvent_coin (p : Bool → Prop) [DecidablePred p] : [p | coin] =
 example (x : Bool) : [= x | do let b ← coin; let b' ← coin; return xor b b'] = [= x | coin] := by
   have : (↑2 : ℝ≥0∞) ≠ ∞ := by simp
   cases x <;> simp [← mul_two, mul_comm (2 : ℝ≥0∞), mul_assoc,
-    ENNReal.inv_mul_cancel two_ne_zero this]
+    ENNReal.inv_mul_cancel two_ne_zero this, probOutput_bind_eq_sum_fintype]
+
 
 end coin
 
@@ -520,7 +532,7 @@ lemma probOutput_uniformFin (x : Fin (n + 1)) : [= x | $[0..n]] = ((n : ℝ≥0�
 
 /-- Without decidability of `p` we can't explicitly count the number of elements in the output,
 so we instead express the probability of an event as a sum. -/
-@[simp low]
+-- @[simp low]
 lemma probEvent_uniformFin_eq_tsum_subtype (p : Fin (n + 1) → Prop) :
     [p | $[0..n]] = ∑' x : {x | p x}, ((n : ℝ≥0∞) + 1)⁻¹ := by
   simp [probEvent_eq_tsum_subtype]
