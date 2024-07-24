@@ -117,8 +117,6 @@ lemma apply_eq  (i : ι) : statelessOracle f i = λ t _ ↦ (·, ()) <$> f i t :
 
 end statelessOracle
 
-namespace statelessOracle
-
 /-- Simulate a computation using the original oracles by "replacing" queries with queries.
 This operates as an actual identity for `simulate'`, in that we get an exact equality
 between the new and original computation.
