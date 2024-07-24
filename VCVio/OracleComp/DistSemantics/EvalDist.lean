@@ -67,7 +67,7 @@ lemma probOutput_def (oa : OracleComp spec α) : probOutput oa = ⇑(evalDist oa
 lemma probEvent_def (oa : OracleComp spec α) : probEvent oa = ⇑(evalDist oa).toOuterMeasure := rfl
 
 noncomputable example : ℝ≥0∞ := [= 5 | do let x ← $[0..4]; return x + 1] -- = 1/4
-noncomputable example : ℝ≥0∞ := [(. + 1 = 5) | do let x ← $[0..4]; return x] -- = 1/4
+noncomputable example : ℝ≥0∞ := [(· + 1 = 5) | do let x ← $[0..4]; return x] -- = 1/4
 
 section bounds
 
@@ -202,20 +202,20 @@ lemma probEvent_ext' [DecidableEq α] (h : ∀ x ∈ oa.finSupport, p x ↔ q x)
     (probEvent_mono' <| λ x hx hp ↦ (h x hx).2 hp)
 
 @[simp]
-lemma function_support_probOutput : Function.support ([= . | oa]) = oa.support := by
+lemma function_support_probOutput : Function.support ([= · | oa]) = oa.support := by
   simp only [Function.support, ne_eq, probOutput_eq_zero_iff, not_not, Set.setOf_mem_eq]
 
 @[simp]
-lemma function_support_probEvent : Function.support ([. | oa]) = {p | ∃ x ∈ oa.support, p x} := by
+lemma function_support_probEvent : Function.support ([· | oa]) = {p | ∃ x ∈ oa.support, p x} := by
   simp only [Function.support, ne_eq, probEvent_eq_zero_iff, not_forall, not_not, exists_prop]
 
 end support
 
 @[simp] lemma probEvent_eq_eq_probOutput (oa : OracleComp spec α) (x : α) :
-    [(. = x) | oa] = [= x | oa] :=
+    [(· = x) | oa] = [= x | oa] :=
   PMF.toOuterMeasure_apply_singleton (evalDist oa) x
 @[simp] lemma probEvent_eq_eq_probOutput' (oa : OracleComp spec α) (x : α) :
-    [(x = .) | oa] = [= x | oa] :=
+    [(x = ·) | oa] = [= x | oa] :=
   (probEvent_ext (λ _ _ ↦ eq_comm)).trans (probEvent_eq_eq_probOutput oa x)
 
 section sums
@@ -448,7 +448,7 @@ lemma probOutput_map_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq β] (y 
 
 -- @[simp]
 lemma probOutput_map_eq_sum_filter_finSupport [DecidableEq α] [DecidableEq β] (y : β) :
-    [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f .), [= x | oa] := by
+    [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f ·), [= x | oa] := by
   rw [Finset.sum_filter, probOutput_map_eq_sum_finSupport_ite]
 
 @[simp]

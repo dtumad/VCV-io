@@ -98,6 +98,27 @@ end maskState
 
 end SimOracle
 
+/-- Given a indexed computation that computes an oracle output from an oracle input,
+construct a simulation oracle that responds to the queries with that computation.
+
+This assumes no shared state across responses, so we use `Unit` as the state.
+`maskState` is often useful to hide this when appending or composing this. -/
+def statelessOracle {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+    (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i)) : spec →[Unit]ₛₒ spec' :=
+  λ i t _ ↦ (·, ()) <$> f i t
+
+namespace statelessOracle
+
+variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+  (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i))
+
+@[simp]
+lemma apply_eq  (i : ι) : statelessOracle f i = λ t _ ↦ (·, ()) <$> f i t := rfl
+
+end statelessOracle
+
+namespace statelessOracle
+
 /-- Simulate a computation using the original oracles by "replacing" queries with queries.
 This operates as an actual identity for `simulate'`, in that we get an exact equality
 between the new and original computation.
@@ -106,15 +127,14 @@ This can be useful especially with `SimOracle.append`, in order to simulate a si
 in a larger set of oracles, leaving the behavior of other oracles unchanged.
 The relevant spec can usually be inferred automatically, so we leave it implicit. -/
 def idOracle {ι : Type} {spec : OracleSpec ι} : spec →[Unit]ₛₒ spec :=
-  λ i t () ↦ (·, ()) <$> query i t
+  statelessOracle (λ i t ↦ query i t)
 
 namespace idOracle
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 @[simp]
-lemma apply_eq (i : ι) :
-    idOracle (spec := spec) i = λ t _ ↦ ((., ())) <$> query i t := rfl
+lemma apply_eq (i : ι) : idOracle (spec := spec) i = λ t _ ↦ ((·, ())) <$> query i t := rfl
 
 @[simp]
 lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
@@ -136,18 +156,18 @@ The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
 def unifOracle {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)] :
     spec →[Unit]ₛₒ unifSpec :=
-  λ i _ _ ↦ (·, ()) <$> ($ᵗ spec.range i)
+  statelessOracle (λ i _ ↦ $ᵗ spec.range i)
 
 namespace unifOracle
 
 variable {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)] {α β : Type}
 
 @[simp]
-lemma apply_eq (i : ι) : unifOracle i = λ _ _ ↦ (., ()) <$> ($ᵗ spec.range i) := rfl
+lemma apply_eq (i : ι) : unifOracle i = λ _ _ ↦ (·, ()) <$> ($ᵗ spec.range i) := rfl
 
 @[simp]
 lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
-    evalDist (simulate unifOracle u oa) = (evalDist oa).map (., ()) := by
+    evalDist (simulate unifOracle u oa) = (evalDist oa).map (·, ()) := by
   revert u; induction oa using OracleComp.inductionOn with
   | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
   | h_queryBind i t oa hoa => simp [PMF.map, hoa]
@@ -205,9 +225,10 @@ lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop)
 end unifOracle
 
 /-- Simulate a computation by having each oracle return the default value of the query output type
-for all queries. This gives a way to run arbitrary computations to get *some* output. -/
+for all queries. This gives a way to run arbitrary computations to get *some* output.
+Mostly useful in some existence proofs, not usually used in an actual implementation. -/
 def defaultOracle {ι : Type} {spec : OracleSpec ι} : spec →[Unit]ₛₒ []ₒ :=
-  λ _ _ _ ↦ return (default, ())
+  statelessOracle (λ _ _ ↦ return default)
 
 namespace defaultOracle
 

@@ -95,7 +95,7 @@ protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → Oracle
 -- This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
 lemma ite_bind (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
     (ob : α → OracleComp spec β) : ite p oa oa' >>= ob = ite p (oa >>= ob) (oa' >>= ob) :=
-  apply_ite (. >>= ob) p oa oa'
+  apply_ite (· >>= ob) p oa oa'
 
 end Monad
 
