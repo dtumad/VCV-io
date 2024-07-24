@@ -22,27 +22,18 @@ namespace OracleComp
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
-/-- Run the computation `oa` repeatedly `n` times to get a list of `n` results. -/
--- def replicate (oa : OracleComp spec α) : ℕ → OracleComp spec (List α)
---   | 0 => return []
---   | n + 1 => (· :: ·) <$> oa <*> replicate oa n
-
--- TODO: Decide if a version like this is better?
+/-- Run the computation `oa` repeatedly `n` times to get a vector of `n` results. -/
 def replicate (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Vector α n)
   | 0 => pure Vector.nil
   | n + 1 => (· ::ᵥ ·) <$> oa <*> replicate oa n
 
-variable (oa : OracleComp spec α)-- (n : ℕ)
+variable (oa : OracleComp spec α)
 
 @[simp]
 lemma replicate_zero : oa.replicate 0 = pure Vector.nil := rfl
 
 @[simp]
 lemma replicate_succ (n : ℕ) : oa.replicate (n + 1) = (· ::ᵥ ·) <$> oa <*> replicate oa n := rfl
-
-@[simp] -- mathlib
-lemma vector_eq_nil (xs : Vector α 0) : xs = Vector.nil :=
-  Vector.ext (IsEmpty.forall_iff.2 True.intro)
 
 /-- Repeating a specific value just returns a list of that element repeated. -/
 lemma replicate_pure (x : α) (n : ℕ) :
@@ -102,7 +93,7 @@ lemma probOutput_replicate_zero_add (n : ℕ) (xs : Vector α (0 + n)) :
   rw [heq_eqRec_iff_heq]
   congr <;> try simp
 
--- @[simp]
+-- @[simp] TODO: should we simp this with the `subst` there?
 lemma probEvent_replicate_zero_add (n : ℕ) (xss : Set (Vector α (0 + n))) :
     [xss | oa.replicate (0 + n)] = [(zero_add n).symm ▸ xss | oa.replicate n] := by
   congr <;> simp
@@ -126,15 +117,14 @@ lemma replicate_add_comm_heq (n m : ℕ) : HEq (oa.replicate (n + m)) (oa.replic
       cases h
       rfl
 
-lemma replicate_add_comm (n m : ℕ) : oa.replicate (n + m) =
-    add_comm n m ▸ oa.replicate (m + n) := by
+lemma replicate_add_comm (n m : ℕ) : oa.replicate (n + m) = add_comm n m ▸ oa.replicate (m + n) := by
   refine eq_of_heq <| (replicate_add_comm_heq oa n m).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
 
 end comm
 
 /-- Running a computation `0 + n` times is the same as running it `n` times.
 Requires substituting the equality between the two to properly typecheck the vector types. -/
-lemma replicate_add (oa : OracleComp spec α) (n m : ℕ) :
+lemma replicate_add_eq_seq_map (oa : OracleComp spec α) (n m : ℕ) :
     (replicate oa (n + m)) = Vector.append <$> replicate oa n <*> replicate oa m := by
   induction n with
   | zero => {
@@ -146,10 +136,6 @@ lemma replicate_add (oa : OracleComp spec α) (n m : ℕ) :
   | succ n hn => {
     sorry
   }
-
-lemma List.Injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
-  intro x y xs ys h
-  simpa only [List.cons.injEq] using h -- TODO
 
 @[simp]
 lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n) :
@@ -186,6 +172,8 @@ lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
   simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
     and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, Set.mem_setOf_eq]
 
+section SelectableTypeVector
+
 /-- Vectors can be selected uniformly if the underlying type can be.
 Note: this isn't very efficient as an actual implementation in practice. -/
 instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
@@ -200,5 +188,6 @@ lemma evalDist_replicate_uniformFintype (α : Type) [Fintype α] [Inhabited α]
     evalDist (($ᵗ α).replicate n) = evalDist ($ᵗ Vector α n) :=
   sorry
 
+end SelectableTypeVector
 
 end OracleComp

@@ -27,7 +27,24 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
 --   simp
 --   rw [Fin.sum_univ_eq_sum_range]
 
+@[simp] -- mathlib
+lemma vector_eq_nil {α : Type} (xs : Vector α 0) : xs = Vector.nil :=
+  Vector.ext (IsEmpty.forall_iff.2 True.intro)
 
+lemma List.injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
+  simp [Function.Injective2]
+
+lemma Vector.injective2_cons {α : Type} {n : ℕ} :
+    Function.Injective2 (Vector.cons : α → Vector α n → Vector α (n + 1)) := by
+  simp [Function.Injective2, Vector.eq_cons_iff]
+
+lemma Prod.mk.injective2 {α β : Type} :
+    Function.Injective2 (Prod.mk : α → β → α × β) := by
+  simp [Function.Injective2]
+
+lemma Function.injective2_swap_iff {α β γ : Type} (f : α → β → γ) :
+    f.swap.Injective2 ↔ f.Injective2 :=
+  ⟨λ h _ _ _ _ h' ↦ and_comm.1 (h h'), λ h _ _ _ _ h' ↦ and_comm.1 (h h')⟩
 
 
 /-- Summing `1` over list indices that satisfy a predicate is just `countP` applied to `p`. -/
