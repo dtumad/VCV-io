@@ -40,8 +40,6 @@ touch scripts/style-exceptions.txt
 git ls-files 'VCVio/*.lean' | xargs ./scripts/lint-style.py "$@"
 git ls-files 'Examples/*.lean' | xargs ./scripts/lint-style.py "$@"
 
-# 2. Global checks on the mathlib repository
-
 # 2.1 Check for executable bit on Lean files
 
 executable_files="$(find . -name '*.lean' -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \))"
