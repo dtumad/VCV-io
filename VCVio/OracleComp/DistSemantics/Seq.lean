@@ -39,7 +39,18 @@ lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)]
 lemma evalDist_seq : evalDist (og <*> oa) = (evalDist og).seq (evalDist oa) := by
   simp [PMF.ext_iff, seq_eq_bind_map, ← ENNReal.tsum_mul_left]
 
-end basic
+-- lemma probOutput_seq_eq_tsum_indicator (y : β) :
+--     [= y | og <*> oa] = ∑' (g : α → β) (x : α),
+--       [= g | og] * (g ⁻¹' {y}).indicator (evalDist oa) x := by
+--   simp [seq_eq_bind, probOutput_bind_eq_tsum,
+--     probOutput_map_eq_tsum_indicator, ← ENNReal.tsum_mul_left]
+
+lemma probOutput_seq_eq_tsum_ite [DecidableEq β] (y : β) :
+    [= y | og <*> oa] = ∑' (g : α → β) (x : α),
+      if y = g x then [= g | og] * [= x | oa] else 0 := by
+  simp [seq_eq_bind, probOutput_bind_eq_tsum,
+    probOutput_map_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+
 
 -- lemma prob_output_seq_eq_tsum_indicator (y : β) :
 --   ⁅= y | og <*> oa⁆ = ∑' (g : α → β) x, ⁅= g | og⁆ * (g ⁻¹' {y}).indicator ⁅oa⁆ x :=
@@ -66,17 +77,11 @@ end basic
 -- by simp_rw [prob_event_seq_eq_tsum, prob_event_eq_tsum_ite, ← ennreal.tsum_mul_left,
 --   mul_ite, mul_zero]
 
--- end seq
-
--- section seq_assoc
-
--- protected lemma oracle_comp.seq_assoc (oa : oracle_comp spec α) (ob : oracle_comp spec (α → β))
---   (oc : oracle_comp spec (β → γ)) : oc <*> (ob <*> oa) = (∘) <$> oc <*> ob <*> oa :=
--- by simp [seq_eq_bind_map, map_eq_bind_pure_comp, bind_assoc]
-
--- end seq_assoc
+end basic
 
 section seq_map
+
+variable (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ)
 
 -- lemma seq_dist_equiv_seq {oa oa' : oracle_comp spec α} {og og' : oracle_comp spec (α → β)}
 --   (h1 : oa ≃ₚ oa')
@@ -116,46 +121,31 @@ section seq_map
 --   simp [seq_eq_bind_map, map_eq_bind_pure_comp, bind_assoc]
 -- end
 
--- variables (oa oa' : oracle_comp spec α) (ob ob' : oracle_comp spec β) (f : α → β → γ)
-
--- lemma seq_map_eq_bind_bind : f <$> oa <*> ob = do {x ← oa, y ← ob, return (f x y)} :=
--- by simp only [seq_eq_bind_map, map_eq_bind_pure_comp, bind_assoc, pure_bind]
-
+lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) :
+    [p | f <$> oa <*> ob] = [p ∘ Function.uncurry f | (·, ·) <$> oa <*> ob] := by
+  sorry
 
 @[simp]
-lemma support_seq_map_eq_image2 {α β γ : Type}
-    (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ) :
+lemma support_seq_map_eq_image2 :
     (f <$> oa <*> ob).support = Set.image2 f oa.support ob.support := by
   simp only [support_seq, support_map, Set.mem_image, Set.iUnion_exists, Set.biUnion_and',
     Set.iUnion_iUnion_eq_right, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2,
     implies_true]
 
 @[simp]
-lemma finSupport_seq_map_eq_image2 {α β γ : Type} [DecidableEq α] [DecidableEq β] [DecidableEq γ]
-    (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ) :
+lemma finSupport_seq_map_eq_image2 [DecidableEq α] [DecidableEq β] [DecidableEq γ] :
     (f <$> oa <*> ob).finSupport = Finset.image₂ f oa.finSupport ob.finSupport := by
   simp only [finSupport_eq_iff_support_eq_coe, support_seq, support_map, Set.mem_image,
     Set.iUnion_exists, Set.biUnion_and', Set.iUnion_iUnion_eq_right, Finset.coe_image₂,
     coe_finSupport, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2, implies_true]
 
+lemma evalDist_seq_map : evalDist (f <$> oa <*> ob) = ((evalDist oa).map f).seq (evalDist ob) := by
+  rw [evalDist_seq, evalDist_map]
 
--- @[simp] lemma fin_support_seq_map [decidable_eq α] [decidable_eq β] [decidable_eq γ] :
---   (f <$> oa <*> ob).fin_support = finset.image₂ f oa.fin_support ob.fin_support :=
--- by simp_rw [fin_support_eq_iff_support_eq_coe, finset.coe_image₂,
-  --coe_fin_support, support_seq_map]
-
--- lemma eval_dist_seq_map : ⁅f <$> oa <*> ob⁆ = (⁅oa⁆.map f).seq ⁅ob⁆ :=
--- by rw [eval_dist_seq, eval_dist_map]
-
-lemma probOutput_seq_map_eq_tsum (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (f : α → β → γ) (z : γ) : [= z | f <$> oa <*> ob] =
-      ∑' x, ∑' y, [= x | oa] * [= y | ob] * [= z | (pure (f x y) : OracleComp spec γ)] := by
+lemma probOutput_seq_map_eq_tsum (z : γ) : [= z | f <$> oa <*> ob] =
+    ∑' x, ∑' y, [= x | oa] * [= y | ob] * [= z | (pure (f x y) : OracleComp spec γ)] := by
   simp only [map_eq_bind_pure_comp, Function.comp, seq_eq_bind, bind_assoc, pure_bind,
     probOutput_bind_eq_tsum, ← ENNReal.tsum_mul_left, mul_assoc]
-
-
-
-
 
 -- /-- TODO: maybe defaulting to something like this is better than using indicator? -/
 -- @[simp] lemma prob_output_seq_map_eq_tsum' (z : γ) :
@@ -183,27 +173,26 @@ lemma probOutput_seq_map_eq_tsum (oa : OracleComp spec α) (ob : OracleComp spec
 -- by simp_rw [seq_map_eq_bind_bind, prob_event_bind_eq_sum, finset.mul_sum,
 --   prob_event_return, mul_ite, mul_one, mul_zero]
 
--- section uncurry
-
--- lemma prob_event_seq_map_eq_prob_event_comp_uncurry (f : α → β → γ) (p : γ → Prop) :
---   ⁅p | f <$> oa <*> ob⁆ = ⁅p ∘ function.uncurry f | prod.mk <$> oa <*> ob⁆ :=
--- by simpa only [← prob_event_map _ (function.uncurry f), map_seq, map_map_eq_map_comp]
-
--- end uncurry
-
 section swap -- TODO: full api
 
--- variables (oa oa' : oracle_comp spec α) (ob ob' : oracle_comp spec β)
+variable (f : α → β → γ) (oa : OracleComp spec α) (ob : OracleComp spec β)
 
 @[simp]
-lemma evalDist_seq_map_swap (f : α → β → γ) (oa : OracleComp spec α) (ob : OracleComp spec β) :
-    evalDist ((Function.swap f) <$> ob <*> oa) = evalDist (f <$> oa <*> ob) := by
+lemma evalDist_seq_map_swap :
+    evalDist (Function.swap f <$> ob <*> oa) = evalDist (f <$> oa <*> ob) := by
   sorry
 
 @[simp]
-lemma probOutput_seq_map_swap (f : α → β → γ) (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (z : γ) : [= z | (Function.swap f) <$> ob <*> oa] = [= z | f <$> oa <*> ob] := by
+lemma probOutput_seq_map_swap (z : γ) :
+    [= z | Function.swap f <$> ob <*> oa] = [= z | f <$> oa <*> ob] := by
   sorry
+
+@[simp]
+lemma probEvent_seq_map_swap (p : γ → Prop) :
+    [p | Function.swap f <$> ob <*> oa] = [p | f <$> oa <*> ob] := by
+  sorry
+
+
 
 -- @[pairwise_dist_equiv] lemma seq_map_dist_equiv_comm_swap (f : α → β → γ) :
 --   f <$> oa <*> ob ≃ₚ f.swap <$> ob <*> oa :=
