@@ -22,31 +22,24 @@ namespace OracleComp
 
 variable {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
 
+section basic
 
--- @[simp] protected lemma return_seq_eq_map (f : α → β) : return f <*> oa = f <$> oa := rfl
+variable (oa : OracleComp spec α) (og : OracleComp spec (α → β))
 
--- lemma return_seq_dist_equiv_map (f : α → β ) : return f <*> oa ≃ₚ f <$> oa := dist_equiv.rfl
+@[simp]
+lemma support_seq : (og <*> oa).support = ⋃ g ∈ og.support, g '' oa.support :=
+  by simp [seq_eq_bind_map]
 
--- protected lemma seq_return (a : α) : og <*> return a = (λ g : α → β, g a) <$> og := seq_pure og a
+@[simp]
+lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)] :
+    (og <*> oa).finSupport = og.finSupport.biUnion (λ g ↦ oa.finSupport.image g) :=
+  by simp [seq_eq_bind_map]
 
--- lemma seq_return_dist_equiv (a : α) : og <*> return a ≃ₚ (λ g : α → β, g a) <$> og :=
--- dist_equiv_of_eq (seq_pure og a)
+@[simp]
+lemma evalDist_seq : evalDist (og <*> oa) = (evalDist og).seq (evalDist oa) := by
+  simp [PMF.ext_iff, seq_eq_bind_map, ← ENNReal.tsum_mul_left]
 
--- protected lemma seq_eq_bind_map : (og <*> oa) = (og >>= λ g, g <$> oa) := rfl
-
--- lemma seq_dist_equiv_bind_map : (og <*> oa) ≃ₚ (og >>= λ g, g <$> oa) := dist_equiv.rfl
-
--- @[simp] lemma support_seq : (og <*> oa).support = ⋃ g ∈ og.support, g '' oa.support :=
--- by simp only [oracle_comp.seq_eq_bind_map, support_bind, support_map]
-
--- @[simp] lemma fin_support_seq [decidable_eq α] [decidable_eq (α → β)] [decidable_eq β] :
---   (og <*> oa).fin_support = og.fin_support.bUnion (λ g, oa.fin_support.image g) :=
--- by simp [fin_support_eq_iff_support_eq_coe, mem_fin_support_iff_mem_support]
-
--- lemma eval_dist_seq' : ⁅og <*> oa⁆ = ⁅og⁆.bind (λ g, ⁅oa⁆.map g) :=
--- by simp [oracle_comp.seq_eq_bind_map]
-
--- @[simp] lemma eval_dist_seq : ⁅og <*> oa⁆ = ⁅og⁆.seq ⁅oa⁆ := eval_dist_seq' og oa
+end basic
 
 -- lemma prob_output_seq_eq_tsum_indicator (y : β) :
 --   ⁅= y | og <*> oa⁆ = ∑' (g : α → β) x, ⁅= g | og⁆ * (g ⁻¹' {y}).indicator ⁅oa⁆ x :=
@@ -137,11 +130,14 @@ lemma support_seq_map_eq_image2 {α β γ : Type}
     Set.iUnion_iUnion_eq_right, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2,
     implies_true]
 
+@[simp]
+lemma finSupport_seq_map_eq_image2 {α β γ : Type} [DecidableEq α] [DecidableEq β] [DecidableEq γ]
+    (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ) :
+    (f <$> oa <*> ob).finSupport = Finset.image₂ f oa.finSupport ob.finSupport := by
+  simp only [finSupport_eq_iff_support_eq_coe, support_seq, support_map, Set.mem_image,
+    Set.iUnion_exists, Set.biUnion_and', Set.iUnion_iUnion_eq_right, Finset.coe_image₂,
+    coe_finSupport, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2, implies_true]
 
--- @[simp] lemma support_seq_map : (f <$> oa <*> ob).support = set.image2 f oa.support ob.support :=
--- by simp_rw [support_seq, support_map, set.mem_image, set.Union_exists, set.bUnion_and',
---   set.Union_Union_eq_right, set.image2, set.ext_iff, exists_and_distrib_left, set.mem_Union,
---   set.mem_image, exists_prop, set.mem_set_of_eq, iff_self, implies_true_iff]
 
 -- @[simp] lemma fin_support_seq_map [decidable_eq α] [decidable_eq β] [decidable_eq γ] :
 --   (f <$> oa <*> ob).fin_support = finset.image₂ f oa.fin_support ob.fin_support :=
@@ -258,60 +254,7 @@ lemma probOutput_seq_map_eq_mul_of_injective2 {α β γ : Type}
     exact λ h' ↦ h (Prod.eq_iff_fst_eq_snd_eq.2 (hf h'.symm))
   · rw [probOutput_pure_self, mul_one]
 
--- TODO: these should all go in appropriate respective files
-section list
-
-@[simp]
-lemma probOutput_seq_map_cons_eq_mul (oa : OracleComp spec α) (ob : OracleComp spec (List α))
-    (x : α) (xs : List α) : [= x :: xs | (· :: ·) <$> oa <*> ob] = [= x | oa] * [= xs | ob] :=
-  probOutput_seq_map_eq_mul_of_injective2 oa ob List.cons List.injective2_cons x xs
-
-@[simp]
-lemma probOutput_seq_map_cons_eq_mul' (oa : OracleComp spec α) (ob : OracleComp spec (List α))
-    (x : α) (xs : List α) :
-    [= x :: xs | (λ xs x ↦ x :: xs) <$> ob <*> oa] = [= x | oa] * [= xs | ob] :=
-  (probOutput_seq_map_swap (· :: ·) oa ob (x :: xs)).trans
-    (probOutput_seq_map_cons_eq_mul oa ob x xs)
-
-end list
-
-section vector
-
-@[simp]
-lemma probOutput_seq_map_vector_cons_eq_mul {n : ℕ}
-    (oa : OracleComp spec α) (ob : OracleComp spec (Vector α n))
-    (x : α) (xs : Vector α n) :
-    [= x ::ᵥ xs | (· ::ᵥ ·) <$> oa <*> ob] = [= x | oa] * [= xs | ob] :=
-  probOutput_seq_map_eq_mul_of_injective2 oa ob Vector.cons Vector.injective2_cons x xs
-
-@[simp]
-lemma probOutput_seq_map_vector_cons_eq_mul' {n : ℕ}
-    (oa : OracleComp spec α) (ob : OracleComp spec (Vector α n))
-    (x : α) (xs : Vector α n) :
-    [= x ::ᵥ xs | (λ xs x ↦ x ::ᵥ xs) <$> ob <*> oa] = [= x | oa] * [= xs | ob] :=
-  (probOutput_seq_map_swap (· ::ᵥ ·) oa ob (x ::ᵥ xs)).trans
-    (probOutput_seq_map_vector_cons_eq_mul oa ob x xs)
-
-end vector
-
-section prod
-
-@[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul
-    (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (x : α) (y : β) :
-    [= (x, y) | (·, ·) <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
-  probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
-
-@[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul'
-    (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (x : α) (y : β) :
-    [= (x, y) | (λ x y ↦ (y, x)) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
-  (probOutput_seq_map_swap (·, ·) oa ob (x, y)).trans
-    (probOutput_seq_map_prod_mk_eq_mul oa ob x y)
-
-end prod
+-- lemma support_seq_map_eq_image2_of_injective
 
 end injective2
 

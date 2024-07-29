@@ -457,16 +457,6 @@ lemma probEvent_map (q : β → Prop) : [q | f <$> oa] = [q ∘ f | oa] := by
 
 end map
 
-section seq
-
-variable (oa : OracleComp spec α) (og : OracleComp spec (α → β))
-
-@[simp]
-lemma evalDist_seq : evalDist (og <*> oa) = (evalDist og).seq (evalDist oa) := by
-  simp [PMF.ext_iff, seq_eq_bind_map, ← ENNReal.tsum_mul_left]
-
-end seq
-
 section ite
 
 variable (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)

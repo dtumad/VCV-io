@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.DistSemantics.EvalDist
+import VCVio.OracleComp.DistSemantics.Seq
 
 /-!
 # Lemmas About the Distribution Semantics Involving `Prod`
@@ -37,6 +37,25 @@ lemma snd_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β
   simp [Functor.map_map, Function.comp]
 
 end map
+
+section seq_map_mk
+
+@[simp]
+lemma probOutput_seq_map_prod_mk_eq_mul
+    (oa : OracleComp spec α) (ob : OracleComp spec β)
+    (x : α) (y : β) :
+    [= (x, y) | (·, ·) <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
+  probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
+
+@[simp]
+lemma probOutput_seq_map_prod_mk_eq_mul'
+    (oa : OracleComp spec α) (ob : OracleComp spec β)
+    (x : α) (y : β) :
+    [= (x, y) | (λ x y ↦ (y, x)) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
+  (probOutput_seq_map_swap (·, ·) oa ob (x, y)).trans
+    (probOutput_seq_map_prod_mk_eq_mul oa ob x y)
+
+end seq_map_mk
 
 section mk_subsingleton
 
