@@ -416,7 +416,6 @@ lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
 over all outputs such that they map to the correct final output, using subtypes.
 This lemma notably doesn't require decidable equality on the final type, unlike most
 lemmas about probability when mapping a computation. -/
--- @[simp low - 1]
 lemma probOutput_map_eq_tsum_subtype (y : β) :
     [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
   have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
@@ -426,34 +425,39 @@ lemma probOutput_map_eq_tsum_subtype (y : β) :
   refine (tsum_congr (λ x ↦ ?_))
   by_cases hy : y = f x <;> by_cases hx : x ∈ oa.support <;> simp [hy, hx]
 
--- @[simp low - 1]
+lemma probOutput_map_eq_tsum (y : β) :
+    [= y | f <$> oa] = ∑' x, [= x | oa] * [= y | (pure (f x) : OracleComp spec β)] := by
+  simp only [map_eq_bind_pure_comp, probOutput_bind_eq_tsum, Function.comp_apply]
+
 lemma probOutput_map_eq_tsum_subtype_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : oa.support, if y = f x then [= x | oa] else 0 := by
-  simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum_subtype]
+  simp only [map_eq_bind_pure_comp, probOutput_bind_eq_tsum_subtype, Function.comp_apply,
+    probOutput_pure, mul_ite, mul_one, mul_zero]
 
--- @[simp low - 1]
 lemma probOutput_map_eq_tsum_ite [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑' x : α, if y = f x then [= x | oa] else 0 := by
-  simp [map_eq_bind_pure_comp, probOutput_bind_eq_tsum]
+  simp only [map_eq_bind_pure_comp, probOutput_bind_eq_tsum, Function.comp_apply, probOutput_pure,
+    mul_ite, mul_one, mul_zero]
 
--- @[simp low]
 lemma probOutput_map_eq_sum_fintype_ite [Fintype α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x : α, if y = f x then [= x | oa] else 0 :=
-  (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <| by simp)
+  (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <|
+    by simp only [Finset.coe_univ, Set.subset_univ])
 
 lemma probOutput_map_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x in oa.finSupport, if y = f x then [= x | oa] else 0 :=
-  (probOutput_map_eq_tsum_ite oa f y).trans
-    (tsum_eq_sum' <| by simp [mem_finSupport_iff_mem_support])
+  (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <|
+    by simp only [coe_finSupport, Function.support_subset_iff, ne_eq, ite_eq_right_iff,
+      probOutput_eq_zero_iff', mem_finSupport_iff_mem_support, Classical.not_imp, not_not, and_imp,
+      imp_self, implies_true])
 
--- @[simp]
 lemma probOutput_map_eq_sum_filter_finSupport [DecidableEq α] [DecidableEq β] (y : β) :
     [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f ·), [= x | oa] := by
   rw [Finset.sum_filter, probOutput_map_eq_sum_finSupport_ite]
 
 @[simp]
 lemma probEvent_map (q : β → Prop) : [q | f <$> oa] = [q ∘ f | oa] := by
-  simpa [probEvent_def, evalDist_map, PMF.toOuterMeasure_map_apply] using refl _
+  simp only [probEvent_def, evalDist_map, PMF.toOuterMeasure_map_apply]; congr
 
 end map
 
@@ -488,7 +492,6 @@ lemma evalDist_coin : evalDist coin = PMF.bernoulli 2⁻¹ (by simp) := by
 lemma probOutput_coin (b : Bool) : [= b | coin] = 2⁻¹ := by
   simp [probOutput_def]
 
--- @[simp low]
 lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) : [p | coin] = ∑' x : {x | p x}, 2⁻¹ := by
   simp [probEvent_eq_tsum_subtype]
 
@@ -497,6 +500,10 @@ lemma probEvent_coin (p : Bool → Prop) [DecidablePred p] : [p | coin] =
     if p true then (if p false then 1 else 2⁻¹) else (if p false then 2⁻¹ else 0) := by
   by_cases hpt : p true <;> by_cases hpf : p false <;>
     simp [probEvent_eq_sum_fintype_ite, hpt, hpf, inv_two_add_inv_two]
+
+lemma probEvent_coin_eq_add (p : Bool → Prop) [DecidablePred p] :
+    [p | coin] = (if p true then 2⁻¹ else 0) + (if p false then 2⁻¹ else 0) := by
+  rw [probEvent_coin]; split_ifs <;> simp [inv_two_add_inv_two]
 
 /-- The xor of two coin flips looks like flipping a single coin -/
 example (x : Bool) : [= x | do let b ← coin; let b' ← coin; return xor b b'] = [= x | coin] := by
