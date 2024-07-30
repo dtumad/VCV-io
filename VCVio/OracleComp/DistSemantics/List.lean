@@ -27,6 +27,15 @@ section list
 variable (oa : OracleComp spec α) (ob : OracleComp spec (List α))
   (x : α) (xs : List α)
 
+lemma mem_support_seq_map_cons (x : List α) (h : x ≠ []) :
+    x ∈ ((· :: ·) <$> oa <*> ob).support ↔
+      x.head h ∈ oa.support ∧ x.tail ∈ ob.support := by
+  rw [support_seq_map_eq_image2, Set.mem_image2]
+  sorry
+
+
+
+
 @[simp]
 lemma probOutput_seq_map_cons_eq_mul :
     [= x :: xs | (· :: ·) <$> oa <*> ob] = [= x | oa] * [= xs | ob] :=
@@ -35,7 +44,7 @@ lemma probOutput_seq_map_cons_eq_mul :
 @[simp]
 lemma probOutput_seq_map_cons_eq_mul' :
     [= x :: xs | (λ xs x ↦ x :: xs) <$> ob <*> oa] = [= x | oa] * [= xs | ob] :=
-  (probOutput_seq_map_swap (· :: ·) oa ob (x :: xs)).trans
+  (probOutput_seq_map_swap oa ob (· :: ·) (x :: xs)).trans
     (probOutput_seq_map_cons_eq_mul oa ob x xs)
 
 end list
@@ -53,7 +62,7 @@ lemma probOutput_seq_map_vector_cons_eq_mul :
 @[simp]
 lemma probOutput_seq_map_vector_cons_eq_mul' :
     [= x ::ᵥ xs | (λ xs x ↦ x ::ᵥ xs) <$> ob <*> oa] = [= x | oa] * [= xs | ob] :=
-  (probOutput_seq_map_swap (· ::ᵥ ·) oa ob (x ::ᵥ xs)).trans
+  (probOutput_seq_map_swap oa ob (· ::ᵥ ·) (x ::ᵥ xs)).trans
     (probOutput_seq_map_vector_cons_eq_mul oa ob x xs)
 
 end vector

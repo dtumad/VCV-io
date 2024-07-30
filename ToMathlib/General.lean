@@ -6,6 +6,7 @@ Authors: Devon Tuma
 import Mathlib.Data.Finset.Card
 import Mathlib.Topology.Instances.ENNReal
 import Mathlib.Data.Vector.Defs
+import Mathlib.Probability.Distributions.Uniform
 
 /-!
 # Lemmas to be Ported to Mathlib
@@ -71,6 +72,24 @@ lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
       -- simp_rw [get_cons]
        }
 
+lemma List.card_filter_getElem_eq {α : Type} [DecidableEq α]
+    (xs : List α) (x : α) :
+    (Finset.filter (λ i : Fin (xs.length) ↦ x = xs[i]) Finset.univ).card =
+      xs.count x := by
+  sorry
+
 @[simp]
 lemma Vector.getElem_eq_get {α n} (xs : Vector α n) (i : ℕ) (h : i < n) :
   xs[i]'h = xs.get ⟨i, h⟩ := rfl
+
+@[simp] lemma Finset.sum_boole' {ι β : Type} [AddCommMonoid β] (r : β)
+    (p) [DecidablePred p] (s : Finset ι) :
+    (∑ x ∈ s, if p x then r else 0 : β) = (s.filter p).card • r :=
+calc (∑ x ∈ s, if p x then r else 0 : β) = (∑ x ∈ s, if p x then 1 else 0 : ℕ) • r :=
+    by simp only [← Finset.sum_nsmul_assoc, ite_smul, one_smul, zero_smul]
+  _ = (s.filter p).card • r := by simp only [sum_boole, Nat.cast_id]
+
+@[simp]
+lemma Finset.count_toList {α} [DecidableEq α] (x : α) (s : Finset α) :
+    s.toList.count x = if x ∈ s then 1 else 0 := by
+  sorry

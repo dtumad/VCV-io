@@ -19,12 +19,9 @@ namespace OracleComp
 
 variable {ι : Type} {spec : OracleSpec ι} {α β γ δ : Type}
 
-@[simp]
-lemma probOutput_prod_mk (oa : OracleComp spec (α × β)) (x : α) (y : β) :
+lemma probOutput_prod_mk_eq_probEvent (oa : OracleComp spec (α × β)) (x : α) (y : β) :
     [= (x, y) | oa] = [λ z ↦ z.1 = x ∧ z.2 = y | oa] := by
   simp [← probEvent_eq_eq_probOutput, eq_iff_fst_eq_snd_eq]
-
-section map
 
 @[simp]
 lemma fst_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β → δ) :
@@ -35,8 +32,6 @@ lemma fst_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β
 lemma snd_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β → δ) :
     snd <$> map f g <$> oa = (λ x ↦ g x.2) <$> oa := by
   simp [Functor.map_map, Function.comp]
-
-end map
 
 section seq_map_mk
 
@@ -52,7 +47,7 @@ lemma probOutput_seq_map_prod_mk_eq_mul'
     (oa : OracleComp spec α) (ob : OracleComp spec β)
     (x : α) (y : β) :
     [= (x, y) | (λ x y ↦ (y, x)) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
-  (probOutput_seq_map_swap (·, ·) oa ob (x, y)).trans
+  (probOutput_seq_map_swap oa ob (·, ·) (x, y)).trans
     (probOutput_seq_map_prod_mk_eq_mul oa ob x y)
 
 end seq_map_mk

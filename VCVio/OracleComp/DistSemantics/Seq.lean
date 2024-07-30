@@ -26,11 +26,11 @@ section basic
 
 variable (oa : OracleComp spec α) (og : OracleComp spec (α → β))
 
-@[simp]
+@[simp low]
 lemma support_seq : (og <*> oa).support = ⋃ g ∈ og.support, g '' oa.support := by
   simp [seq_eq_bind_map]
 
-@[simp]
+@[simp low]
 lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)] :
     (og <*> oa).finSupport = og.finSupport.biUnion (λ g ↦ oa.finSupport.image g) := by
   simp [seq_eq_bind_map]
@@ -121,12 +121,10 @@ lemma probOutput_seq_map_eq_tsum_ite [DecidableEq γ] (z : γ) : [= z | f <$> oa
 --   prob_event_return, mul_ite, mul_one, mul_zero]
 
 lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) :
-    [p | f <$> oa <*> ob] = [p ∘ Function.uncurry f | (·, ·) <$> oa <*> ob] := by
+    [p | f <$> oa <*> ob] = [p ∘ f.uncurry | (·, ·) <$> oa <*> ob] := by
   sorry
 
 section swap
-
-variable (f : α → β → γ) (oa : OracleComp spec α) (ob : OracleComp spec β)
 
 @[simp]
 lemma evalDist_seq_map_swap :
@@ -147,8 +145,6 @@ end swap
 
 section injective2
 
-variable (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ)
-
 lemma mem_support_seq_map_iff_of_injective2 (hf : f.Injective2) (x : α) (y : β) :
     f x y ∈ (f <$> oa <*> ob).support ↔ x ∈ oa.support ∧ y ∈ ob.support := by
   rw [support_seq_map_eq_image2, Set.mem_image2_iff hf]
@@ -158,7 +154,7 @@ lemma mem_finSupport_seq_map_iff_of_injective2 [DecidableEq α] [DecidableEq β]
       x ∈ oa.finSupport ∧ y ∈ ob.finSupport := by
   simp_rw [mem_finSupport_iff_mem_support, mem_support_seq_map_iff_of_injective2 oa ob f hf]
 
-lemma probOutput_seq_map_eq_mul_of_injective2  (hf : f.Injective2) (x : α) (y : β) :
+lemma probOutput_seq_map_eq_mul_of_injective2 (hf : f.Injective2) (x : α) (y : β) :
     [= f x y | f <$> oa <*> ob] = [= x | oa] * [= y | ob] := by
   rw [probOutput_seq_map_eq_tsum]
   rw [← ENNReal.tsum_prod]
@@ -169,24 +165,31 @@ lemma probOutput_seq_map_eq_mul_of_injective2  (hf : f.Injective2) (x : α) (y :
 
 end injective2
 
--- /-- If the results of the computations `oa` and `ob` are combined with some function `f`,
--- and there exists unique `x` and `y` such that `f x y = z` (given as explicit arguments),
--- then the probability of getting `z` as an output of `f <$> oa <*> ob`
--- is the product of probabilities of getting `x` and `y` from `oa` and `ob` respectively. -/
--- lemma prob_output_seq_map_eq_mul {f : α → β → γ} {z : γ} (x : α) (y : β)
---   (h : ∀ x' ∈ oa.support, ∀ y' ∈ ob.support, z = f x' y' ↔ x' = x ∧ y' = y):
---   ⁅= z | f <$> oa <*> ob⁆ = ⁅= x | oa⁆ * ⁅= y | ob⁆ :=
--- begin
---   simp_rw [imp_forall_iff, ← and_imp, ← prod.forall'] at h,
---   haveI : decidable_eq γ := classical.dec_eq γ,
---   rw [prob_output_seq_map_eq_tsum, ← ennreal.tsum_prod],
---   refine trans (tsum_eq_single (x, y) (λ z' hz, _)) _,
---   { simp_rw [ite_eq_right_iff, mul_eq_zero, prob_output_eq_zero_iff, ← not_and_distrib],
---     refine imp_not_comm.1 (λ hz' hzf, hz _),
---     rw [← ((h z' hz').1 hzf).1, ← ((h z' hz').1 hzf).2, prod.mk.eta] },
---   { simp only [ite_eq_left_iff, zero_eq_mul, prob_output_eq_zero_iff, ← not_and_distrib],
---     refine mt (λ hxy, (h (x, y) hxy).2 ⟨rfl, rfl⟩) }
--- end
+/-- If the results of the computations `oa` and `ob` are combined with some function `f`,
+and there exists unique `x` and `y` such that `f x y = z` (given as explicit arguments),
+then the probability of getting `z` as an output of `f <$> oa <*> ob`
+is the product of probabilities of getting `x` and `y` from `oa` and `ob` respectively. -/
+lemma probOutput_seq_map_eq_mul (x : α) (y : β) (z : γ)
+    (h : ∀ x' ∈ oa.support, ∀ y' ∈ ob.support, z = f x' y' ↔ x' = x ∧ y' = y) :
+    [= z | f <$> oa <*> ob] = [= x | oa] * [= y | ob] := by
+  have : DecidableEq γ := Classical.decEq γ
+  rw [probOutput_seq_map_eq_tsum_ite, ← ENNReal.tsum_prod]
+  refine (tsum_eq_single (x, y) (λ (x', y') ↦ ?_)).trans ?_
+  · simp only [ne_eq, Prod.mk.injEq, ite_eq_right_iff, mul_eq_zero,
+      probOutput_eq_zero_iff, ← not_and_or]
+    exact λ h1 h2 h3 ↦ h1 ((h x' h3.1 y' h3.2).1 h2)
+  · simp only [ite_eq_left_iff, zero_eq_mul, probOutput_eq_zero_iff, ← not_and_or]
+    intro h1 h2
+    refine h1 ((h x h2.1 y h2.2).2 ⟨rfl, rfl⟩)
+
+/-- If the results of the computations `oa` and `ob` are combined with some function `f`,
+and `p` is an event such that outputs of `f` are in `p` iff the individual components
+lie in some other events `q1` and `q2`, then the probability of the event `p` is the
+product of the probabilites holding individually. -/
+lemma probEvent_seq_map_eq_mul (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
+    (h : ∀ x ∈ oa.support, ∀ y ∈ ob.support, p (f x y) ↔ q1 x ∧ q2 y) :
+    [p | f <$> oa <*> ob] = [q1 | oa] * [q2 | ob] := by
+  sorry
 
 -- /-- If the results of the computations `oa` and `ob` are combined with some function `f`,
 -- and `e` is an event such that outputs of `f` are in `e` iff the individual components

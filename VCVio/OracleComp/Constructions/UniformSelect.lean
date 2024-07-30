@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.DistSemantics.Seq
+import VCVio.OracleComp.DistSemantics.Prod
 import ToMathlib.General
 
 /-!
@@ -28,12 +28,6 @@ NOTE: This current implementation doesn't impose any "correctness" conditions,
 it purely exists to provide the notation similar to `Mul` -/
 class HasUniformSelect (cont : Type) (β : outParam Type) [DecidableEq β] where
   uniformSelect : cont → OracleComp unifSpec β
-  -- supp : cont → List β
-  -- supp_nonempty (xs : cont) : supp xs ≠ []
-  -- evalDist_uniformSelect (xs : cont) :
-  --   evalDist (uniformSelect xs) = λ (supp xs).count
-  -- probOutput_uniformSelect (xs : cont) (x : β) :
-  --   [= x | uniformSelect xs] = if x ∈ (supp xs) then ((supp xs).card : ℝ≥0∞)⁻¹ else 0
 
 /-- Given a selectable object, we can get a random element by indexing into the element vector. -/
 def uniformSelect {cont : Type} (β : Type) [DecidableEq β]
@@ -57,21 +51,6 @@ instance hasUniformSelectList (α : Type) [Inhabited α] [DecidableEq α] :
   uniformSelect := λ xs ↦ match xs with
     | [] => return default
     | x :: xs => ((x :: xs)[·]) <$> $[0..xs.length]
-  -- supp := λ xs ↦ if xs = [] then {default} else xs.toFinset
-  -- supp_nonempty := λ xs ↦ by cases xs <;> simp
-  -- evalDist_uniformSelect := λ xs ↦ by match xs with
-  --   | [] => {
-  --     refine PMF.ext (λ x ↦ ?_)
-  --     simp only [evalDist_pure, PMF.pure_apply, ↓reduceIte, PMF.uniformOfFinset_apply,
-  --       Finset.mem_singleton, Finset.card_singleton, Nat.cast_one, inv_one]
-  --     congr
-  --   }
-  --   | x :: xs => {
-  --     refine PMF.ext (λ y ↦ ?_)
-  --     simp
-  --     sorry
-
-  --   }
 
 @[simp]
 lemma uniformSelectList_nil (α : Type) [Inhabited α] [DecidableEq α] :
@@ -147,9 +126,6 @@ section uniformSelectVector
 instance hasUniformSelectVector (α : Type) [DecidableEq α] (n : ℕ) :
     HasUniformSelect (Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
-  -- supp := λ xs ↦ xs.toList.toFinset
-  -- supp_nonempty := λ xs ↦ match xs with | ⟨x :: xs, _⟩ => by simp
-  -- evalDist_uniformSelect := sorry
 
 lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Vector α (n + 1)) :
     ($ xs) = (xs[·]) <$> $[0..n] := rfl
@@ -206,18 +182,6 @@ so generally this should be avoided when possible. -/
 noncomputable instance hasUniformSelectFinset (α : Type) [Inhabited α] [DecidableEq α] :
     HasUniformSelect (Finset α) α where
   uniformSelect := λ s ↦ $ s.toList
-  -- supp := λ s ↦ if s.Nonempty then s else {default}
-  -- supp_nonempty := λ xs ↦ by
-  --   by_cases hxs : xs.Nonempty <;> simp [hxs]
-  -- evalDist_uniformSelect := λ xs ↦
-  --   by induction xs using Finset.induction_on with
-  --   | empty => {
-  --     refine PMF.ext (λ y ↦ ?_)
-  --     by_cases h : y = default
-  --     simp [h]
-  --     simp [h]
-  --   }
-  --   | insert h h' => sorry
 
 lemma uniformSelectFinset_def {α : Type} [Inhabited α] [DecidableEq α] (s : Finset α) :
     ($ s) = ($ s.toList) := rfl
@@ -242,15 +206,27 @@ lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
   rw [uniformSelectFinset_def, evalDist_uniformSelectList]
   split_ifs with hs
   · have : s.toList ≠ [] := by simp [hs, ← Finset.nonempty_iff_ne_empty]
-    refine PMF.ext (λ x ↦ ?_)
-    simp [PMF.uniformOfFintype]
-    obtain ⟨y, xs, hys⟩ := List.exists_cons_of_ne_nil this
-    rw [hys]
-    simp only
-    simp only [← hys]
-    split_ifs with h
-    · sorry
-    · sorry
+    refine PMF.ext (λ y ↦ ?_)
+    obtain ⟨x, xs, hxs⟩ := List.exists_cons_of_ne_nil this
+    simp only [hxs, Nat.succ_eq_add_one, Fin.getElem_fin, PMF.map_apply, Fintype.card_fin,
+      PMF.uniformOfFintype_apply, Nat.cast_add, Nat.cast_one,
+      PMF.uniformOfFinset_apply, tsum_fintype]
+    rw [Finset.sum_boole']
+    have : (xs.length + 1 : ℝ≥0∞)⁻¹ = ((x :: xs).length : ℝ≥0∞)⁻¹ := by simp
+    simp [← hxs, this]
+    split_ifs with hs
+    · convert (one_mul _)
+      rw [Nat.cast_eq_one]
+      simp_rw [hxs]
+      refine ((List.card_filter_getElem_eq (x :: xs ) y)).trans ?_
+      rw [← hxs]
+      rw [Finset.count_toList]
+      simp [hs]
+    · convert (zero_mul _)
+      simp [Finset.ext_iff]
+      refine λ i hi ↦ hs ?_
+      rw [hi, ← Finset.mem_toList]
+      exact List.getElem_mem s.toList _ _
   · rw [Finset.nonempty_iff_ne_empty, not_not] at hs
     simp [hs]
 
@@ -264,7 +240,6 @@ lemma probOutput_uniformSelectFinset [DecidableEq α] (s : Finset α) (x : α) :
   · simp [hs, hx]
   · simp [hs, hxd]
   · simp [hs, hxd]
-
 
 end uniformSelectFinset
 
@@ -337,13 +312,8 @@ instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
     [SelectableType α] [SelectableType β] : SelectableType (α × β) where
   selectElem := (·, ·) <$> ($ᵗ α) <*> ($ᵗ β)
   probOutput_selectElem := λ (x, y) ↦ by
-    rw [probOutput_seq_map_eq_mul_of_injective2]
-    · simp only [probOutput_uniformOfFintype, Fintype.card_prod, Nat.cast_mul]
-      rw [ENNReal.mul_inv]
-      · simp
-      · simp
-    · intro x x' y y'
-      simp
+    rw [probOutput_seq_map_prod_mk_eq_mul, probOutput_uniformOfFintype, Fintype.card_prod,
+      Nat.cast_mul, ENNReal.mul_inv] <;> simp
 
 end instances
 
