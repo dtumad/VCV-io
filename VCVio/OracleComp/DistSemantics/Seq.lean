@@ -77,14 +77,14 @@ section seq_map
 
 variable (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ)
 
-@[simp]
+@[simp low + 1]
 lemma support_seq_map_eq_image2 :
     (f <$> oa <*> ob).support = Set.image2 f oa.support ob.support := by
   simp only [support_seq, support_map, Set.mem_image, Set.iUnion_exists, Set.biUnion_and',
     Set.iUnion_iUnion_eq_right, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2,
     implies_true]
 
-@[simp]
+@[simp low + 1]
 lemma finSupport_seq_map_eq_image2 [DecidableEq α] [DecidableEq β] [DecidableEq γ] :
     (f <$> oa <*> ob).finSupport = Finset.image₂ f oa.finSupport ob.finSupport := by
   simp only [finSupport_eq_iff_support_eq_coe, support_seq, support_map, Set.mem_image,

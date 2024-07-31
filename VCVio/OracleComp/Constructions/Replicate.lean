@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.Seq
-import VCVio.OracleComp.DistSemantics.HEq
+import VCVio.OracleComp.DistSemantics.List
 
 /-!
 # Running a Computation Multiple Times
@@ -123,47 +123,14 @@ lemma replicate_add_comm (n m : ℕ) :
 
 end comm
 
-/-- Running a computation `0 + n` times is the same as running it `n` times.
-Requires substituting the equality between the two to properly typecheck the vector types. -/
-lemma replicate_add_eq_seq_map (oa : OracleComp spec α) (n m : ℕ) :
-    (replicate oa (n + m)) = Vector.append <$> replicate oa n <*> replicate oa m := by
-  induction n with
-  | zero => {
-    simp [seq_eq_bind]
-    refine eq_of_heq ((replicate_zero_add_heq oa m).trans ?_)
-
-    sorry
-  }
-  | succ n hn => {
-    sorry
-  }
-
+/-- The probability of getting a vector from `replicate` is the product of the chances of
+getting each of the individual elements. -/
 @[simp]
 lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n) :
     [= xs | replicate oa n] = (xs.toList.map ([= · | oa])).prod := by
-  sorry
-  -- match xs with
-  -- | [] => sorry
-  -- | x :: xs => {
-  --   induction n with
-  --   | zero => sorry
-  --   | succ n hn => {
-  --     sorry
-  --   }
-  -- }
-  -- induction n with
-  -- | zero => cases xs <;> simp
-  -- | succ n hn => {
-  --   match xs with
-  --   | [] => simp
-  --   | x :: xs => {
-  --     rw [replicate_succ]
-  --     rw [probOutput_seq_map_eq_mul_of_injective2 _ _ _ (List.Injective2_cons)]
-
-
-
-  --   }
-  -- }
+  induction n with
+    | zero => simp
+    | succ n hn => obtain ⟨x, xs, rfl⟩ := Vector.exists_eq_cons xs; simp [hn]
 
 @[simp]
 lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
@@ -173,21 +140,22 @@ lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
   simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
     and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, Set.mem_setOf_eq]
 
+-- TODO: finSupport, probEvent
+
 section SelectableTypeVector
 
 /-- Vectors can be selected uniformly if the underlying type can be.
 Note: this isn't very efficient as an actual implementation in practice. -/
 instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
     SelectableType (Vector α n) where
-  selectElem := (λ xs ↦ Vector.ofFn (λ i ↦ xs[i]!)) <$> replicate ($ᵗ α) n
-  probOutput_selectElem := sorry
-
-/-- Choosing `n` random elements uniformly at random is the same as choosing
-a vector of length `n` uniformly at random. -/
-lemma evalDist_replicate_uniformFintype (α : Type) [Fintype α] [Inhabited α]
-    [SelectableType α] (n : ℕ) :
-    evalDist (($ᵗ α).replicate n) = evalDist ($ᵗ Vector α n) :=
-  sorry
+  selectElem := replicate ($ᵗ α) n
+  probOutput_selectElem := by induction n with
+  | zero => simp
+  | succ n hn =>
+      intro xs
+      simp only [replicate_succ, Nat.succ_eq_add_one, probOutput_seq_map_vector_cons_eq_mul,
+        probOutput_uniformOfFintype, hn, card_vector, Nat.cast_pow, ENNReal.inv_pow]
+      ring_nf
 
 end SelectableTypeVector
 
