@@ -122,24 +122,44 @@ lemma probOutput_seq_map_eq_tsum_ite [DecidableEq γ] (z : γ) : [= z | f <$> oa
 
 lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) :
     [p | f <$> oa <*> ob] = [p ∘ f.uncurry | (·, ·) <$> oa <*> ob] := by
-  sorry
+  rw [probEvent_comp]
+  refine probEvent_congr' ?_ (congr_arg evalDist ?_)
+  · simp only [support_seq_map_eq_image2, Set.mem_image2, support_map, Set.image2_mk_eq_prod,
+      Set.image_uncurry_prod, implies_true]
+  · simp only [map_seq, Function.comp, Functor.map_map, Function.uncurry_apply_pair]
+
+lemma probEvent_seq_map_eq_probEvent (p : γ → Prop) :
+    [p | f <$> oa <*> ob] = [λ x ↦ p (f x.1 x.2) | (·, ·) <$> oa <*> ob] :=
+  probEvent_seq_map_eq_probEvent_comp_uncurry oa ob f p
 
 section swap
 
 @[simp]
-lemma evalDist_seq_map_swap :
-    evalDist (Function.swap f <$> ob <*> oa) = evalDist (f <$> oa <*> ob) := by
-  sorry
-
-@[simp]
 lemma probOutput_seq_map_swap (z : γ) :
     [= z | Function.swap f <$> ob <*> oa] = [= z | f <$> oa <*> ob] := by
-  sorry
+  simp [probOutput_seq_map_eq_tsum, Function.swap]
+  rw [ENNReal.tsum_comm]
+  refine tsum_congr (λ x ↦ tsum_congr (λ y ↦ ?_))
+  rw [mul_comm [= x | oa]]
+
+@[simp]
+lemma evalDist_seq_map_swap :
+    evalDist (Function.swap f <$> ob <*> oa) = evalDist (f <$> oa <*> ob) :=
+  evalDist_ext_probEvent (probOutput_seq_map_swap oa ob f)
 
 @[simp]
 lemma probEvent_seq_map_swap (p : γ → Prop) :
-    [p | Function.swap f <$> ob <*> oa] = [p | f <$> oa <*> ob] := by
-  sorry
+    [p | Function.swap f <$> ob <*> oa] = [p | f <$> oa <*> ob] :=
+  probEvent_congr (evalDist_seq_map_swap oa ob f)
+
+@[simp]
+lemma support_seq_map_swap : (Function.swap f <$> ob <*> oa).support = (f <$> oa <*> ob).support :=
+  Set.ext (mem_support_iff_of_evalDist_eq (evalDist_seq_map_swap oa ob f))
+
+@[simp]
+lemma finSupport_seq_map_swap [DecidableEq γ] :
+    (Function.swap f <$> ob <*> oa).finSupport = (f <$> oa <*> ob).finSupport :=
+  Finset.ext (mem_finSupport_iff_of_evalDist_eq (evalDist_seq_map_swap oa ob f))
 
 end swap
 
@@ -189,31 +209,22 @@ product of the probabilites holding individually. -/
 lemma probEvent_seq_map_eq_mul (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
     (h : ∀ x ∈ oa.support, ∀ y ∈ ob.support, p (f x y) ↔ q1 x ∧ q2 y) :
     [p | f <$> oa <*> ob] = [q1 | oa] * [q2 | ob] := by
-  sorry
-
--- /-- If the results of the computations `oa` and `ob` are combined with some function `f`,
--- and `e` is an event such that outputs of `f` are in `e` iff the individual components
--- lie in some other events `e1` and `e2`, then the probability of the event `e` is the
--- product of the probabilites holding individually.
--- For example this applies if `f` is `::`, `e` is defined elementwise,
--- and `e1` and `e2` are the portions of `e` for the head and tail respectively. -/
--- lemma prob_event_seq_map_eq_mul (oa : oracle_comp spec α) (ob : oracle_comp spec β)
---   (f : α → β → γ) (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
---   (h : ∀ x ∈ oa.support, ∀ y ∈ ob.support, p (f x y) ↔ q1 x ∧ q2 y) :
---   ⁅p | f <$> oa <*> ob⁆ = ⁅q1 | oa⁆ * ⁅q2 | ob⁆ :=
--- begin
---   haveI : decidable_pred p := classical.dec_pred p,
---   haveI : decidable_pred q1 := classical.dec_pred q1,
---   haveI : decidable_pred q2 := classical.dec_pred q2,
---   simp_rw [prob_event_seq_map_eq_tsum, ← ennreal.tsum_prod, prob_event_eq_tsum_ite,
---     ← ennreal.tsum_mul_right, ← ennreal.tsum_mul_left, ← ennreal.tsum_prod, ite_mul,
---     zero_mul, mul_ite, mul_zero, ← ite_and],
---   refine tsum_congr (λ z, _),
---   by_cases hz : z.1 ∈ oa.support ∧ z.2 ∈ ob.support,
---   { simp only [h z.1 hz.1 z.2 hz.2] },
---   { cases (not_and_distrib.1 hz) with hz hz;
---     simp only [prob_output_eq_zero, hz, not_false_iff, zero_mul, mul_zero, if_t_t] }
--- end
+  have : DecidablePred p := Classical.decPred p
+  have : DecidablePred q1 := Classical.decPred q1
+  have : DecidablePred q2 := Classical.decPred q2
+  rw [probEvent_seq_map_eq_probEvent]
+  calc [λ (x, y) ↦ p (f x y) | (·, ·) <$> oa <*> ob] =
+      [λ (x, y) ↦ q1 x ∧ q2 y | (·, ·) <$> oa <*> ob] :=
+        probEvent_ext <| by simpa using λ x y hx hy ↦ h x hx y hy
+    _ = ∑' (x : α) (y : β), if q1 x ∧ q2 y then [= (x, y) | (·, ·) <$> oa <*> ob] else 0 := by
+      rw [probEvent_eq_tsum_ite, ENNReal.tsum_prod']
+    _ = ∑' (x : α) (y : β), if q1 x ∧ q2 y then [= x | oa] * [= y | ob] else 0 := by
+      simp_rw [probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2]
+    _ = ∑' x : α, if q1 x then [= x | oa] * (∑' y : β, if q2 y then [= y | ob] else 0) else 0 :=
+      tsum_congr (λ x ↦ by by_cases hx : q1 x <;> simp [hx, ← ENNReal.tsum_mul_left])
+    _ = ∑' x : α, if q1 x then [= x | oa] * [q2 | ob] else 0 := by rw [probEvent_eq_tsum_ite]
+    _ = [q1 | oa] * [q2 | ob] := by
+      simp only [probEvent_eq_tsum_ite oa, ← ENNReal.tsum_mul_right, ite_mul, zero_mul]
 
 end seq_map
 
