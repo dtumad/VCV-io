@@ -140,7 +140,15 @@ lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
   simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
     and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, Set.mem_setOf_eq]
 
--- TODO: finSupport, probEvent
+-- @[simp] TODO: decidablility of this pred should be inferred from something else?
+lemma support_replicate' (oa : OracleComp spec α)
+    [DecidablePred (· ∈ oa.support)] (n : ℕ) :
+    (replicate oa n).support = {xs | xs.toList.all (· ∈ oa.support)} := by
+  refine Set.ext (λ xs ↦ ?_)
+  rw [← probOutput_pos_iff, probOutput_replicate]
+  simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
+    and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, List.all_eq_true, decide_eq_true_eq,
+    Set.mem_setOf_eq]
 
 section SelectableTypeVector
 
