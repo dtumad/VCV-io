@@ -52,16 +52,16 @@ lemma isQueryBound_bind (oa : OracleComp spec α) (ob : α → OracleComp spec �
   obtain ⟨y, x, count', h, h'⟩ := h
   specialize h1 count'
   rw [support_map] at h1
-
+  have : count' ≤ count := sorry
   specialize h1 ⟨⟨x, count'⟩, h, rfl⟩
-  sorry
-
-
--- lemma isQueryBound_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (qb : ι → ℕ) :
---     IsQueryBound (oa >>= ob) qb ↔ ∃ (qb₁ : ι → ℕ) (qb₂ : α → ι → ℕ), IsQueryBound oa qb₁ ∧
---       ∀ x, IsQueryBound (ob x) (qb₂ x) ∧ qb ≤ qb₁ + qb₂ x  := by
---   simp_rw [isQueryBound_def (oa >>= ob), simulate_bind, map_bind, mem_support_bind_iff]
---   sorry
+  specialize h2 x (count - count') sorry
+  have h3 := add_le_add h2 h1
+  rw [add_comm qb₂] at h3
+  refine le_trans ?_ h3
+  intros x
+  specialize this x
+  simp only [Pi.add_apply, Pi.sub_apply]
+  rw [tsub_add_cancel_of_le this]
 
 @[simp]
 lemma isQueryBound_map_iff (oa : OracleComp spec α) (f : α → β) (qb : ι → ℕ) :
