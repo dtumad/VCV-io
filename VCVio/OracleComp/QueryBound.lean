@@ -129,7 +129,7 @@ lemma le_minimalQueryBound_of_isQueryBound {oa : OracleComp spec α} (qc : ι �
     intro j
     by_cases hj : j = i
     · induction hj
-      simp
+      simp only [↓reduceIte, OracleComp.bind'_eq_bind, pure_bind]
       sorry
     · simp [hj]
       sorry
@@ -150,8 +150,7 @@ lemma isQueryBound_query_bind_iff (i : ι) (t : spec.domain i)
     IsQueryBound (query i t >>= oa) qc ↔ qc i ≠ 0 ∧
       ∀ u, IsQueryBound (oa u) (Function.update qc i (qc i - 1)) := by
   refine ⟨λ h ↦ ⟨?_, ?_⟩, λ h ↦ ?_⟩
-  ·
-    specialize h (minimalQueryBound (query i t >>= oa))
+  · specialize h (minimalQueryBound (query i t >>= oa))
     sorry
   · sorry
   · refine isQueryBound_mono (isQueryBound_bind (update_isQueryBound_query i t) h.2) ?_

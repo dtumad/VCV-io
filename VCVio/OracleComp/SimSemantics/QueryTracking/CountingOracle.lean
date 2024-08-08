@@ -32,6 +32,8 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 lemma apply_eq (i : ι) (t : spec.domain i) :
     countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
 
+section support
+
 /-- We can always reduce the initial state of simulation with a counting oracle to start with a
 count of zero, and add the initial count back on at the end. -/
 lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
@@ -66,9 +68,7 @@ lemma mem_support_simulate_iff_of_le (oa : OracleComp spec α) (qc : ι → ℕ)
     (hz : qc ≤ z.2) : z ∈ (simulate countingOracle qc oa).support ↔
       (z.1, z.2 - qc) ∈ (simulate countingOracle 0 oa).support := by
   rw [mem_support_simulate_iff oa 0]
-
-  rw [mem_support_simulate_iff oa qc z]
-  simp
+  simp only [mem_support_simulate_iff oa qc z, zero_add, exists_eq_right]
   refine ⟨λ ⟨qc', h, hqc'⟩ ↦ ?_, λ h ↦ ?_⟩
   · convert h
     refine funext (λ x ↦ ?_)
@@ -110,5 +110,17 @@ lemma le_of_mem_support_simulate (oa : OracleComp spec α) (qc qc' : ι → ℕ)
   rw [mem_support_simulate_iff] at h
   obtain ⟨qc'', _, h⟩ := h
   exact le_of_le_of_eq le_self_add h
+
+lemma mem_support_simulate_pure_iff (x : α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
+    z ∈ (simulate countingOracle qc (pure x : OracleComp spec α)).support ↔ z = (x, qc) := by
+  simp only [simulate_pure, support_pure, Set.mem_singleton_iff]
+
+lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
+    (oa : spec.range i → OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
+    z ∈ (simulate countingOracle qc (query i t >>= oa)).support ↔ z.2 i ≠ 0 ∧ ∃ u,
+      (z.1, Function.update z.2 i (z.2 i - 1)) ∈ (simulate countingOracle qc (oa u)).support := by
+  sorry
+
+end support
 
 end countingOracle
