@@ -150,7 +150,7 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
 
           by_cases hj : j = i
           · induction hj
-            simp
+            simp only [update_same]
             have := le_of_mem_support_simulate hu j
             refine le_trans ?_ this
             simp

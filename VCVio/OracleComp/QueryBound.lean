@@ -67,8 +67,7 @@ lemma isQueryBound_bind {oa : OracleComp spec α} {ob : α → OracleComp spec �
   obtain ⟨y, x, count', h, h'⟩ := h
   specialize h1 count'
   rw [support_map] at h1
-  have : count' ≤ count :=
-    countingOracle.le_of_mem_support_simulate (ob x) _ _ y h'
+  have : count' ≤ count := countingOracle.le_of_mem_support_simulate h'
   specialize h1 ⟨⟨x, count'⟩, h, rfl⟩
   specialize h2 x (count - count') (by {
     rw [← countingOracle.mem_support_snd_map_simulate_iff_of_le _ this,
