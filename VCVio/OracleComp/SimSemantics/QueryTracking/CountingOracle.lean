@@ -105,7 +105,7 @@ lemma mem_support_snd_map_simulate_iff_of_le (oa : OracleComp spec α) {qc qc' :
   · rw [h]
     refine Nat.add_sub_cancel' (hqc x)
 
-lemma le_of_mem_support_simulate (oa : OracleComp spec α) (qc qc' : ι → ℕ) (x : α)
+lemma le_of_mem_support_simulate {oa : OracleComp spec α} {qc qc' : ι → ℕ} {x : α}
     (h : (x, qc') ∈ (simulate countingOracle qc oa).support) : qc ≤ qc' := by
   rw [mem_support_simulate_iff] at h
   obtain ⟨qc'', _, h⟩ := h
@@ -119,7 +119,53 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
     z ∈ (simulate countingOracle qc (query i t >>= oa)).support ↔ z.2 i ≠ 0 ∧ ∃ u,
       (z.1, Function.update z.2 i (z.2 i - 1)) ∈ (simulate countingOracle qc (oa u)).support := by
-  sorry
+  rw [mem_support_simulate_iff, simulate_query_bind]
+  rw [support_bind]
+  simp only [apply_eq, Pi.zero_apply, zero_add, support_map, support_query, Set.image_univ,
+    Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Set.mem_iUnion]
+  refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
+  · obtain ⟨qc', ⟨⟨u, hu⟩, hqc⟩⟩ := h
+    refine ⟨?_, ?_⟩
+    · have := le_of_mem_support_simulate hu i
+      rw [← hqc, Pi.add_apply]
+      rw [← Nat.pos_iff_ne_zero]
+      refine Nat.add_pos_right _ ?_
+      refine lt_of_lt_of_le ?_ this
+      simp
+    · refine ⟨u, ?_⟩
+      simp [← hqc]
+      rw [mem_support_simulate_iff_of_le]
+      · simp
+
+        rw [mem_support_simulate_iff_of_le] at hu
+        · simp at hu
+          convert hu using 2
+          refine funext (λ j ↦ ?_)
+          by_cases hj : j = i
+          · simp [hj]
+
+            sorry
+          · simp [hj]
+        · intro j
+
+          by_cases hj : j = i
+          · induction hj
+            simp
+            have := le_of_mem_support_simulate hu j
+            refine le_trans ?_ this
+            simp
+          · simp [hj]
+      · intro j
+        by_cases hj : j = i
+        · induction hj
+          simp
+
+          sorry
+        · simp [hj]
+  · obtain ⟨hz, ⟨u, hu⟩⟩ := h
+
+    sorry
+
 
 end support
 
