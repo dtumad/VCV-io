@@ -54,17 +54,61 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
 /-- Reduce membership in the support of simulation with counting to membership in simulation
 starting with the count at `0`.
 TODO: lemmas like this suggest maybe support shouldn't auto reduce on the computation type? -/
-lemma mem_support_simulate_iff_exists (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
+lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
     z ∈ (simulate countingOracle qc oa).support ↔
       ∃ qc', (z.1, qc') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc' = z.2 := by
   rw [support_simulate]
   simp only [Prod.map_apply, id_eq, Set.mem_image, Prod.eq_iff_fst_eq_snd_eq, Prod.exists]
-  refine ⟨λ h ↦ let ⟨x, qc', h, hx, hqc'⟩ := h; ⟨qc', hx ▸ ⟨h, hqc'⟩⟩,
+  exact ⟨λ h ↦ let ⟨x, qc', h, hx, hqc'⟩ := h; ⟨qc', hx ▸ ⟨h, hqc'⟩⟩,
     λ h ↦ let ⟨qc', h, hqc'⟩ := h; ⟨z.1, qc', h, rfl, hqc'⟩⟩
 
-lemma le_of_mem_support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
-    (h : z ∈ (simulate countingOracle qc oa).support) : qc ≤ z.2 := by
-  rw [mem_support_simulate_iff_exists] at h
-  exact let ⟨qc', _, h⟩ := h; h ▸ le_self_add
+lemma mem_support_simulate_iff_of_le (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
+    (hz : qc ≤ z.2) : z ∈ (simulate countingOracle qc oa).support ↔
+      (z.1, z.2 - qc) ∈ (simulate countingOracle 0 oa).support := by
+  rw [mem_support_simulate_iff oa 0]
+
+  rw [mem_support_simulate_iff oa qc z]
+  simp
+  refine ⟨λ ⟨qc', h, hqc'⟩ ↦ ?_, λ h ↦ ?_⟩
+  · convert h
+    refine funext (λ x ↦ ?_)
+    rw [Pi.sub_apply, Nat.sub_eq_iff_eq_add' (hz x)]
+    exact symm (congr_fun hqc' x)
+  · refine ⟨z.2 - qc, h, ?_⟩
+    refine funext (λ x ↦ ?_)
+    refine Nat.add_sub_cancel' (hz x)
+
+lemma mem_support_snd_map_simulate_iff (oa : OracleComp spec α) (qc qc' : ι → ℕ) :
+    qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support ↔
+      ∃ qc'', ∃ x, (x, qc'') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc'' = qc' := by
+  simp only [support_map, Set.mem_image, Prod.exists, exists_eq_right]
+  refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
+  · obtain ⟨x, hx⟩ := h
+    rw [mem_support_simulate_iff] at hx
+    obtain ⟨qc'', h, hqc''⟩ := hx
+    refine ⟨qc'', x, h, hqc''⟩
+  · obtain ⟨qc'', x, h, hqc''⟩ := h
+    refine ⟨x, ?_⟩
+    rw [mem_support_simulate_iff]
+    refine ⟨qc'', h, hqc''⟩
+
+lemma mem_support_snd_map_simulate_iff_of_le (oa : OracleComp spec α) {qc qc' : ι → ℕ}
+    (hqc : qc ≤ qc') : qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support ↔
+      qc' - qc ∈ (Prod.snd <$> simulate countingOracle 0 oa).support := by
+  simp only [mem_support_snd_map_simulate_iff, zero_add]
+  refine exists_congr (λ qc'' ↦ exists_congr (λ x ↦ ?_))
+  refine and_congr_right' ?_
+  refine ⟨λ h ↦ funext (λ x ↦ ?_), λ h ↦ funext (λ x ↦ ?_)⟩
+  · rw [← h]
+    refine symm ?_
+    refine Nat.add_sub_cancel_left _ _
+  · rw [h]
+    refine Nat.add_sub_cancel' (hqc x)
+
+lemma le_of_mem_support_simulate (oa : OracleComp spec α) (qc qc' : ι → ℕ) (x : α)
+    (h : (x, qc') ∈ (simulate countingOracle qc oa).support) : qc ≤ qc' := by
+  rw [mem_support_simulate_iff] at h
+  obtain ⟨qc'', _, h⟩ := h
+  exact le_of_le_of_eq le_self_add h
 
 end countingOracle

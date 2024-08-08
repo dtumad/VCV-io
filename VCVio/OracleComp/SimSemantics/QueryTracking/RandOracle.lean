@@ -39,16 +39,16 @@ lemma apply_eq (i : ι) (t : spec.domain i) (cache : QueryCache spec) :
   · simp [map_eq_bind_pure_comp]
   · simp
 
-/-- Simulation with a random oracle looks like choosing a random function and answering queries
-with that. TODO: there's some tricky things in the induction step here. -/
-lemma evalDist_simulate'_eq_uniformSelect_fun_bind
-    [Inhabited γ] [Fintype γ] [Fintype β] [DecidableEq β]
-    [DecidableEq γ] [SelectableType γ]
-    [SelectableType (β → γ)]
-    (oa : OracleComp (β →ₒ γ) α) :
-    [simulate' randOracle ∅ oa] = [do
-      let f ←$ᵗ (β → γ)
-      simulate' (λ () t () ↦ return (f t, ())) () oa] := by
-  sorry
+-- /-- Simulation with a random oracle looks like choosing a random function and answering queries
+-- with that. TODO: there's some tricky things in the induction step here. -/
+-- lemma evalDist_simulate'_eq_uniformSelect_fun_bind
+--     [Inhabited γ] [Fintype γ] [Fintype β] [DecidableEq β]
+--     [DecidableEq γ] [SelectableType γ]
+--     [SelectableType (β → γ)]
+--     (oa : OracleComp (β →ₒ γ) α) :
+--     [simulate' randOracle ∅ oa] = [do
+--       let f ←$ᵗ (β → γ)
+--       simulate' (λ () t () ↦ return (f t, ())) () oa] := by
+--   sorry
 
 end randOracle
