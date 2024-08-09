@@ -125,6 +125,12 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
     Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Set.mem_iUnion]
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
   · obtain ⟨qc', ⟨⟨u, hu⟩, hqc⟩⟩ := h
+    have hqc' : qc' i ≠ 0 := by {
+      have := le_of_mem_support_simulate hu i
+      refine Nat.pos_iff_ne_zero.1 ?_
+      refine lt_of_lt_of_le ?_ this
+      simp only [update_same, zero_lt_one]
+    }
     refine ⟨?_, ?_⟩
     · have := le_of_mem_support_simulate hu i
       rw [← hqc, Pi.add_apply]
@@ -140,11 +146,16 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
         rw [mem_support_simulate_iff_of_le] at hu
         · simp at hu
           convert hu using 2
+
           refine funext (λ j ↦ ?_)
           by_cases hj : j = i
           · simp [hj]
+            refine Nat.sub_eq_of_eq_add ?_
 
-            sorry
+            rw [add_comm _ (qc i)]
+            rw [Nat.add_sub_assoc]
+            rw [Nat.one_le_iff_ne_zero]
+            exact hqc'
           · simp [hj]
         · intro j
 
@@ -158,12 +169,15 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
       · intro j
         by_cases hj : j = i
         · induction hj
-          simp
-
-          sorry
+          simp only [update_same]
+          rw [Nat.le_sub_one_iff_lt]
+          · refine Nat.lt_add_of_pos_right ?_
+            rw [pos_iff_ne_zero]
+            assumption
+          · refine Nat.add_pos_right _ ?_
+            rwa [pos_iff_ne_zero]
         · simp [hj]
   · obtain ⟨hz, ⟨u, hu⟩⟩ := h
-
     sorry
 
 
