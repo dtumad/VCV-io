@@ -178,7 +178,43 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
             rwa [pos_iff_ne_zero]
         · simp [hj]
   · obtain ⟨hz, ⟨u, hu⟩⟩ := h
-    sorry
+
+    refine ⟨?_, ⟨⟨u, ?_⟩, ?_⟩⟩
+    · refine z.2 - ?_
+      refine qc
+    · rw [mem_support_simulate_iff_of_le] at hu
+      · simp only at hu
+
+        rw [mem_support_simulate_iff_of_le]
+        · simp only
+          convert hu using 2
+          refine funext (λ j ↦ ?_)
+          by_cases hj : j = i
+          · simp [hj]
+            exact Nat.sub_right_comm (z.2 i) (qc i) 1
+          · simp [hj]
+        · intro j
+          rw [mem_support_simulate_iff_of_le] at hu
+          · by_cases hj : j = i
+            · induction hj
+              simp only [update_same, Pi.sub_apply]
+              rw [Nat.one_le_iff_ne_zero]
+              simp only [Nat.sub_zero] at hu
+
+
+              have := le_of_mem_support_simulate hu j
+
+
+              simp at this
+              rw [Nat.sub_ne_zero_iff_lt]
+
+
+              sorry
+            sorry
+          · sorry
+      · sorry
+    ·
+      sorry
 
 
 end support
