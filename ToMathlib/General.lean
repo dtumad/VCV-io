@@ -51,26 +51,48 @@ lemma Function.injective2_swap_iff {α β γ : Type} (f : α → β → γ) :
 /-- Summing `1` over list indices that satisfy a predicate is just `countP` applied to `p`. -/
 lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
     (∑ i : Fin (xs.length), if p xs[i] then 1 else 0) = xs.countP p := by
-  induction xs with
-  | nil => simp only [List.countP_nil, List.length_nil, Finset.univ_eq_empty, Fin.getElem_fin,
-      getElem?_eq_getElem, Fin.eta, Finset.sum_boole, Finset.filter_congr_decidable,
-      Finset.not_mem_empty, IsEmpty.forall_iff, Finset.filter_true_of_mem, Finset.card_empty,
-      CharP.cast_eq_zero]
-  | cons y xs h => {
-    rw [List.countP_cons]
-    simp_rw [← h, length_cons]
-    simp only [Nat.succ_eq_add_one, Fin.getElem_fin, getElem?_eq_getElem, length_cons, Fin.eta,
-      Finset.sum_boole, Nat.cast_id]
+  induction xs using List.list_reverse_induction with
+  | base => {
+    simp only [length_nil, Finset.univ_eq_empty, Finset.sum_boole, Fin.getElem_fin,
+      Finset.filter_empty, Finset.card_empty, CharP.cast_eq_zero, countP_nil]
+  }
+  | ind xs x h => {
+    rw [List.countP_append, ← h]
+    -- simp_rw [← h, length_cons]
+    rw [Finset.sum_fin_eq_sum_range, Finset.sum_fin_eq_sum_range]
+    sorry
+  }
+  -- refine List.list_reverse_induction (λ xs ↦ (∑ i : Fin (xs.length), if p xs[i] then 1 else 0) = xs.countP p) _ _ xs
+  -- · sorry
+  -- · sorry
 
-    cases hp : p y
-    · simp [h]
+  -- induction xs with
+  -- | nil => simp only [List.countP_nil, List.length_nil, Finset.univ_eq_empty, Fin.getElem_fin,
+  --     getElem?_eq_getElem, Fin.eta, Finset.sum_boole, Finset.filter_congr_decidable,
+  --     Finset.not_mem_empty, IsEmpty.forall_iff, Finset.filter_true_of_mem, Finset.card_empty,
+  --     CharP.cast_eq_zero]
+  -- | cons y xs h => {
+  --   rw [List.countP_cons]
+  --   simp_rw [← h, length_cons]
+  --   rw [Finset.sum_fin_eq_sum_range, Finset.sum_fin_eq_sum_range]
+  --   rw [Finset.range_succ]
 
-      -- rw [Multiset.countP_eq_card_filter]
-      sorry
-    · simp [h]
-      sorry
-      -- simp_rw [get_cons]
-       }
+
+
+  --   rw [List.getElem_cons_succ]
+  --   simp only [Nat.succ_eq_add_one, Fin.getElem_fin, getElem?_eq_getElem, length_cons, Fin.eta,
+  --     Finset.sum_boole, Nat.cast_id]
+
+  --   cases hp : p y
+  --   · simp [h]
+
+  --     -- rw [Multiset.countP_eq_card_filter]
+  --     sorry
+  --   · simp [h]
+
+  --     sorry
+  --     -- simp_rw [get_cons]
+  --      }
 
 lemma List.card_filter_getElem_eq {α : Type} [DecidableEq α]
     (xs : List α) (x : α) :
@@ -92,4 +114,11 @@ calc (∑ x ∈ s, if p x then r else 0 : β) = (∑ x ∈ s, if p x then 1 else
 @[simp]
 lemma Finset.count_toList {α} [DecidableEq α] (x : α) (s : Finset α) :
     s.toList.count x = if x ∈ s then 1 else 0 := by
-  sorry
+  by_cases hx : x ∈ s
+  · simp [hx]
+    refine List.count_eq_one_of_mem ?_ ?_
+    · exact nodup_toList s
+    · simp [hx]
+  · simp [hx]
+    refine List.count_eq_zero_of_not_mem ?_
+    simp [hx]
