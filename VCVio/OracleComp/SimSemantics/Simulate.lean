@@ -84,6 +84,16 @@ lemma simulate'_query (s : σ) (i : ι) (t : spec.domain i) :
     simulate' so s (query i t) = fst <$> so i t s := by
   rw [simulate', simulate_query]
 
+lemma simulate_query_bind (s : σ) (i : ι) (t : spec.domain i)
+    (oa : spec.range i → OracleComp spec α) : simulate so s (query i t >>= oa) =
+    (do let (u, s') ← so i t s; simulate so s' (oa u)) := by
+  rw [simulate_bind, simulate_query]
+
+lemma simulate'_query_bind (s : σ) (i : ι) (t : spec.domain i)
+    (oa : spec.range i → OracleComp spec α) : simulate' so s (query i t >>= oa) =
+    (do let (u, s') ← so i t s; simulate' so s' (oa u)) := by
+  rw [simulate'_bind, simulate_query]
+
 @[simp low]
 lemma simulate_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate so s (f <$> oa) = (map f id) <$> simulate so s oa := by

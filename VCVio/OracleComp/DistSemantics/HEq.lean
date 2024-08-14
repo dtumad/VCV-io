@@ -13,15 +13,10 @@ Lemmas about `HEq` related to `evalDist` and computations in general.
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
--- move
-lemma output_type_eq_of_heq {α β : Type} {oa : OracleComp spec α} {ob : OracleComp spec β}
-    (h : HEq oa ob) : α = β := by
-  sorry
+-- lemma output_type_eq_of_heq {α β : Type} {oa : OracleComp spec α} {ob : OracleComp spec β}
+--     (h : HEq oa ob) : α = β := by
+--   sorry
 
--- move
-lemma support_heq_of_heq {α β : Type} {oa : OracleComp spec α} {ob : OracleComp spec β}
-    (h' : HEq oa ob) : HEq oa.support ob.support := by
-  induction output_type_eq_of_heq h'
-  simp [eq_of_heq h']
-
--- TODO: the rest
+-- lemma support_heq_of_heq {α β : Type} {oa : OracleComp spec α} {ob : OracleComp spec β}
+--     (h' : HEq oa ob) : HEq oa.support ob.support := by
+--   sorry

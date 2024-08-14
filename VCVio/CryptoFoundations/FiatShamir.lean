@@ -28,15 +28,16 @@ variable {ι : Type} (spec : ℕ → OracleSpec ι)
     [Π n, SelectableType (Ω n)]
 
 /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
-challenge values for the Σ-protocol, including the message in the hash input. -/
-def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg spec X W p PC SC Ω P)
-    [Π n, DecidableEq (M n)] [hr : GenerableRelation X W p]
-    [Π n, unifSpec ⊂ₒ spec n] :
-    SignatureAlg (λ n ↦ spec n ++ₒ (M n × PC n →ₒ Ω n))
+challenge values for the Σ-protocol, including the message in the hash input.
+
+TODO: this suggests that we should maybe "auto-include" `unifSpec` in algorithms. -/
+def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg (λ n ↦ unifSpec ++ₒ spec n) X W p PC SC Ω P)
+    [Π n, DecidableEq (M n)] [hr : GenerableRelation X W p] :
+    SignatureAlg (λ n ↦ unifSpec ++ₒ spec n ++ₒ (M n × PC n →ₒ Ω n))
       (M := M) (PK := X) (SK := W)
       (S := λ n ↦ PC n × P n) where
   -- Use the existing algorithm for generating relation members
-  keygen := λ n ↦ sorry --↑(hr.gen n)
+  keygen := λ n ↦ ↑(hr.gen n)
   -- Sign by running the sigma protocol using a hash as the challenge
   sign := λ n pk sk m ↦ do
     let (c, e) ← sigmaAlg.commit n pk sk

@@ -19,6 +19,7 @@ import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.ActiveOracles
 import VCVio.OracleComp.DistSemantics.EvalDist
 import VCVio.OracleComp.DistSemantics.HEq
+import VCVio.OracleComp.DistSemantics.List
 import VCVio.OracleComp.DistSemantics.Prod
 import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Support

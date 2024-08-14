@@ -39,8 +39,7 @@ variable (G P : ℕ → Type) [HomogeneousSpace G P] [Π sp, Group (P sp)]
 
 section sound
 
-theorem isSound : (elgamalAsymmEnc G P).isSound := by
-  sorry
+-- theorem isSound : (elgamalAsymmEnc G P).isSound := by
   -- suffices h : ∀ sp (m x : P sp) (g₁ g₂ : G sp), m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = m
   --   by simp [AsymmEncAlg.sound_iff, h]
   -- intros m x g₁ g₂

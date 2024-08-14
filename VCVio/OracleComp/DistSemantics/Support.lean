@@ -183,14 +183,6 @@ end nonempty
     (oa : OracleComp spec α) (f : α → β) : (f <$> oa).finSupport = oa.finSupport.image f :=
   by simp [finSupport_eq_iff_support_eq_coe]
 
-@[simp] lemma support_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
-    (og <*> oa).support = ⋃ g ∈ og.support, g '' oa.support :=
-  by simp [seq_eq_bind_map]
-@[simp] lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)]
-    (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
-    (og <*> oa).finSupport = og.finSupport.biUnion (λ g ↦ oa.finSupport.image g) :=
-  by simp [seq_eq_bind_map]
-
 @[simp] lemma support_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
     (ite p oa oa').support = ite p oa.support oa'.support :=
   apply_ite support p oa oa'

@@ -31,16 +31,18 @@ We show that this coercion has no effect on `support`, `eval_dist`, or `prob_eve
 
 open OracleSpec OracleComp BigOperators ENNReal
 
-namespace OracleSpec
+variable {ι₁ ι₂ : Type} {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂} {α β γ : Type}
 
-variable {ι₁ ι₂ : Type}
+namespace OracleSpec
 
 /-- Relation defining an inclusion of one set of oracles into another, where the mapping
 doesn't affect the underlying probability distribution of the computation.
 Informally, `spec ⊂ₒ superSpec` means that for any query to an oracle of `sub_spec`,
-it can be perfectly simulated by a computation using the oracles of `superSpec`. -/
-class SubSpec {ι₁ : Type} (spec : (OracleSpec ι₁))
-    {ι₂ : Type} (superSpec : OracleSpec ι₂) : Type 1 where
+it can be perfectly simulated by a computation using the oracles of `superSpec`.
+
+We avoid implementing this via the built-in subset type as we care about the actual data
+of the mapping rather than just its existence, which is needed when defining type coercions. -/
+class SubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 where
   toFun : (i : ι₁) → spec.domain i → OracleComp superSpec (spec.range i)
   evalDist_toFun' (i : ι₁) (t : spec.domain i) : evalDist (toFun i t) = evalDist (query i t)
 
@@ -48,8 +50,7 @@ infix : 50 " ⊂ₒ " => SubSpec
 
 namespace SubSpec
 
-variable {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂}
-  [h : spec ⊂ₒ superSpec] {α β : Type}
+variable [h : spec ⊂ₒ superSpec]
 
 @[simp]
 lemma evalDist_toFun (i : ι₁) (t : spec.domain i) :
@@ -78,6 +79,57 @@ lemma probEvent_toFun (i : ι₁) (t : spec.domain i)
   rw [probEvent_def, h.evalDist_toFun, ← evalDist_query i t, ← probEvent_def,
     probEvent_query_eq_div]
 
+section liftComp
+
+def liftComp [h : spec ⊂ₒ superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
+  simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa
+
+lemma liftComp_def (oa : OracleComp spec α) : h.liftComp oa =
+    simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa := rfl
+
+lemma liftComp_pure (x : α) : h.liftComp (pure x : OracleComp spec α) = pure x :=
+  simulate'_pure _ () x
+
+lemma liftComp_query (i : ι₁) (t : spec.domain i) :
+    h.liftComp (query i t) = h.toFun i t :=
+  by rw [liftComp, simulate'_query, fst_map_prod_mk_of_subsingleton]
+
+lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    h.liftComp (oa >>= ob) = h.liftComp oa >>= λ x ↦ h.liftComp (ob x) := by
+  simp only [liftComp, simulate'_bind]
+  rw [simulate_eq_map_simulate'_of_subsingleton _ _ _ ()]
+  simp [simulate', Functor.map_map, Function.comp, map_eq_bind_pure_comp]
+
+@[simp]
+lemma evalDist_liftComp (oa : OracleComp spec α) :
+    evalDist (h.liftComp oa) = evalDist oa := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure => simp [liftComp_pure]
+  | h_queryBind i t oa hoa =>
+      simp [liftComp_bind, evalDist_bind, hoa, liftComp_query, Function.comp]
+
+@[simp]
+lemma support_liftComp (oa : OracleComp spec α) :
+    (h.liftComp oa).support = oa.support :=
+  Set.ext (mem_support_iff_of_evalDist_eq <| evalDist_liftComp oa)
+
+@[simp]
+lemma finSupport_liftComp [DecidableEq α] (oa : OracleComp spec α) :
+    (h.liftComp oa).finSupport = oa.finSupport :=
+  Finset.ext (mem_finSupport_iff_of_evalDist_eq <| evalDist_liftComp oa)
+
+@[simp]
+lemma probOutput_liftComp (oa : OracleComp spec α) (x : α) :
+    [= x | h.liftComp oa] = [= x | oa] := by
+  simp only [probOutput_def, evalDist_liftComp]
+
+@[simp]
+lemma probEvent_liftComp (oa : OracleComp spec α) (p : α → Prop) :
+    [p | h.liftComp oa] = [p | oa] := by
+  simp only [probEvent_def, evalDist_liftComp]
+
+end liftComp
+
 section instances
 
 /-- The empty set of oracles is a subspec of any other oracle set.
@@ -85,85 +137,6 @@ We require `ι` to be inhabited to prevent the reflexive case.  -/
 instance {ι : Type} [Inhabited ι] {spec : OracleSpec ι} : []ₒ ⊂ₒ spec where
   toFun := λ i ↦ Empty.elim i
   evalDist_toFun' := λ i ↦ Empty.elim i
-
-/-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
-instance : coinSpec ⊂ₒ unifSpec where
-  toFun := λ () () ↦ $ᵗ Bool
-  evalDist_toFun' := λ i t ↦ by simp [evalDist_query i t]
-
-end instances
-
-end SubSpec
-
-
-end OracleSpec
-
-namespace OracleComp
-
-variable {ι₁ ι₂ : Type} {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂} {α β γ : Type}
-
-def liftComp [h : spec ⊂ₒ superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
-  simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa
-
--- /-- Coerce a computation using the replacement function defined in a `SubSpec` instance. -/
--- instance {ι₁ : Type} (spec : OracleSpec ι₁)
---     {ι₂ : Type} (superSpec : OracleSpec ι₂)
---     [h : spec ⊂ₒ superSpec] (α : Type) :
---     Coe (OracleComp spec α) (OracleComp superSpec α) where
---   coe := liftComp
-
--- variable {ι₁ ι₂ : Type} {spec : OracleSpec ι₁} {superSpec : OracleSpec ι₂}
---   [h : spec ⊂ₒ superSpec] {α β : Type}
-
--- lemma coe_subSpec_pure (x : α) :
---     (↑(pure x : OracleComp spec α) : OracleComp superSpec α) = pure x := rfl
-
--- @[simp]
--- lemma coe_subSpec_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
---     (↑(oa >>= ob) : OracleComp superSpec β) = ↑oa >>= λ x ↦ ↑(ob x) := by
---   simp [simulate'_def, map_eq_bind_pure_comp]
-
--- @[simp]
--- lemma coe_subSpec_query (i : ι₁) (t : spec.domain i) :
---     (↑(query i t) : OracleComp superSpec (spec.range i)) = h.toFun i t := by
---   simp [Functor.map_map, Function.comp]
-
--- @[simp]
--- lemma coe_subSpec_map (oa : OracleComp spec α) (f : α → β) :
---     (↑(f <$> oa) : OracleComp superSpec β) = f <$> ↑oa := by
---   simp only [simulate'_map]
-
--- @[simp]
--- lemma coe_subSpec_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
---     (↑(og <*> oa) : OracleComp superSpec β) = (↑og : OracleComp superSpec (α → β)) <*> ↑oa := by
---   simp [seq_eq_bind, map_eq_bind_pure_comp, simulate'_def]
-
--- @[simp]
--- lemma evalDist_coe_subSpec (oa : OracleComp spec α) :
---     evalDist (↑oa : OracleComp superSpec α) = evalDist oa := by
---   induction oa using OracleComp.inductionOn with
---   | h_pure x => simp
---   | h_queryBind i t oa hoa => simp [Function.comp, hoa]
-
--- @[simp]
--- lemma support_coe_subSpec (oa : OracleComp spec α) :
---     (↑oa : OracleComp superSpec α).support = oa.support := by
---   simp [← support_evalDist]
-
--- @[simp]
--- lemma finSupport_coe_subSpec [DecidableEq α] (oa : OracleComp spec α) :
---     (↑oa : OracleComp superSpec α).finSupport = oa.finSupport := by
---   simp [finSupport_eq_iff_support_eq_coe]
-
--- @[simp]
--- lemma probOutput_coe_subSpec (oa : OracleComp spec α) (x : α) :
---     [= x | (↑oa : OracleComp superSpec α)] = [= x | oa] := by
---   simp only [probOutput_def, evalDist_coe_subSpec]
-
--- @[simp]
--- lemma probEvent_coe_subSpec (oa : OracleComp spec α) (p : α → Prop) :
---     [p | (↑oa : OracleComp superSpec α)] = [p | oa] := by
---   simp only [probEvent_def, evalDist_coe_subSpec]
 
 /-- A computation with no oracles can be viewed as one with any other set of oracles. -/
 instance coe_subSpec_empty {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type} :
@@ -173,7 +146,11 @@ instance coe_subSpec_empty {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α
 lemma coe_subSpec_empty_eq_liftComp {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp []ₒ α) : (↑oa : OracleComp spec α) = liftComp oa := rfl
 
-/-- Index change: we may need to manually add these types of instances. Could auto-simp them. -/
+/-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
+instance : coinSpec ⊂ₒ unifSpec where
+  toFun := λ () () ↦ $ᵗ Bool
+  evalDist_toFun' := λ i t ↦ by simp [evalDist_query i t]
+
 instance coe_subSpec_coinSpec_unifSpec {α : Type} :
     Coe (OracleComp coinSpec α) (OracleComp unifSpec α) where
   coe := liftComp
@@ -181,4 +158,8 @@ instance coe_subSpec_coinSpec_unifSpec {α : Type} :
 lemma coe_subSpec_coinSpec_unifSpec_eq_liftComp {α : Type} (oa : OracleComp coinSpec α) :
     (↑oa : OracleComp unifSpec α) = liftComp oa := rfl
 
-end OracleComp
+end instances
+
+end SubSpec
+
+end OracleSpec

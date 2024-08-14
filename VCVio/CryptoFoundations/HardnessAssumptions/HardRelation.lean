@@ -18,10 +18,14 @@ In the actual implementation all of these are indexed by some security parameter
 
 open OracleSpec OracleComp OracleAlg BigOperators ENNReal
 
+-- class hasUnifSpec {ι : Type} (spec : OracleSpec ι) where
+
+
 /-- A reltation `r` is generable if there is an efficient algorithm `gen`
 that produces values satisfying the relation. For example "is discrete log of" is generable
 because we can choose the exponent first (see `HardHomogeneousSpace`). -/
-class GenerableRelation (X W : ℕ → Type)
+class GenerableRelation --{ι : Type} (spec : ℕ → OracleSpec ι)
+   (X W : ℕ → Type)
     (r : {n : ℕ} → X n → W n → Bool) where
   gen (n : ℕ) : OracleComp unifSpec (X n × W n)
   gen_sound (n : ℕ) (x : X n) (w : W n) :

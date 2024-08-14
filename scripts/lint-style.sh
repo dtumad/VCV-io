@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -exo pipefail
+set -eo pipefail
 
 # # Style linter
 
