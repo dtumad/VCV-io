@@ -191,7 +191,8 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
   · refine apply_ne_zero_of_mem_support_simulate_queryBind h
   · refine exists_mem_support_of_mem_support_simulate_queryBind h
   · obtain ⟨hz0, ⟨u, hu⟩⟩ := h
-    simp
+    simp only [simulate_bind, simulate_query, apply_eq, support_bind, support_map, support_query,
+      Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Set.mem_iUnion]
     refine ⟨u, ?_⟩
     have := add_mem_support_simulate hu (update 0 i 1)
     convert this
