@@ -224,7 +224,7 @@ lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     split_ifs with hs
     · convert (one_mul _)
       rw [Nat.cast_eq_one]
-      simp_rw [hxs]
+      simp_rw [hxs, @eq_comm _ y]
       refine ((List.card_filter_getElem_eq (x :: xs ) y)).trans ?_
       rw [← hxs]
       rw [Finset.count_toList]
