@@ -200,21 +200,14 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
               simp only [update_same, Pi.sub_apply]
               rw [Nat.one_le_iff_ne_zero]
               simp only [Nat.sub_zero] at hu
-
-
               have := le_of_mem_support_simulate hu j
-
-
               simp at this
               rw [Nat.sub_ne_zero_iff_lt]
-
-
               sorry
             sorry
           · sorry
       · sorry
-    ·
-      sorry
+    · sorry
 
 
 end support

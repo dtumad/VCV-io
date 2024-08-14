@@ -52,14 +52,13 @@ instance hasUniformSelectList (α : Type) [Inhabited α] [DecidableEq α] :
     | [] => return default
     | x :: xs => ((x :: xs)[·]) <$> $[0..xs.length]
 
-@[simp]
-lemma uniformSelectList_nil (α : Type) [Inhabited α] [DecidableEq α] :
-    ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
-
-lemma uniformSelectList_cons {α : Type} [Inhabited α] [DecidableEq α] (x : α) (xs : List α) :
-    ($ x :: xs : OracleComp unifSpec α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
-
 variable {α : Type} [Inhabited α] [DecidableEq α]
+
+@[simp]
+lemma uniformSelectList_nil : ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
+
+lemma uniformSelectList_cons (x : α) (xs : List α) :
+    ($ x :: xs : OracleComp unifSpec α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
 
 @[simp]
 lemma evalDist_uniformSelectList (xs : List α) :
@@ -82,13 +81,13 @@ lemma support_uniformSelectList (xs : List α) :
         Set.mem_setOf_eq, implies_true]
 
 @[simp]
-lemma finSupport_uniformSelectList [DecidableEq α] (xs : List α) :
+lemma finSupport_uniformSelectList (xs : List α) :
     ($ xs).finSupport = if xs.isEmpty then {default} else xs.toFinset := by
   split_ifs with h <;> simp only [finSupport_eq_iff_support_eq_coe, support_uniformSelectList,
     h, ↓reduceIte, List.coe_toFinset, Finset.coe_singleton]
 
 @[simp]
-lemma probOutput_uniformSelectList [DecidableEq α] (xs : List α) (x : α) :
+lemma probOutput_uniformSelectList (xs : List α) (x : α) :
     [= x | $ xs] = if xs.isEmpty then (if x = default then 1 else 0)
       else (↑(xs.count x) : ℝ≥0∞) / xs.length := by
   induction xs with
@@ -137,7 +136,8 @@ variable {α : Type} [DecidableEq α] {n : ℕ}
 
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
-lemma uniformSelectVector_eq_uniformSelectList [Inhabited α] (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_eq_uniformSelectList (xs : Vector α (n + 1)) :
+    let hα : Inhabited α := ⟨xs.head⟩
     ($ xs) = ($ xs.toList : OracleComp unifSpec α) :=
   match xs with
   | ⟨x :: xs, h⟩ => by
@@ -155,21 +155,18 @@ lemma evalDist_uniformSelectVector (xs : Vector α (n + 1)) :
 @[simp]
 lemma support_uniformSelectVector (xs : Vector α (n + 1)) :
     ($ xs).support = {x | x ∈ xs.toList} := by
-  have : Inhabited α := ⟨xs.head⟩
   simp only [uniformSelectVector_eq_uniformSelectList, support_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte]
 
 @[simp]
-lemma finSupport_uniformSelectVector [DecidableEq α] (xs : Vector α (n + 1)) :
+lemma finSupport_uniformSelectVector (xs : Vector α (n + 1)) :
     ($ xs).finSupport = xs.toList.toFinset := by
-  have : Inhabited α := ⟨xs.head⟩
   simp only [uniformSelectVector_eq_uniformSelectList, finSupport_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte]
 
 @[simp]
-lemma probOutput_uniformSelectVector [DecidableEq α] (xs : Vector α (n + 1)) (x : α) :
+lemma probOutput_uniformSelectVector (xs : Vector α (n + 1)) (x : α) :
     [= x | $ xs] = xs.toList.count x / (n + 1) := by
-  have : Inhabited α := ⟨xs.head⟩
   simp only [uniformSelectVector_eq_uniformSelectList, probOutput_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
     Nat.cast_one]
@@ -177,7 +174,6 @@ lemma probOutput_uniformSelectVector [DecidableEq α] (xs : Vector α (n + 1)) (
 @[simp]
 lemma probEvent_uniformSelectVector (xs : Vector α (n + 1)) (p : α → Prop) [DecidablePred p] :
     [p | $ xs] = xs.toList.countP p / (n + 1) := by
-  have : Inhabited α := ⟨xs.head⟩
   simp only [uniformSelectVector_eq_uniformSelectList, probEvent_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
     Nat.cast_one]
