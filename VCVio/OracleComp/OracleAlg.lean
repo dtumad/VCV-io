@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Constructions
+import VCVio.OracleComp.SimSemantics.Append
 
 /-!
 # Structuring Protocols with Oracle Access
@@ -32,6 +33,11 @@ variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β γ : Type}
 def exec (alg : OracleAlg spec) (n : ℕ)
     (oa : OracleComp (spec n) α) : OracleComp unifSpec α :=
   simulate' (alg.baseSimOracle n) (alg.init_state n) oa
+
+-- TODO: Could think about basing things around this instead
+def exec' (alg : OracleAlg spec) (n : ℕ)
+    (oa : OracleComp (unifSpec ++ₒ spec n) α) : OracleComp unifSpec α :=
+  simulate' (idOracle ++ₛₒ alg.baseSimOracle n) ((), alg.init_state n) oa
 
 lemma exec_def (oa : OracleComp (spec n) α) :
     alg.exec n oa = simulate' (alg.baseSimOracle n) (alg.init_state n) oa := rfl

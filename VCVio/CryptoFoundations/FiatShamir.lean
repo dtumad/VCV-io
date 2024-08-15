@@ -32,7 +32,7 @@ challenge values for the Σ-protocol, including the message in the hash input.
 
 TODO: this suggests that we should maybe "auto-include" `unifSpec` in algorithms. -/
 def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg (λ n ↦ unifSpec ++ₒ spec n) X W p PC SC Ω P)
-    [Π n, DecidableEq (M n)] [hr : GenerableRelation X W p] :
+    [Π n, DecidableEq (M n)] (hr : GenerableRelation spec X W p) :
     SignatureAlg (λ n ↦ unifSpec ++ₒ spec n ++ₒ (M n × PC n →ₒ Ω n))
       (M := M) (PK := X) (SK := W)
       (S := λ n ↦ PC n × P n) where
