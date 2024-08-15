@@ -12,6 +12,10 @@ This file defines a predicate `IsQueryBound oa qb` to say that a computation wit
 never makes a larger number of queries than is given by a bound `qb : spec.ι → ℕ`.
 This is useful for showing that some simulated computation is polynomial time,
 and in things like seeding query values for a computation.
+
+We also define a function `minimalQueryBound oa` that returns the smallest such count.
+Calculating this is generally expensive, and so it shouldn't be used in actual algorithms,
+but it can be useful in some proofs that only care about the existence of a bound.
 -/
 
 open OracleSpec Prod
@@ -22,7 +26,8 @@ section IsQueryBound
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
-/-- Bound on the number of queries made by a computation, given by a map from oracles to counts. -/
+/-- Predicate expressing that `qb` is a bound on the number of queries made by `oa`.
+In particular any simulation with a `countingOracle` produces counts that are smaller. -/
 def IsQueryBound (oa : OracleComp spec α) (qb : ι → ℕ) : Prop :=
     ∀ qc ∈ (snd <$> simulate countingOracle 0 oa).support, qc ≤ qb
 
@@ -187,9 +192,9 @@ variable {ι' : Type} {spec' : OracleSpec ι} {σ : Type}
 end simulate
 
 
--- @[simp] -- TODO: isPure predicate?
+-- @[simp]
 -- lemma zero_isQueryBound_iff (oa : OracleComp spec α) :
---     IsQueryBound oa 0 ↔ ∃ x, oa = pure x := by
+--     IsQueryBound oa 0 ↔ isPure oa := by
 --   refine ⟨λ h ↦ ?_, λ ⟨x, hx⟩ ↦ hx ▸ isQueryBound_pure x 0⟩
 --   induction oa using OracleComp.inductionOn with
 --   | h_pure x => exact ⟨x, rfl⟩
@@ -208,9 +213,14 @@ end IsQueryBound
 
 section PolyQueries
 
+/-- If `oa` is an computation indexed by a security parameter, then `PolyQueries oa`
+means that for each oracle index there is a polynomial function `qb` of the security parameter,
+such that the number of queries to that oracle is bounded by the corresponding polynomial. -/
 structure PolyQueries {ι : Type} [DecidableEq ι] {spec : ℕ → OracleSpec ι}
   {α β : ℕ → Type} (oa : (n : ℕ) → α n → OracleComp (spec n) (β n)) where
+  /-- `qb i` is a polynomial bound on the queries made to oracle `i`. -/
   qb : ι → Polynomial ℕ
+  /-- The bound is actually a bound on the number of queries made. -/
   qb_isQueryBound (n : ℕ) (x : α n) :
     IsQueryBound (oa n x) (λ i ↦ (qb i).eval n)
 

@@ -30,7 +30,7 @@ exceptions by redirecting the output to ``style-exceptions.txt``. Use:
 to perform this update.
 """
 
-# TODO: This is adapted from the linter for mathlib3. It should be rewritten in Lean.
+# TODO: This is copied from mathlib currently. eventually that could be avoided with some better scripting
 
 from pathlib import Path
 import sys
@@ -176,7 +176,6 @@ def line_endings_check(lines, path):
     return errors, newlines
 
 def four_spaces_in_second_line(lines, path):
-    # TODO: also fix the space for all lines before ":=", right now we only fix the line after
     # the first line break
     errors = []
     # We never alter the first line, as it does not occur as next_line in the iteration over the
@@ -219,7 +218,6 @@ def nonterminal_simp_check(lines, path):
                                                               annotated_lines[1:]):
         # Check if the current line matches whitespace followed by "simp"
         new_line = line
-        # TODO it would be better to use a regex like r"^\s*simp( \[.*\])?( at .*)?$" and thereby
         # catch all possible simp invocations. Adding this will require more initial cleanup or
         # nolint.
         if (not is_comment) and re.search(r"^\s*simp$", line):
@@ -241,8 +239,6 @@ def nonterminal_simp_check(lines, path):
 
 def long_lines_check(lines, path):
     errors = []
-    # TODO: find a good way to break long lines
-    # TODO: some string literals (in e.g. tactic output messages) can be excepted from this rule
     for line_nr, line in lines:
         if "http" in line or "#align" in line:
             continue

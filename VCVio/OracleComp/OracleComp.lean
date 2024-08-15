@@ -155,6 +155,31 @@ def oracleComp_emptySpec_equiv (α : Type) : OracleComp []ₒ α ≃ α where
     | queryBind' i _ _ _ => Empty.elim i
   right_inv := λ _ ↦ rfl
 
+section isPure
+
+/-- Returns true for computations that don't query any oracles, `false` otherwise-/
+def isPure : OracleComp spec α → Bool
+  | pure' _ _ => true
+  | queryBind' _ _ _ _ => false
+
+@[simp]
+lemma isPure_pure (spec : OracleSpec ι) (x : α) :
+    isPure (pure x : OracleComp spec α) = true := rfl
+
+@[simp]
+lemma isPure_query_bind (i : ι) (t : spec.domain i) (oa : spec.range i → OracleComp spec α) :
+    isPure (query i t >>= oa) = false := rfl
+
+lemma eq_pure_of_isPure {oa : OracleComp spec α} (h : isPure oa) : oa = pure oa.defaultResult :=
+  match oa with
+  | pure' _ _ => rfl
+  | queryBind' _ _ _ _ => by simp at h
+
+lemma exists_eq_of_isPure {oa : OracleComp spec α} (h : isPure oa) : ∃ x, oa = pure x :=
+  ⟨oa.defaultResult, eq_pure_of_isPure h⟩
+
+end isPure
+
 section inj
 
 @[simp] lemma pure_inj (x y : α) : (pure x : OracleComp spec α) = pure y ↔ x = y :=

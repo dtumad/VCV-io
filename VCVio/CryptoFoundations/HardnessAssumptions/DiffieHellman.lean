@@ -10,8 +10,6 @@ import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 
 This file gives a way to represent assumptions such as discrete log or Diffie Hellman.
 We represent this as hardness assumptions on the corresponding hard homogenous space.
-
-TODO: this implementation is not very efficient. Stick to HHS for now
 -/
 
 -- namespace DiffieHellman

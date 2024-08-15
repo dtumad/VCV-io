@@ -26,8 +26,6 @@ that values are in the support iff they have non-zero probability under `evalDis
 
 We give many simp lemmas involving `tsum` a lower priority, as otherwise the simplifier will
 always choose them over versions involving `sum` (as they require `DecidableEq` or `Fintype`)
-
-TODO: We define `distEquiv` on it's own somewhere else
 -/
 
 namespace OracleComp
