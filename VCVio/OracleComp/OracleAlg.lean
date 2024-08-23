@@ -85,6 +85,11 @@ abbrev baseOracleAlg : OracleAlg (λ _ ↦ unifSpec) where
   init_state := λ _ ↦ ()
   baseSimOracle := λ _ ↦ idOracle
 
+abbrev baseOracleAlg' : OracleAlg (λ _ ↦ emptySpec) where
+  baseState := λ _ ↦ Unit
+  init_state := λ _ ↦ ()
+  baseSimOracle := λ _ ↦ unifOracle
+
 @[simp]
 lemma exec_baseOracleAlg (n : ℕ) (oa : OracleComp unifSpec α) :
     baseOracleAlg.exec n oa = oa := by
