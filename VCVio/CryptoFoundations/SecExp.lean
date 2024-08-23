@@ -42,6 +42,15 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 end SecAdv
 
+structure SecExp' {ι : Type} (spec : ℕ → OracleSpec ι)
+    extends OracleAlg spec where
+  main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
+
+noncomputable def SecExp'.advantage'  {ι : Type} (spec : ℕ → OracleSpec ι) (exp : SecExp' spec)
+    (n : ℕ) : ℝ≥0∞ :=
+  [= true | exp.exec' n (exp.main n)]
+
+
 structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
     extends OracleAlg spec where
   main (n : ℕ) : OracleComp (spec n) Bool

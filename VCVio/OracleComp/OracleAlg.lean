@@ -42,8 +42,15 @@ def exec' (alg : OracleAlg spec) (n : ℕ)
 lemma exec_def (oa : OracleComp (spec n) α) :
     alg.exec n oa = simulate' (alg.baseSimOracle n) (alg.init_state n) oa := rfl
 
+lemma exec'_def (oa : OracleComp (unifSpec ++ₒ spec n) α) :
+    alg.exec' n oa = simulate' (idOracle ++ₛₒ alg.baseSimOracle n) ((), alg.init_state n) oa :=
+  rfl
+
 @[simp low]
 lemma exec_return (x : α) : alg.exec n (return x) = return x := rfl
+
+@[simp low]
+lemma exec'_pure (x : α) : alg.exec' n (pure x) = pure x := rfl
 
 @[simp low]
 lemma exec_bind (oa : OracleComp (spec n) α) (ob : α → OracleComp (spec n) β) :
