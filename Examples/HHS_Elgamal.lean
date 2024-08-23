@@ -17,21 +17,20 @@ open HomogeneousSpace AsymmEncAlg
 Messages are base points in `P` (in practice this is some encoding of messages),
 The public key is a pair of base points in `P` chosen uniformly at random,
 and the secret key is their vectorization in `G`. Signatures are also a pair of base points. -/
-@[simps]
 noncomputable def elgamalAsymmEnc (G P : ℕ → Type)
     [HomogeneousSpace G P] [Π sp, Group (P sp)] :
-    AsymmEncAlg (λ _ ↦ unifSpec) (M := λ sp ↦ P sp)
+    AsymmEncAlg (λ _ ↦ emptySpec) (M := λ sp ↦ P sp)
       (PK := λ sp ↦ P sp × P sp) (SK := λ sp ↦ G sp) (C := λ sp ↦ P sp × P sp) where
   keygen := λ sp ↦ do
     let x₀ ←$ᵗ P sp
     let sk ←$ᵗ G sp
     return ((x₀, sk +ᵥ x₀), sk)
   encrypt := λ sp m ⟨x₀, pk⟩ ↦ do
-    let g ←$ᵗ G sp
+    let g : G sp ←$ᵗ G sp
     return (g +ᵥ x₀, m * (g +ᵥ pk))
   decrypt := λ _ (c₁, c₂) sk ↦ do
     return c₂ / (sk +ᵥ c₁)
-  __ := OracleAlg.baseOracleAlg -- no extra oracles
+  __ := OracleAlg.baseOracleAlg' -- no extra oracles
 
 namespace elgamalAsymmEnc
 

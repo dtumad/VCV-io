@@ -265,7 +265,7 @@ class SelectableType (β : Type) [Fintype β] [Inhabited β] where
   selectElem : OracleComp unifSpec β
   probOutput_selectElem (x : β) : [= x | selectElem] = (↑(Fintype.card β))⁻¹
 
-def uniformOfFintype (β : outParam Type) [Fintype β] [Inhabited β] [h : SelectableType β] :
+def uniformOfFintype (β : Type) [Fintype β] [Inhabited β] [h : SelectableType β] :
     OracleComp unifSpec β := h.selectElem
 
 prefix : 90 "$ᵗ" => uniformOfFintype
