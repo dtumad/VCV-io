@@ -95,8 +95,8 @@ instance {ι : Type} [DecidableEq ι] : Inhabited (OracleSpec ι) :=
 /-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`. -/
 @[inline, reducible] def singletonSpec (T U : Type) [Inhabited U] [DecidableEq T]
     [DecidableEq U] [Fintype U] : OracleSpec Unit where
-  domain := λ _ ↦ T
-  range := λ _ ↦ U
+  domain _ := T
+  range _ := U
   range_inhabited' := inferInstance
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
