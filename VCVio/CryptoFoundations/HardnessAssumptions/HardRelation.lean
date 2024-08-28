@@ -36,7 +36,7 @@ def hardRelationExp {ι : Type} [DecidableEq ι] {spec : ℕ → OracleSpec ι}
     {X W : ℕ → Type} [Π n, Fintype (X n)] [Π n, Inhabited (X n)]
     [Π n, SelectableType (X n)] {r : {n : ℕ} → X n → W n → Bool}
     (gr : GenerableRelation spec X W r)
-    (adv : SecAdv spec X W) : SecExp' spec where
+    (adv : SecAdv spec X W) : SecExp spec where
   main := λ n ↦ do
     let x ← SubSpec.liftComp ($ᵗ X n)
     let w ← adv.run n x
@@ -51,4 +51,4 @@ structure HardRelation {ι : Type} [DecidableEq ι] (spec : ℕ → OracleSpec �
     (r : {n : ℕ} → X n → W n → Bool)
     extends GenerableRelation spec X W r where
   relation_hard : ∀ (adv : SecAdv spec X W),
-    negligible (hardRelationExp toGenerableRelation adv).advantage'
+    negligible (hardRelationExp toGenerableRelation adv).advantage

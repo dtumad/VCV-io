@@ -36,7 +36,7 @@ variable [Π sp, DecidableEq (M sp)]
 i.e. that decryption properly reverses encryption -/
 def soundnessExp (encAlg : AsymmEncAlg spec M PK SK C)
     (mDist : (sp : ℕ) → OracleComp (spec sp) (M sp)) :
-    SecExp' spec where
+    SecExp spec where
   main := λ sp ↦ do
     let m ← mDist sp
     let (pk, sk) ← encAlg.keygen sp
@@ -52,7 +52,7 @@ end soundnessExp
 
 /-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
 def isSound (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
-  ∀ mDist, negligible (1 - (soundnessExp encAlg mDist).advantage')
+  ∀ mDist, negligible (1 - (soundnessExp encAlg mDist).advantage)
 
 -- lemma sound_iff [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : encAlg.isSound ↔
 --     ∀ m : M, ∀ m' ∈ (encAlg.exec <| do
@@ -87,7 +87,7 @@ given the messages and resulting ciphertext. `is_valid` checks that this choice 
 The simulation oracles are pulled in directly from the encryption algorithm. -/
 def IND_CPA_Exp {encAlg : AsymmEncAlg spec M PK SK C}
     (adv : IND_CPA_Adv encAlg) :
-    SecExp' spec where
+    SecExp spec where
   main := λ sp ↦ do
     let (pk, _) ← encAlg.keygen sp
     let (m₁, m₂) ← adv.run sp pk

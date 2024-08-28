@@ -6,7 +6,7 @@ Authors: Devon Tuma
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle
-import VCVio.OracleComp.SimSemantics.Append
+import VCVio.OracleComp.Coercions.Append
 
 /-!
 # Asymmetric Encryption Schemes.
@@ -20,9 +20,9 @@ open OracleSpec OracleComp BigOperators ENNReal
 
 structure SignatureAlg {ι : Type} (spec : ℕ → OracleSpec ι)
   (M PK SK S : ℕ → Type) extends OracleAlg spec where
-  keygen (sp : ℕ) : OracleComp (spec sp) (PK sp × SK sp)
-  sign (sp : ℕ) : PK sp → SK sp → M sp → OracleComp (spec sp) (S sp)
-  verify (sp : ℕ) : PK sp → M sp → S sp → OracleComp (spec sp) Bool
+  keygen (sp : ℕ) : OracleComp (unifSpec ++ₒ spec sp) (PK sp × SK sp)
+  sign (sp : ℕ) : PK sp → SK sp → M sp → OracleComp (unifSpec ++ₒ spec sp) (S sp)
+  verify (sp : ℕ) : PK sp → M sp → S sp → OracleComp (unifSpec ++ₒ spec sp) Bool
 
 namespace SignatureAlg
 
@@ -53,7 +53,7 @@ variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
 
 def signingOracle (sigAlg : SignatureAlg spec M PK SK S)
     (sp : ℕ) (pk : PK sp) (sk : SK sp) :
-    (M sp →ₒ S sp) →[QueryLog (M sp →ₒ S sp)]ₛₒ spec sp :=
+    (M sp →ₒ S sp) →[QueryLog (M sp →ₒ S sp)]ₛₒ unifSpec ++ₒ spec sp :=
   λ () m log ↦ do
     let σ ← sigAlg.sign sp pk sk m
     return (σ, log.logQuery m σ)
@@ -71,20 +71,18 @@ variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
 def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
 SecAdv (λ sp ↦ spec sp ++ₒ (M sp →ₒ S sp)) PK (λ sp ↦ M sp × S sp)
 
-def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
-    (adv : unforgeableAdv sigAlg) :
-    SecExp spec where
-  -- inpGen := sigAlg.keygen ()
-  main := λ sp ↦ do
-    let (pk, sk) ← sigAlg.keygen sp
-    let ((m, σ), ((), log)) ←
-      simulate (idOracle ++ₛₒ sigAlg.signingOracle sp pk sk)
-        ((), λ _ ↦ []) (adv.run sp pk)
-    let b ← sigAlg.verify sp pk m σ
-    return (b && !(log.wasQueried () m))
-  __ := sigAlg
-
--- port
+-- def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
+--     (adv : unforgeableAdv sigAlg) :
+--     SecExp spec where
+--   -- inpGen := sigAlg.keygen ()
+--   main := λ sp ↦ do
+--     let (pk, sk) ← sigAlg.keygen sp
+--     let ((m, σ), ((), log)) ←
+--       simulate (idOracle ++ₛₒ sigAlg.signingOracle sp pk sk)
+--         ((), λ _ ↦ []) (adv.run sp pk)
+--     let b ← sigAlg.verify sp pk m σ
+--     return (b && !(log.wasQueried () m))
+--   __ := sigAlg
 
 end unforgeable
 

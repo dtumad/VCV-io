@@ -30,7 +30,7 @@ noncomputable def elgamalAsymmEnc (G P : ℕ → Type)
     return (g +ᵥ x₀, m * (g +ᵥ pk))
   decrypt := λ _ (c₁, c₂) sk ↦ do
     return c₂ / (sk +ᵥ c₁)
-  __ := OracleAlg.baseOracleAlg' -- no extra oracles
+  __ := OracleAlg.baseOracleAlg -- no extra oracles
 
 namespace elgamalAsymmEnc
 

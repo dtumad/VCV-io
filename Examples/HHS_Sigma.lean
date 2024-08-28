@@ -34,7 +34,7 @@ end commits
 
 def SchnorrSigmaAlg (G P : ℕ → Type)
     [HomogeneousSpace G P] :
-  SigmaAlg (λ _ ↦ unifSpec)
+  SigmaAlg (λ _ ↦ emptySpec)
     -- Relation is the knowledge of vectorization `sk`
     (p := λ (x₀, pk) sk ↦ pk = sk +ᵥ x₀)
     -- Public statement is a pair of points

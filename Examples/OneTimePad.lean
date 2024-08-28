@@ -19,7 +19,7 @@ def oneTimePad : SymmEncAlg (λ _ ↦ emptySpec)
   keygen := λ sp ↦ $ᵗ Vector Bool sp -- random bitvec
   encrypt := λ _ k m ↦ return m.zipWith xor k
   decrypt := λ _ k σ ↦ return σ.zipWith xor k
-  __ := baseOracleAlg' -- Oracles already reduced
+  __ := baseOracleAlg -- Oracles already reduced
 
 namespace oneTimePad
 

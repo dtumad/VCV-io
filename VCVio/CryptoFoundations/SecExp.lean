@@ -42,25 +42,25 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 end SecAdv
 
-structure SecExp' {ι : Type} (spec : ℕ → OracleSpec ι)
+structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
     extends OracleAlg spec where
   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
 
-noncomputable def SecExp'.advantage'  {ι : Type} (spec : ℕ → OracleSpec ι) (exp : SecExp' spec)
+noncomputable def SecExp.advantage {ι : Type} (spec : ℕ → OracleSpec ι) (exp : SecExp spec)
     (n : ℕ) : ℝ≥0∞ :=
-  [= true | exp.exec' n (exp.main n)]
+  [= true | exp.exec n (exp.main n)]
 
 
-structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
-    extends OracleAlg spec where
-  main (n : ℕ) : OracleComp (spec n) Bool
+-- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
+--     extends OracleAlg spec where
+--   main (n : ℕ) : OracleComp (spec n) Bool
 
 namespace SecExp
 
-variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β : Type}
+-- variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β : Type}
 
-noncomputable def advantage (exp : SecExp spec) (n : ℕ) : ℝ≥0∞ :=
-    [= true | exp.exec n (exp.main n)]
+-- noncomputable def advantage (exp : SecExp spec) (n : ℕ) : ℝ≥0∞ :=
+--     [= true | exp.exec n (exp.main n)]
 
 
 
