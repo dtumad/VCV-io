@@ -105,6 +105,14 @@ instance : Coe (OracleComp (spec₁ ++ₒ (spec₂ ++ₒ spec₃)) α)
     (OracleComp (spec₁ ++ₒ spec₂ ++ₒ spec₃) α) where
   coe := SubSpec.liftComp
 
+instance : Coe (OracleComp (spec₁ ++ₒ spec₂) α)
+    (OracleComp (spec₁ ++ₒ (spec₂ ++ₒ spec₃)) α) where
+  coe := SubSpec.liftComp
+
+instance : Coe (OracleComp (spec₁ ++ₒ spec₃) α)
+    (OracleComp ((spec₁ ++ₒ spec₂) ++ₒ spec₃) α) where
+  coe := SubSpec.liftComp
+
 end instances
 
 end OracleSpec

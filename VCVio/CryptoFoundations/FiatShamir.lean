@@ -27,11 +27,6 @@ variable {ι : Type} (spec : ℕ → OracleSpec ι)
     [Π n, Fintype (Ω n)]
     [Π n, SelectableType (Ω n)]
 
-instance {ι₁ ι₂ ι₃ : Type} {spec : OracleSpec ι₁} {spec' : OracleSpec ι₂}
-    {spec'' : OracleSpec ι₃} {α : Type} : Coe (OracleComp (spec ++ₒ spec') α)
-      (OracleComp (spec ++ₒ (spec' ++ₒ spec'')) α) where
-  coe := λ oa ↦ SubSpec.liftComp oa
-
 /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
 challenge values for the Σ-protocol, including the message in the hash input.
 
