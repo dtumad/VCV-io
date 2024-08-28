@@ -24,18 +24,22 @@ that produces values satisfying the relation. For example "is discrete log of" i
 because we can choose the exponent first (see `HardHomogeneousSpace`). -/
 structure GenerableRelation {ι : Type} (spec : ℕ → OracleSpec ι)
     (X W : ℕ → Type) (r : {n : ℕ} → X n → W n → Bool)
+    [Π n, Fintype (X n)] [Π n, Inhabited (X n)] [Π n, SelectableType (X n)]
+    [Π n, Fintype (W n)] [Π n, Inhabited (W n)] [Π n, SelectableType (W n)]
     extends OracleAlg spec where
   gen (n : ℕ) : OracleComp (spec n) (X n × W n)
   gen_sound (n : ℕ) (x : X n) (w : W n) :
     (x, w) ∈ (toOracleAlg.exec n (gen n)).support → r x w
+  gen_uniform_right {n : ℕ} : evalDist (Prod.fst <$> gen n) = evalDist ($ᵗ X n)
+  gen_uniform_left {n : ℕ} : evalDist (Prod.snd <$> gen n) = evalDist ($ᵗ W n)
 
 /-- Experiment for checking whether an adversary `adv` can generate `w : W n`,
 given a random `x : X n`, such that `r x w` holds. For example the discrete log assumption says
 that this is hard for the relation "is the discrete log of". -/
 def hardRelationExp {ι : Type} [DecidableEq ι] {spec : ℕ → OracleSpec ι}
-    {X W : ℕ → Type} [Π n, Fintype (X n)] [Π n, Inhabited (X n)]
-    [Π n, SelectableType (X n)] {r : {n : ℕ} → X n → W n → Bool}
-    (gr : GenerableRelation spec X W r)
+    {X W : ℕ → Type} [Π n, Fintype (X n)] [Π n, Inhabited (X n)] [Π n, SelectableType (X n)]
+    [Π n, Fintype (W n)] [Π n, Inhabited (W n)] [Π n, SelectableType (W n)]
+    {r : {n : ℕ} → X n → W n → Bool} (gr : GenerableRelation spec X W r)
     (adv : SecAdv spec X W) : SecExp spec where
   main := λ n ↦ do
     let x ← SubSpec.liftComp ($ᵗ X n)
@@ -48,6 +52,7 @@ with `r x w` holding, but given `x` it is hard to find `w` where `r` holds. -/
 structure HardRelation {ι : Type} [DecidableEq ι] (spec : ℕ → OracleSpec ι)
     (X W : ℕ → Type) [Π n, Fintype (X n)]
     [Π n, Inhabited (X n)] [Π n, SelectableType (X n)]
+    [Π n, Fintype (W n)] [Π n, Inhabited (W n)] [Π n, SelectableType (W n)]
     (r : {n : ℕ} → X n → W n → Bool)
     extends GenerableRelation spec X W r where
   relation_hard : ∀ (adv : SecAdv spec X W),
