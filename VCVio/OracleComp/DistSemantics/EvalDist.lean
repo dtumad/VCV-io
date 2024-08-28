@@ -499,6 +499,15 @@ lemma probEvent_map (q : β → Prop) : [q | f <$> oa] = [q ∘ f | oa] := by
 lemma probEvent_comp (q : β → Prop) : [q ∘ f | oa] = [q | f <$> oa] :=
   symm <| probEvent_map oa f q
 
+lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
+    (hl : Function.LeftInverse f g) (hr : Function.RightInverse f g)
+    (y : β) : [= y | f <$> oa] = [= g y | oa] := by
+  rw [probOutput_map_eq_tsum]
+  refine (tsum_eq_single (g y) (λ x hx ↦ ?_)).trans ?_
+  · suffices y ≠ f x by simp [this]
+    exact (λ h ↦ hx ((congr_arg g h).trans (hr x)).symm)
+  · simp [hl y]
+
 end map
 
 section ite

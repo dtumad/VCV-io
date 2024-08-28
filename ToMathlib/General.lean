@@ -85,3 +85,17 @@ lemma Finset.count_toList {α} [DecidableEq α] (x : α) (s : Finset α) :
   · simp [hx]
     refine List.count_eq_zero_of_not_mem ?_
     simp [hx]
+
+instance (n : ℕ) : Fintype (BitVec n) := by
+  refine Fintype.ofBijective (α := Fin (2 ^ n)) ?_ ?_
+  · refine λ x ↦ ?_
+    refine BitVec.ofFin x
+  · refine ⟨?_, ?_⟩
+    · intro i j
+      simp only [BitVec.ofFin.injEq, imp_self]
+    · intro i
+      simp only [exists_apply_eq_apply]
+
+@[simp]
+lemma card_bitVec (n : ℕ) : Fintype.card (BitVec n) = 2 ^ n := by
+  sorry

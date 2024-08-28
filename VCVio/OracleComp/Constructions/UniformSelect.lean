@@ -329,10 +329,22 @@ instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
     rw [probOutput_seq_map_prod_mk_eq_mul, probOutput_uniformOfFintype, Fintype.card_prod,
       Nat.cast_mul, ENNReal.mul_inv] <;> simp
 
-instance (n : ℕ) : SelectableType (Fin (n + 1)) where
-  selectElem := $[0..n]
+instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
+  selectElem := $[0..(n - 1)]
   probOutput_selectElem := by
-    simp only [probOutput_uniformFin, Fintype.card_fin, Nat.cast_add, Nat.cast_one, implies_true]
+    cases n
+    · rw [neZero_zero_iff_false] at hn
+      refine False.elim hn
+    · simp
+
+instance (n : ℕ) : SelectableType (BitVec n) where
+  selectElem := BitVec.ofFin <$> ($ᵗ Fin (2 ^ n))
+  probOutput_selectElem := by
+    intro x
+    rw [probOutput_map_eq_probOutput_inverse _ BitVec.ofFin BitVec.toFin]
+    · simp
+    · exact (λ _ ↦ rfl)
+    · exact (λ _ ↦ rfl)
 
 end instances
 
