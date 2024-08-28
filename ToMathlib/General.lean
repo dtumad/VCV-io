@@ -86,6 +86,17 @@ lemma Finset.count_toList {α} [DecidableEq α] (x : α) (s : Finset α) :
     refine List.count_eq_zero_of_not_mem ?_
     simp [hx]
 
+lemma BitVec.toFin_bijective (n : ℕ) :
+    Function.Bijective (BitVec.toFin : BitVec n → Fin (2 ^ n)) := by
+  refine ⟨?_, ?_⟩
+  · intro i j h
+    cases i
+    cases j
+    simp at h
+    simp [h]
+  · intro i
+    simp only [exists_apply_eq_apply]
+
 instance (n : ℕ) : Fintype (BitVec n) := by
   refine Fintype.ofBijective (α := Fin (2 ^ n)) ?_ ?_
   · refine λ x ↦ ?_
@@ -98,4 +109,22 @@ instance (n : ℕ) : Fintype (BitVec n) := by
 
 @[simp]
 lemma card_bitVec (n : ℕ) : Fintype.card (BitVec n) = 2 ^ n := by
-  sorry
+  refine (Fintype.card_of_bijective (f := BitVec.toFin) ?_).trans ?_
+  · apply BitVec.toFin_bijective
+  · exact Fintype.card_fin (2 ^ n)
+
+@[simp]
+lemma BitVec.xor_xor {n : ℕ} (x : BitVec n) : x ^^^ x = 0 := by
+  ext i; simp
+
+@[simp]
+lemma BitVec.zero_xor {n : ℕ} (x : BitVec n) : 0 ^^^ x = x := by
+  ext i; simp
+
+@[simp]
+lemma BitVec.xor_zero {n : ℕ} (x : BitVec n) : x ^^^ 0 = x := by
+  ext i; simp
+
+@[simp]
+lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
+  rw [← BitVec.xor_assoc, xor_xor, BitVec.zero_xor]

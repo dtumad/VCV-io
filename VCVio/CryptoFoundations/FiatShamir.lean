@@ -27,6 +27,11 @@ variable {ι : Type} (spec : ℕ → OracleSpec ι)
     [Π n, Fintype (Ω n)]
     [Π n, SelectableType (Ω n)]
 
+instance {ι₁ ι₂ ι₃ : Type} {spec : OracleSpec ι₁} {spec' : OracleSpec ι₂}
+    {spec'' : OracleSpec ι₃} {α : Type} : Coe (OracleComp (spec ++ₒ spec') α)
+      (OracleComp (spec ++ₒ (spec' ++ₒ spec'')) α) where
+  coe := λ oa ↦ SubSpec.liftComp oa
+
 /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
 challenge values for the Σ-protocol, including the message in the hash input.
 
@@ -39,15 +44,15 @@ def FiatShamir (M : ℕ → Type) (sigmaAlg : SigmaAlg (λ n ↦ spec n) X W p P
   -- Use the existing algorithm for generating relation members
   keygen := λ n ↦ ↑(hr.gen n)
   -- Sign by running the sigma protocol using a hash as the challenge
-  sign := λ n pk sk m ↦ sorry --do
-    -- let (c, e) ← sigmaAlg.commit n pk sk
-    -- let r ← query (Sum.inr ()) (m, c)
-    -- let s ← sigmaAlg.respond n pk sk e r
-    -- return (c, s)
+  sign := λ n pk sk m ↦ do
+    let (c, e) ← sigmaAlg.commit n pk sk
+    let r ← query (Sum.inr <| Sum.inr ()) (m, c)
+    let s ← sigmaAlg.respond n pk sk e r
+    return (c, s)
   -- Verify a signature by checking the challenge returned by the random oracle
-  verify := λ n pk m (c, s) ↦ sorry --do
-    -- let r' ← query (Sum.inr ()) (m, c)
-    -- return sigmaAlg.verify n pk c r' s
+  verify := λ n pk m (c, s) ↦ do
+    let r' ← query (Sum.inr <| Sum.inr ()) (m, c)
+    return sigmaAlg.verify n pk c r' s
   -- Simulation includes an additional cache for random oracle
   baseState := λ n ↦ sigmaAlg.baseState n × QueryCache _
   -- Add an empty cache to initial state

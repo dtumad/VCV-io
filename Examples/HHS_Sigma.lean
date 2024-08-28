@@ -49,7 +49,7 @@ def SchnorrSigmaAlg (G P : ℕ → Type)
     (Ω := λ n ↦ Vector Bool (n + 1))
     -- Responses are a list of points
     (P := λ n ↦ Vector (G n) (n + 1)) where
-  commit := λ n (x₀, pk) _ ↦ do
+  commit := λ n (_, pk) _ ↦ do
     let gs ←$ᵗ Vector (G n) (n + 1)
     let xs := gs.map (· +ᵥ pk)
     return (xs, gs)
