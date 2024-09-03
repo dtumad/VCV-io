@@ -106,7 +106,8 @@ lemma evalDist_liftComp (oa : OracleComp spec α) :
   induction oa using OracleComp.inductionOn with
   | h_pure => simp [liftComp_pure]
   | h_queryBind i t oa hoa =>
-      simp [liftComp_bind, evalDist_bind, hoa, liftComp_query, Function.comp]
+      simp only [liftComp_bind, liftComp_query, evalDist_bind, evalDist_toFun, evalDist_query]
+      exact congr_arg _ (funext hoa)
 
 @[simp]
 lemma support_liftComp (oa : OracleComp spec α) :

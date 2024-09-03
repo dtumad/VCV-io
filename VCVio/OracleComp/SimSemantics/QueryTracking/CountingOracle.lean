@@ -198,12 +198,12 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
     convert this
     · refine funext (λ j ↦ symm ?_)
       by_cases hij : j = i
-      · simpa [hij] using Nat.succ_pred hz0
+      · simp [Function.update_apply, hij]
       · simp [hij]
     · refine funext (λ j ↦ ?_)
       by_cases hij : j = i
       · induction hij
-        simp
+        simpa using (Nat.succ_pred_eq_of_ne_zero hz0).symm
       · simp [hij]
 
 end support

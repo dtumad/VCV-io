@@ -98,6 +98,7 @@ lemma simulate'_query_bind (s : σ) (i : ι) (t : spec.domain i)
 lemma simulate_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate so s (f <$> oa) = (map f id) <$> simulate so s oa := by
   simp [map_eq_bind_pure_comp, Function.comp, Prod.map]
+  rfl
 
 @[simp low]
 lemma simulate'_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
@@ -163,9 +164,11 @@ lemma evalDist_simulate'_eq_evalDist
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_queryBind i t oa hoa => refine (λ s ↦
-      by simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
-        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map])
+  | h_queryBind i t oa hoa => refine (λ s ↦ by
+      simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
+        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map]
+      unfold Function.comp
+      simp [hoa])
 
 end idem
 

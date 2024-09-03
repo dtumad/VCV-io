@@ -11,6 +11,7 @@ import VCVio.OracleComp.DistSemantics.Seq
 This file collects various lemmas about computations involving `Prod`.
 
 NOTE: A lot of these could be implemented for more general functors/monads to mathlib
+TODO: Variables
 -/
 
 open OracleSpec ENNReal BigOperators Prod
@@ -25,30 +26,35 @@ lemma probOutput_prod_mk_eq_probEvent (oa : OracleComp spec (α × β)) (x : α)
 
 @[simp]
 lemma fst_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β → δ) :
-    fst <$> map f g <$> oa = (λ x ↦ f x.1) <$> oa := by
-  simp [Functor.map_map, Function.comp]
+    fst <$> map f g <$> oa = (f ∘ Prod.fst) <$> oa := by
+  simp [Functor.map_map]; rfl
 
 @[simp]
 lemma snd_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β → δ) :
-    snd <$> map f g <$> oa = (λ x ↦ g x.2) <$> oa := by
-  simp [Functor.map_map, Function.comp]
+    snd <$> map f g <$> oa = (g ∘ Prod.snd) <$> oa := by
+  simp [Functor.map_map]; rfl
 
 section seq_map_mk
 
+variable (oa : OracleComp spec α) (ob : OracleComp spec β)
+    (x : α) (y : β)
+
 @[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul
-    (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (x : α) (y : β) :
+lemma probOutput_seq_map_prod_mk_eq_mul :
     [= (x, y) | (·, ·) <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
   probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
 
 @[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul'
-    (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (x : α) (y : β) :
+lemma probOutput_seq_map_prod_mk_eq_mul' :
     [= (x, y) | (λ x y ↦ (y, x)) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
   (probOutput_seq_map_swap oa ob (·, ·) (x, y)).trans
     (probOutput_seq_map_prod_mk_eq_mul oa ob x y)
+
+@[simp]
+lemma probOutput_seq_map_prod_mk_eq_mul'':
+    [= (x, y) | Prod.mk <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
+  probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
+
 
 end seq_map_mk
 
@@ -57,12 +63,12 @@ section mk_subsingleton
 @[simp]
 lemma fst_map_prod_mk_of_subsingleton [Subsingleton β]
     (oa : OracleComp spec α) (y : β) : fst <$> (·, y) <$> oa = oa := by
-  simp only [Functor.map_map, Function.comp, id_map']
+  simp [map_eq_bind_pure_comp, bind_assoc]
 
 @[simp]
 lemma snd_map_prod_mk_of_subsingleton [Subsingleton α]
     (ob : OracleComp spec β) (x : α) : snd <$> (x, ·) <$> ob = ob := by
-  simp only [Functor.map_map, snd_comp_mk, id_map]
+  simp [Functor.map_map]
 
 end mk_subsingleton
 

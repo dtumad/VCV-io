@@ -26,7 +26,7 @@ variable (oa : OracleComp spec α) (ob : OracleComp spec (List α))
 lemma mem_support_seq_map_cons_iff' (xs : List α) : xs ∈ ((· :: ·) <$> oa <*> ob).support ↔
     xs.recOn False (λ x xs _ ↦ x ∈ oa.support ∧ xs ∈ ob.support) := by
   cases xs
-  · simp only [support_seq_map_eq_image2, Set.mem_image2, and_false, exists_const, exists_false]
+  · simp [support_seq_map_eq_image2, Set.mem_image2, and_false, exists_const, exists_false]
   · simp only [support_seq_map_eq_image2, Set.mem_image2, List.cons.injEq, exists_eq_right_right]
 
 lemma mem_support_seq_map_cons_iff (xs : List α) (h : xs ≠ []) :
@@ -57,7 +57,7 @@ lemma probOutput_cons_seq_map_cons_eq_mul' (x : α) (xs : List α) :
 @[simp]
 lemma probOutput_seq_map_cons_eq_mul (xs : List α) :
     [= xs | (· :: ·) <$> oa <*> ob] = if h : xs.isEmpty then 0 else
-      [= xs.head (h ∘ List.isEmpty_iff_eq_nil.2) | oa] * [= xs.tail | ob] :=
+      [= xs.head (h ∘ List.isEmpty_iff.2) | oa] * [= xs.tail | ob] :=
   match xs with
   | [] => by simp
   | x :: xs => probOutput_cons_seq_map_cons_eq_mul oa ob x xs
@@ -65,7 +65,7 @@ lemma probOutput_seq_map_cons_eq_mul (xs : List α) :
 @[simp]
 lemma probOutput_seq_map_cons_eq_mul' (xs : List α) :
     [= xs | (λ xs x ↦ x :: xs) <$> ob <*> oa] = if h : xs.isEmpty then 0 else
-      [= xs.head (h ∘ List.isEmpty_iff_eq_nil.2) | oa] * [= xs.tail | ob] :=
+      [= xs.head (h ∘ List.isEmpty_iff.2) | oa] * [= xs.tail | ob] :=
   match xs with
   | [] => by simp
   | x :: xs => probOutput_cons_seq_map_cons_eq_mul' oa ob x xs
