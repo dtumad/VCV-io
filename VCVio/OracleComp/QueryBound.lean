@@ -107,14 +107,15 @@ lemma isQueryBound_minimalQueryBound (oa : OracleComp spec α) :
       simp only [OracleComp.bind'_eq_bind, pure_bind, Finset.mem_image, Finset.mem_univ, true_and,
         exists_apply_eq_apply]
 
--- lemma minimalQueryBound_mem_support_simulate (oa : OracleComp spec α) :
---     minimalQueryBound oa ∈ (snd <$> simulate countingOracle 0 oa).support := by
---   induction oa using OracleComp.inductionOn with
---   | h_pure x => rfl
---   | h_queryBind i t oa hoa => {
---     simp only [minimalQueryBound]
---     sorry
---   }
+lemma minimalQueryBound_mem_support_simulate (oa : OracleComp spec α) :
+    minimalQueryBound oa ∈ (snd <$> simulate countingOracle 0 oa).support := by
+  induction oa using OracleComp.inductionOn with
+  | h_pure x => rfl
+  | h_queryBind i t oa hoa => {
+    simp [minimalQueryBound]
+
+    sorry
+  }
 
 -- lemma minimalQueryBound_minimal (oa : OracleComp spec α) :
 --     Minimal (IsQueryBound oa) (minimalQueryBound oa) := by
