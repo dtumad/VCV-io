@@ -123,6 +123,10 @@ section support
 
 variable {σ : Type} (so : spec →[σ]ₛₒ specₜ)
 
+lemma support_simulate' (oa : OracleComp spec α) (s : σ) :
+    (simulate' so s oa).support = fst <$> (simulate so s oa).support :=
+  support_map _ fst
+
 /-- Since `support` assumes any possible query result, `simulate` will never reduce the support.
 In particular the support of a simulation lies in the preimage of the original support. -/
 lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ) :
@@ -140,6 +144,12 @@ lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
     (simulate' so s oa).support ⊆ oa.support := by
   rw [simulate', support_map, Set.image_subset_iff]
   apply support_simulate_subset_preimage_support
+
+lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s : σ} {x : α}
+    (s' : σ) (h : (x, s') ∈ (simulate so s oa).support) : x ∈ (simulate' so s oa).support := by
+  simp only [support_simulate', Set.fmap_eq_image, Set.mem_image, Prod.exists, exists_and_right,
+    exists_eq_right]
+  exact ⟨s', h⟩
 
 end support
 

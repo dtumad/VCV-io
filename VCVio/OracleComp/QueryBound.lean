@@ -73,7 +73,9 @@ lemma isQueryBound_bind {oa : OracleComp spec α} {ob : α → OracleComp spec �
   rw [support_map] at h1
   have : count' ≤ count := countingOracle.le_of_mem_support_simulate h'
   have hxoa : x ∈ oa.support := by {
-    sorry
+    have := mem_support_simulate'_of_mem_support_simulate _ _ h
+    simp at this
+    exact this
   }
   specialize h1 ⟨⟨x, count'⟩, h, rfl⟩
   specialize h2 x hxoa (count - count') (by {
@@ -96,7 +98,6 @@ lemma isQueryBound_query_bind_iff (i : ι) (t : spec.domain i)
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
   · sorry
   · sorry
-
 
 section minimalQueryBound
 

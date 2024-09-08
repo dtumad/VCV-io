@@ -32,6 +32,13 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 lemma apply_eq (i : ι) (t : spec.domain i) :
     countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
 
+@[simp]
+lemma simulate'_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
+    simulate' countingOracle qc oa = oa := by
+  refine OracleComp.simulate'_eq_self ?_ ?_ qc oa
+  intro i t qc
+  rfl
+
 section support
 
 /-- We can always reduce the initial state of simulation with a counting oracle to start with a
@@ -64,6 +71,12 @@ lemma mem_support_simulate_iff (oa : OracleComp spec α) (qc : ι → ℕ) (z : 
   simp only [Prod.map_apply, id_eq, Set.mem_image, Prod.eq_iff_fst_eq_snd_eq, Prod.exists]
   exact ⟨λ h ↦ let ⟨x, qc', h, hx, hqc'⟩ := h; ⟨qc', hx ▸ ⟨h, hqc'⟩⟩,
     λ h ↦ let ⟨qc', h, hqc'⟩ := h; ⟨z.1, qc', h, rfl, hqc'⟩⟩
+
+-- lemma mem_support_simulate'_iff (oa : OracleComp spec α) (qc : ι → ℕ) (x : α) :
+--     x ∈ (simulate' countingOracle qc oa).support ↔ x ∈ oa.support := by
+--   rw [support_simulate'_subset_support]
+
+
 
 lemma mem_support_simulate_iff_of_le (oa : OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ))
     (hz : qc ≤ z.2) : z ∈ (simulate countingOracle qc oa).support ↔
