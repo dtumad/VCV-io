@@ -165,6 +165,15 @@ lemma simulate'_eq_self (h : ∀ i t s, fst <$> so i t s = query i t)
   | h_queryBind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
       hoa, ← h i t s, map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
 
+-- TODO: this for various oracles?
+class StateIndep (so : spec →[σ]ₛₒ spec) where
+    state_indep : ∀ i t s, fst <$> so i t s = query i t
+
+@[simp]
+lemma simulate'_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [h : StateIndep so]
+    (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
+  simulate'_eq_self so (h.state_indep) s oa
+
 /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this -/
