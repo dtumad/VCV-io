@@ -128,3 +128,6 @@ lemma BitVec.xor_zero {n : ℕ} (x : BitVec n) : x ^^^ 0 = x := by
 @[simp]
 lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
   rw [← BitVec.xor_assoc, xor_xor, BitVec.zero_xor]
+
+instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :=
+  ⟨id, Function.bijective_id⟩
