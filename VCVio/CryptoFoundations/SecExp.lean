@@ -24,7 +24,7 @@ The main definition is `SecExp spec α β`, which extends `OracleAlg` with three
 * `isValid` that decides whether the experiment succeeded
 -/
 
-open OracleComp OracleSpec ENNReal
+open OracleComp OracleSpec ENNReal Polynomial
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes,
 where the bound is given by a polynomial that is evaluated for each security parameter.
@@ -34,7 +34,9 @@ Port: We should eventually include polynomial time in this -/
 structure SecAdv {ι : Type} [DecidableEq ι]
     (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
   run (n : ℕ) : α n → OracleComp (spec n) (β n)
-  polyQueries_run : PolyQueries run
+  qb (i : ι) : ℕ[X] -- Bound on the number of queries made by adversary.
+  qb_isQueryBound (n : ℕ) (x : α n) :
+    IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
 
 namespace SecAdv
 
@@ -46,7 +48,7 @@ structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
     extends OracleAlg spec where
   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
 
-noncomputable def SecExp.advantage {ι : Type} (spec : ℕ → OracleSpec ι) (exp : SecExp spec)
+noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
     (n : ℕ) : ℝ≥0∞ :=
   [= true | exp.exec n (exp.main n)]
 
