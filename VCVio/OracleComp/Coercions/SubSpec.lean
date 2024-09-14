@@ -43,8 +43,18 @@ it can be perfectly simulated by a computation using the oracles of `superSpec`.
 We avoid implementing this via the built-in subset type as we care about the actual data
 of the mapping rather than just its existence, which is needed when defining type coercions. -/
 class SubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 where
-  toFun : (i : ι₁) → spec.domain i → OracleComp superSpec (spec.range i)
+  toFun (i : ι₁) (t : spec.domain i) : OracleComp superSpec (spec.range i)
   evalDist_toFun' (i : ι₁) (t : spec.domain i) : evalDist (toFun i t) = evalDist (query i t)
+
+-- Note: this version has some nicer properties but is usually more annoying.
+-- class SubSpec' (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 where
+--   index_map (i : ι₁) : ι₂
+--   input_map (i : ι₁) (t : spec.domain i) : superSpec.domain (index_map i)
+--   range_eq (i : ι₁) : superSpec.range (index_map i) = spec.range i
+
+-- def liftComp' [h : SubSpec' spec superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
+--   simulate' (λ i t () ↦ h.range_eq i ▸ (·, ()) <$>
+--      query (h.index_map i) (h.input_map i t)) () oa
 
 infix : 50 " ⊂ₒ " => SubSpec
 

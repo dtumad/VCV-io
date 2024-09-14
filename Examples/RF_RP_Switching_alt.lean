@@ -28,8 +28,7 @@ variable {α : ℕ → Type} [∀ n, Fintype (α n)]
 
 /-- Run a `RF_RP_Adv` using a random function to answer queries,
 implemented as a simulation with a random oracle. -/
-def RF_Exp (adv : RF_RP_Adv α) :
-    SecExp (λ n ↦ (α n →ₒ α n)) where
+def RF_Exp (adv : RF_RP_Adv α) : SecExp (λ n ↦ (α n →ₒ α n)) where
   main n := (· = true) <$> adv.run n ()
   baseState n := QueryCache (α n →ₒ α n)
   init_state _ := ∅
@@ -39,8 +38,7 @@ def RF_Exp (adv : RF_RP_Adv α) :
 The simulation uses an additional finset to avoid choosing duplicate query outputs.
 
 Note: We could implement a `randUniqOracle` rather than do this ad hoc. unsure other use cases. -/
-noncomputable def RP_Exp (adv : RF_RP_Adv α) :
-    SecExp (λ n ↦ (α n →ₒ α n)) where
+noncomputable def RP_Exp (adv : RF_RP_Adv α) : SecExp (λ n ↦ (α n →ₒ α n)) where
   main n := (· = false) <$> adv.run n ()
   baseState n := QueryCache (α n →ₒ α n) × Finset (α n)
   init_state _ := (∅, ∅)
@@ -49,10 +47,12 @@ noncomputable def RP_Exp (adv : RF_RP_Adv α) :
     return (u, cache', insert u used)
 
 noncomputable def RF_RP_distinguisher_advantage (adv : RF_RP_Adv α) (n : ℕ) : ℝ≥0∞ :=
-  (RF_Exp adv).advantage n + (RP_Exp adv).advantage n
+  ((RF_Exp adv).advantage n + (RP_Exp adv).advantage n) / 2
 
 theorem RF_RP_switching_lemma (adv : RF_RP_Adv α) (n : ℕ) :
     let q : ℕ := (adv.qb ()).eval n
     let k : ℕ := Fintype.card (α n)
-    (RF_RP_distinguisher_advantage adv) ≤ 1 + q * (q + 1) / k ^ n :=
+    (RF_RP_distinguisher_advantage adv n) ≤ (1 + q * (q + 1) / k ^ n) / 2 := by
+  unfold RF_RP_distinguisher_advantage
+  refine ENNReal.div_le_div ?_ le_rfl
   sorry
