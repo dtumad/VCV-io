@@ -27,11 +27,11 @@ We leave properties like special soundness as seperate definitions for better mo
 structure SigmaAlg {ι : Type} (spec : ℕ → OracleSpec ι)
     (X W : ℕ → Type) (p : {n : ℕ} → X n → W n → Bool)
     (PC SC Ω P : ℕ → Type) extends OracleAlg spec where
-  commit (n : ℕ) : X n → W n → OracleComp (spec n) (PC n × SC n)
-  respond (n : ℕ) : X n → W n → SC n → Ω n → OracleComp (spec n) (P n)
+  commit (n : ℕ) : X n → W n → OracleComp (unifSpec ++ₒ spec n) (PC n × SC n)
+  respond (n : ℕ) : X n → W n → SC n → Ω n → OracleComp (unifSpec ++ₒ spec n) (P n)
   verify (n : ℕ) : X n → PC n → Ω n → P n → Bool
-  sim (n : ℕ) : X n → OracleComp (spec n) (PC n)
-  extract (n : ℕ) : Ω n → P n → Ω n → P n → OracleComp (spec n) (W n)
+  sim (n : ℕ) : X n → OracleComp (unifSpec ++ₒ spec n) (PC n)
+  extract (n : ℕ) : Ω n → P n → Ω n → P n → OracleComp (unifSpec ++ₒ spec n) (W n)
 
 namespace SigmaAlg
 

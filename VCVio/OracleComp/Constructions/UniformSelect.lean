@@ -84,7 +84,7 @@ lemma support_uniformSelectList (xs : List α) :
 lemma finSupport_uniformSelectList (xs : List α) :
     ($ xs).finSupport = if xs.isEmpty then {default} else xs.toFinset := by
   split_ifs with h <;> simp only [finSupport_eq_iff_support_eq_coe, support_uniformSelectList,
-    h, ↓reduceIte, List.coe_toFinset, Finset.coe_singleton]
+    h, ↓reduceIte, List.coe_toFinset, Finset.coe_singleton, Bool.false_eq_true]
 
 @[simp]
 lemma probOutput_uniformSelectList (xs : List α) (x : α) :
@@ -96,10 +96,10 @@ lemma probOutput_uniformSelectList (xs : List α) (x : α) :
   | cons y ys _ =>
       rw [probOutput_def, uniformSelectList_cons, List.count, ← List.countP_eq_sum_fin_ite,
         div_eq_mul_inv, Nat.cast_sum, Finset.sum_mul, List.isEmpty_cons]
-      simp only [Fin.getElem_fin, List.getElem?_eq_getElem, List.length_cons, Fin.eta, evalDist_map,
-        evalDist_uniformFin, PMF.map_apply, PMF.uniformOfFintype_apply, Fintype.card_fin,
-        Nat.cast_add, Nat.cast_one, ↓reduceIte, beq_iff_eq, Nat.cast_ite, CharP.cast_eq_zero,
-        Nat.cast_succ, ite_mul, one_mul, zero_mul, tsum_fintype, @eq_comm _ x, zero_add, one_mul]
+      simp only [Fin.getElem_fin, evalDist_map, evalDist_uniformFin, PMF.map_apply, @eq_comm _ x,
+        PMF.uniformOfFintype_apply, Fintype.card_fin, Nat.cast_succ, tsum_fintype,
+        Finset.sum_boole', nsmul_eq_mul, Bool.false_eq_true, ↓reduceIte, List.length_cons,
+        beq_iff_eq, Nat.cast_ite, CharP.cast_eq_zero, zero_add, ite_mul, one_mul, zero_mul]
 
 @[simp]
 lemma probEvent_uniformSelectList (xs : List α) (p : α → Prop) [DecidablePred p] :
@@ -265,7 +265,7 @@ class SelectableType (β : Type) [Fintype β] [Inhabited β] where
   selectElem : OracleComp unifSpec β
   probOutput_selectElem (x : β) : [= x | selectElem] = (↑(Fintype.card β))⁻¹
 
-def uniformOfFintype (β : outParam Type) [Fintype β] [Inhabited β] [h : SelectableType β] :
+def uniformOfFintype (β : Type) [Fintype β] [Inhabited β] [h : SelectableType β] :
     OracleComp unifSpec β := h.selectElem
 
 prefix : 90 "$ᵗ" => uniformOfFintype
@@ -329,10 +329,22 @@ instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
     rw [probOutput_seq_map_prod_mk_eq_mul, probOutput_uniformOfFintype, Fintype.card_prod,
       Nat.cast_mul, ENNReal.mul_inv] <;> simp
 
-instance (n : ℕ) : SelectableType (Fin (n + 1)) where
-  selectElem := $[0..n]
+instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
+  selectElem := $[0..(n - 1)]
   probOutput_selectElem := by
-    simp only [probOutput_uniformFin, Fintype.card_fin, Nat.cast_add, Nat.cast_one, implies_true]
+    cases n
+    · rw [neZero_zero_iff_false] at hn
+      refine False.elim hn
+    · simp
+
+instance (n : ℕ) : SelectableType (BitVec n) where
+  selectElem := BitVec.ofFin <$> ($ᵗ Fin (2 ^ n))
+  probOutput_selectElem := by
+    intro x
+    rw [probOutput_map_eq_probOutput_inverse _ BitVec.ofFin BitVec.toFin]
+    · simp
+    · exact (λ _ ↦ rfl)
+    · exact (λ _ ↦ rfl)
 
 end instances
 

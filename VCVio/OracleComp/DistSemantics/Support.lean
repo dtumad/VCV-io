@@ -158,10 +158,17 @@ lemma defaultResult_mem_support : oa.defaultResult ∈ oa.support := by
       simpa only [defaultResult, OracleComp.bind'_eq_bind, pure_bind, support_bind, support_query,
         Set.mem_univ, Set.iUnion_true, Set.mem_iUnion] using this
 
+lemma exists_mem_support : ∃ x : α, x ∈ oa.support :=
+  ⟨defaultResult oa, defaultResult_mem_support oa⟩
+
 lemma defaultResult_mem_finSupport [DecidableEq α] : oa.defaultResult ∈ oa.finSupport := by
   simpa only [mem_finSupport_iff_mem_support] using defaultResult_mem_support oa
 
-lemma support_nonempty : oa.support.Nonempty := ⟨defaultResult oa, defaultResult_mem_support oa⟩
+@[simp] lemma support_nonempty : oa.support.Nonempty :=
+  ⟨defaultResult oa, defaultResult_mem_support oa⟩
+
+@[simp] lemma finSupport_nonempty [DecidableEq α] : oa.finSupport.Nonempty :=
+  ⟨defaultResult oa, defaultResult_mem_finSupport oa⟩
 
 @[simp] lemma support_ne_empty : oa.support ≠ ∅ := (support_nonempty oa).ne_empty
 @[simp] lemma finSupport_ne_empty [DecidableEq α] : oa.finSupport ≠ ∅ :=

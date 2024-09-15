@@ -31,11 +31,10 @@ section append
 with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
 answering queries to either oracle set with queries to the corresponding simulation oracle. -/
 def append (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ) :
-    spec₁ ++ₒ spec₂ →[σ × τ]ₛₒ specₜ :=
-  λ i ↦ match i with
-  | (inl i) => λ t (s₁, s₂) ↦ do
+    spec₁ ++ₒ spec₂ →[σ × τ]ₛₒ specₜ := λ i ↦ match i with
+  | inl i => λ t (s₁, s₂) ↦ do
       let (u, s₁') ← so i t s₁ return (u, s₁', s₂)
-  | (inr i) => λ t (s₁, s₂) ↦ do
+  | inr i => λ t (s₁, s₂) ↦ do
       let (u, s₂') ← so' i t s₂ return (u, s₁, s₂')
 
 infixl : 65 " ++ₛₒ " => append

@@ -92,7 +92,8 @@ lemma simulate_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : 
 @[simp]
 lemma simulate'_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : τ) (oa : OracleComp spec α) :
     simulate' (so.maskState e) s oa = simulate' so (e.symm s) (oa) := by
-  simp only [simulate'_def, simulate_maskState, fst_map_prod_map, id_eq, implies_true]
+  simp only [simulate'_def, simulate_maskState, fst_map_prod_map, CompTriple.comp_eq]
+
 
 end maskState
 
@@ -140,7 +141,8 @@ lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
   induction oa using OracleComp.inductionOn with
   | h_pure x => rfl
   | h_queryBind i t oa hoa =>
-      simp [Functor.map_map, Function.comp, hoa, seq_bind_eq]
+      simp [Functor.map_map, hoa, seq_bind_eq]
+      rfl
 
 @[simp]
 lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :
@@ -201,8 +203,8 @@ lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) 
     [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
   rw [simulate_eq_map_simulate', PUnit.default_eq_unit,
     ← probEvent_eq_eq_probOutput, probEvent_map]
-  simp [Function.comp, Prod.eq_iff_fst_eq_snd_eq]
-  simp [probOutput_def]
+  unfold Function.comp
+  simp [Function.comp, Prod.eq_iff_fst_eq_snd_eq, probOutput_def]
 
 @[simp]
 lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
@@ -212,8 +214,8 @@ lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
 @[simp]
 lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop) :
     [p | simulate unifOracle u oa] = [λ x ↦ p (x, ()) | oa] := by
-  rw [simulate_eq_map_simulate', probEvent_map, PUnit.default_eq_unit, Function.comp]
-  refine probEvent_congr <| evalDist_simulate' oa u
+  rw [simulate_eq_map_simulate', probEvent_map, PUnit.default_eq_unit]
+  exact probEvent_congr <| evalDist_simulate' oa u
 
 @[simp]
 lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) :

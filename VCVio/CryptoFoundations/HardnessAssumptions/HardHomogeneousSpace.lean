@@ -45,11 +45,11 @@ instance [h : HomogeneousSpace G P] (sp : ℕ) : SelectableType (G sp) := h.sele
 instance [h : HomogeneousSpace G P] (sp : ℕ) : SelectableType (P sp) := h.selectableType_P sp
 
 class vectorizationHard (G P : ℕ → Type) [HomogeneousSpace G P]
-    extends HardRelation (λ n ↦ P n × P n) (λ n ↦ G n)
+    extends HardRelation (λ _ ↦ emptySpec) (λ n ↦ P n × P n) (λ n ↦ G n)
       (λ (x₁, x₂) g ↦ g = x₁ -ᵥ x₂)
 
 class parallelizationHard (G P : ℕ → Type) [HomogeneousSpace G P]
-    extends HardRelation (λ n ↦ P n × P n × P n) (λ n ↦ P n)
+    extends HardRelation (λ _ ↦ emptySpec) (λ n ↦ P n × P n × P n) (λ n ↦ P n)
       (λ (x₁, x₂, x₃) x₄ ↦ x₁ -ᵥ x₂ = x₃ -ᵥ x₄)
 
 end HomogeneousSpace

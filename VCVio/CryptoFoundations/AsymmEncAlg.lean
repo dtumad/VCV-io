@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
-import VCVio.OracleComp.Coercions.SubSpec
+import VCVio.OracleComp.Coercions.Append
 
 /-!
 # Asymmetric Encryption Schemes.
@@ -20,9 +20,9 @@ open OracleSpec OracleComp
 structure AsymmEncAlg {ι : Type} (spec : ℕ → OracleSpec ι)
     (M PK SK C : ℕ → Type)
     extends OracleAlg spec where
-  keygen (sp : ℕ) : OracleComp (spec sp) (PK sp × SK sp)
-  encrypt (sp : ℕ) : M sp → PK sp → OracleComp (spec sp) (C sp)
-  decrypt (sp : ℕ) : C sp → SK sp → OracleComp (spec sp) (M sp)
+  keygen (sp : ℕ) : OracleComp (unifSpec ++ₒ spec sp) (PK sp × SK sp)
+  encrypt (sp : ℕ) : M sp → PK sp → OracleComp (unifSpec ++ₒ spec sp) (C sp)
+  decrypt (sp : ℕ) : C sp → SK sp → OracleComp (unifSpec ++ₒ spec sp) (M sp)
 
 namespace AsymmEncAlg
 
@@ -89,9 +89,9 @@ def IND_CPA_Exp {encAlg : AsymmEncAlg spec M PK SK C}
     (adv : IND_CPA_Adv encAlg) :
     SecExp spec where
   main := λ sp ↦ do
-    let ⟨pk, _⟩ ← encAlg.keygen sp
-    let ⟨m₁, m₂⟩ ← adv.run sp pk
-    let b : Bool := true -- fix
+    let (pk, _) ← encAlg.keygen sp
+    let (m₁, m₂) ← adv.run sp pk
+    let b : Bool ← coin
     let m := if b then m₁ else m₂
     let c ← encAlg.encrypt sp m pk
     let b' ← adv.distinguish sp pk (m₁, m₂) c

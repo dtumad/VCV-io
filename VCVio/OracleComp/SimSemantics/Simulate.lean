@@ -98,6 +98,7 @@ lemma simulate'_query_bind (s : σ) (i : ι) (t : spec.domain i)
 lemma simulate_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate so s (f <$> oa) = (map f id) <$> simulate so s oa := by
   simp [map_eq_bind_pure_comp, Function.comp, Prod.map]
+  rfl
 
 @[simp low]
 lemma simulate'_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
@@ -122,6 +123,10 @@ section support
 
 variable {σ : Type} (so : spec →[σ]ₛₒ specₜ)
 
+lemma support_simulate' (oa : OracleComp spec α) (s : σ) :
+    (simulate' so s oa).support = fst <$> (simulate so s oa).support :=
+  support_map _ fst
+
 /-- Since `support` assumes any possible query result, `simulate` will never reduce the support.
 In particular the support of a simulation lies in the preimage of the original support. -/
 lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ) :
@@ -140,6 +145,12 @@ lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
   rw [simulate', support_map, Set.image_subset_iff]
   apply support_simulate_subset_preimage_support
 
+lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s : σ} {x : α}
+    (s' : σ) (h : (x, s') ∈ (simulate so s oa).support) : x ∈ (simulate' so s oa).support := by
+  simp only [support_simulate', Set.fmap_eq_image, Set.mem_image, Prod.exists, exists_and_right,
+    exists_eq_right]
+  exact ⟨s', h⟩
+
 end support
 
 section idem
@@ -154,6 +165,15 @@ lemma simulate'_eq_self (h : ∀ i t s, fst <$> so i t s = query i t)
   | h_queryBind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
       hoa, ← h i t s, map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
 
+-- TODO: this for various oracles?
+class StateIndep (so : spec →[σ]ₛₒ spec) where
+    state_indep : ∀ i t s, fst <$> so i t s = query i t
+
+@[simp]
+lemma simulate'_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [h : StateIndep so]
+    (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
+  simulate'_eq_self so (h.state_indep) s oa
+
 /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this -/
@@ -163,9 +183,11 @@ lemma evalDist_simulate'_eq_evalDist
   revert s
   induction oa using OracleComp.inductionOn with
   | h_pure x => simp
-  | h_queryBind i t oa hoa => refine (λ s ↦
-      by simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
-        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map])
+  | h_queryBind i t oa hoa => refine (λ s ↦ by
+      simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
+        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map]
+      unfold Function.comp
+      simp [hoa])
 
 end idem
 
@@ -183,8 +205,6 @@ lemma simulate_eq_map_simulate'_of_subsingleton (oa : OracleComp spec α) (s s' 
 lemma simulate_eq_map_simulate' [Inhabited σ] (oa : OracleComp spec α) (s : σ) :
     simulate so s oa = (·, default) <$> simulate' so s oa :=
   simulate_eq_map_simulate'_of_subsingleton so oa s default
-
--- TODO: versions for dist semantics stuff
 
 end subsingleton
 

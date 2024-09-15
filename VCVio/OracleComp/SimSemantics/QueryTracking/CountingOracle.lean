@@ -29,8 +29,15 @@ namespace countingOracle
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) :
+protected lemma apply_eq (i : ι) (t : spec.domain i) :
     countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
+
+instance : StateIndep (countingOracle (spec := spec)) where
+  state_indep _ _ _ := rfl
+
+protected lemma simulate'_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
+    simulate' countingOracle qc oa = oa :=
+  simulate'_eq_self_of_stateIndep countingOracle qc oa
 
 section support
 
@@ -44,9 +51,9 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
   | h_pure a => simp
   | h_queryBind i t oa hoa =>
       refine λ qc ↦ ?_
-      simp only [simulate_bind, simulate_query, apply_eq, support_bind, support_map, support_query,
-        Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Prod.map_apply,
-        id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
+      simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
+        support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
+        Prod.map_apply, id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
       refine Set.iUnion_congr (λ u ↦ ?_)
       simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
         ← Set.image_comp, Function.comp, Prod.map_apply, id_eq, ← add_assoc]
@@ -113,6 +120,20 @@ lemma add_mem_support_simulate {oa : OracleComp spec α} {qc : ι → ℕ} {z : 
     (z.1, z.2 + qc') ∈ (simulate countingOracle (qc + qc') oa).support := by
   obtain ⟨qc1, hqc', h⟩ := (mem_support_simulate_iff _ _ _).1 hz
   exact (mem_support_simulate_iff _ _ _).2 ⟨qc1, hqc', h ▸ by ring⟩
+
+@[simp]
+lemma add_right_mem_support_simulate_iff (oa : OracleComp spec α) (qc qc' : ι → ℕ) (x : α) :
+    (x, qc + qc') ∈ (simulate countingOracle qc oa).support ↔
+      (x, qc') ∈ (simulate countingOracle 0 oa).support := by
+  rw [support_simulate, Set.mem_image]
+  simp only [Prod.exists, Prod.map_apply, id_eq, Prod.mk.injEq, add_right_inj,
+    exists_eq_right_right, exists_eq_right]
+
+@[simp]
+lemma add_left_mem_support_simulate_iff (oa : OracleComp spec α) (qc qc' : ι → ℕ) (x : α) :
+    (x, qc' + qc) ∈ (simulate countingOracle qc oa).support ↔
+      (x, qc') ∈ (simulate countingOracle 0 oa).support := by
+  rw [add_comm qc' qc, add_right_mem_support_simulate_iff]
 
 lemma mem_support_simulate_pure_iff (x : α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
     z ∈ (simulate countingOracle qc (pure x : OracleComp spec α)).support ↔ z = (x, qc) := by
@@ -191,20 +212,27 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
   · refine apply_ne_zero_of_mem_support_simulate_queryBind h
   · refine exists_mem_support_of_mem_support_simulate_queryBind h
   · obtain ⟨hz0, ⟨u, hu⟩⟩ := h
-    simp only [simulate_bind, simulate_query, apply_eq, support_bind, support_map, support_query,
-      Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq', Set.mem_iUnion]
+    simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
+      support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists,
+      Set.iUnion_iUnion_eq', Set.mem_iUnion]
     refine ⟨u, ?_⟩
     have := add_mem_support_simulate hu (update 0 i 1)
     convert this
     · refine funext (λ j ↦ symm ?_)
       by_cases hij : j = i
-      · simpa [hij] using Nat.succ_pred hz0
+      · simp [Function.update_apply, hij]
       · simp [hij]
     · refine funext (λ j ↦ ?_)
       by_cases hij : j = i
       · induction hij
-        simp
+        simpa using (Nat.succ_pred_eq_of_ne_zero hz0).symm
       · simp [hij]
+
+lemma exists_mem_support_of_mem_support {oa : OracleComp spec α} {x : α} (hx : x ∈ oa.support)
+    (qc : ι → ℕ) : ∃ qc', (x, qc') ∈ (simulate countingOracle qc oa).support := by
+  rw [← countingOracle.simulate'_eq_self oa qc, support_simulate'] at hx
+  simp at hx
+  exact hx
 
 end support
 

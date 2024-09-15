@@ -14,20 +14,19 @@ This file defines and proves the perfect secrecy of the one-time pad encryption 
 
 open Mathlib OracleSpec OracleComp OracleAlg ENNReal BigOperators
 
-def oneTimePad : SymmEncAlg (λ _ ↦ unifSpec)
-    (Vector Bool) (Vector Bool) (Vector Bool) where
-  keygen := λ sp ↦ $ᵗ Vector Bool sp -- random bitvec
-  encrypt := λ _ k m ↦ return m.zipWith xor k
-  decrypt := λ _ k σ ↦ return σ.zipWith xor k
-  __ := baseOracleAlg -- Oracles already reduced
+/-- The one-time pad symmetric encryption algorithm, using `BitVec`s as keys and messages.
+Encryption and decryption both just apply `BitVec.xor` with the key.
+Requires no oracles so the `OracleSpec` is always `[]ₒ`. -/
+def oneTimePad : SymmEncAlg (λ _ ↦ []ₒ)
+    BitVec BitVec BitVec where
+  keygen n := $ᵗ BitVec n
+  encrypt _ k m := return k ^^^ m
+  decrypt _ k σ := return k ^^^ σ
+  __ := baseOracleAlg
 
 namespace oneTimePad
 
-theorem isSound : (oneTimePad).isSound := by
-  have h : ∀ n (ys xs : Vector Bool n), (ys.zipWith xor xs).zipWith xor xs = ys :=
-    λ n ys xs ↦ Vector.ext (λ i ↦ by simp)
-  simp only [SymmEncAlg.isSound, oneTimePad, pure_bind, h, probOutput_eq_one_iff', finSupport_bind,
-    finSupport_uniformOfFintype, finSupport_pure, Finset.biUnion_subset,
-    Finset.mem_univ, subset_refl, imp_self, implies_true]
+theorem isSound : oneTimePad.isSound := by
+  simp [SymmEncAlg.isSound, oneTimePad, Finset.ext_iff]
 
 end oneTimePad

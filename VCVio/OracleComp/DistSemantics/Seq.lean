@@ -121,15 +121,17 @@ lemma probOutput_seq_map_eq_tsum_ite [DecidableEq γ] (z : γ) : [= z | f <$> oa
 --   prob_event_return, mul_ite, mul_one, mul_zero]
 
 lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) :
-    [p | f <$> oa <*> ob] = [p ∘ f.uncurry | (·, ·) <$> oa <*> ob] := by
+    [p | f <$> oa <*> ob] = [p ∘ f.uncurry | Prod.mk <$> oa <*> ob] := by
   rw [probEvent_comp]
   refine probEvent_congr' ?_ (congr_arg evalDist ?_)
   · simp only [support_seq_map_eq_image2, Set.mem_image2, support_map, Set.image2_mk_eq_prod,
       Set.image_uncurry_prod, implies_true]
   · simp only [map_seq, Function.comp, Functor.map_map, Function.uncurry_apply_pair]
+    rfl
+
 
 lemma probEvent_seq_map_eq_probEvent (p : γ → Prop) :
-    [p | f <$> oa <*> ob] = [λ x ↦ p (f x.1 x.2) | (·, ·) <$> oa <*> ob] :=
+    [p | f <$> oa <*> ob] = [λ x ↦ p (f x.1 x.2) | Prod.mk <$> oa <*> ob] :=
   probEvent_seq_map_eq_probEvent_comp_uncurry oa ob f p
 
 section swap

@@ -18,9 +18,9 @@ open OracleSpec OracleComp OracleAlg BigOperators
 
 structure SymmEncAlg {ι : Type} (spec : ℕ → OracleSpec ι) (M K C : ℕ → Type)
     extends OracleAlg spec where
-  (keygen (sp : ℕ) : OracleComp (spec sp) (K sp))
-  (encrypt (sp : ℕ) : K sp → M sp → OracleComp (spec sp) (C sp))
-  (decrypt (sp : ℕ) : K sp → C sp → OracleComp (spec sp) (M sp))
+  (keygen (sp : ℕ) : OracleComp (unifSpec ++ₒ spec sp) (K sp))
+  (encrypt (sp : ℕ) : K sp → M sp → OracleComp (unifSpec ++ₒ spec sp) (C sp))
+  (decrypt (sp : ℕ) : K sp → C sp → OracleComp (unifSpec ++ₒ spec sp) (M sp))
 
 namespace SymmEncAlg
 

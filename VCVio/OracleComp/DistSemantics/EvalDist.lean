@@ -26,8 +26,6 @@ that values are in the support iff they have non-zero probability under `evalDis
 
 We give many simp lemmas involving `tsum` a lower priority, as otherwise the simplifier will
 always choose them over versions involving `sum` (as they require `DecidableEq` or `Fintype`)
-
-TODO: We define `distEquiv` on it's own somewhere else
 -/
 
 namespace OracleComp
@@ -332,7 +330,9 @@ section pure
 variable (x : α)
 
 @[simp]
-lemma evalDist_pure : evalDist (return x : OracleComp spec α) = PMF.pure x := rfl
+lemma evalDist_pure : evalDist (pure x : OracleComp spec α) = PMF.pure x := rfl
+
+lemma evalDist_pure_eq_pure : evalDist (pure x : OracleComp spec α) = pure x := rfl
 
 @[simp]
 lemma probOutput_pure [DecidableEq α] (y : α) :
@@ -369,6 +369,9 @@ lemma evalDist_bind : evalDist (oa >>= ob) = (evalDist oa).bind (evalDist ∘ ob
   | h_pure _ => simp only [pure_bind, evalDist_pure, PMF.pure_bind, Function.comp_apply]
   | h_queryBind _ _ _ hoa => simp only [evalDist, OracleComp.bind'_eq_bind, pure_bind,
       hoa, PMF.bind_bind]
+
+lemma evalDist_bind_eq_bind : evalDist (oa >>= ob) = evalDist oa >>= evalDist ∘ ob :=
+  evalDist_bind oa ob
 
 lemma probOutput_bind_eq_tsum (y : β) :
     [= y | oa >>= ob] = ∑' x : α, [= x | oa] * [= y | ob x] := by
@@ -449,7 +452,9 @@ variable (oa : OracleComp spec α) (f : α → β)
 
 @[simp]
 lemma evalDist_map : evalDist (f <$> oa) = (evalDist oa).map f := by
-  simp only [map_eq_bind_pure_comp, Function.comp, evalDist_bind, evalDist_pure, PMF.map]
+  simp only [map_eq_bind_pure_comp, Function.comp, evalDist_bind, evalDist_pure, PMF.map]; rfl
+
+lemma evalDist_map_eq_map : evalDist (f <$> oa) = f <$> evalDist oa := evalDist_map oa f
 
 /-- Write the probability of an output after mapping the result of a computation as a sum
 over all outputs such that they map to the correct final output, using subtypes.
@@ -500,6 +505,15 @@ lemma probEvent_map (q : β → Prop) : [q | f <$> oa] = [q ∘ f | oa] := by
 
 lemma probEvent_comp (q : β → Prop) : [q ∘ f | oa] = [q | f <$> oa] :=
   symm <| probEvent_map oa f q
+
+lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
+    (hl : Function.LeftInverse f g) (hr : Function.RightInverse f g)
+    (y : β) : [= y | f <$> oa] = [= g y | oa] := by
+  rw [probOutput_map_eq_tsum]
+  refine (tsum_eq_single (g y) (λ x hx ↦ ?_)).trans ?_
+  · suffices y ≠ f x by simp [this]
+    exact (λ h ↦ hx ((congr_arg g h).trans (hr x)).symm)
+  · simp [hl y]
 
 end map
 
