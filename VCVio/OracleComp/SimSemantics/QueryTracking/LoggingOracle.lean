@@ -19,6 +19,8 @@ parameterized by the set of oracles available. -/
 def QueryLog (spec : OracleSpec ι) : Type :=
   (i : ι) → List (spec.domain i × spec.range i)
 
+instance : EmptyCollection (QueryLog spec) := ⟨λ _ ↦ []⟩
+
 namespace QueryLog
 
 section logQuery
