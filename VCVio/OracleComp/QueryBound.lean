@@ -146,7 +146,7 @@ def minimalQueryBound : {α : Type} → OracleComp spec α → (ι → ℕ)
   | _, pure' _ _ => 0
   | _, queryBind' i _ _ oa => λ j ↦ (if j = i then 1 else 0) +
       (Finset.max' (Finset.univ.image <| λ u ↦ minimalQueryBound (oa u) j)
-        (by simpa using Finset.univ_nonempty))
+        (Finset.image_nonempty.2 Finset.univ_nonempty))
 
 @[simp]
 lemma minimalQueryBound_pure (x : α) :
@@ -157,7 +157,7 @@ lemma minimalQueryBound_query_bind (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) :
     minimalQueryBound (query i t >>= oa) = λ j ↦ (if j = i then 1 else 0) +
       (Finset.max' (Finset.univ.image <| λ u ↦ minimalQueryBound (oa u) j)
-        (by simpa using Finset.univ_nonempty)) := rfl
+        (Finset.image_nonempty.2 Finset.univ_nonempty)) := rfl
 
 @[simp]
 lemma minimalQueryBound_query (i : ι) (t : spec.domain i) :

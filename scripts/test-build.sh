@@ -1,8 +1,9 @@
-echo "# Building VCVio library"
-lake build VCVio
+# Building the examples already builds this
+# echo "# Building VCVio library"
+# lake build VCVio
 
-echo "\n# Building examples"
+echo "# Building Project"
 lake build Examples
 
-echo "\n# Linting files"
+echo "\n# Linting Files"
 scripts/lint-style.sh && echo "All files okay"
