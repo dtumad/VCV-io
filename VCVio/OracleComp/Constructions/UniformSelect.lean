@@ -335,10 +335,52 @@ instance (n : ℕ) : SelectableType (Fin (n + 1)) where
   selectElem := $[0..n]
   probOutput_selectElem_eq x y := by simp only [probOutput_uniformFin, implies_true]
 
-/-- Version of `Fin` selection using the `NeZero` typeclass, avoiding the need for `n + 1` form. -/
+lemma probOutput_map_eq_single {ι : Type} {spec : OracleSpec ι}
+    {α β : Type} (oa : OracleComp spec α) (f : α → β)
+    (x : α) (y : β) (h1 : f x = y)
+    (h2 : ∀ x' ∈ oa.support, f x' = y → x' = x) :
+    [= y | f <$> oa] = [= x | oa] := by
+  rw [probOutput_map_eq_tsum]
+  refine (tsum_eq_single x ?_).trans ?_
+  · intro x' hx'
+    sorry
+  · sorry
+
+/-- Version of `Fin` selection using the `NeZero` typeclass, avoiding the need for `n + 1` form.
+TODO: cleanup -/
 instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
   selectElem := (λ n ↦ ↑↑n : Fin (n - 1 + 1) → Fin n) <$> ($ᵗ (Fin (n - 1 + 1)))
-  probOutput_selectElem_eq x y := sorry
+  probOutput_selectElem_eq x y := by
+    calc [= x | (λ n ↦ ↑↑n : Fin (n - 1 + 1) → Fin n) <$> ($ᵗ (Fin (n - 1 + 1)))] =
+      [= (x : Fin (n - 1 + 1)) | $ᵗ (Fin (n - 1 + 1))] := by {
+        apply probOutput_map_eq_single
+        · sorry
+        intro z _ hz
+
+        rw [← hz]
+        simp
+        rw [Nat.mod_eq_of_lt]
+        · simp only [Fin.cast_val_eq_self]
+        · refine Fin.val_lt_of_le z ?_
+          rw [Nat.sub_add_cancel]
+          exact NeZero.one_le
+      }
+      _ = [= (y : Fin (n - 1 + 1)) | $ᵗ (Fin (n - 1 + 1))] := by
+        simp only [probOutput_uniformOfFintype,
+          Fintype.card_fin, Nat.cast_add, natCast_sub, Nat.cast_one]
+      _ = [= y | (λ n ↦ ↑↑n : Fin (n - 1 + 1) → Fin n) <$> ($ᵗ (Fin (n - 1 + 1)))] := by {
+        symm
+        apply probOutput_map_eq_single
+        · sorry
+        intro z _ hz
+        rw [← hz]
+        simp
+        rw [Nat.mod_eq_of_lt]
+        · simp only [Fin.cast_val_eq_self]
+        · refine Fin.val_lt_of_le z ?_
+          rw [Nat.sub_add_cancel]
+          exact NeZero.one_le
+      }
 
 instance (n : ℕ) : SelectableType (BitVec n) where
   selectElem := BitVec.ofFin <$> ($ᵗ Fin (2 ^ n))
