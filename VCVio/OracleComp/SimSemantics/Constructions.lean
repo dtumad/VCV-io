@@ -140,9 +140,7 @@ lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
     simulate' idOracle u oa = oa := by
   induction oa using OracleComp.inductionOn with
   | h_pure x => rfl
-  | h_queryBind i t oa hoa =>
-      simp [Functor.map_map, hoa, seq_bind_eq]
-      rfl
+  | h_queryBind i t oa hoa => simp [Functor.map_map, hoa, seq_bind_eq]
 
 @[simp]
 lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :
@@ -170,7 +168,12 @@ lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
     evalDist (simulate unifOracle u oa) = (evalDist oa).map (·, ()) := by
   revert u; induction oa using OracleComp.inductionOn with
   | h_pure => simp only [simulate_pure, evalDist_pure, PMF.pure_map, forall_const]
-  | h_queryBind i t oa hoa => simp [PMF.map, hoa]
+  | h_queryBind i t oa hoa =>
+    simp [PMF.map, hoa, Function.comp]
+    congr
+    refine funext (λ x ↦ ?_)
+    simp [hoa, PMF.map]
+
 
 @[simp]
 lemma evalDist_simulate' (oa : OracleComp spec α) (u : Unit) :

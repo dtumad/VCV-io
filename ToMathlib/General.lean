@@ -108,26 +108,12 @@ instance (n : ℕ) : Fintype (BitVec n) := by
       simp only [exists_apply_eq_apply]
 
 @[simp]
-lemma card_bitVec (n : ℕ) : Fintype.card (BitVec n) = 2 ^ n := by
-  refine (Fintype.card_of_bijective (f := BitVec.toFin) ?_).trans ?_
-  · apply BitVec.toFin_bijective
-  · exact Fintype.card_fin (2 ^ n)
-
-@[simp]
-lemma BitVec.xor_xor {n : ℕ} (x : BitVec n) : x ^^^ x = 0 := by
-  ext i; simp
-
-@[simp]
-lemma BitVec.zero_xor {n : ℕ} (x : BitVec n) : 0 ^^^ x = x := by
-  ext i; simp
-
-@[simp]
-lemma BitVec.xor_zero {n : ℕ} (x : BitVec n) : x ^^^ 0 = x := by
-  ext i; simp
+lemma card_bitVec (n : ℕ) : Fintype.card (BitVec n) = 2 ^ n :=
+  (Fintype.card_of_bijective (BitVec.toFin_bijective _)).trans <| Fintype.card_fin (2 ^ n)
 
 @[simp]
 lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
-  rw [← BitVec.xor_assoc, xor_xor, BitVec.zero_xor]
+  rw [← BitVec.xor_assoc, xor_self, zero_xor]
 
 instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :=
   ⟨id, Function.bijective_id⟩

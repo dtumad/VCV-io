@@ -234,7 +234,7 @@ lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
         Finset.mem_univ, true_and, Finset.not_mem_empty, iff_false]
       refine λ i hi ↦ hs ?_
       rw [hi, ← Finset.mem_toList]
-      exact List.getElem_mem s.toList _ _
+      exact List.getElem_mem _
   · rw [Finset.nonempty_iff_ne_empty, not_not] at hs
     simp only [hs, Finset.toList_empty]
 

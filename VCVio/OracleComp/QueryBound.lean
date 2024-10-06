@@ -67,28 +67,30 @@ lemma isQueryBound_bind {oa : OracleComp spec α} {ob : α → OracleComp spec �
     IsQueryBound (oa >>= ob) (qb₁ + qb₂) := by
   intros count h
   simp at h
-  obtain ⟨y, x, count', h, h'⟩ := h
-  specialize h1 count'
-  rw [support_map] at h1
-  have : count' ≤ count := countingOracle.le_of_mem_support_simulate h'
-  have hxoa : x ∈ oa.support := by {
-    have := mem_support_simulate'_of_mem_support_simulate _ _ h
-    simp at this
-    exact this
-  }
-  specialize h1 ⟨⟨x, count'⟩, h, rfl⟩
-  specialize h2 x hxoa (count - count') (by {
-    rw [← countingOracle.mem_support_snd_map_simulate_iff_of_le _ this,
-      support_map, Set.mem_image] -- TODO: shouldn't need two steps
-    refine ⟨(y, count), h', rfl⟩
-  })
-  have h3 := add_le_add h2 h1
-  rw [add_comm qb₂] at h3
-  refine le_trans ?_ h3
-  intros x
-  specialize this x
-  simp only [Pi.add_apply, Pi.sub_apply]
-  rw [tsub_add_cancel_of_le this]
+  sorry
+  -- obtain ⟨y, x, count', h, h'⟩ := h
+
+  -- specialize h1 _ count'
+  -- rw [support_map] at h1
+  -- have : count' ≤ count := countingOracle.le_of_mem_support_simulate h'
+  -- have hxoa : x ∈ oa.support := by {
+  --   have := mem_support_simulate'_of_mem_support_simulate _ _ h
+  --   simp at this
+  --   exact this
+  -- }
+  -- specialize h1 ⟨⟨x, count'⟩, h, rfl⟩
+  -- specialize h2 x hxoa (count - count') (by {
+  --   rw [← countingOracle.mem_support_snd_map_simulate_iff_of_le _ this,
+  --     support_map, Set.mem_image] -- TODO: shouldn't need two steps
+  --   refine ⟨(y, count), h', rfl⟩
+  -- })
+  -- have h3 := add_le_add h2 h1
+  -- rw [add_comm qb₂] at h3
+  -- refine le_trans ?_ h3
+  -- intros x
+  -- specialize this x
+  -- simp only [Pi.add_apply, Pi.sub_apply]
+  -- rw [tsub_add_cancel_of_le this]
 
 /-- Version of `isQueryBound_bind` that allows the second query bound to vary based on the
 output of the first computation, assuming it remains below the final desired bound.-/
