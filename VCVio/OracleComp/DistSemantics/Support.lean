@@ -183,6 +183,17 @@ lemma defaultResult_mem_finSupport [DecidableEq α] : oa.defaultResult ∈ oa.fi
 
 end nonempty
 
+@[simp] lemma support_eqRec (oa : OracleComp spec α) (h : α = β) :
+    (h ▸ oa).support = h.symm ▸ oa.support := by
+  induction h; rfl
+@[simp] lemma finSupport_eqRec [hα : DecidableEq α] [hβ : DecidableEq β]
+    (oa : OracleComp spec α) (h : α = β) :
+    @finSupport _ _ _ hβ (h ▸ oa : OracleComp spec β) = h.symm ▸ @finSupport _ _ _ hα oa := by
+  refine Finset.ext (λ x ↦ ?_)
+  simp [mem_finSupport_iff_mem_support]
+  induction h -- We can't do this earlier without running into trouble with `DecidableEq`
+  exact Iff.symm (mem_finSupport_iff_mem_support oa x)
+
 @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
     (f <$> oa).support = f '' oa.support := by
   simp only [map_eq_pure_bind, ← Set.image_eq_iUnion, support_bind, support_pure]

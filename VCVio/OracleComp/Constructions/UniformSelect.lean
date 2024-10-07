@@ -335,32 +335,11 @@ instance (n : ℕ) : SelectableType (Fin (n + 1)) where
   selectElem := $[0..n]
   probOutput_selectElem_eq x y := by simp only [probOutput_uniformFin, implies_true]
 
--- lemma probOutput_map_eq_single {ι : Type} {spec : OracleSpec ι}
---     {α β : Type} (oa : OracleComp spec α) (f : α → β)
---     (x : α) (y : β) (h1 : f x = y)
---     (h2 : ∀ x' ∈ oa.support, f x' = y → x' = x) :
---     [= y | f <$> oa] = [= x | oa] := by
---   rw [probOutput_map_eq_tsum]
---   refine (tsum_eq_single x ?_).trans ?_
---   · intro x' hx'
---     sorry
---   · sorry
-
-lemma probOutput_eqRec {ι : Type} {spec : OracleSpec ι}
-    {α β : Type} (oa : OracleComp spec α) (h : α = β) (y : β) :
-    [= y | h ▸ oa] = [= h.symm ▸ y | oa] := by
-  induction h
-  rfl
-
 /-- Version of `Fin` selection using the `NeZero` typeclass, avoiding the need for `n + 1` form.
 TODO: cleanup -/
 instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
   selectElem := congr_arg Fin (Nat.succ_pred (NeZero.ne n)).symm ▸ $ᵗ (Fin (n - 1 + 1))
   probOutput_selectElem_eq x y := by simp [probOutput_eqRec]
-
-instance (n : ℕ) : SelectableType (BitVec n) where
-  selectElem := BitVec.ofFin <$> ($ᵗ Fin (2 ^ n))
-  probOutput_selectElem_eq x y := sorry
 
 end instances
 

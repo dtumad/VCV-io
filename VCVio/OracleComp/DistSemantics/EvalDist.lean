@@ -517,6 +517,21 @@ lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
 
 end map
 
+section eqRec
+
+variable (oa : OracleComp spec α) (h : α = β)
+
+lemma evalDist_eqRec : evalDist (h ▸ oa) = h.symm ▸ evalDist oa := by
+  induction h; rfl
+
+lemma probOutput_eqRec (y : β) : [= y | h ▸ oa] = [= h.symm ▸ y | oa] := by
+  induction h; rfl
+
+lemma probEvent_eqRec (q : β → Prop) : [q | h ▸ oa] = [h.symm ▸ q | oa] := by
+  induction h; rfl
+
+end eqRec
+
 section ite
 
 variable (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
