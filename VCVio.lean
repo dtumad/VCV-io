@@ -17,6 +17,7 @@ import VCVio.OracleComp.Constructions.GenerateSeed
 import VCVio.OracleComp.Constructions.Replicate
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.ActiveOracles
+import VCVio.OracleComp.DistSemantics.BitVec
 import VCVio.OracleComp.DistSemantics.EvalDist
 import VCVio.OracleComp.DistSemantics.HEq
 import VCVio.OracleComp.DistSemantics.List
