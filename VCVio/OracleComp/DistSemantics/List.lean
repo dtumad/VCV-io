@@ -7,7 +7,7 @@ import VCVio.OracleComp.DistSemantics.Seq
 import ToMathlib.General
 
 /-!
-# Distribution Semantics for Lists and Vectors
+# Distribution Semantics for Computations with Lists and Vectors
 
 This file contains lemmas for `probEvent` and `probOutput` of computations involving `List`.
 We also include `Vector` as a related case.

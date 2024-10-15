@@ -9,7 +9,7 @@ The library aims to provide a foundational framework in Lean for reasoning about
 * A denotational semantics (`evalDist`) for assigning probability distributions to probabilistic computations, and tools for reasoning about the probabilities of particular outputs or events (`probOutput`/`probEvent`)
 * An operational semantics (`simulate`) for implementing/simulating the behavior of a computation's oracles, including implementations of random oracles, query logging, reductions, etc.
 
-It also aims to provide definitions for cryptographic primitives such as symmetric/asymmetric encryption, (ring) signatures, $\Sigma$-protocols, hashing algorithms, etc. 
+It also provides definitions for cryptographic primitives such as symmetric/asymmetric encryption, (ring) signatures, $\Sigma$-protocols, hashing algorithms, etc. 
 
 The project can be installed and built by running:
 

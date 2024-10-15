@@ -52,6 +52,9 @@ noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (e
     (n : ℕ) : ℝ≥0∞ :=
   [= true | exp.exec n (exp.main n)]
 
+def SecExp.almostNever {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec) : Prop :=
+  negligible exp.advantage
+
 
 -- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
 --     extends OracleAlg spec where

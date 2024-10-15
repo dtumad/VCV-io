@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
+import VCVio.OracleComp.SimSemantics.Constructions
+import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
 # Random Oracles
@@ -20,7 +22,8 @@ open OracleSpec OracleComp
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)]
   {α β γ : Type}
 
-/-- Random oracles as a composition of a uniform oracle with a caching oracle. -/
+/-- Random oracles as a composition of a uniform oracle with a caching oracle.
+NOTE: we could take the result of `apply_eq` as the maindefinition and give this one as a lemma. -/
 def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
     [∀ i, SelectableType (spec.range i)] : spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState (Equiv.prodPUnit (QueryCache spec))

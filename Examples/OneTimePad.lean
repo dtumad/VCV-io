@@ -28,5 +28,6 @@ namespace oneTimePad
 
 theorem isSound : oneTimePad.isSound := by
   simp [SymmEncAlg.isSound, oneTimePad, Finset.ext_iff]
+  simp [eq_comm]
 
 end oneTimePad

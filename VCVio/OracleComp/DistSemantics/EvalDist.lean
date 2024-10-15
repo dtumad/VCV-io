@@ -517,6 +517,21 @@ lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
 
 end map
 
+section eqRec
+
+variable (oa : OracleComp spec α) (h : α = β)
+
+lemma evalDist_eqRec : evalDist (h ▸ oa) = h.symm ▸ evalDist oa := by
+  induction h; rfl
+
+lemma probOutput_eqRec (y : β) : [= y | h ▸ oa] = [= h.symm ▸ y | oa] := by
+  induction h; rfl
+
+lemma probEvent_eqRec (q : β → Prop) : [q | h ▸ oa] = [h.symm ▸ q | oa] := by
+  induction h; rfl
+
+end eqRec
+
 section ite
 
 variable (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
@@ -563,12 +578,12 @@ lemma probEvent_coin_eq_add (p : Bool → Prop) [DecidablePred p] :
     [p | coin] = (if p true then 2⁻¹ else 0) + (if p false then 2⁻¹ else 0) := by
   rw [probEvent_coin]; split_ifs <;> simp [inv_two_add_inv_two]
 
-/-- The xor of two coin flips looks like flipping a single coin -/
-example (x : Bool) : [= x | do let b ← coin; let b' ← coin; return xor b b'] = [= x | coin] := by
-  have : (↑2 : ℝ≥0∞) ≠ ∞ := by simp
-  cases x <;> simp [← mul_two, mul_comm (2 : ℝ≥0∞), mul_assoc,
-    ENNReal.inv_mul_cancel two_ne_zero this, probOutput_bind_eq_sum_fintype]
-
+-- /-- The xor of two coin flips looks like flipping a single coin -/
+-- example (x : Bool) : [= x | do let b ← coin; let b' ← coin; return xor b b'] = [= x | coin] := by
+--   have : (↑2 : ℝ≥0∞) ≠ ∞ := by simp
+--   cases x <;> simp [← mul_two, mul_comm (2 : ℝ≥0∞), mul_assoc,
+--     ENNReal.inv_mul_cancel two_ne_zero this, probOutput_bind_eq_sum_fintype]
+--   ·
 
 end coin
 

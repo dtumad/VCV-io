@@ -183,12 +183,23 @@ lemma defaultResult_mem_finSupport [DecidableEq α] : oa.defaultResult ∈ oa.fi
 
 end nonempty
 
+@[simp] lemma support_eqRec (oa : OracleComp spec α) (h : α = β) :
+    (h ▸ oa).support = h.symm ▸ oa.support := by
+  induction h; rfl
+@[simp] lemma finSupport_eqRec [hα : DecidableEq α] [hβ : DecidableEq β]
+    (oa : OracleComp spec α) (h : α = β) :
+    @finSupport _ _ _ hβ (h ▸ oa : OracleComp spec β) = h.symm ▸ @finSupport _ _ _ hα oa := by
+  refine Finset.ext (λ x ↦ ?_)
+  simp [mem_finSupport_iff_mem_support]
+  induction h -- We can't do this earlier without running into trouble with `DecidableEq`
+  exact Iff.symm (mem_finSupport_iff_mem_support oa x)
+
 @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
-    (f <$> oa).support = f '' oa.support :=
-  by simp [map_eq_pure_bind, ← Set.image_eq_iUnion]
+    (f <$> oa).support = f '' oa.support := by
+  simp only [map_eq_pure_bind, ← Set.image_eq_iUnion, support_bind, support_pure]
 @[simp] lemma fin_support_map [DecidableEq α] [DecidableEq β]
-    (oa : OracleComp spec α) (f : α → β) : (f <$> oa).finSupport = oa.finSupport.image f :=
-  by simp [finSupport_eq_iff_support_eq_coe]
+    (oa : OracleComp spec α) (f : α → β) : (f <$> oa).finSupport = oa.finSupport.image f := by
+  simp [finSupport_eq_iff_support_eq_coe]
 
 @[simp] lemma support_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
     (ite p oa oa').support = ite p oa.support oa'.support :=
@@ -203,8 +214,7 @@ end nonempty
 @[simp] lemma finSupport_coin : coin.finSupport = {true, false} :=
   by simp [finSupport_eq_iff_support_eq_coe]
 
-@[simp] lemma support_uniformFin (n : ℕ) : ($[0..n]).support = Set.univ :=
-  support_query n _
+@[simp] lemma support_uniformFin (n : ℕ) : ($[0..n]).support = Set.univ := support_query n _
 @[simp] lemma finSupport_uniformFin (n : ℕ) : ($[0..n]).finSupport = Finset.univ :=
   finSupport_query n _
 

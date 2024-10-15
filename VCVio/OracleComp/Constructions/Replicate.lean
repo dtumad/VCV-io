@@ -52,7 +52,7 @@ lemma replicate_zero_add_heq (n : ℕ) : HEq (oa.replicate (0 + n)) (oa.replicat
 /-- Running a computation `0 + n` times is the same as running it `n` times.
 Requires substituting the equality between the two to properly typecheck the vector types. -/
 lemma replicate_zero_add (n : ℕ) : oa.replicate (0 + n) = (zero_add n).symm ▸ oa.replicate n :=
-  eq_of_heq <| (replicate_zero_add_heq oa n).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+  eq_of_heq <| (replicate_zero_add_heq oa n).trans <| heq_eqRec_iff_heq.2 HEq.rfl
 
 lemma support_replicate_zero_add_heq (n : ℕ) :
     HEq (oa.replicate (0 + n)).support (oa.replicate n).support := by
@@ -60,7 +60,7 @@ lemma support_replicate_zero_add_heq (n : ℕ) :
 
 lemma support_replicate_zero_add (n : ℕ) : (oa.replicate (0 + n)).support =
     (zero_add n).symm ▸ (oa.replicate n).support :=
-  eq_of_heq <| (heq_eqRec_iff_heq _ _ _).2 (support_replicate_zero_add_heq oa n)
+  eq_of_heq <| heq_eqRec_iff_heq.2 (support_replicate_zero_add_heq oa n)
 
 -- TODO: update with heq proofs
 lemma finSupport_replicate_zero_add_heq (n : ℕ) [DecidableEq α]:
@@ -69,8 +69,7 @@ lemma finSupport_replicate_zero_add_heq (n : ℕ) [DecidableEq α]:
 
 lemma finSupport_replicate_zero_add (n : ℕ) [DecidableEq α] :
     (oa.replicate (0 + n)).finSupport = (zero_add n).symm ▸ (oa.replicate n).finSupport :=
-  eq_of_heq <| (finSupport_replicate_zero_add_heq oa n).trans <|
-    (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+  eq_of_heq <| (finSupport_replicate_zero_add_heq oa n).trans <| heq_eqRec_iff_heq.2 HEq.rfl
 
 lemma evalDist_replicate_zero_add_heq (n : ℕ) :
     HEq (evalDist (oa.replicate (0 + n))) (evalDist (oa.replicate n)) := by
@@ -78,8 +77,7 @@ lemma evalDist_replicate_zero_add_heq (n : ℕ) :
 
 lemma evalDist_replicate_zero_add (n : ℕ) :
     evalDist (oa.replicate (0 + n)) = (zero_add n).symm ▸ evalDist (oa.replicate n) :=
-  eq_of_heq <| (evalDist_replicate_zero_add_heq oa n).trans <|
-    (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+  eq_of_heq <| (evalDist_replicate_zero_add_heq oa n).trans <| heq_eqRec_iff_heq.2 HEq.rfl
 
 @[simp]
 lemma probOutput_replicate_zero_add (n : ℕ) (xs : Vector α (0 + n)) :
@@ -119,7 +117,7 @@ lemma replicate_add_comm_heq (n m : ℕ) : HEq (oa.replicate (n + m)) (oa.replic
 
 lemma replicate_add_comm (n m : ℕ) :
     oa.replicate (n + m) = add_comm n m ▸ oa.replicate (m + n) := by
-  refine eq_of_heq <| (replicate_add_comm_heq oa n m).trans <| (heq_eqRec_iff_heq _ _ _).2 HEq.rfl
+  refine eq_of_heq <| (replicate_add_comm_heq oa n m).trans <| heq_eqRec_iff_heq.2 HEq.rfl
 
 end comm
 

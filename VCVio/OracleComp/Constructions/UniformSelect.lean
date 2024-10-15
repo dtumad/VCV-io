@@ -234,7 +234,7 @@ lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
         Finset.mem_univ, true_and, Finset.not_mem_empty, iff_false]
       refine λ i hi ↦ hs ?_
       rw [hi, ← Finset.mem_toList]
-      exact List.getElem_mem s.toList _ _
+      exact List.getElem_mem _
   · rw [Finset.nonempty_iff_ne_empty, not_not] at hs
     simp only [hs, Finset.toList_empty]
 
@@ -258,13 +258,11 @@ end uniformSelectFinset
 section SelectableType
 
 /-- A `SelectableType β` instance means that `β` is a finite inhabited type,
-with a computation that selects uniformly at random from the type.
-In general this isn't possible without the axiom of choice, so we include this
-to get a computable version of selection. -/
--- class SelectableType (β : Type) [Fintype β] where
---   selectElem : OracleComp unifSpec β
---   probOutput_selectElem (x : β) : [= x | selectElem] = (↑(Fintype.card β))⁻¹
-
+with a computation `selectElem` that selects uniformly at random from the type.
+This generally requires choosing some "canonical" ordering for the type,
+so we include this to get a computable version of selection.
+We also require that each element has the same probability of being chosen from by `selectElem`,
+see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fintype instance. -/
 class SelectableType (β : Type) where
   selectElem : OracleComp unifSpec β
   probOutput_selectElem_eq (x y : β) :
@@ -277,9 +275,15 @@ prefix : 90 "$ᵗ" => uniformOfFintype
 
 variable (α : Type) [hα : SelectableType α]
 
+/-- Because all -/
 lemma SelectableType.probOutput_selectElem {α : Type} [Fintype α]
     [h : SelectableType α] (x : α) : [= x | $ᵗ α] = (↑(Fintype.card α) : ℝ≥0∞)⁻¹ := by
-  sorry
+  have : (Fintype.card α : ℝ≥0∞) = ∑ y : α, 1 :=
+    by simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
+  refine ENNReal.eq_inv_of_mul_eq_one_left ?_
+  simp_rw [this, Finset.mul_sum, mul_one]
+  exact (Finset.sum_congr rfl <| λ y _ ↦ h.probOutput_selectElem_eq x y).trans
+    (sum_probOutput ($ᵗ α))
 
 @[simp]
 lemma evalDist_uniformOfFintype [Inhabited α] [Fintype α] :
@@ -314,55 +318,28 @@ section instances
 
 instance (α : Type) [Unique α] : SelectableType α where
   selectElem := return default
-  probOutput_selectElem_eq := sorry --by simpa using Unique.eq_default
+  probOutput_selectElem_eq x y := by rw [Unique.eq_default x, Unique.eq_default y]
 
 instance : SelectableType Bool where
   selectElem := $ [false, true]
-  probOutput_selectElem_eq := sorry
-
-  -- λ b ↦ match b with
-  --   | true => by
-  --       have : 1 ∉ Finset.range 1 := by simp
-  --       simp only [uniformSelectList_cons, List.length_singleton,
-  --         probOutput_map_eq_sum_filter_finSupport, finSupport_uniformFin, probOutput_uniformFin,
-  --         Nat.cast_one, Finset.sum_const, nsmul_eq_mul, Fintype.card_bool, Nat.cast_ofNat,
-  --         Finset.card_filter, Finset.sum_fin_eq_sum_range, Finset.range_succ,
-  --         Finset.sum_insert this]
-  --       simpa [List.getElem?_eq_getElem] using one_add_one_eq_two
-  --   | false => by
-  --       have : 1 ∉ Finset.range 1 := by simp
-  --       simp only [uniformSelectList_cons, List.length_singleton,
-  --         probOutput_map_eq_sum_filter_finSupport, finSupport_uniformFin, probOutput_uniformFin,
-  --         Nat.cast_one, Finset.sum_const, nsmul_eq_mul, Fintype.card_bool, Nat.cast_ofNat,
-  --         Finset.card_filter, Finset.sum_fin_eq_sum_range, Finset.range_succ,
-  --         Finset.sum_insert this]
-  --       simpa [List.getElem?_eq_getElem] using one_add_one_eq_two
+  probOutput_selectElem_eq x y := by simp
 
 instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
     [SelectableType α] [SelectableType β] : SelectableType (α × β) where
   selectElem := (·, ·) <$> ($ᵗ α) <*> ($ᵗ β)
-  probOutput_selectElem_eq := sorry
-  -- λ (x, y) ↦ by
-  --   rw [probOutput_seq_map_prod_mk_eq_mul, probOutput_uniformOfFintype, Fintype.card_prod,
-  --     Nat.cast_mul, ENNReal.mul_inv] <;> simp
+  probOutput_selectElem_eq:= by simp only [Prod.forall, probOutput_seq_map_prod_mk_eq_mul,
+    probOutput_uniformOfFintype, forall_const, implies_true]
 
+/-- Nonempty `Fin` types can be selected from, using implicit casting of `Fin (n - 1 + 1)`. -/
+instance (n : ℕ) : SelectableType (Fin (n + 1)) where
+  selectElem := $[0..n]
+  probOutput_selectElem_eq x y := by simp only [probOutput_uniformFin, implies_true]
+
+/-- Version of `Fin` selection using the `NeZero` typeclass, avoiding the need for `n + 1` form.
+TODO: cleanup -/
 instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
-  selectElem := $[0..(n - 1)]
-  probOutput_selectElem_eq := sorry --
-  -- by
-    -- cases n
-    -- · rw [neZero_zero_iff_false] at hn
-    --   refine False.elim hn
-    -- · simp
-
-instance (n : ℕ) : SelectableType (BitVec n) where
-  selectElem := BitVec.ofFin <$> ($ᵗ Fin (2 ^ n))
-  probOutput_selectElem_eq := sorry --by
-    -- intro x
-    -- rw [probOutput_map_eq_probOutput_inverse _ BitVec.ofFin BitVec.toFin]
-    -- · simp
-    -- · exact (λ _ ↦ rfl)
-    -- · exact (λ _ ↦ rfl)
+  selectElem := congr_arg Fin (Nat.succ_pred (NeZero.ne n)).symm ▸ $ᵗ (Fin (n - 1 + 1))
+  probOutput_selectElem_eq x y := by simp [probOutput_eqRec]
 
 end instances
 
