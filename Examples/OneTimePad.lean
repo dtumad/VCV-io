@@ -26,8 +26,14 @@ def oneTimePad : SymmEncAlg (λ _ ↦ []ₒ)
 
 namespace oneTimePad
 
-theorem isSound : oneTimePad.isSound := by
-  simp [SymmEncAlg.isSound, oneTimePad, Finset.ext_iff]
-  simp [eq_comm]
+@[simp]
+lemma keygen_def (n : ℕ) : oneTimePad.keygen n = $ᵗ BitVec n := rfl
+
+@[simp]
+lemma encrypt_bind_decrypt {n : ℕ} (k m : BitVec n) :
+    do {let σ ← oneTimePad.encrypt _ k m; oneTimePad.decrypt _ k σ} = return m := by
+  simp [oneTimePad]
+
+theorem isSound : oneTimePad.isSound := λ sp m ↦ probOutput_eq_one (by simp)
 
 end oneTimePad
