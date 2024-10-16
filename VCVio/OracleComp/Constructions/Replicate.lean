@@ -139,8 +139,7 @@ lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
     and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, Set.mem_setOf_eq]
 
 -- @[simp] TODO: decidablility of this pred should be inferred from something else?
-lemma support_replicate' (oa : OracleComp spec α)
-    [DecidablePred (· ∈ oa.support)] (n : ℕ) :
+lemma support_replicate' (oa : OracleComp spec α) [DecidablePred (· ∈ oa.support)] (n : ℕ) :
     (replicate oa n).support = {xs | xs.toList.all (· ∈ oa.support)} := by
   refine Set.ext (λ xs ↦ ?_)
   rw [← probOutput_pos_iff, probOutput_replicate]
@@ -155,14 +154,7 @@ Note: this isn't very efficient as an actual implementation in practice. -/
 instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
     SelectableType (Vector α n) where
   selectElem := replicate ($ᵗ α) n
-  probOutput_selectElem_eq := sorry
-  -- by induction n with
-  -- | zero => simp
-  -- | succ n hn =>
-  --     intro xs
-  --     simp only [replicate_succ, Nat.succ_eq_add_one, probOutput_seq_map_vector_cons_eq_mul,
-  --       probOutput_uniformOfFintype, hn, card_vector, Nat.cast_pow, ENNReal.inv_pow]
-  --     ring_nf
+  probOutput_selectElem_eq xs ys := by simp
 
 end SelectableTypeVector
 
