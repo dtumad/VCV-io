@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.OracleComp
 import VCVio.OracleComp.Constructions.Replicate
+import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
 # Executing Computations
@@ -21,6 +22,11 @@ open OracleSpec
 
 namespace OracleComp
 
+def Foo : IO ℕ := do
+  let x ← IO.rand 2 10
+  let y ← IO.rand 100 200
+  return (x * y)
+
 /-- Represent an `OracleComp` via the `IO` monad, allowing actual execution. -/
 protected def runIO {α : Type} : OracleComp unifSpec α → IO α
   | pure' α x => return x
@@ -33,8 +39,6 @@ private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
   IO.println ("Num 2s: " ++ toString (xs.1.count 2))
   IO.println ("Num 3s: " ++ toString (xs.1.count 3))
   IO.println ("Num 4s: " ++ toString (xs.1.count 4))
-
--- #eval lawLargeNumsTest 2000
 
 -- private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
 --   IO.println ("Initial Message: " ++ toString m.toList)
