@@ -1,7 +1,7 @@
 #include <lean/lean.h>
 
 extern "C" uint32_t my_add(uint32_t a, uint32_t b) {
-    return a + b;
+    return a * b * 2;
 }
 
 extern "C" lean_obj_res my_lean_fun() {
