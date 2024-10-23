@@ -9,6 +9,7 @@ package VCVio where
     ⟨`autoImplicit, false⟩,
     ⟨`relaxedAutoImplicit, false⟩
   ]
+  precompileModules := true
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "master"
 require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
@@ -16,5 +17,9 @@ require libsodium from "External"
 
 @[default_target] lean_lib VCVio
 lean_lib ToMathlib -- Seperate section of the project for things that should be ported
+  where precompileModules := true
+
+lean_lib External -- FFI with external C++ libraries
+
 lean_lib Examples -- Example constructions of cryptographic primitives
-lean_lib External
+  where precompileModules := true
