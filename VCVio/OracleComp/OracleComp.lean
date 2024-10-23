@@ -244,7 +244,7 @@ protected instance decidableEq [DecidableEq ι] [h : DecidableEq α] :
     by_cases hi : i = i'
     · induction hi; simp
       suffices Decidable (oa = oa') from inferInstance
-      suffices Decidable (∀ u, oa u = oa' u) from decidable_of_iff' _ Function.funext_iff
+      suffices Decidable (∀ u, oa u = oa' u) from decidable_of_iff' _ funext_iff
       suffices ∀ u, Decidable (oa u = oa' u) from Fintype.decidableForallFintype
       exact λ u ↦ OracleComp.decidableEq (oa u) (oa' u)
     · simpa [hi] using Decidable.isFalse not_false
