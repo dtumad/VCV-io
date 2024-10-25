@@ -6,4 +6,4 @@ Authors: Devon Tuma
 import VCVio
 import External.LibSodium
 
-#eval myAdd 1 2
+#eval myAdd 2 3

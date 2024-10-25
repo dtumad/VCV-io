@@ -80,6 +80,13 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "master",
    "inherited": false,
+   "configFile": "lakefile.lean"},
+  {"type": "path",
+   "scope": "",
+   "name": "libsodium",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "./External",
    "configFile": "lakefile.lean"}],
  "name": "VCVio",
  "lakeDir": ".lake"}
