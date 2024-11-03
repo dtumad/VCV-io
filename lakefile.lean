@@ -19,7 +19,7 @@ require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
 lean_lib ToMathlib
 
 /-- Example constructions of cryptographic primitives. -/
-lean_lib Examples
+@[default_target] lean_lib Examples
 
 /-- Access to external C++ implementations of crypto primitives. -/
 lean_lib LibSodium
@@ -32,7 +32,7 @@ lean_lib Implementations where
 -- Compiling extenal C++ files
 target libsodium.o pkg : FilePath := do
   let oFile := pkg.buildDir / "c" / "libsodium.o"
-  let srcJob ← inputTextFile <| pkg.dir / "c" / "libsodium.cpp"
+  let srcJob ← inputTextFile <| pkg.dir / "LibSodium" / "c" / "libsodium.cpp"
   let weakArgs := #["-I", (← getLeanIncludeDir).toString]
   buildO oFile srcJob weakArgs #["-fPIC"] "c++" getLeanTrace
 extern_lib libleanffi pkg := do
@@ -40,5 +40,5 @@ extern_lib libleanffi pkg := do
   let name := nameToStaticLib "leanlibsodium"
   buildStaticLib (pkg.nativeLibDir / name) #[ffiO]
 
-/-- Main function for testing -/
-lean_exe test where root := `Main
+-- /-- Main function for testing -/
+lean_exe test where root := `Test
