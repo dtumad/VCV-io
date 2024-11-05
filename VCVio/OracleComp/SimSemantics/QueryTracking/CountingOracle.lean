@@ -39,6 +39,10 @@ protected lemma simulate'_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
     simulate' countingOracle qc oa = oa :=
   simulate'_eq_self_of_stateIndep countingOracle qc oa
 
+protected lemma fst_map_simulate_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
+    Prod.fst <$> simulate countingOracle qc oa = oa :=
+  simulate'_eq_self_of_stateIndep countingOracle qc oa
+
 section support
 
 /-- We can always reduce the initial state of simulation with a counting oracle to start with a
@@ -86,6 +90,14 @@ lemma mem_support_simulate_iff_of_le (oa : OracleComp spec α) (qc : ι → ℕ)
     refine funext (λ x ↦ ?_)
     refine Nat.add_sub_cancel' (hz x)
 
+lemma le_of_mem_support_simulate {oa : OracleComp spec α} {qc : ι → ℕ} {z : α × (ι → ℕ)}
+    (h : z ∈ (simulate countingOracle qc oa).support) : qc ≤ z.2 := by
+  rw [mem_support_simulate_iff] at h
+  obtain ⟨qc'', _, h⟩ := h
+  exact le_of_le_of_eq le_self_add h
+
+section snd_map
+
 lemma mem_support_snd_map_simulate_iff (oa : OracleComp spec α) (qc qc' : ι → ℕ) :
     qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support ↔
       ∃ qc'', ∃ x, (x, qc'') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc'' = qc' := by
@@ -109,11 +121,19 @@ lemma mem_support_snd_map_simulate_iff_of_le (oa : OracleComp spec α) {qc qc' :
   · simp only [← h, Pi.sub_apply, Pi.add_apply, add_tsub_cancel_left]
   · simp [h, Nat.add_sub_cancel' (hqc x)]
 
-lemma le_of_mem_support_simulate {oa : OracleComp spec α} {qc : ι → ℕ} {z : α × (ι → ℕ)}
-    (h : z ∈ (simulate countingOracle qc oa).support) : qc ≤ z.2 := by
-  rw [mem_support_simulate_iff] at h
-  obtain ⟨qc'', _, h⟩ := h
-  exact le_of_le_of_eq le_self_add h
+lemma le_of_mem_support_snd_map_simulate {oa : OracleComp spec α} {qc qc' : ι → ℕ}
+    (h : qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support) : qc ≤ qc' := by
+  simp only [support_map, Set.mem_image, Prod.exists, exists_eq_right] at h
+  obtain ⟨y, hy⟩ := h
+  exact le_of_mem_support_simulate hy
+
+lemma sub_mem_support_snd_map_simulate {oa : OracleComp spec α} {qc qc' : ι → ℕ}
+    (h : qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support) :
+    qc' - qc ∈ (Prod.snd <$> simulate countingOracle 0 oa).support := by
+  rwa [mem_support_snd_map_simulate_iff_of_le] at h
+  convert le_of_mem_support_snd_map_simulate h
+
+end snd_map
 
 lemma add_mem_support_simulate {oa : OracleComp spec α} {qc : ι → ℕ} {z : α × (ι → ℕ)}
     (hz : z ∈ (simulate countingOracle qc oa).support) (qc' : ι → ℕ) :

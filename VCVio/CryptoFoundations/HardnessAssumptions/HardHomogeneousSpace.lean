@@ -16,8 +16,7 @@ and extend this with finiteness and decidability conditions
 
 open OracleSpec OracleComp OracleAlg BigOperators ENNReal
 
-class HomogeneousSpace (G : semiOutParam (ℕ → Type))
-    (P : semiOutParam (ℕ → Type)) :=
+class HomogeneousSpace (G : semiOutParam (ℕ → Type)) (P : semiOutParam (ℕ → Type)) where
   AddGroup_G (sp : ℕ) : AddCommGroup (G sp)
   AddTorsor_GP (sp : ℕ) : AddTorsor (G sp) (P sp)
   decidableEq_G (sp : ℕ) : DecidableEq (G sp)

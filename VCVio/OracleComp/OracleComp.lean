@@ -189,7 +189,7 @@ section inj
   ⟨λ h ↦ OracleComp.noConfusion h (λ _ ht _ _ ↦ eq_of_heq ht), λ h ↦ h ▸ rfl⟩
 
 @[simp]
-lemma queryBind_inj (i i' : ι) (t : spec.domain i) (t' : spec.domain i')
+lemma queryBind_inj' (i i' : ι) (t : spec.domain i) (t' : spec.domain i')
     (oa : spec.range i → OracleComp spec α) (oa' : spec.range i' → OracleComp spec α) :
     query i t >>= oa = query i' t' >>= oa' ↔ ∃ h : i = i', h ▸ t = t' ∧ h ▸ oa = oa' := by
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
@@ -199,23 +199,22 @@ lemma queryBind_inj (i i' : ι) (t : spec.domain i) (t' : spec.domain i')
     exact ⟨rfl, rfl, rfl⟩
   · obtain ⟨rfl, rfl, rfl⟩ := h; rfl
 
+lemma queryBing_inj (i : ι) (t t' : spec.domain i) (oa oa' : spec.range i → OracleComp spec α) :
+    query i t >>= oa = query i t' >>= oa' ↔ t = t' ∧ oa = oa' :=
+  by simp only [queryBind_inj', exists_const]
+
 end inj
 
-section ne
+section eq
 
 variable (i : ι) (t : spec.domain i) (u : spec.range i) (x : α)
   (ou : spec.range i → OracleComp spec α)
+  (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β)
 
 @[simp] lemma pure_ne_query : pure u ≠ query i t := OracleComp.noConfusion
 @[simp] lemma query_ne_pure : query i t ≠ pure u := OracleComp.noConfusion
 @[simp] lemma pure_ne_queryBind : pure x ≠ query i t >>= ou := OracleComp.noConfusion
-@[simp] lemma queryBind_ne_pure : query i t >>= ou ≠ (pure x) := OracleComp.noConfusion
-
-end ne
-
-section eq
-
-variable (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β)
+@[simp] lemma queryBind_ne_pure : query i t >>= ou ≠ pure x := OracleComp.noConfusion
 
 @[simp]
 lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x = pure y := by
@@ -235,7 +234,7 @@ end eq
 /-- If the final output type of a computation has decidable equality,
 then computations themselves have decidable equality.
 Note: This depends on the decidable instances in the oracle spec itself. -/
-protected instance decidableEq [DecidableEq ι] [h : DecidableEq α] :
+protected instance instDecidableEq [DecidableEq ι] [h : DecidableEq α] :
     DecidableEq (OracleComp spec α)
   | pure' _ x, pure' _ x' => by simpa [pure_inj x x'] using h x x'
   | pure' _ x, queryBind' i t _ oa => by simpa using Decidable.isFalse not_false
@@ -244,9 +243,9 @@ protected instance decidableEq [DecidableEq ι] [h : DecidableEq α] :
     by_cases hi : i = i'
     · induction hi; simp
       suffices Decidable (oa = oa') from inferInstance
-      suffices Decidable (∀ u, oa u = oa' u) from decidable_of_iff' _ Function.funext_iff
+      suffices Decidable (∀ u, oa u = oa' u) from decidable_of_iff' _ funext_iff
       suffices ∀ u, Decidable (oa u = oa' u) from Fintype.decidableForallFintype
-      exact λ u ↦ OracleComp.decidableEq (oa u) (oa' u)
+      exact λ u ↦ OracleComp.instDecidableEq (oa u) (oa' u)
     · simpa [hi] using Decidable.isFalse not_false
 
 end OracleComp

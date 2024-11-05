@@ -565,7 +565,7 @@ lemma evalDist_coin : evalDist coin = PMF.bernoulli 2⁻¹ (by simp) := by
 lemma probOutput_coin (b : Bool) : [= b | coin] = 2⁻¹ := by
   simp only [probOutput_def, evalDist_coin, PMF.bernoulli_apply, one_sub_inv_two, Bool.cond_self]
 
-lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) : [p | coin] = ∑' x : {x | p x}, 2⁻¹ := by
+lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) : [p | coin] = ∑' _ : {x | p x}, 2⁻¹ := by
   simp only [probEvent_eq_tsum_subtype, Set.coe_setOf, Set.mem_setOf_eq, probOutput_coin]
 
 @[simp]
@@ -603,7 +603,7 @@ lemma probOutput_uniformFin (x : Fin (n + 1)) : [= x | $[0..n]] = ((n : ℝ≥0�
 /-- Without decidability of `p` we can't explicitly count the number of elements in the output,
 so we instead express the probability of an event as a sum. -/
 lemma probEvent_uniformFin_eq_tsum_subtype (p : Fin (n + 1) → Prop) :
-    [p | $[0..n]] = ∑' x : {x | p x}, ((n : ℝ≥0∞) + 1)⁻¹ := by
+    [p | $[0..n]] = ∑' _ : {x | p x}, ((n : ℝ≥0∞) + 1)⁻¹ := by
   simp only [probEvent_eq_tsum_subtype, Set.coe_setOf, Set.mem_setOf_eq, probOutput_uniformFin]
 
 /-- If `p` is decidable we can explicitly count the outputs of uniform selection that satisfy

@@ -43,7 +43,8 @@ def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) :
       let (u, s') ← so i t s
       simulate so s' (oa u)
 
-/-- Version of `simulate` that tosses out the oracle state at the end. -/
+/-- Version of `simulate` that tosses out the oracle state at the end.
+TODO: should this be an alias/notation? -/
 def simulate' (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) : OracleComp specₜ α :=
   fst <$> simulate so s oa
 
@@ -153,7 +154,7 @@ lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s
 
 end support
 
-section idem
+section stateIndep
 
 variable {σ : Type} (so : spec →[σ]ₛₒ spec)
 
@@ -173,6 +174,22 @@ class StateIndep (so : spec →[σ]ₛₒ spec) where
 lemma simulate'_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [h : StateIndep so]
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
   simulate'_eq_self so (h.state_indep) s oa
+
+@[simp]
+lemma fst_map_simulate_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [StateIndep so]
+    (s : σ) (oa : OracleComp spec α) : fst <$> (simulate so s oa) = oa :=
+  simulate'_eq_self_of_stateIndep so s oa
+
+lemma mem_support_of_mem_support_simulate' {so : spec →[σ]ₛₒ spec} [h : StateIndep so]
+    {s : σ} {oa : OracleComp spec α} {x : α}
+    (h : x ∈ (simulate' so s oa).support) : x ∈ oa.support := by
+  rwa [simulate'_eq_self_of_stateIndep] at h
+
+end stateIndep
+
+section idem
+
+variable {σ : Type} (so : spec →[σ]ₛₒ spec)
 
 /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
 Then `simulate' so` doesn't change the output distribution.
