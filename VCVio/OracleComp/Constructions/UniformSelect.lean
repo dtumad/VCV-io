@@ -137,8 +137,7 @@ variable {α : Type} [DecidableEq α] {n : ℕ}
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
 lemma uniformSelectVector_eq_uniformSelectList (xs : Vector α (n + 1)) :
-    let hα : Inhabited α := ⟨xs.head⟩
-    ($ xs) = ($ xs.toList : OracleComp unifSpec α) :=
+    let _ :  Inhabited α := ⟨xs.head⟩; ($ xs) = ($ xs.toList : OracleComp unifSpec α) :=
   match xs with
   | ⟨x :: xs, h⟩ => by
     have hxs : n = List.length xs := by simpa using symm h

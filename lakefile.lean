@@ -30,7 +30,7 @@ lean_lib Implementations where
   precompileModules := true
 
 -- Compiling extenal C++ files
-target libsodium.o pkg : FilePath := do
+target libsodium.o pkg : System.FilePath := do
   let oFile := pkg.buildDir / "c" / "libsodium.o"
   let srcJob ← inputTextFile <| pkg.dir / "LibSodium" / "c" / "libsodium.cpp"
   let weakArgs := #["-I", (← getLeanIncludeDir).toString]
