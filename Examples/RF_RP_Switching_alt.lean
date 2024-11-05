@@ -53,7 +53,8 @@ def RF_Exp (adv : RF_RP_Adv α) : SecExp (λ n ↦ (α n →ₒ α n)) where
 -- /-- Run a `RF_RP_Adv` using a random permutation to answer queries.
 -- The simulation uses an additional finset to avoid choosing duplicate query outputs.
 
--- Note: We could implement a `randUniqOracle` rather than do this ad hoc. unsure other use cases. -/
+-- Note: We could implement a `randUniqOracle` rather than do this ad hoc.
+-- unsure other use cases. -/
 -- noncomputable def RP_Exp (adv : RF_RP_Adv α) : SecExp (λ n ↦ (α n →ₒ α n)) where
 --   main n := (· = false) <$> adv.run n ()
 --   baseState n := QueryCache (α n →ₒ α n) × Finset (α n)
