@@ -28,7 +28,7 @@ def Foo : IO ℕ := do
   return (x * y)
 
 /-- Represent an `OracleComp` via the `IO` monad, allowing actual execution. -/
-protected def runIO {α : Type} : OracleComp unifSpec α → IO α
+protected def runIO {α : Type} : ProbComp α → IO α
   | pure' α x => return x
   | queryBind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
 

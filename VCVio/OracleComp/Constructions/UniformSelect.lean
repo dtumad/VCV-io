@@ -27,11 +27,11 @@ The container type is given by `cont` with the resulting type given by `β`.
 NOTE: This current implementation doesn't impose any "correctness" conditions,
 it purely exists to provide the notation similar to `Mul` -/
 class HasUniformSelect (cont : Type) (β : outParam Type) [DecidableEq β] where
-  uniformSelect : cont → OracleComp unifSpec β
+  uniformSelect : cont → ProbComp β
 
 /-- Given a selectable object, we can get a random element by indexing into the element vector. -/
 def uniformSelect {cont : Type} (β : Type) [DecidableEq β]
-    [h : HasUniformSelect cont β] (xs : cont) : OracleComp unifSpec β :=
+    [h : HasUniformSelect cont β] (xs : cont) : ProbComp β :=
   h.uniformSelect xs
 
 prefix : 50 "$" => uniformSelect _
@@ -55,10 +55,10 @@ instance hasUniformSelectList (α : Type) [Inhabited α] [DecidableEq α] :
 variable {α : Type} [Inhabited α] [DecidableEq α]
 
 @[simp]
-lemma uniformSelectList_nil : ($ ([] : List α) : OracleComp unifSpec α) = return default := rfl
+lemma uniformSelectList_nil : ($ ([] : List α) : ProbComp α) = return default := rfl
 
 lemma uniformSelectList_cons (x : α) (xs : List α) :
-    ($ x :: xs : OracleComp unifSpec α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
+    ($ x :: xs : ProbComp α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
 
 @[simp]
 lemma evalDist_uniformSelectList (xs : List α) :
@@ -137,7 +137,7 @@ variable {α : Type} [DecidableEq α] {n : ℕ}
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
 lemma uniformSelectVector_eq_uniformSelectList (xs : Vector α (n + 1)) :
-    let _ :  Inhabited α := ⟨xs.head⟩; ($ xs) = ($ xs.toList : OracleComp unifSpec α) :=
+    let _ :  Inhabited α := ⟨xs.head⟩; ($ xs) = ($ xs.toList : ProbComp α) :=
   match xs with
   | ⟨x :: xs, h⟩ => by
     have hxs : n = List.length xs := by simpa using symm h
@@ -263,12 +263,12 @@ so we include this to get a computable version of selection.
 We also require that each element has the same probability of being chosen from by `selectElem`,
 see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fintype instance. -/
 class SelectableType (β : Type) where
-  selectElem : OracleComp unifSpec β
+  selectElem : ProbComp β
   probOutput_selectElem_eq (x y : β) :
     [= x | selectElem] = [= y | selectElem]
 
 def uniformOfFintype (β : Type) [h : SelectableType β] :
-    OracleComp unifSpec β := h.selectElem
+    ProbComp β := h.selectElem
 
 prefix : 90 "$ᵗ" => uniformOfFintype
 

@@ -31,12 +31,12 @@ variable {ι : Type} {spec : ℕ → OracleSpec ι} {α β γ : Type}
   (alg : OracleAlg spec) (n : ℕ)
 
 -- def exec (alg : OracleAlg spec) (n : ℕ)
---     (oa : OracleComp (spec n) α) : OracleComp unifSpec α :=
+--     (oa : OracleComp (spec n) α) : ProbComp α :=
 --   simulate' (alg.baseSimOracle n) (alg.init_state n) oa
 
 -- TODO: Could think about basing things around this instead
 def exec (alg : OracleAlg spec) (n : ℕ)
-    (oa : OracleComp (unifSpec ++ₒ spec n) α) : OracleComp unifSpec α :=
+    (oa : OracleComp (unifSpec ++ₒ spec n) α) : ProbComp α :=
   simulate' (idOracle ++ₛₒ alg.baseSimOracle n) ((), alg.init_state n) oa
 
 -- lemma exec_def (oa : OracleComp (spec n) α) :
@@ -91,7 +91,7 @@ abbrev baseOracleAlg : OracleAlg (λ _ ↦ []ₒ) where
   baseSimOracle := λ _ ↦ unifOracle
 
 -- @[simp]
--- lemma exec_baseOracleAlg (n : ℕ) (oa : OracleComp unifSpec α) :
+-- lemma exec_baseOracleAlg (n : ℕ) (oa : ProbComp α) :
 --     baseOracleAlg.exec n oa = oa := by
 --   simp only [exec_def, idOracle.simulate'_eq]
 
