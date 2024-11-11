@@ -22,17 +22,26 @@ a `ProbComp` that can be run with `OracleComp.runIO`.
 
 The types of primitives can extend this to ensure that any oracles used in a protocol
 must have some canonical implementation. -/
-structure OracleImpl {ι : Type} (spec : OracleSpec ι) where
-  baseState : Type
-  baseSimOracle : spec →[baseState]ₛₒ unifSpec
-  init_state : baseState
+structure OracleImpl {ι : Type} (spec : OracleSpec ι) (σ : Type) where
+  baseSimOracle : spec →[σ]ₛₒ unifSpec
+  init_state : σ
 
-def emptyImpl : OracleImpl []ₒ where
+def OracleImpl.exec {ι : Type} {spec : OracleSpec ι} {α σ : Type}
+    (impl : OracleImpl spec σ) (oa : OracleComp (unifSpec ++ₒ spec) α) : ProbComp (α × σ) :=
+  let so := (idOracle ++ₛₒ impl.baseSimOracle).maskState <| Equiv.punitProd σ
+  simulate so impl.init_state oa
+
+def OracleImpl.exec' {ι : Type} {spec : OracleSpec ι} {α σ : Type}
+    (impl : OracleImpl spec σ) (oa : OracleComp (unifSpec ++ₒ spec) α) : ProbComp α :=
+  let so := (idOracle ++ₛₒ impl.baseSimOracle).maskState <| Equiv.punitProd σ
+  simulate' so impl.init_state oa
+
+def emptyImpl : OracleImpl []ₒ Unit where
   baseSimOracle := unifOracle
   init_state := ()
 
-structure SymmEncAlg' {ι : Type} (spec : OracleSpec ι) (M K C : Type)
-    extends OracleImpl spec where
+structure SymmEncAlg' {ι : Type} (spec : OracleSpec ι) (σ M K C : Type)
+    extends OracleImpl spec σ where
   keygen : OracleComp (unifSpec ++ₒ spec) K
   encrypt (k : K) (m : M) : OracleComp (unifSpec ++ₒ spec) C
   decrypt (k : K) (c : C) : OracleComp (unifSpec ++ₒ spec) M
@@ -60,7 +69,18 @@ def isSound (encAlg : SymmEncAlg spec M K C) : Prop :=
     let σ ← encAlg.encrypt sp k m
     encAlg.decrypt sp k σ] = 1
 
+def isSound' {ι : Type} {spec : OracleSpec ι} {σ M K C : Type}
+    (encAlg : SymmEncAlg' spec σ M K C) : Prop :=
+  ∀ m : M, [= m | Prod.fst <$> (encAlg.exec do
+    let k : K ← encAlg.keygen
+    let σ ← encAlg.encrypt k m
+    encAlg.decrypt k σ)] = 1
+
 variable (encAlg : SymmEncAlg spec M K C)
+
+-- lemma isSound_iff {ι : Type} {spec : OracleSpec ι} {M K C : Type}
+--     (encAlg : SymmEncAlg' spec M K C) : encAlg.isSound ↔
+--     ∀ m : M, ()
 
 -- lemma isSound_iff_forall_mem_support :
 
