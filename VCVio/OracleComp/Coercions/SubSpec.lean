@@ -163,11 +163,11 @@ instance : coinSpec ⊂ₒ unifSpec where
   evalDist_toFun' := λ i t ↦ by simp [evalDist_query i t]
 
 instance coe_subSpec_coinSpec_unifSpec {α : Type} :
-    Coe (OracleComp coinSpec α) (OracleComp unifSpec α) where
+    Coe (OracleComp coinSpec α) (ProbComp α) where
   coe := liftComp
 
 lemma coe_subSpec_coinSpec_unifSpec_eq_liftComp {α : Type} (oa : OracleComp coinSpec α) :
-    (↑oa : OracleComp unifSpec α) = liftComp oa := rfl
+    (↑oa : ProbComp α) = liftComp oa := rfl
 
 end instances
 

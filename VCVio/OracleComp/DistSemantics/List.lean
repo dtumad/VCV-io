@@ -35,6 +35,10 @@ lemma mem_support_seq_map_cons_iff (xs : List α) (h : xs ≠ []) :
   obtain ⟨x, xs, rfl⟩ := List.exists_cons_of_ne_nil h
   exact mem_support_seq_map_iff_of_injective2 oa ob _ List.injective2_cons _ _
 
+lemma cons_mem_support_seq_map_cons_iff (x : α) (xs : List α) :
+    x :: xs ∈ ((· :: ·) <$> oa <*> ob).support ↔ x ∈ oa.support ∧ xs ∈ ob.support := by
+  simp only [support_seq_map_eq_image2, Set.mem_image2, List.cons.injEq, exists_eq_right_right]
+
 lemma mem_finSupport_seq_map_cons_iff' [DecidableEq α] (xs : List α) :
     xs ∈ ((· :: ·) <$> oa <*> ob).finSupport ↔
       xs.recOn False (λ x xs _ ↦ x ∈ oa.finSupport ∧ xs ∈ ob.finSupport) := by
@@ -44,6 +48,11 @@ lemma mem_finSupport_seq_map_cons_iff [DecidableEq α] (xs : List α) (h : xs �
     xs ∈ ((· :: ·) <$> oa <*> ob).finSupport ↔
       xs.head h ∈ oa.finSupport ∧ xs.tail ∈ ob.finSupport := by
   simp_rw [mem_finSupport_iff_mem_support, mem_support_seq_map_cons_iff oa ob xs h]
+
+lemma cons_mem_finSupport_seq_map_cons_iff [DecidableEq α] (x : α) (xs : List α) :
+    x :: xs ∈ ((· :: ·) <$> oa <*> ob).finSupport ↔ x ∈ oa.finSupport ∧ xs ∈ ob.finSupport := by
+  simp only [finSupport_seq_map_eq_image2, Finset.mem_image₂, List.cons.injEq,
+    exists_eq_right_right]
 
 lemma probOutput_cons_seq_map_cons_eq_mul (x : α) (xs : List α) :
     [= x :: xs | (· :: ·) <$> oa <*> ob] = [= x | oa] * [= xs | ob] :=
@@ -61,14 +70,6 @@ lemma probOutput_seq_map_cons_eq_mul (xs : List α) :
   match xs with
   | [] => by simp
   | x :: xs => probOutput_cons_seq_map_cons_eq_mul oa ob x xs
-
-@[simp]
-lemma probOutput_seq_map_cons_eq_mul' (xs : List α) :
-    [= xs | (λ xs x ↦ x :: xs) <$> ob <*> oa] = if h : xs.isEmpty then 0 else
-      [= xs.head (h ∘ List.isEmpty_iff.2) | oa] * [= xs.tail | ob] :=
-  match xs with
-  | [] => by simp
-  | x :: xs => probOutput_cons_seq_map_cons_eq_mul' oa ob x xs
 
 end List
 

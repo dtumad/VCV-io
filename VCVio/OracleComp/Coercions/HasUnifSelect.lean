@@ -30,7 +30,7 @@
 -- namespace OracleComp
 
 -- instance {ι : Type} {spec : OracleSpec ι} [spec.hasUnifSelect] {α : Type} :
---     Coe (OracleComp unifSpec α) (OracleComp spec α) where
+--     Coe (ProbComp α) (OracleComp spec α) where
 --   coe := liftComp
 
 -- end OracleComp

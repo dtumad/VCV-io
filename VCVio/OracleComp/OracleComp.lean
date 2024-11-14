@@ -20,7 +20,7 @@ This importantly allows us to define a `LawfulMonad` instance on `OracleComp spe
 which isn't possible if a general bind operator is included in the main syntax.
 
 We also define simple operations like `coin : OracleComp coinSpec Bool` for flipping a fair coin,
-and `$[0..n] : OracleComp unifSpec (Fin (n + 1))` for selecting from an inclusive range.
+and `$[0..n] : ProbComp (Fin (n + 1))` for selecting from an inclusive range.
 
 Note that the monadic structure on `OracleComp` exists only for a fixed `OracleSpec`,
 so it isn't possible to combine computations where one has a superset of oracles of the other.
@@ -115,6 +115,8 @@ lemma query_def : query i t = queryBind' i t (spec.range i) pure := rfl
 
 end query
 
+abbrev ProbComp := OracleComp unifSpec
+
 /-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline]
 def coin : OracleComp coinSpec Bool := query () ()
@@ -124,13 +126,12 @@ By making this range inclusive we avoid the case of choosing from the empty rang
 note: could define `$[n..m]` instead as `(. + n) <$> $[0..(m - n)]`,
 but there are issues when `m < n`. -/
 @[reducible, inline]
-def uniformFin (n : ℕ) : OracleComp unifSpec (Fin (n + 1)) := query n ()
+def uniformFin (n : ℕ) : ProbComp (Fin (n + 1)) := query n ()
 
 notation "$[0.." n "]" => uniformFin n
 
-example : OracleComp unifSpec ℕ := do
-  let x ← $[0..31415]
-  let y ← $[0..16180]
+example : ProbComp ℕ := do
+  let x ← $[0..31415]; let y ← $[0..16180]
   return x + 2 * y
 
 protected def inductionOn {ι : Type} {spec : OracleSpec ι}
@@ -199,7 +200,7 @@ lemma queryBind_inj' (i i' : ι) (t : spec.domain i) (t' : spec.domain i')
     exact ⟨rfl, rfl, rfl⟩
   · obtain ⟨rfl, rfl, rfl⟩ := h; rfl
 
-lemma queryBing_inj (i : ι) (t t' : spec.domain i) (oa oa' : spec.range i → OracleComp spec α) :
+lemma queryBind_inj (i : ι) (t t' : spec.domain i) (oa oa' : spec.range i → OracleComp spec α) :
     query i t >>= oa = query i t' >>= oa' ↔ t = t' ∧ oa = oa' :=
   by simp only [queryBind_inj', exists_const]
 
@@ -224,6 +225,8 @@ lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x
     | queryBind' i t _ oa => simp at h
   · obtain ⟨x, hxa, hxb⟩ := h
     rw [hxa, pure_bind, hxb]
+
+alias ⟨pure_eq_bind, bind_eq_pure⟩ := bind_eq_pure_iff
 
 @[simp]
 lemma pure_eq_bind_iff : pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
