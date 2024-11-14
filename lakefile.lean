@@ -24,10 +24,10 @@ lean_lib ToMathlib
 /-- Access to external C++ implementations of crypto primitives. -/
 lean_lib LibSodium
 
-/-- Implementations of specific cryptographic algorithms.
-Set `precompileModules` in order to allow execution of external code. -/
-lean_lib Implementations where
-  precompileModules := true
+-- /-- Runnable implementations of specific cryptographic algorithms.
+-- Set `precompileModules` in order to allow execution of external code. -/
+-- lean_lib Implementations where
+--   precompileModules := true
 
 -- Compiling extenal C++ files
 target libsodium.o pkg : System.FilePath := do
