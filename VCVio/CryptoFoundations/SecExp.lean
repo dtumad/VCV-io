@@ -55,6 +55,14 @@ structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
     extends OracleAlg spec where
   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
 
+structure SecExp' {ι : Type} (spec : OracleSpec ι) (σ : Type)
+    extends OracleImpl spec σ where
+  main : OracleComp spec Bool
+
+noncomputable def SecExp'.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+    (exp : SecExp' spec σ) (p : σ → Bool) : ℝ≥0∞ :=
+  [λ (x, s) ↦ x && p s | exp.exec exp.main]
+
 noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
     (n : ℕ) : ℝ≥0∞ :=
   [= true | exp.exec n (exp.main n)]

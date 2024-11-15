@@ -46,6 +46,13 @@ def soundnessExp (sigAlg : SignatureAlg spec M PK SK S)
     sigAlg.verify sp pk m σ
   __ := sigAlg
 
+def soundnessExp' {ι : Type} (spec : OracleSpec ι)
+    {σ M PK SK S : Type} (sigAlg : SignatureAlg' spec σ M PK SK S) (m : M) :
+    SecExp' spec σ where
+  main := do sorry
+  __ := sigAlg
+
+
 def isSound (sigAlg : SignatureAlg spec M PK SK S) : Prop :=
   ∀ mDist, negligible (1 - (soundnessExp sigAlg mDist).advantage)
 
