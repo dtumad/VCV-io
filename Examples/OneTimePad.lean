@@ -12,7 +12,7 @@ import Mathlib.Data.Vector.Zip
 This file defines and proves the perfect secrecy of the one-time pad encryption algorithm.
 -/
 
-open Mathlib OracleSpec OracleComp OracleAlg OracleImpl ENNReal BigOperators
+open Mathlib OracleSpec OracleComp OracleImpl ENNReal BigOperators
 
 /-- The one-time pad symmetric encryption algorithm, using `BitVec`s as keys and messages.
 Encryption and decryption both just apply `BitVec.xor` with the key.

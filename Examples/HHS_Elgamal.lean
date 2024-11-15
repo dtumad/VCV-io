@@ -11,52 +11,52 @@ import VCVio
 This file defines an anologue of the ElGamal Encryption scheme and proves it is IND-CPA secure
 -/
 
-open HomogeneousSpace AsymmEncAlg
+-- open HomogeneousSpace AsymmEncAlg
 
-/-- Elgemal-style encryption adapted to a homogeneous space with group structure on points.
-Messages are base points in `P` (in practice this is some encoding of messages),
-The public key is a pair of base points in `P` chosen uniformly at random,
-and the secret key is their vectorization in `G`. Signatures are also a pair of base points. -/
-noncomputable def elgamalAsymmEnc (G P : ℕ → Type)
-    [HomogeneousSpace G P] [Π sp, Group (P sp)] :
-    AsymmEncAlg (λ _ ↦ emptySpec) (M := λ sp ↦ P sp)
-      (PK := λ sp ↦ P sp × P sp) (SK := λ sp ↦ G sp) (C := λ sp ↦ P sp × P sp) where
-  keygen := λ sp ↦ do
-    let x₀ ←$ᵗ P sp
-    let sk ←$ᵗ G sp
-    return ((x₀, sk +ᵥ x₀), sk)
-  encrypt := λ sp m ⟨x₀, pk⟩ ↦ do
-    let g : G sp ←$ᵗ G sp
-    return (g +ᵥ x₀, m * (g +ᵥ pk))
-  decrypt := λ _ (c₁, c₂) sk ↦ do
-    return c₂ / (sk +ᵥ c₁)
-  __ := OracleAlg.baseOracleAlg -- no extra oracles
+-- /-- Elgemal-style encryption adapted to a homogeneous space with group structure on points.
+-- Messages are base points in `P` (in practice this is some encoding of messages),
+-- The public key is a pair of base points in `P` chosen uniformly at random,
+-- and the secret key is their vectorization in `G`. Signatures are also a pair of base points. -/
+-- noncomputable def elgamalAsymmEnc (G P : ℕ → Type)
+--     [HomogeneousSpace G P] [Π sp, Group (P sp)] :
+--     AsymmEncAlg (λ _ ↦ emptySpec) (M := λ sp ↦ P sp)
+--       (PK := λ sp ↦ P sp × P sp) (SK := λ sp ↦ G sp) (C := λ sp ↦ P sp × P sp) where
+--   keygen := λ sp ↦ do
+--     let x₀ ←$ᵗ P sp
+--     let sk ←$ᵗ G sp
+--     return ((x₀, sk +ᵥ x₀), sk)
+--   encrypt := λ sp m ⟨x₀, pk⟩ ↦ do
+--     let g : G sp ←$ᵗ G sp
+--     return (g +ᵥ x₀, m * (g +ᵥ pk))
+--   decrypt := λ _ (c₁, c₂) sk ↦ do
+--     return c₂ / (sk +ᵥ c₁)
+--   __ := OracleAlg.baseOracleAlg -- no extra oracles
 
-namespace elgamalAsymmEnc
+-- namespace elgamalAsymmEnc
 
-variable (G P : ℕ → Type) [HomogeneousSpace G P] [Π sp, Group (P sp)]
+-- variable (G P : ℕ → Type) [HomogeneousSpace G P] [Π sp, Group (P sp)]
 
-section sound
+-- section sound
 
--- theorem isSound : (elgamalAsymmEnc G P).isSound := by
-  -- suffices h : ∀ sp (m x : P sp) (g₁ g₂ : G sp), m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = m
-  --   by simp [AsymmEncAlg.sound_iff, h]
-  -- intros m x g₁ g₂
-  -- rw [vadd_comm, mul_div_cancel_right]
+-- -- theorem isSound : (elgamalAsymmEnc G P).isSound := by
+--   -- suffices h : ∀ sp (m x : P sp) (g₁ g₂ : G sp), m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = m
+--   --   by simp [AsymmEncAlg.sound_iff, h]
+--   -- intros m x g₁ g₂
+--   -- rw [vadd_comm, mul_div_cancel_right]
 
-end sound
+-- end sound
 
-section IND_CPA
+-- section IND_CPA
 
--- variable {G P : Type} [AddCommGroup G] [HomogeneousSpace G P] [Group P]
+-- -- variable {G P : Type} [AddCommGroup G] [HomogeneousSpace G P] [Group P]
 
--- def IND_CPA_reduction (adv : (elgamalAsymmEnc G P).IND_CPA_Adv) : vectorizationAdv G P :=
---   sorry
+-- -- def IND_CPA_reduction (adv : (elgamalAsymmEnc G P).IND_CPA_Adv) : vectorizationAdv G P :=
+-- --   sorry
 
--- theorem le_IND_CPA_reduction_advantage (adv : (elgamalAsymmEnc G P).IND_CPA_Adv) :
---     (IND_CPA_Exp adv).advantage ≤ (vectorizationExp (IND_CPA_reduction adv)).advantage := by
---   sorry
+-- -- theorem le_IND_CPA_reduction_advantage (adv : (elgamalAsymmEnc G P).IND_CPA_Adv) :
+-- --     (IND_CPA_Exp adv).advantage ≤ (vectorizationExp (IND_CPA_reduction adv)).advantage := by
+-- --   sorry
 
-end IND_CPA
+-- end IND_CPA
 
-end elgamalAsymmEnc
+-- end elgamalAsymmEnc

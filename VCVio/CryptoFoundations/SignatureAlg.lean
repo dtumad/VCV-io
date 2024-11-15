@@ -18,71 +18,54 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 
 open OracleSpec OracleComp BigOperators ENNReal
 
-structure SignatureAlg' {ι : Type} (spec : OracleSpec ι)
+structure SignatureAlg {ι : Type} (spec : OracleSpec ι)
     (σ M PK SK S : Type) extends OracleImpl spec σ where
   keygen : OracleComp spec (PK × SK)
   sign (pk : PK) (sk : SK) (m : M) : OracleComp spec S
   verify (pk : PK) (m : M) (s : S) : OracleComp spec Bool
 
-structure SignatureAlg {ι : Type} (spec : ℕ → OracleSpec ι)
-  (M PK SK S : ℕ → Type) extends OracleAlg spec where
-  keygen (sp : ℕ) : OracleComp (unifSpec ++ₒ spec sp) (PK sp × SK sp)
-  sign (sp : ℕ) : PK sp → SK sp → M sp → OracleComp (unifSpec ++ₒ spec sp) (S sp)
-  verify (sp : ℕ) : PK sp → M sp → S sp → OracleComp (unifSpec ++ₒ spec sp) Bool
-
 namespace SignatureAlg
 
-variable {ι : Type} {spec : ℕ → OracleSpec ι} {M PK SK S : ℕ → Type}
+variable {ι : Type} {spec : OracleSpec ι} {σ M PK SK S : Type}
 
-section sound
+section IsSound
 
-def soundnessExp (sigAlg : SignatureAlg spec M PK SK S)
-    (mDist : (sp : ℕ) → OracleComp (spec sp) (M sp)) :
-    SecExp spec where
-  main := λ sp ↦ do
-    let m ← mDist sp
-    let (pk, sk) ← sigAlg.keygen sp
-    let σ ← sigAlg.sign sp pk sk m
-    sigAlg.verify sp pk m σ
+def soundnessExp (sigAlg : SignatureAlg spec σ M PK SK S)
+    (m : M) : SecExp spec σ where
+  main := do
+    let (pk, sk) ← sigAlg.keygen
+    let sig ← sigAlg.sign pk sk m
+    sigAlg.verify pk m sig
   __ := sigAlg
 
-def soundnessExp' {ι : Type} (spec : OracleSpec ι)
-    {σ M PK SK S : Type} (sigAlg : SignatureAlg' spec σ M PK SK S) (m : M) :
-    SecExp' spec σ where
-  main := do sorry
-  __ := sigAlg
+-- def isSound (sigAlg : SignatureAlg spec M PK SK S) : Prop :=
+--   ∀ mDist, negligible (1 - (soundnessExp sigAlg mDist).advantage)
 
+def IsSound (sigAlg : SignatureAlg spec σ M PK SK S) : Prop :=
+  ∀ m : M, (sigAlg.soundnessExp m).advantage = 1
 
-def isSound (sigAlg : SignatureAlg spec M PK SK S) : Prop :=
-  ∀ mDist, negligible (1 - (soundnessExp sigAlg mDist).advantage)
-
-
-end sound
+end IsSound
 
 section signingOracle
 
-variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
-  [Π sp, DecidableEq (S sp)] [Π sp, Fintype (S sp)]
+variable [Inhabited S] [Fintype S] [DecidableEq S] [DecidableEq M]
 
-def signingOracle (sigAlg : SignatureAlg spec M PK SK S)
-    (sp : ℕ) (pk : PK sp) (sk : SK sp) :
-    (M sp →ₒ S sp) →[QueryLog (M sp →ₒ S sp)]ₛₒ unifSpec ++ₒ spec sp :=
+def signingOracle (sigAlg : SignatureAlg spec σ M PK SK S)
+    (pk : PK) (sk : SK) : (M →ₒ S) →[QueryLog (M →ₒ S)]ₛₒ spec :=
   λ () m log ↦ do
-    let σ ← sigAlg.sign sp pk sk m
+    let σ ← sigAlg.sign pk sk m
     return (σ, log.logQuery m σ)
-
--- port
 
 end signingOracle
 
 section unforgeable
 
-variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
-  [Π sp, DecidableEq (S sp)] [Π sp, Fintype (S sp)]
-  [DecidableEq ι]
+-- variable [Π sp, Inhabited (S sp)] [Π sp, DecidableEq (M sp)]
+--   [Π sp, DecidableEq (S sp)] [Π sp, Fintype (S sp)]
+--   [DecidableEq ι]
 
-def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
-SecAdv (λ sp ↦ spec sp ++ₒ (M sp →ₒ S sp)) PK (λ sp ↦ M sp × S sp)
+-- def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
+-- SecAdv (λ sp ↦ spec sp ++ₒ (M sp →ₒ S sp)) PK (λ sp ↦ M sp × S sp)
 
 -- def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
 --     (adv : unforgeableAdv sigAlg) :

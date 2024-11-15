@@ -32,14 +32,14 @@ where the bound is given by a polynomial that is evaluated for each security par
 This is useful both for asymptotic security as well as in some concrete security bounds.
 
 Port: We should eventually include polynomial time in this -/
-structure SecAdv {ι : Type} [DecidableEq ι]
-    (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
-  run (n : ℕ) : α n → OracleComp (spec n) (β n)
-  qb (i : ι) : ℕ[X] -- Bound on the number of queries made by adversary.
-  qb_isQueryBound (n : ℕ) (x : α n) :
-    IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
+-- structure SecAdv {ι : Type} [DecidableEq ι]
+--     (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
+--   run (n : ℕ) : α n → OracleComp (spec n) (β n)
+--   qb (i : ι) : ℕ[X] -- Bound on the number of queries made by adversary.
+--   qb_isQueryBound (n : ℕ) (x : α n) :
+--     IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
 
-structure SecAdv' {ι : Type} [DecidableEq ι]
+structure SecAdv {ι : Type} [DecidableEq ι]
     (spec : OracleSpec ι) (α β : Type) where
   run : α → OracleComp spec β
   qb : ι → ℕ
@@ -51,24 +51,24 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 end SecAdv
 
-structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
-    extends OracleAlg spec where
-  main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
+-- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
+--     extends OracleAlg spec where
+--   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
 
-structure SecExp' {ι : Type} (spec : OracleSpec ι) (σ : Type)
+structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
     extends OracleImpl spec σ where
   main : OracleComp spec Bool
 
-noncomputable def SecExp'.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
-    (exp : SecExp' spec σ) (p : σ → Bool) : ℝ≥0∞ :=
+noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+    (exp : SecExp spec σ) (p : σ → Bool) : ℝ≥0∞ :=
   [λ (x, s) ↦ x && p s | exp.exec exp.main]
 
-noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
-    (n : ℕ) : ℝ≥0∞ :=
-  [= true | exp.exec n (exp.main n)]
+-- noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
+--     (n : ℕ) : ℝ≥0∞ :=
+--   [= true | exp.exec n (exp.main n)]
 
-def SecExp.almostNever {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec) : Prop :=
-  negligible exp.advantage
+-- def SecExp.almostNever {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec) : Prop :=
+--   negligible exp.advantage
 
 
 -- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)

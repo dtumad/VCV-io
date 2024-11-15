@@ -12,7 +12,7 @@ import VCVio.CryptoFoundations.SecExp
 
 -/
 
-open OracleSpec OracleComp OracleAlg Option ENNReal
+open OracleSpec OracleComp Option ENNReal
 
 -- structure ForkAdv {ι : Type} (spec : OracleSpec ι) (α β : Type) (i : ι)
 --     extends SecAdv spec α β where
