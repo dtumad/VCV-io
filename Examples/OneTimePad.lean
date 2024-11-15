@@ -17,17 +17,19 @@ open Mathlib OracleSpec OracleComp OracleAlg OracleImpl ENNReal BigOperators
 /-- The one-time pad symmetric encryption algorithm, using `BitVec`s as keys and messages.
 Encryption and decryption both just apply `BitVec.xor` with the key.
 Requires no oracles so the `OracleSpec` is always `[]ₒ`. -/
-def oneTimePad (n : ℕ) : SymmEncAlg []ₒ Unit
+def oneTimePad (n : ℕ) : SymmEncAlg unifSpec Unit
     (BitVec n) (BitVec n) (BitVec n) where
   keygen := $ᵗ BitVec n
   encrypt k m := return k ^^^ m
   decrypt k σ := return k ^^^ σ
-  __ := emptyImpl
+  __ := defaultImpl
 
 namespace oneTimePad
 
 @[simp]
 lemma keygen_def (n : ℕ) : (oneTimePad n).keygen = $ᵗ BitVec n := rfl
+
+
 
 @[simp]
 lemma encrypt_bind_decrypt {n : ℕ} (k m : BitVec n) :
@@ -35,9 +37,6 @@ lemma encrypt_bind_decrypt {n : ℕ} (k m : BitVec n) :
   simp [oneTimePad]
 
 theorem isSound (n : ℕ) : (oneTimePad n).isSound :=
-  λ m ↦ probOutput_eq_one (by {
-    simp
-    sorry
-  })
+  λ m ↦ probOutput_eq_one (by simp [oneTimePad])
 
 end oneTimePad

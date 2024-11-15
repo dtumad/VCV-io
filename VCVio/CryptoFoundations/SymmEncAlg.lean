@@ -18,9 +18,9 @@ open OracleSpec OracleComp Prod
 
 structure SymmEncAlg {ι : Type} (spec : OracleSpec ι) (σ M K C : Type)
     extends OracleImpl spec σ where
-  keygen : OracleComp (unifSpec ++ₒ spec) K
-  encrypt (k : K) (m : M) : OracleComp (unifSpec ++ₒ spec) C
-  decrypt (k : K) (c : C) : OracleComp (unifSpec ++ₒ spec) M
+  keygen : OracleComp spec K
+  encrypt (k : K) (m : M) : OracleComp spec C
+  decrypt (k : K) (c : C) : OracleComp spec M
 
 namespace SymmEncAlg
 
