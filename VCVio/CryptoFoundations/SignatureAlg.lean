@@ -18,6 +18,12 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 
 open OracleSpec OracleComp BigOperators ENNReal
 
+structure SignatureAlg' {ι : Type} (spec : OracleSpec ι)
+    (σ M PK SK S : Type) extends OracleImpl spec σ where
+  keygen : OracleComp spec (PK × SK)
+  sign (pk : PK) (sk : SK) (m : M) : OracleComp spec S
+  verify (pk : PK) (m : M) (s : S) : OracleComp spec Bool
+
 structure SignatureAlg {ι : Type} (spec : ℕ → OracleSpec ι)
   (M PK SK S : ℕ → Type) extends OracleAlg spec where
   keygen (sp : ℕ) : OracleComp (unifSpec ++ₒ spec sp) (PK sp × SK sp)

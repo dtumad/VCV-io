@@ -18,7 +18,7 @@ open Mathlib OracleSpec OracleComp OracleAlg OracleImpl ENNReal BigOperators
 Encryption and decryption both just apply `BitVec.xor` with the key.
 Requires no oracles so the `OracleSpec` is always `[]ₒ`. -/
 def oneTimePad (n : ℕ) : SymmEncAlg unifSpec Unit
-    (BitVec n) (BitVec n) (BitVec n) where
+    (M := BitVec n) (K := BitVec n) (C := BitVec n) where
   keygen := $ᵗ BitVec n
   encrypt k m := return k ^^^ m
   decrypt k σ := return k ^^^ σ
@@ -26,15 +26,16 @@ def oneTimePad (n : ℕ) : SymmEncAlg unifSpec Unit
 
 namespace oneTimePad
 
-@[simp]
-lemma keygen_def (n : ℕ) : (oneTimePad n).keygen = $ᵗ BitVec n := rfl
+-- @[simp]
+-- lemma keygen_def (n : ℕ) : (oneTimePad n).keygen = $ᵗ BitVec n := rfl
 
+-- @[simp]
+-- lemma encrypt_def (n : ℕ) : (oneTime)
 
-
-@[simp]
-lemma encrypt_bind_decrypt {n : ℕ} (k m : BitVec n) :
-    do {let σ ← (oneTimePad n).encrypt k m; (oneTimePad n).decrypt k σ} = return m := by
-  simp [oneTimePad]
+-- @[simp]
+-- lemma encrypt_bind_decrypt {n : ℕ} (k m : BitVec n) :
+--     do {let σ ← (oneTimePad n).encrypt k m; (oneTimePad n).decrypt k σ} = return m := by
+--   simp [oneTimePad]
 
 theorem isSound (n : ℕ) : (oneTimePad n).isSound :=
   λ m ↦ probOutput_eq_one (by simp [oneTimePad])

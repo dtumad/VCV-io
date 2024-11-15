@@ -39,6 +39,12 @@ structure SecAdv {ι : Type} [DecidableEq ι]
   qb_isQueryBound (n : ℕ) (x : α n) :
     IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
 
+structure SecAdv' {ι : Type} [DecidableEq ι]
+    (spec : OracleSpec ι) (α β : Type) where
+  run : α → OracleComp spec β
+  qb : ι → ℕ
+  qb_isQueryBound (x : α) : IsQueryBound (run x) (qb)
+
 namespace SecAdv
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
