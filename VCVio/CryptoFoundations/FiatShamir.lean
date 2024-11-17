@@ -18,14 +18,21 @@ For simplicity we construct signature schemes rather than general proofs of know
 -- TODO
 open OracleComp OracleSpec
 
-variable {ι : Type} (spec : ℕ → OracleSpec ι)
-    (X W : ℕ → Type) (p : {n : ℕ} → X n → W n → Bool)
-    (PC SC Ω P M : ℕ → Type)
-    [Π n, Inhabited (Ω n)] [Π n, DecidableEq (Ω n)]
-    [Π n, Fintype (Ω n)] [Π n, SelectableType (Ω n)]
-    [Π n, DecidableEq (PC n)] [Π n, DecidableEq (M n)]
-    [Π n, Fintype (X n)] [Π n, Inhabited (X n)] [Π n, SelectableType (X n)]
-    [Π n, Fintype (W n)] [Π n, Inhabited (W n)] [Π n, SelectableType (W n)]
+-- variable {ι : Type} (spec : ℕ → OracleSpec ι)
+--     (X W : ℕ → Type) (p : {n : ℕ} → X n → W n → Bool)
+--     (PC SC Ω P M : ℕ → Type)
+--     [Π n, Inhabited (Ω n)] [Π n, DecidableEq (Ω n)]
+--     [Π n, Fintype (Ω n)] [Π n, SelectableType (Ω n)]
+--     [Π n, DecidableEq (PC n)] [Π n, DecidableEq (M n)]
+--     [Π n, Fintype (X n)] [Π n, Inhabited (X n)] [Π n, SelectableType (X n)]
+--     [Π n, Fintype (W n)] [Π n, Inhabited (W n)] [Π n, SelectableType (W n)]
+
+variable {ι : Type} {spec : OracleSpec ι} {σ X W : Type}
+    {p : X → W → Bool} {PC SC Ω P : Type}
+
+def FiatShamirTransform (sigmaAlg : SigmaAlg spec σ X W p PC SC Ω P)
+    (M : Type) :
+    SignatureAlg spec σ M X W (PC × P) := sorry
 
 -- /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
 -- challenge values for the Σ-protocol, including the message in the hash input. -/
