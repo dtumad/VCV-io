@@ -69,7 +69,7 @@ structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι)
 -- variable [DecidableEq ι]
 
 -- /-- `IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an
--- asymmetric encryption algorithm with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
+-- asymmetric encryption with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
 -- Adversary is given a public key and returns a pair of messages that it thinks
 -- it can distinguish the encryption of. It addionally has a `distinguish` function
 -- that given a pair of messages and an encryption, returns whether it is an encryption of
