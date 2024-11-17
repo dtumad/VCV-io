@@ -31,11 +31,12 @@ variable {ι : Type} {spec : OracleSpec ι} {σ M PK SK S : Type}
 section IsSound
 
 def soundnessExp (sigAlg : SignatureAlg spec σ M PK SK S)
-    (m : M) : SecExp spec σ where
+    (m : M) : SecExp spec σ Bool where
   main := do
     let (pk, sk) ← sigAlg.keygen
     let sig ← sigAlg.sign pk sk m
     sigAlg.verify pk m sig
+  is_valid := λ (b, _) ↦ b = true
   __ := sigAlg
 
 -- def isSound (sigAlg : SignatureAlg spec M PK SK S) : Prop :=

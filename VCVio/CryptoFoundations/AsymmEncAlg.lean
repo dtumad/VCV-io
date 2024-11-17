@@ -18,19 +18,19 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 open OracleSpec OracleComp
 
 structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι)
-    (σ M PK SK C : Type)
-    extends OracleImpl spec σ where
+    (σ M PK SK C : Type) extends OracleImpl spec σ where
   keygen : OracleComp spec (PK × SK)
   encrypt (m : M) (pk : PK) : OracleComp spec C
   decrypt (c : C) (sk : SK) : OracleComp spec M
 
--- namespace AsymmEncAlg
+namespace AsymmEncAlg
 
--- variable {ι : Type} {spec : ℕ → OracleSpec ι} {M PK SK C : ℕ → Type}
+variable {ι : Type} {spec : OracleSpec ι} {σ M PK SK C : Type}
 
--- section sound
+section sound
 
 -- variable [Π sp, DecidableEq (M sp)]
+
 
 -- /-- Experiment for checking that an asymmetric encryption algorithm is sound,
 -- i.e. that decryption properly reverses encryption -/
@@ -44,6 +44,18 @@ structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι)
 --     let m' ← encAlg.decrypt sp σ sk
 --     return m = m'
 --   __ := encAlg
+
+def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C)
+    (m : M) : SecExp spec σ M where
+  main := do
+    let (pk, sk) ← encAlg.keygen
+    let σ ← encAlg.encrypt m pk
+    encAlg.decrypt σ sk
+  is_valid := λ (m', _) ↦ m' = m
+  __ := encAlg
+
+def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C) : Prop :=
+  ∀ m : M, (soundnessExp encAlg m).advantage = 1
 
 -- namespace soundnessExp
 
@@ -62,7 +74,7 @@ structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι)
 -- --   simp only [isSound, SecExp.advantage_eq_one_iff]
 -- --   sorry
 
--- end sound
+end sound
 
 -- section IND_CPA
 
@@ -100,4 +112,4 @@ structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι)
 
 -- end IND_CPA
 
--- end AsymmEncAlg
+end AsymmEncAlg

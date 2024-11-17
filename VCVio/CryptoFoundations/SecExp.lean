@@ -55,13 +55,28 @@ end SecAdv
 --     extends OracleAlg spec where
 --   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
 
-structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
-    extends OracleImpl spec σ where
-  main : OracleComp spec Bool
+-- structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
+--     extends OracleImpl spec σ where
+--   main : OracleComp spec Bool
 
-noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
-    (exp : SecExp spec σ) (p : σ → Bool) : ℝ≥0∞ :=
-  [λ (x, s) ↦ x && p s | exp.exec exp.main]
+/-- Structure to represent a security experiment. `spec` is the set of oracles available
+in the experiment, and the structure extends an oracle implementation for `spec`.
+`σ` is the state type for the implementation, and `ρ` is the result type of the expirement.
+
+`is_valid : σ → ρ → Bool` determines if the experiment was succesfull or not.  -/
+structure SecExp {ι : Type} (spec : OracleSpec ι) (σ ρ : Type)
+    extends OracleImpl spec σ where
+  main : OracleComp spec ρ
+  is_valid : ρ × σ → Prop
+
+noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ ρ : Type}
+    (exp : SecExp spec σ ρ) : ℝ≥0∞ :=
+  [exp.is_valid | exp.exec exp.main]
+
+
+-- noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+--     (exp : SecExp spec σ) (p : σ → Bool) : ℝ≥0∞ :=
+--   [λ (x, s) ↦ x && p s | exp.exec exp.main]
 
 -- noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
 --     (n : ℕ) : ℝ≥0∞ :=
