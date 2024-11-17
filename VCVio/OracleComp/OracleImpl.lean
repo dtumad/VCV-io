@@ -30,56 +30,28 @@ structure OracleImpl {ι : Type} (spec : OracleSpec ι) (σ : Type) where
   baseSimOracle : spec →[σ]ₛₒ unifSpec
   init_state : σ
 
+namespace OracleImpl
+
 variable {ι : Type} {spec : OracleSpec ι} {σ α β γ : Type}
 
 /-- Run a computation `oa` using a given implementation `impl` of its oracles,
 with initial state `s`. Returns both the result and final state.
 The computation `oa` is assumed to also have access to uniform selection oracles,
 which are simulated by directly forwarding their calls with `idOracle`. -/
-abbrev OracleImpl.run (impl : OracleImpl spec σ) (s : σ)
+abbrev run (impl : OracleImpl spec σ) (s : σ)
     (oa : OracleComp spec α) : ProbComp (α × σ) :=
   simulate impl.baseSimOracle s oa
 
-abbrev OracleImpl.exec (impl : OracleImpl spec σ)
+abbrev exec (impl : OracleImpl spec σ)
     (oa : OracleComp spec α) : ProbComp (α × σ) :=
   simulate impl.baseSimOracle impl.init_state oa
 
--- def OracleImpl.run (impl : OracleImpl spec σ)
---     (oa : OracleComp (unifSpec ++ₒ spec) α) (s : σ) : ProbComp (α × σ) :=
---   let so := (idOracle ++ₛₒ impl.baseSimOracle).maskState <| Equiv.punitProd σ
---   simulate so s oa
-
--- /-- Shorthand for running a computation using the given oracle implementation,
--- using the initial simulation state specified by the implementation itself. -/
--- abbrev OracleImpl.exec (impl : OracleImpl spec σ)
---     (oa : OracleComp (unifSpec ++ₒ spec) α) : ProbComp (α × σ) :=
---   OracleImpl.run impl oa impl.init_state
-
--- def OracleImpl.exec' (impl : OracleImpl spec σ)
---     (oa : OracleComp (unifSpec ++ₒ spec) α) : ProbComp α :=
---   let so := (idOracle ++ₛₒ impl.baseSimOracle).maskState <| Equiv.punitProd σ
---   simulate' so impl.init_state oa
-
-namespace OracleImpl
-
--- @[simp]
--- lemma exec_pure (impl : OracleImpl spec σ) (x : α) (s : σ) :
---     impl.run s (return x) = return (x, s) := by simp only [simulate_pure]
-
--- @[simp]
--- lemma exec_bind (impl : OracleImpl spec σ) (oa : OracleComp (unifSpec ++ₒ spec) α)
---     (ob : α → OracleComp (unifSpec ++ₒ spec) β) (s : σ) :
---     (impl.run (oa >>= ob) s = do let (x, s') ← impl.run oa s; impl.run (ob x) s') := by
---   simp [OracleImpl.run]
-
--- @[simp]
--- lemma exec_query (impl : OracleImpl spec σ) (i : ℕ ⊕ ι) (t : (unifSpec ++ₒ spec).domain i)
---     (s : σ) : impl.run (query i t) s = sorry := sorry
-
+/-- Impliment an empty set of oracles by eliminating on the empty index to any queries. -/
 def emptyImpl : OracleImpl []ₒ Unit where
-  baseSimOracle := unifOracle
+  baseSimOracle := λ i ↦ i.elim
   init_state := ()
 
+/-- Implement `unifSpec` as `unifSpec` by identity. -/
 def defaultImpl : OracleImpl unifSpec Unit where
   baseSimOracle := idOracle
   init_state := ()
