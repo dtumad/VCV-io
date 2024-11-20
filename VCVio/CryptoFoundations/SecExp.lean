@@ -25,7 +25,7 @@ The main definition is `SecExp spec α β`, which extends `OracleAlg` with three
 * `isValid` that decides whether the experiment succeeded
 -/
 
-open OracleComp OracleSpec ENNReal Polynomial
+open OracleComp OracleSpec ENNReal Polynomial Prod
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes,
 where the bound is given by a polynomial that is evaluated for each security parameter.
@@ -64,14 +64,18 @@ in the experiment, and the structure extends an oracle implementation for `spec`
 `σ` is the state type for the implementation, and `ρ` is the result type of the expirement.
 
 `is_valid : σ → ρ → Bool` determines if the experiment was succesfull or not.  -/
-structure SecExp {ι : Type} (spec : OracleSpec ι) (σ ρ : Type)
-    extends OracleImpl spec σ where
-  main : OracleComp spec ρ
-  is_valid : ρ × σ → Prop
+-- structure SecExp {ι : Type} (spec : OracleSpec ι) (σ ρ : Type)
+--     extends OracleImpl spec σ where
+--   main : OracleComp spec ρ
+--   is_valid : ρ × σ → Prop
 
-noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ ρ : Type}
-    (exp : SecExp spec σ ρ) : ℝ≥0∞ :=
-  [exp.is_valid | exp.exec exp.main]
+structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
+    extends OracleImpl spec σ where
+  main : OracleComp spec Bool
+
+noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+    (exp : SecExp spec σ) : ℝ≥0∞ :=
+  [= true | fst <$> exp.exec exp.main]
 
 
 -- noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}

@@ -46,12 +46,12 @@ section sound
 --   __ := encAlg
 
 def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C)
-    (m : M) : SecExp spec σ M where
+    (m : M) : SecExp spec σ where
   main := do
     let (pk, sk) ← encAlg.keygen
     let σ ← encAlg.encrypt m pk
-    encAlg.decrypt σ sk
-  is_valid := λ (m', _) ↦ m' = m
+    let m' ← encAlg.decrypt σ sk
+    return m' = m
   __ := encAlg
 
 def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C) : Prop :=

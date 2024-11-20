@@ -11,7 +11,7 @@ import VCVio.OracleComp.Coercions.Append
 /-!
 # Asymmetric Encryption Schemes.
 
-This file defines a type `AsymmEncAlg spec M PK SK C` to represent an protocol
+This file defines a type `AsymmEncAlg spec σ M PK SK C` to represent an protocol
 for asymmetric encryption using oracles in `spec`, with message space `M`,
 public/secret keys `PK` and `SK`, and ciphertext space `C`.
 -/
@@ -22,7 +22,7 @@ structure SignatureAlg {ι : Type} (spec : OracleSpec ι)
     (σ M PK SK S : Type) extends OracleImpl spec σ where
   keygen : OracleComp spec (PK × SK)
   sign (pk : PK) (sk : SK) (m : M) : OracleComp spec S
-  verify (pk : PK) (m : M) (s : S) : OracleComp spec Bool
+  verify (pk : PK) (m : M) (s : S) : Bool
 
 namespace SignatureAlg
 
@@ -31,12 +31,11 @@ variable {ι : Type} {spec : OracleSpec ι} {σ M PK SK S : Type}
 section IsSound
 
 def soundnessExp (sigAlg : SignatureAlg spec σ M PK SK S)
-    (m : M) : SecExp spec σ Bool where
+    (m : M) : SecExp spec σ where
   main := do
     let (pk, sk) ← sigAlg.keygen
     let sig ← sigAlg.sign pk sk m
-    sigAlg.verify pk m sig
-  is_valid := λ (b, _) ↦ b = true
+    return sigAlg.verify pk m sig
   __ := sigAlg
 
 -- def isSound (sigAlg : SignatureAlg spec M PK SK S) : Prop :=
@@ -67,6 +66,30 @@ section unforgeable
 
 -- def unforgeableAdv (_sigAlg : SignatureAlg spec M PK SK S) :=
 -- SecAdv (λ sp ↦ spec sp ++ₒ (M sp →ₒ S sp)) PK (λ sp ↦ M sp × S sp)
+
+variable [DecidableEq ι] [Inhabited S] [Fintype S] [DecidableEq S] [DecidableEq M]
+
+abbrev unforgeableAdv (_sigAlg : SignatureAlg spec σ M PK SK S) :=
+  SecAdv (spec ++ₒ (M →ₒ S)) PK (M × S)
+
+def liftRight {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+    {σ : Type} (so : spec →[σ]ₛₒ spec') :
+    spec' ++ₒ spec →[σ]ₛₒ spec' :=
+  (idOracle ++ₛₒ so).maskState (Equiv.punitProd σ)
+
+def liftLeft {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+    {σ : Type} (so : spec →[σ]ₛₒ spec') :
+    spec ++ₒ spec' →[σ]ₛₒ spec' :=
+  (so ++ₛₒ idOracle).maskState (Equiv.prodPUnit σ)
+
+def unforgeableExp {sigAlg : SignatureAlg spec σ M PK SK S}
+    (adv : unforgeableAdv sigAlg) : SecExp spec σ where
+  main := do
+    let (pk, sk) ← sigAlg.keygen
+    let adv_so := liftRight (sigAlg.signingOracle pk sk)
+    let ((m, σ), log) ← simulate adv_so ∅ (adv.run pk)
+    return sigAlg.verify pk m σ && !(log.wasQueried () m)
+  __ := sigAlg
 
 -- def unforgeableExp {sigAlg : SignatureAlg spec M PK SK S}
 --     (adv : unforgeableAdv sigAlg) :
