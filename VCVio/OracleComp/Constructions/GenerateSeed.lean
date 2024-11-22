@@ -20,17 +20,18 @@ open Mathlib OracleSpec ENNReal BigOperators
 
 namespace OracleComp
 
-variable {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)]
+variable {ι : Type} [DecidableEq ι]
 
-def generateSeedAux [DecidableEq ι] (qc : ι → ℕ) : List ι → QuerySeed spec →
-    ProbComp (QuerySeed spec)
+def generateSeedAux (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+    (qc : ι → ℕ) : List ι → QuerySeed spec → ProbComp (QuerySeed spec)
   | [], seed => return seed
   | j :: js, seed => do
       let xs ← Vector.toList <$> replicate ($ᵗ (spec.range j)) (qc j)
-      generateSeedAux qc js (Function.update seed j (seed j ++ xs))
+      generateSeedAux spec qc js (Function.update seed j (seed j ++ xs))
 
-def generateSeed [DecidableEq ι] (qc : ι → ℕ) (activeOracles : List ι) :
+def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+     (qc : ι → ℕ) (activeOracles : List ι) :
     ProbComp (QuerySeed spec) :=
-  generateSeedAux qc activeOracles ∅
+  generateSeedAux spec qc activeOracles ∅
 
 end OracleComp

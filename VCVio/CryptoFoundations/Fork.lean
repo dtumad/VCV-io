@@ -4,8 +4,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
--- import VCVio.OracleComp.Constructions.GenerateSeed
--- import VCVio.OracleComp.OracleSpec.SubSpec
+import VCVio.OracleComp.Constructions.GenerateSeed
+import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle
+import VCVio.OracleComp.Coercions.Append
 
 /-!
 # Forking Lemma
@@ -39,28 +40,49 @@ namespace OracleComp
 -- variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ j, SelectableType (spec.range j)]
 --   [unifSpec ⊂ₒ spec] {α β : Type} {i : ι}
 
--- -- def fork (adv : ForkAdv spec α β i) :
--- --     SecAdv spec α (Option (β × β)) where
--- --   run := λ x ↦ do
--- --     -- pre-select where to fork execution
--- --     let s : Fin _ ← $[0..adv.queryBound i]
--- --     let qc := Function.update adv.queryBound i s
--- --     -- Generate shared seed for both runs
--- --     let sharedSeed : QuerySeed spec ← ↑(generateSeed qc adv.activeOracles)
--- --     -- Add the forked queries to the two seeds
--- --     let seed₁ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
--- --     let seed₂ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
--- --     -- Run the adversary on both seeds
--- --     let y₁ ← simulate' seededOracle seed₁ (adv.run x)
--- --     let y₂ ← simulate' seededOracle seed₂ (adv.run x)
--- --     -- Only return a value on success
--- --     if adv.chooseFork x y₁ = some s ∧
--- --         adv.chooseFork x y₂ = some s ∧
--- --         (seed₁ i).getI s ≠ (seed₂ i).getI s
--- --       then return some (y₁, y₂)
--- --       else return none
--- --   queryBound := 2 • adv.queryBound
--- --   activeOracles := adv.activeOracles
+variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
+
+instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
+    Coe (ProbComp α) (OracleComp spec α) where
+  coe := λ oa ↦ SubSpec.liftComp oa
+
+variable [∀ i, SelectableType (spec.range i)]
+
+def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
+    (activeOracles : List ι) (i : ι)
+    (cf : α → Option (Fin (qb i + 1))) :
+    OracleComp spec (Option (α × α)) := do
+  let s : Fin (qb i + 1) ← $[0..qb i]
+  let sharedSeed : QuerySeed spec ← generateSeed spec qb activeOracles
+  let seed₁ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
+  let seed₂ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
+  let y₁ ← simulate' seededOracle seed₁ oa
+  let y₂ ← simulate' seededOracle seed₂ oa
+  return if cf y₁ = some s ∧ cf y₂ = some s ∧ (seed₁ i).getI s ≠ (seed₂ i).getI s
+    then some (y₁, y₂) else none
+
+-- def fork (adv : ForkAdv spec α β i) :
+--     SecAdv spec α (Option (β × β)) where
+--   run := λ x ↦ do
+--     -- pre-select where to fork execution
+--     let s : Fin _ ← $[0..adv.queryBound i]
+--     let qc := Function.update adv.queryBound i s
+--     -- Generate shared seed for both runs
+--     let sharedSeed : QuerySeed spec ← ↑(generateSeed qc adv.activeOracles)
+--     -- Add the forked queries to the two seeds
+--     let seed₁ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
+--     let seed₂ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
+--     -- Run the adversary on both seeds
+--     let y₁ ← simulate' seededOracle seed₁ (adv.run x)
+--     let y₂ ← simulate' seededOracle seed₂ (adv.run x)
+--     -- Only return a value on success
+--     if adv.chooseFork x y₁ = some s ∧
+--         adv.chooseFork x y₂ = some s ∧
+--         (seed₁ i).getI s ≠ (seed₂ i).getI s
+--       then return some (y₁, y₂)
+--       else return none
+--   queryBound := 2 • adv.queryBound
+--   activeOracles := adv.activeOracles
 
 -- theorem some_mem_support_fork_iff (adv : ForkAdv spec α β i) (x : α) (y₁ y₂ : β)
 --     (h : some (y₁, y₂) ∈ ((fork adv).run x).support) :

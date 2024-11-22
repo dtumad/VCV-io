@@ -36,7 +36,7 @@ def addValues (seed : QuerySeed spec) {i : ι} (us : List (spec.range i)) : Quer
   Function.update seed i (seed i ++ us)
 
 /-- Add a single value into the seed, by adding a singleton list -/
-def addValue (seed : QuerySeed spec) {i : ι} (u : spec.range i) : QuerySeed spec :=
+def addValue (seed : QuerySeed spec) (i : ι) (u : spec.range i) : QuerySeed spec :=
   seed.addValues [u]
 
 /-- Take only the first `n` values of the seed at index `i`. -/
