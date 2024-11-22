@@ -462,7 +462,6 @@ This lemma notably doesn't require decidable equality on the final type, unlike 
 lemmas about probability when mapping a computation. -/
 lemma probOutput_map_eq_tsum_subtype (y : β) :
     [= y | f <$> oa] = ∑' x : {x ∈ oa.support | y = f x}, [= x | oa] := by
-  have : DecidableEq β := Classical.decEq β -- TODO: shouldn't need this hack
   simp only [map_eq_bind_pure_comp, tsum_subtype _ (λ x ↦ [= x | oa]), probOutput_bind_eq_tsum,
     Function.comp_apply, probOutput_pure, mul_ite, mul_one, mul_zero,
     Set.indicator, Set.mem_setOf_eq]

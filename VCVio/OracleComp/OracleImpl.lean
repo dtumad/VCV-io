@@ -47,12 +47,12 @@ abbrev exec (impl : OracleImpl spec σ)
   simulate impl.baseSimOracle impl.init_state oa
 
 /-- Impliment an empty set of oracles by eliminating on the empty index to any queries. -/
-def emptyImpl : OracleImpl []ₒ Unit where
-  baseSimOracle := λ i ↦ i.elim
+@[simps] def emptyImpl : OracleImpl []ₒ Unit where
+  baseSimOracle := unifOracle
   init_state := ()
 
 /-- Implement `unifSpec` as `unifSpec` by identity. -/
-def defaultImpl : OracleImpl unifSpec Unit where
+@[simps] def defaultImpl : OracleImpl unifSpec Unit where
   baseSimOracle := idOracle
   init_state := ()
 

@@ -94,7 +94,6 @@ lemma simulate'_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s :
     simulate' (so.maskState e) s oa = simulate' so (e.symm s) (oa) := by
   simp only [simulate'_def, simulate_maskState, fst_map_prod_map, CompTriple.comp_eq]
 
-
 end maskState
 
 end SimOracle
@@ -173,7 +172,6 @@ lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
     congr
     refine funext (λ x ↦ ?_)
     simp [hoa, PMF.map]
-
 
 @[simp]
 lemma evalDist_simulate' (oa : OracleComp spec α) (u : Unit) :

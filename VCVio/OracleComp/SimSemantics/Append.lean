@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.Constructions
 
 /-!
 # Append Operation for Simulation Oracles
@@ -22,10 +22,10 @@ open OracleSpec OracleComp Prod Sum
 
 namespace SimOracle
 
+section append
+
 variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
   {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type}
-
-section append
 
 /-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
 with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
@@ -49,8 +49,6 @@ lemma append_apply_inr (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[�
     (i : ι₂) : (so ++ₛₒ so') (inr i) = λ t (s₁, s₂) ↦ do
       let (u, s₂') ← so' i t s₂ return (u, s₁, s₂') := rfl
 
-end append
-
 section subSpec
 
 -- @[simp]
@@ -73,5 +71,20 @@ section subSpec
 -- port: remaining lemmas here
 
 end subSpec
+
+end append
+
+section lift
+
+def liftRight {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+    {σ : Type} (so : spec →[σ]ₛₒ spec') : spec' ++ₒ spec →[σ]ₛₒ spec' :=
+  (idOracle ++ₛₒ so).maskState (Equiv.punitProd σ)
+
+def liftLeft {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+    {σ : Type} (so : spec →[σ]ₛₒ spec') :
+    spec ++ₒ spec' →[σ]ₛₒ spec' :=
+  (so ++ₛₒ idOracle).maskState (Equiv.prodPUnit σ)
+
+end lift
 
 end SimOracle
