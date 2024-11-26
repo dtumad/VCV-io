@@ -47,8 +47,6 @@ In the actual implementation all of these are indexed by some security parameter
 --     return r x w
 --   __ := gr
 
-example : ℕ := sorry
-
 -- /-- A hard relation `r : X n → W n → Prop` is one where it is easy to generate a pair `(x, w)`
 -- with `r x w` holding, but given `x` it is hard to find `w` where `r` holds. -/
 -- structure HardRelation {ι : Type} [DecidableEq ι] (spec : ℕ → OracleSpec ι)

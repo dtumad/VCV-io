@@ -30,12 +30,13 @@ open OracleComp OracleSpec
 variable {ι : Type} {spec : OracleSpec ι} {σ X W : Type}
     {p : X → W → Bool} {PC SC Ω P : Type}
 
-def FiatShamirTransform (sigmaAlg : SigmaAlg spec σ X W p PC SC Ω P)
-    (M : Type) :
-    SignatureAlg spec σ M X W (PC × P) := sorry
 
 -- /-- Given a Σ-protocol we get a signature algorithm by using a random oracle to generate
 -- challenge values for the Σ-protocol, including the message in the hash input. -/
+-- def FiatShamirTransform (sigmaAlg : SigmaAlg spec σ X W p PC SC Ω P)
+--     (M : Type) :
+--     SignatureAlg spec σ M X W (PC × P) := sorry
+
 -- def FiatShamir (sigmaAlg : SigmaAlg (λ n ↦ spec n) X W p PC SC Ω P)
 --     (hr : GenerableRelation spec X W p) :
 --     SignatureAlg (λ n ↦ spec n ++ₒ (M n × PC n →ₒ Ω n))
