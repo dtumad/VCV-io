@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Constructions
-import VCVio.OracleComp.SimSemantics.Append
 
 /-!
 # Implementations of Oracles
