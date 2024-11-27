@@ -1,7 +1,7 @@
 # Formally Verified Cryptography Proofs Using Lean 4
 
 This is an ongoing port of the work found [here](https://github.com/dtumad/lean-crypto-formalization), from Lean 3 to Lean 4.
-All of the basic theory is present here, but some proofs and APIs are still actively being moved. 
+All of the basic theory is present here, but some specific proofs and APIs are still actively being moved. 
 
 The library aims to provide a foundational framework in Lean for reasoning about cryptographic protocols in the computational model. The core part of the framework provides:
 
@@ -11,7 +11,7 @@ The library aims to provide a foundational framework in Lean for reasoning about
 
 It also provides definitions for cryptographic primitives such as symmetric/asymmetric encryption, (ring) signatures, $\Sigma$-protocols, hashing algorithms, etc. 
 
-The project can be installed and built by running:
+Assuming Lean 4 and lake are already installed, the project can be built by just running:
 
 ```
 lake exe cache get && lake build

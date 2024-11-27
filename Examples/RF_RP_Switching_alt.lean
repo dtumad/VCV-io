@@ -16,26 +16,26 @@ open OracleSpec OracleComp ENNReal
 --     [∀ n, Inhabited (α n)] [∀ n, DecidableEq (α n)] :=
 --   SecAdv (λ n ↦ (α n →ₒ α n)) (λ _ ↦ Unit) (λ _ ↦ Bool)
 
-/-- Security adversary for RF-RP distinguisher experiments.
-Note: We don't give the adversary a `unifSpec` oracle, it only has distinguisher pieces. -/
-def RF_RP_Adv (α : ℕ → Type) [∀ n, Fintype (α n)]
-    [∀ n, Inhabited (α n)] [∀ n, DecidableEq (α n)] :=
-  SecAdv (λ n ↦ (α n →ₒ α n)) (λ _ ↦ Unit) (λ _ ↦ Bool)
+-- /-- Security adversary for RF-RP distinguisher experiments.
+-- Note: We don't give the adversary a `unifSpec` oracle, it only has distinguisher pieces. -/
+-- def RF_RP_Adv (α : ℕ → Type) [∀ n, Fintype (α n)]
+--     [∀ n, Inhabited (α n)] [∀ n, DecidableEq (α n)] :=
+--   SecAdv (λ n ↦ (α n →ₒ α n)) (λ _ ↦ Unit) (λ _ ↦ Bool)
 
-def distinguisher {ι : Type} [DecidableEq ι] (spec : ℕ → OracleSpec ι) :=
-  SecAdv spec (λ _ ↦ Unit) (λ _ ↦ Bool)
+-- def distinguisher {ι : Type} [DecidableEq ι] (spec : ℕ → OracleSpec ι) :=
+--   SecAdv spec (λ _ ↦ Unit) (λ _ ↦ Bool)
 
-variable {α : ℕ → Type} [∀ n, Fintype (α n)]
-    [∀ n, Inhabited (α n)] [∀ n, DecidableEq (α n)]
-    [∀ n, SelectableType (α n)]
+-- variable {α : ℕ → Type} [∀ n, Fintype (α n)]
+--     [∀ n, Inhabited (α n)] [∀ n, DecidableEq (α n)]
+--     [∀ n, SelectableType (α n)]
 
-/-- Run a `RF_RP_Adv` using a random function to answer queries,
-implemented as a simulation with a random oracle. -/
-def RF_Exp (adv : RF_RP_Adv α) : SecExp (λ n ↦ (α n →ₒ α n)) where
-  main n := (· = true) <$> adv.run n ()
-  baseState n := QueryCache (α n →ₒ α n)
-  init_state _ := ∅
-  baseSimOracle _ := randOracle
+-- /-- Run a `RF_RP_Adv` using a random function to answer queries,
+-- implemented as a simulation with a random oracle. -/
+-- def RF_Exp (adv : RF_RP_Adv α) : SecExp (λ n ↦ (α n →ₒ α n)) where
+--   main n := (· = true) <$> adv.run n ()
+--   baseState n := QueryCache (α n →ₒ α n)
+--   init_state _ := ∅
+--   baseSimOracle _ := randOracle
 
 
 

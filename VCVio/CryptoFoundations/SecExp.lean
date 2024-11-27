@@ -3,9 +3,8 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.OracleAlg
+import VCVio.OracleComp.OracleImpl
 import VCVio.OracleComp.Constructions.UniformSelect
-import VCVio.CryptoFoundations.Asymptotics.Negligible
 import VCVio.OracleComp.QueryBound
 
 /-!
@@ -24,19 +23,25 @@ The main definition is `SecExp spec α β`, which extends `OracleAlg` with three
 * `isValid` that decides whether the experiment succeeded
 -/
 
-open OracleComp OracleSpec ENNReal Polynomial
+open OracleComp OracleSpec ENNReal Polynomial Prod
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes,
 where the bound is given by a polynomial that is evaluated for each security parameter.
 This is useful both for asymptotic security as well as in some concrete security bounds.
 
 Port: We should eventually include polynomial time in this -/
+-- structure SecAdv {ι : Type} [DecidableEq ι]
+--     (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
+--   run (n : ℕ) : α n → OracleComp (spec n) (β n)
+--   qb (i : ι) : ℕ[X] -- Bound on the number of queries made by adversary.
+--   qb_isQueryBound (n : ℕ) (x : α n) :
+--     IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
+
 structure SecAdv {ι : Type} [DecidableEq ι]
-    (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
-  run (n : ℕ) : α n → OracleComp (spec n) (β n)
-  qb (i : ι) : ℕ[X] -- Bound on the number of queries made by adversary.
-  qb_isQueryBound (n : ℕ) (x : α n) :
-    IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
+    (spec : OracleSpec ι) (α β : Type) where
+  run : α → OracleComp spec β
+  qb : ι → ℕ
+  qb_isQueryBound (x : α) : IsQueryBound (run x) (qb)
 
 namespace SecAdv
 
@@ -44,16 +49,43 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 end SecAdv
 
-structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
-    extends OracleAlg spec where
-  main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
+-- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
+--     extends OracleAlg spec where
+--   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
 
-noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
-    (n : ℕ) : ℝ≥0∞ :=
-  [= true | exp.exec n (exp.main n)]
+-- structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
+--     extends OracleImpl spec σ where
+--   main : OracleComp spec Bool
 
-def SecExp.almostNever {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec) : Prop :=
-  negligible exp.advantage
+/-- Structure to represent a security experiment. `spec` is the set of oracles available
+in the experiment, and the structure extends an oracle implementation for `spec`.
+`σ` is the state type for the implementation, and `ρ` is the result type of the expirement.
+
+`is_valid : σ → ρ → Bool` determines if the experiment was succesfull or not.  -/
+-- structure SecExp {ι : Type} (spec : OracleSpec ι) (σ ρ : Type)
+--     extends OracleImpl spec σ where
+--   main : OracleComp spec ρ
+--   is_valid : ρ × σ → Prop
+
+structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
+    extends OracleImpl spec σ where
+  main : OracleComp spec Bool
+
+noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+    (exp : SecExp spec σ) : ℝ≥0∞ :=
+  [= true | fst <$> exp.exec exp.main]
+
+
+-- noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+--     (exp : SecExp spec σ) (p : σ → Bool) : ℝ≥0∞ :=
+--   [λ (x, s) ↦ x && p s | exp.exec exp.main]
+
+-- noncomputable def SecExp.advantage {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec)
+--     (n : ℕ) : ℝ≥0∞ :=
+--   [= true | exp.exec n (exp.main n)]
+
+-- def SecExp.almostNever {ι : Type} {spec : ℕ → OracleSpec ι} (exp : SecExp spec) : Prop :=
+--   negligible exp.advantage
 
 
 -- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)

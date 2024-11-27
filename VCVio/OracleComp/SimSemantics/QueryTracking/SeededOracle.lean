@@ -18,7 +18,7 @@ This simplifies a number of lemmas by making the computation revert to its origi
 
 open OracleComp OracleSpec BigOperators
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
+variable {ι : Type} {spec : OracleSpec ι}
 
 namespace OracleSpec
 
@@ -29,19 +29,110 @@ def QuerySeed (spec : OracleSpec ι) : Type :=
 
 namespace QuerySeed
 
-instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
+instance : DFunLike (QuerySeed spec) ι (λ i ↦ List (spec.range i)) where
+  coe := λ seed ↦ seed
+  coe_injective' := Function.injective_id
+
+@[ext]
+protected lemma ext (seed₁ seed₂ : QuerySeed spec) (h : ∀ i, seed₁ i = seed₂ i) : seed₁ = seed₂ :=
+    DFunLike.ext seed₁ seed₂ h
+
+-- @[simp] lemma DfunLike_coe_apply
+
+@[simp] instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
+
+section addValues
 
 /-- Add a list of values to the query seed.-/
-def addValues (seed : QuerySeed spec) {i : ι} (us : List (spec.range i)) : QuerySeed spec :=
+def addValues [DecidableEq ι] {i : ι} (seed : QuerySeed spec)
+    (us : List (spec.range i)) : QuerySeed spec :=
   Function.update seed i (seed i ++ us)
 
+variable [DecidableEq ι] {i : ι} (seed : QuerySeed spec) (us : List (spec.range i))
+
+@[simp]
+lemma addValues_apply (j : ι) : seed.addValues us j =
+    Function.update seed i (seed i ++ us) j := rfl
+
+@[simp]
+lemma addValues_nil {i : ι} (seed : QuerySeed spec) : seed.addValues (i := i) [] = seed := by
+  simp only [addValues, List.append_nil, Function.update_eq_self]
+
 /-- Add a single value into the seed, by adding a singleton list -/
-def addValue (seed : QuerySeed spec) {i : ι} (u : spec.range i) : QuerySeed spec :=
+abbrev addValue (seed : QuerySeed spec) (i : ι) (u : spec.range i) : QuerySeed spec :=
   seed.addValues [u]
 
+end addValues
+
+section takeAtIndex
+
 /-- Take only the first `n` values of the seed at index `i`. -/
-def takeAtIndex (seed : QuerySeed spec) (i : ι) (n : ℕ) : QuerySeed spec :=
+def takeAtIndex [DecidableEq ι] (seed : QuerySeed spec) (i : ι) (n : ℕ) : QuerySeed spec :=
   Function.update seed i ((seed i).take n)
+
+variable [DecidableEq ι] (seed : QuerySeed spec) (i : ι) (n : ℕ)
+
+@[simp]
+lemma takeAtIndex_apply (j : ι) : seed.takeAtIndex i n j =
+    (Function.update seed i ((seed i).take n) j) := rfl
+
+@[simp]
+lemma takeAtIndex_addValues (seed : QuerySeed spec) {i : ι} (n : ℕ) (xs : List (spec.range i)) :
+    (seed.addValues xs).takeAtIndex i n = if n ≤ (seed i).length
+      then seed.takeAtIndex i n else seed.addValues (xs.take (n - (seed i).length)) := by
+  refine funext (λ j ↦ ?_)
+  by_cases hj : j = i
+  · induction hj
+    split_ifs with hn
+    · simp [hn]
+    · suffices List.take n (seed j ++ xs) = seed j ++ List.take (n - (seed j).length) xs
+      by simpa using this
+      rw [List.take_append_eq_append_take]
+      simpa using le_of_not_le hn
+  · split_ifs with _ <;> simp [hj]
+
+-- @[simp]
+-- lemma addValues_takeAtIndex (seed : QuerySeed spec) {i : ι} (xs : List (spec.range i)) (n : ℕ) :
+--     (seed.takeAtIndex i n).addValues xs =
+
+@[simp]
+lemma takeAtIndex_length (seed : QuerySeed spec) (i : ι) :
+    seed.takeAtIndex i (seed i).length = seed := funext (λ j ↦ by simp)
+
+lemma eq_takeAtIndex_length_iff (seed seed' : QuerySeed spec) (i : ι) :
+    seed = seed'.takeAtIndex i (seed i).length ↔
+      seed' = seed.addValues ((seed' i).drop (seed i).length) := by
+  refine ⟨λ h ↦ QuerySeed.ext _ _ (λ j ↦ ?_), λ h ↦ ?_⟩
+  · by_cases hj : j = i
+    · induction hj
+      rw [h]
+      suffices (seed j).length ≤ (seed' j).length
+      by simp [this]
+      simpa using congr_arg List.length (congr_fun h j)
+    · rw [h]
+      simp [hj]
+  · rw [h]
+    simp
+
+end takeAtIndex
+
+lemma eq_addValues_iff [DecidableEq ι] (seed seed' : QuerySeed spec)
+    {i : ι} (xs : List (spec.range i)) :
+    seed = seed'.addValues xs ↔ seed' = seed.takeAtIndex i (seed' i).length ∧
+      xs = (seed i).drop (seed' i).length := by
+  refine ⟨λ h ↦ ?_, λ ⟨h1, h2⟩ ↦ ?_⟩
+  · simp [h]
+  · rw [h1, h2]
+    refine funext (λ j ↦ ?_)
+    by_cases hj : j = i
+    · induction hj; simp
+    · simp [hj]
+
+lemma addValues_eq_iff [DecidableEq ι] (seed seed' : QuerySeed spec)
+    {i : ι} (xs : List (spec.range i)) :
+    seed.addValues xs = seed' ↔ seed = seed'.takeAtIndex i (seed i).length ∧
+      xs = (seed' i).drop (seed i).length :=
+  eq_comm.trans (eq_addValues_iff seed' seed xs)
 
 end QuerySeed
 

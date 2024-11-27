@@ -2,7 +2,7 @@
 #include <sodium.h>
 
 extern "C" uint32_t my_add(uint32_t a, uint32_t b) {
-    return a + b + 100;
+    return a + b;
 }
 
 extern "C" lean_obj_res my_lean_fun() {

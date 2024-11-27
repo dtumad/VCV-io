@@ -13,7 +13,7 @@ import Mathlib.Data.Vector.Zip
 TODO: this should come from Fiat-Shamir instead
 -/
 
-open Mathlib OracleSpec OracleComp OracleAlg Sum
+open Mathlib OracleSpec OracleComp Sum
 
 section commits
 
@@ -32,38 +32,38 @@ def unzipCommits (x₀ pk : P) (zs : Vector G n)
 
 end commits
 
-def SchnorrSigmaAlg (G P : ℕ → Type)
-    [HomogeneousSpace G P] :
-  SigmaAlg (λ _ ↦ emptySpec)
-    -- Relation is the knowledge of vectorization `sk`
-    (p := λ (x₀, pk) sk ↦ pk = sk +ᵥ x₀)
-    -- Public statement is a pair of points
-    (X := λ n ↦ P n × P n)
-    -- Witness is their vectorization
-    (W := λ n ↦ G n)
-    -- Publicly commit to a list of points
-    (PC := λ n ↦ Vector (P n) (n + 1))
-    -- Secretely commit to a list of vectors
-    (SC := λ n ↦ Vector (G n) (n + 1))
-    -- Challenge is a list of random bits
-    (Ω := λ n ↦ Vector Bool (n + 1))
-    -- Responses are a list of points
-    (P := λ n ↦ Vector (G n) (n + 1)) where
-  commit := λ n (_, pk) _ ↦ do
-    let gs ←$ᵗ Vector (G n) (n + 1)
-    let xs := gs.map (· +ᵥ pk)
-    return (xs, gs)
-  respond := λ n _ sk gs bs ↦ do
-    return gs.zipWith (λ g b ↦
-      if b then g else g + sk) bs
-  verify := λ n (x₀, pk) xs bs zs ↦
-    xs = zs.zipWith (λ z b ↦
-      if b then z +ᵥ pk else z +ᵥ x₀) bs
-  sim := λ n _ ↦ do
-    $ᵗ Vector (P n) (n + 1)
-  extract := λ n _ zs₁ _ zs₂ ↦ do
-    return zs₁[0] - zs₂[0]
-  __ := baseOracleAlg
+-- def SchnorrSigmaAlg (G P : ℕ → Type)
+--     [HomogeneousSpace G P] :
+--   SigmaAlg (λ _ ↦ emptySpec)
+--     -- Relation is the knowledge of vectorization `sk`
+--     (p := λ (x₀, pk) sk ↦ pk = sk +ᵥ x₀)
+--     -- Public statement is a pair of points
+--     (X := λ n ↦ P n × P n)
+--     -- Witness is their vectorization
+--     (W := λ n ↦ G n)
+--     -- Publicly commit to a list of points
+--     (PC := λ n ↦ Vector (P n) (n + 1))
+--     -- Secretely commit to a list of vectors
+--     (SC := λ n ↦ Vector (G n) (n + 1))
+--     -- Challenge is a list of random bits
+--     (Ω := λ n ↦ Vector Bool (n + 1))
+--     -- Responses are a list of points
+--     (P := λ n ↦ Vector (G n) (n + 1)) where
+--   commit := λ n (_, pk) _ ↦ do
+--     let gs ←$ᵗ Vector (G n) (n + 1)
+--     let xs := gs.map (· +ᵥ pk)
+--     return (xs, gs)
+--   respond := λ n _ sk gs bs ↦ do
+--     return gs.zipWith (λ g b ↦
+--       if b then g else g + sk) bs
+--   verify := λ n (x₀, pk) xs bs zs ↦
+--     xs = zs.zipWith (λ z b ↦
+--       if b then z +ᵥ pk else z +ᵥ x₀) bs
+--   sim := λ n _ ↦ do
+--     $ᵗ Vector (P n) (n + 1)
+--   extract := λ n _ zs₁ _ zs₂ ↦ do
+--     return zs₁[0] - zs₂[0]
+--   __ := baseOracleAlg
 
 
 
