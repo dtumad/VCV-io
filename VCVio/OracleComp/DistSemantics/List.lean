@@ -97,4 +97,18 @@ lemma probOutput_seq_map_vector_cons_eq_mul' (xs : Vector α (n + 1)) :
 
 end Vector
 
+section Vector_toList
+
+variable {n : ℕ} (oa : OracleComp spec (Vector α n))
+
+@[simp]
+lemma probOutput_vector_toList (xs : List α) : [= xs | Vector.toList <$> oa] =
+    if h : xs.length = n then [= ⟨xs, h⟩ | oa] else 0 := by
+  split_ifs with h
+  · refine probOutput_map_eq_single _ (λ _ _ h' ↦ Vector.eq ⟨xs, h⟩ _ h') rfl
+  · simp only [probOutput_eq_zero_iff, support_map, Set.mem_image, not_exists, not_and]
+    exact λ ys _ h' ↦ h (h' ▸ ys.toList_length)
+
+end Vector_toList
+
 end OracleComp
