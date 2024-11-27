@@ -76,23 +76,23 @@ lemma support_generateSeed : (generateSeed spec qc js).support =
           simp [h, mul_add_one]
   }
 
-
-@[simp]
 lemma probOutput_generateSeed (seed : QuerySeed spec)
-    (h : ∀ i, (seed i).length = qc i * js.count i) :
-    [= seed | generateSeed spec qc js] = 1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
+    (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
+    1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
   revert seed
   induction js with
   | nil => {
     intro seed h
-    have : seed = ∅ := funext <| by simpa using h
-    simp [this]
+    simp at h
+    simp [h]
   }
   | cons j js hjs => {
     intro seed h
     let rec_seed : QuerySeed spec := seed.takeAtIndex j (qc j * js.count j)
     specialize hjs rec_seed _
-    · intro k
+    · simp [rec_seed]
+      rw [support_generateSeed, Set.mem_setOf] at h
+      intro k
       by_cases hk : k = j
       · induction hk
         let hk := h k
@@ -110,6 +110,7 @@ lemma probOutput_generateSeed (seed : QuerySeed spec)
         rw [QuerySeed.eq_addValues_iff]
         simp [hs']
       · rw [hjs]
+        rw [support_generateSeed, Set.mem_setOf] at h
         specialize h j
         simp only [List.count_cons_self] at h
         simp only [Nat.cast_list_prod, List.map_map, one_div, probOutput_vector_toList,
