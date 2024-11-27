@@ -16,22 +16,109 @@ which
 
 -/
 
-open Mathlib OracleSpec ENNReal BigOperators
+open Mathlib (Vector)
+open OracleSpec BigOperators
 
 namespace OracleComp
 
 variable {ι : Type} [DecidableEq ι]
 
-def generateSeedAux (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
-    (qc : ι → ℕ) : List ι → QuerySeed spec → ProbComp (QuerySeed spec)
-  | [], seed => return seed
-  | j :: js, seed => do
-      let xs ← Vector.toList <$> replicate ($ᵗ (spec.range j)) (qc j)
-      generateSeedAux spec qc js (Function.update seed j (seed j ++ xs))
-
 def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
-     (qc : ι → ℕ) (activeOracles : List ι) :
-    ProbComp (QuerySeed spec) :=
-  generateSeedAux spec qc activeOracles ∅
+    (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) :=
+  match activeOracles with
+  | [] => return ∅
+  | j :: js => QuerySeed.addValues <$> generateSeed spec qc js <*>
+      (Vector.toList <$> replicate ($ᵗ (spec.range j)) (qc j))
+
+variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+  (qc : ι → ℕ) (j : ι) (js : List ι)
+
+@[simp]
+lemma generateSeed_nil : generateSeed spec qc [] = return ∅ := rfl
+
+@[simp]
+lemma generateSeed_cons : generateSeed spec qc (j :: js) = QuerySeed.addValues <$>
+    generateSeed spec qc js <*> (Vector.toList <$> replicate ($ᵗ (spec.range j)) (qc j)) := rfl
+
+@[simp]
+lemma generateSeed_zero : generateSeed spec 0 js = return ∅ := by
+  induction js with
+  | nil => rfl
+  | cons j js h => simp [h]
+
+@[simp]
+lemma support_generateSeed : (generateSeed spec qc js).support =
+    {seed | ∀ i, (seed i).length = qc i * js.count i} := by
+  -- refine Set.ext (λ seed ↦ ?_)
+  induction js with
+  | nil => {
+    simp [Set.ext_iff, DFunLike.ext_iff]
+    intro x
+    rfl
+  }
+  | cons j js h => {
+    simp [h, Set.ext_iff]
+    intro seed
+    refine ⟨λ h i ↦ ?_, λ h ↦ ?_⟩
+    · obtain ⟨seed', ⟨h1, ⟨xs, hxs⟩⟩⟩ := h
+      by_cases hj : i = j
+      · induction hj
+        simp [← hxs, h1, mul_add_one]
+      · simp [← hxs, h1, hj]
+    · refine ⟨seed.takeAtIndex j (qc j * js.count j), λ i ↦ ?_, ?_⟩
+      · by_cases hi : i = j
+        · induction hi
+          simp [h, mul_add_one]
+        · simp [hi, h]
+      · refine ⟨⟨(seed j).drop (qc j * js.count j), ?_⟩, ?_⟩
+        · simp [h, mul_add_one]
+        · simp [h]
+          sorry
+
+  }
+
+
+@[simp]
+lemma probOutput_generateSeed (seed : QuerySeed spec)
+    (h : ∀ i, (seed i).length = qc i * js.count i) :
+    [= seed | generateSeed spec qc js] = 1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
+  revert seed
+  induction js with
+  | nil => {
+    intro seed h
+    have : seed = ∅ := funext <| by simpa using h
+    simp [this]
+  }
+  | cons j js hjs => {
+    intro seed h
+    let rec_seed : QuerySeed spec := seed.takeAtIndex j (qc j * js.count j)
+    specialize hjs rec_seed _
+    · intro k
+      by_cases hk : k = j
+      · induction hk
+        let hk := h k
+        rw [List.count_cons_self, mul_add_one] at hk
+        simp [rec_seed, QuerySeed.takeAtIndex, hk]
+      · simp [rec_seed, QuerySeed.takeAtIndex, hk, h k]
+    · rw [generateSeed_cons]
+      have : seed = QuerySeed.addValues rec_seed ((seed j).drop <| qc j * js.count j) :=
+        funext (λ k ↦ by simp [rec_seed, QuerySeed.takeAtIndex, QuerySeed.addValues])
+      refine (probOutput_seq_map_eq_mul _ _ QuerySeed.addValues rec_seed
+        (((seed j).drop <| qc j * js.count j)) _ ?_).trans ?_
+      · simp
+        intro seed' hs' xs
+        simp [rec_seed]
+        rw [QuerySeed.eq_addValues_iff]
+        simp [hs']
+      · rw [hjs]
+        specialize h j
+        simp only [List.count_cons_self] at h
+        simp only [Nat.cast_list_prod, List.map_map, one_div, probOutput_vector_toList,
+          List.length_drop, h, mul_add_one, add_tsub_cancel_left, ↓reduceDIte, probOutput_replicate,
+          probOutput_uniformOfFintype, Vector.toList_mk, List.map_drop, List.map_const',
+          List.drop_replicate, List.prod_replicate, List.map_cons, List.prod_cons, Nat.cast_mul,
+          Nat.cast_pow]
+        rw [mul_comm, ← ENNReal.inv_pow, ENNReal.mul_inv] <;> simp
+  }
 
 end OracleComp
