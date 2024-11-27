@@ -49,7 +49,6 @@ lemma generateSeed_zero : generateSeed spec 0 js = return ∅ := by
 @[simp]
 lemma support_generateSeed : (generateSeed spec qc js).support =
     {seed | ∀ i, (seed i).length = qc i * js.count i} := by
-  -- refine Set.ext (λ seed ↦ ?_)
   induction js with
   | nil => {
     simp [Set.ext_iff, DFunLike.ext_iff]
@@ -73,8 +72,8 @@ lemma support_generateSeed : (generateSeed spec qc js).support =
       · refine ⟨⟨(seed j).drop (qc j * js.count j), ?_⟩, ?_⟩
         · simp [h, mul_add_one]
         · simp [h]
-          sorry
-
+          rw [QuerySeed.addValues_eq_iff]
+          simp [h, mul_add_one]
   }
 
 
