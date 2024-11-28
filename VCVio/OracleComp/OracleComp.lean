@@ -95,14 +95,11 @@ instance (spec : OracleSpec ι) : LawfulMonad (OracleComp spec) :=
       induction' oa with α a i t α oa hoa; rfl
       exact congr_arg (queryBind' i t _) <| funext (λ u ↦ hoa u ob); rfl)
 
+@[simp] lemma failure_bind (ob : α → OracleComp spec β) : failure >>= ob = failure := rfl
+
 protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' :=
   h ▸ (congr_arg (λ ob ↦ oa >>= ob) (funext h'))
-
--- NOTE: This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
-lemma ite_bind (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
-    (ob : α → OracleComp spec β) : ite p oa oa' >>= ob = ite p (oa >>= ob) (oa' >>= ob) :=
-  apply_ite (· >>= ob) p oa oa'
 
 end Monad
 
@@ -194,7 +191,7 @@ variable (i : ι) (t : spec.domain i) (u : spec.range i) (x : α)
 @[simp] lemma failure_ne_query_bind : failure ≠ query i t >>= ou := OracleComp.noConfusion
 @[simp] lemma query_bind_ne_failure : query i t >>= ou ≠ failure := OracleComp.noConfusion
 
-lemma exists_eq_of_isPure {oa : OracleComp spec α} (h : isPure oa) : ∃ x, oa = pure x := by
+lemma exists_eq_of_isPure {oa : OracleComp spec α} (h : isPure oa) :  ∃ x, oa = pure x := by
   induction oa using OracleComp.inductionOn with
   | pure => apply exists_apply_eq_apply' | query_bind => simp at h | failure => simp at h
 lemma eq_failure_of_isFailure {oa : OracleComp spec α} (h : isFailure oa) : oa = failure := by
@@ -202,27 +199,6 @@ lemma eq_failure_of_isFailure {oa : OracleComp spec α} (h : isFailure oa) : oa 
   | pure => simp at h | query_bind => simp at h | failure => rfl
 
 end noConfusion
-
-/-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
-by assuming each query returns the `default` value given by the `Inhabited` instance.
-Returns `none` if the default path would lead to failure. -/
-def defaultResult {ι : Type} {spec : OracleSpec ι} {α : Type}
-    (oa : OracleComp spec α) : Option α :=
-  oa.induction some (λ _ _ _ dr ↦ dr default) none
-
-/-- Computations without access to any oracles are equivalent to values of the return type.
-`toFun` is slightly different than `defaultResult` in that it doesn't recurse at all. -/
-def oracleComp_emptySpec_equiv (α : Type) : OracleComp []ₒ α ≃ Option α where
-  toFun oa := match oa with
-    | pure' _ x => some x
-    | queryBind' i _ _ _ => Empty.elim i
-    | failure' _ => none
-  invFun x := match x with | some x => pure x | none => failure
-  left_inv oa := by induction oa using OracleComp.induction with
-    | pure x => rfl
-    | query_bind i t oa hoa => exact Empty.elim i
-    | failure => rfl
-  right_inv x := match x with | some x => rfl | none => rfl
 
 section inj
 
@@ -247,32 +223,6 @@ lemma queryBind_inj (i : ι) (t t' : spec.domain i) (oa oa' : spec.range i → O
     query i t >>= oa = query i t' >>= oa' ↔ t = t' ∧ oa = oa' :=
   by simp only [queryBind_inj', exists_const]
 
-end inj
-
-section eq
-
-variable (i : ι) (t : spec.domain i) (u : spec.range i) (x : α)
-  (ou : spec.range i → OracleComp spec α)
-  (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β)
-
-@[simp]
-lemma bind_eq_pure_iff : oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x = pure y := by
-  refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
-  · match oa with
-    | pure' _ x => exact ⟨x, rfl, h⟩
-    | queryBind' i t _ oa => simp at h
-  · obtain ⟨x, hxa, hxb⟩ := h
-    rw [hxa, pure_bind, hxb]
-
-@[simp]
-lemma pure_eq_bind_iff : pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
-  eq_comm.trans (bind_eq_pure_iff oa ob y)
-
-alias ⟨_, bind_eq_pure⟩ := bind_eq_pure_iff
-alias ⟨_, pure_eq_bind⟩ := pure_eq_bind_iff
-
-end eq
-
 /-- If the final output type of a computation has decidable equality,
 then computations themselves have decidable equality.
 Note: This depends on the decidable instances in the oracle spec itself. -/
@@ -294,5 +244,52 @@ protected instance instDecidableEq [DecidableEq ι] [h : DecidableEq α] :
       suffices ∀ u, Decidable (oa u = oa' u) from Fintype.decidableForallFintype
       exact λ u ↦ OracleComp.instDecidableEq (oa u) (oa' u)
     · simpa [hi] using instDecidableFalse
+
+end inj
+
+@[simp]
+lemma bind_eq_pure_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
+    oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x = pure y := by
+  refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
+  · match oa with
+    | pure' _ x => exact ⟨x, rfl, h⟩
+    | queryBind' i t _ oa => simp at h
+    | failure' _ => simp at h
+  · obtain ⟨x, hxa, hxb⟩ := h
+    rw [hxa, pure_bind, hxb]
+
+@[simp]
+lemma pure_eq_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
+    pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
+  eq_comm.trans (bind_eq_pure_iff oa ob y)
+
+alias ⟨_, bind_eq_pure⟩ := bind_eq_pure_iff
+alias ⟨_, pure_eq_bind⟩ := pure_eq_bind_iff
+
+/-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
+by assuming each query returns the `default` value given by the `Inhabited` instance.
+Returns `none` if the default path would lead to failure. -/
+def defaultResult {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) : Option α :=
+  oa.induction some (λ _ _ _ dr ↦ dr default) none
+
+/-- Computations without access to any oracles are equivalent to values of the return type.
+`toFun` is slightly different than `defaultResult` in that it doesn't recurse at all. -/
+def oracleComp_emptySpec_equiv (α : Type) : OracleComp []ₒ α ≃ Option α where
+  toFun oa := match oa with
+    | pure' _ x => some x
+    | queryBind' i _ _ _ => Empty.elim i
+    | failure' _ => none
+  invFun x := match x with | some x => pure x | none => failure
+  left_inv oa := by induction oa using OracleComp.induction with
+    | pure x => rfl
+    | query_bind i t oa hoa => exact Empty.elim i
+    | failure => rfl
+  right_inv x := match x with | some x => rfl | none => rfl
+
+-- NOTE: This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
+lemma ite_bind (p : Prop) [Decidable p] (oa oa' : OracleComp spec α)
+    (ob : α → OracleComp spec β) : ite p oa oa' >>= ob = ite p (oa >>= ob) (oa' >>= ob) :=
+  apply_ite (· >>= ob) p oa oa'
 
 end OracleComp

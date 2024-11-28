@@ -117,3 +117,20 @@ lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
 
 instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :=
   ⟨id, Function.bijective_id⟩
+
+#check summable_of_sum_le
+
+open Classical
+
+lemma tsum_option {α β : Type} [AddCommMonoid α] [TopologicalSpace α]
+    [ContinuousAdd α] [T2Space α]
+    (f : Option β → α) (hf : Summable (Function.update f none 0)) :
+    ∑' x : Option β, f x = f none + ∑' x : β, f (some x) := by
+  refine (tsum_eq_add_tsum_ite' none hf).trans ?_
+  refine congr_arg (f none + ·) ?_
+  refine tsum_eq_tsum_of_ne_zero_bij (λ x ↦ some x.1) ?_ ?_ ?_
+  · intro x y
+    simp [SetCoe.ext_iff]
+  · intro x
+    cases x <;> simp
+  · simp

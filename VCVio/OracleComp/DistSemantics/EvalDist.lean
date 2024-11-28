@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.DistSemantics.Support
 import Mathlib.Probability.Distributions.Uniform
+import ToMathlib.General
 
 /-!
 # Denotational Semantics for Output Distributions
@@ -30,125 +31,218 @@ always choose them over versions involving `sum` (as they require `DecidableEq` 
 
 namespace OracleComp
 
-open ENNReal BigOperators
+open Option ENNReal BigOperators
 
 variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β : Type}
 
+section evalDist
+
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random. -/
-noncomputable def evalDist {α : Type} : OracleComp spec α → PMF α
-| pure' α a => PMF.pure a
-| queryBind' i _ α oa =>
-    let unif := PMF.uniformOfFintype (spec.range i)
-    unif.bind (λ u ↦ evalDist (oa u))
+noncomputable def evalDist {α : Type} : OracleComp spec α → PMF (Option α)
+  | pure' α x => PMF.pure (some x)
+  | queryBind' i _ α oa =>
+      (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u))
+  | failure' α => PMF.pure none
 
-lemma evalDist_pure' (x : α) : evalDist (pure' α x : OracleComp spec α) = PMF.pure x := rfl
+@[simp]
+lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = PMF.pure (some x) := rfl
 
-lemma evalDist_queryBind' (i : ι) (t : spec.domain i)
-    (oa : spec.range i → OracleComp spec α) : evalDist (queryBind' i t α oa) =
-      (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u)) := rfl
+@[simp]
+lemma evalDist_query (i : ι) (t : spec.domain i) :
+    evalDist (query i t) = (PMF.uniformOfFintype (spec.range i)).map some := rfl
+
+@[simp]
+lemma evalDist_failure : evalDist (failure : OracleComp spec α) = PMF.pure none := rfl
+
+@[simp]
+lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    evalDist (oa >>= ob) = (evalDist oa).bind (Option.rec (PMF.pure none) (evalDist ∘ ob)) := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp only [pure_bind, evalDist_pure, PMF.pure_bind, Function.comp_apply]
+  | query_bind i t oa hoa => simp [← queryBind'_eq_queryBind, evalDist, hoa]
+  | failure => simp only [failure_bind, evalDist_failure, PMF.pure_bind]
+
+lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
+    evalDist (query i t >>= ou) = (PMF.uniformOfFintype (spec.range i)).bind (evalDist ∘ ou) := rfl
+
+end evalDist
 
 /-- `[= x | oa]` is the probability of getting the given output `x` from the computation `oa`,
 assuming all oracles respond uniformly at random. -/
-noncomputable def probOutput (oa : OracleComp spec α) (x : α) : ℝ≥0∞ :=
-evalDist oa x
+noncomputable def probOutput (oa : OracleComp spec α) (x : α) : ℝ≥0∞ := evalDist oa (some x)
+
+notation "[=" x "|" oa "]" => probOutput oa x
+
+/-- `[⊥ | oa]` is the probability of the computation `oa` failing. -/
+noncomputable def probFailure (oa : OracleComp spec α) : ℝ≥0∞ := evalDist oa none
+
+notation "[⊥" "|" oa "]" => probFailure oa
 
 /-- `[p | oa]` is the probability of getting a result that satisfies a predicate `p`
 after running the computation `oa`, assuming all oracles respond uniformly at random.-/
-noncomputable def probEvent (oa : OracleComp spec α) (p : α → Prop) : ℝ≥0∞ :=
-(evalDist oa).toOuterMeasure p
+noncomputable def probEvent (oa : OracleComp spec α) (p : α → Prop) [DecidablePred p] : ℝ≥0∞ :=
+  ∑' x : α, if p x then [= x | oa] else 0
+--(evalDist oa).toOuterMeasure (Option.some '' {x | p x}) NOTE: would avoid decidability this way.
 
-notation "[=" x "|" oa "]" => probOutput oa x
 notation "[" p "|" oa "]" => probEvent oa p
 
-lemma probOutput_def (oa : OracleComp spec α) : probOutput oa = ⇑(evalDist oa) := rfl
-lemma probEvent_def (oa : OracleComp spec α) : probEvent oa = ⇑(evalDist oa).toOuterMeasure := rfl
+lemma probOutput_def (oa : OracleComp spec α) (x : α) :
+    [= x | oa] = evalDist oa (some x) := rfl
 
-noncomputable example : ℝ≥0∞ := [= 5 | do let x ← $[0..4]; return x + 1] -- = 1/4
-noncomputable example : ℝ≥0∞ := [(· + 1 = 5) | do let x ← $[0..4]; return x] -- = 1/4
+lemma probFailure_def (oa : OracleComp spec α) :
+    [⊥ | oa] = evalDist oa none := rfl
+
+lemma probEvent_def (oa : OracleComp spec α) (p : α → Prop) [DecidablePred p] :
+    [p | oa] = ∑' x : α, if p x then [= x | oa] else 0 := rfl
+
+noncomputable example : ℝ≥0∞ := [= 5 | do let x ←$[0..4]; return x + 1]
+noncomputable example : ℝ≥0∞ := [⊥ | do let x ←$[0..4]; if x = 0 then failure else return x]
+noncomputable example : ℝ≥0∞ := [(· + 1 ≤ 3) | do let x ←$[0..4]; return x]
+
+@[simp]
+lemma probFailure_add_tsum_probOutput (oa : OracleComp spec α) :
+    [⊥ | oa] + ∑' x, [= x | oa] = 1 :=
+  (tsum_option _ ENNReal.summable).symm.trans (evalDist oa).tsum_coe
+
+@[simp]
+lemma tsum_probOutput_add_probFailure (oa : OracleComp spec α) :
+    ∑' x, [= x | oa] + [⊥ | oa] = 1 :=
+  by rw [add_comm, probFailure_add_tsum_probOutput]
 
 section bounds
 
-variable {oa : OracleComp spec α} {x : α} {p : α → Prop}
+variable {oa : OracleComp spec α} {x : α} {p : α → Prop} [DecidablePred p]
 
 @[simp] lemma probOutput_le_one : [= x | oa] ≤ 1 := PMF.coe_le_one (evalDist oa) x
-@[simp] lemma probEvent_le_one : [p | oa] ≤ 1 := by
-  rw [probEvent_def, PMF.toOuterMeasure_apply]
-  refine le_of_le_of_eq (tsum_le_tsum ?_ ENNReal.summable ENNReal.summable) (evalDist oa).tsum_coe
-  simp [Set.indicator]; intros; split_ifs <;> simp
+@[simp] lemma probFailure_le_one : [⊥ | oa] ≤ 1 := PMF.coe_le_one (evalDist oa) none
+
+@[simp] lemma tsum_probOutput_le_one : ∑' x : α, [= x | oa] ≤ 1 :=
+  le_of_le_of_eq (le_add_self) (probFailure_add_tsum_probOutput oa)
+@[simp] lemma probEvent_le_one : [p | oa] ≤ 1 :=
+  le_trans (ENNReal.tsum_le_tsum (λ x ↦ by split_ifs <;> simp)) (tsum_probOutput_le_one (oa := oa))
 
 @[simp] lemma probOutput_ne_top : [= x | oa] ≠ ∞ := PMF.apply_ne_top (evalDist oa) x
 @[simp] lemma probOutput_lt_top : [= x | oa] < ∞ := PMF.apply_lt_top (evalDist oa) x
 @[simp] lemma probEvent_ne_top : [p | oa] ≠ ∞ := ne_top_of_le_ne_top one_ne_top probEvent_le_one
 @[simp] lemma probEvent_lt_top : [p | oa] < ∞ := lt_top_iff_ne_top.2 probEvent_ne_top
+@[simp] lemma probFailure_ne_top : [⊥ | oa] ≠ ∞ := PMF.apply_ne_top (evalDist oa) none
+@[simp] lemma probFailure_lt_top : [⊥ | oa] < ∞ := PMF.apply_lt_top (evalDist oa) none
 
 end bounds
 
+lemma tsum_probOutput (oa : OracleComp spec α) :
+    ∑' x, [= x | oa] = 1 - [⊥ | oa] := by
+  refine ENNReal.eq_sub_of_add_eq probFailure_ne_top (tsum_probOutput_add_probFailure oa)
+
 section support
 
+variable (oa : OracleComp spec α) (x : α) (p q : α → Prop) [DecidablePred p] [DecidablePred q]
+
+/-- An output has non-zero probability iff it is in the `support` of the computation. -/
+@[simp]
 lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
-    x ∈ (evalDist oa).support ↔ x ∈ oa.support := by
+    some x ∈ (evalDist oa).support ↔ x ∈ oa.support := by
   induction oa using OracleComp.inductionOn with
-  | h_pure => simp_rw [← OracleComp.pure'_eq_pure, evalDist_pure', PMF.support_pure, support_pure']
-  | h_queryBind i t oa hoa => simp_rw [← queryBind'_eq_queryBind, evalDist_queryBind',
-      PMF.support_bind, support_queryBind', PMF.support_uniformOfFintype, Set.mem_iUnion, hoa,
-      Set.top_eq_univ, Set.mem_univ, exists_true_left]
+  | pure => simp
+  | query_bind i t oa hoa => simp [hoa]
+  | failure => simp
+alias ⟨mem_support_of_mem_support_evalDist, mem_support_evalDist⟩ := mem_support_evalDist_iff
+
+/-- An output has non-zero probability iff it is in the `finSupport` of the computation. -/
+@[simp]
+lemma mem_support_evalDist_iff' [DecidableEq α] (oa : OracleComp spec α) (x : α) :
+    some x ∈ (evalDist oa).support ↔ x ∈ oa.finSupport := by
+  rw [mem_support_evalDist_iff, mem_finSupport_iff_mem_support]
+alias ⟨mem_finSupport_of_mem_support_evalDist, mem_support_evalDist'⟩ := mem_support_evalDist_iff'
+
+@[simp]
+lemma evalDist_apply_eq_zero_iff (x : Option α) :
+    evalDist oa x = 0 ↔ x.rec ([⊥ | oa] = 0) (· ∉ oa.support) :=
+  match x with
+  | none => by simp [probFailure_def]
+  | some x => by simp [← mem_support_evalDist_iff]
+
+@[simp]
+lemma evalDist_apply_eq_zero_iff' [DecidableEq α] (x : Option α) :
+    evalDist oa x = 0 ↔ x.rec ([⊥ | oa] = 0) (· ∉ oa.finSupport) := by
+  simp [← mem_support_evalDist_iff']
 
 /-- The support of `evalDist oa` is exactly `support oa`. -/
-lemma support_evalDist (oa : OracleComp spec α) : (evalDist oa).support = oa.support :=
-  Set.ext (mem_support_evalDist_iff oa)
+lemma support_evalDist : (evalDist oa).support = if [⊥ | oa] = 0 then
+    some '' oa.support else insert none (some '' oa.support) := by
+  rw [probFailure_def]
+  refine Set.ext (λ x ↦ x.rec ?_ ?_)
+  · split_ifs with h <;> simp [h]
+  · split_ifs <;> simp
 
-lemma mem_support_evalDist_iff' [DecidableEq α] (oa : OracleComp spec α) (x : α) :
-    x ∈ (evalDist oa).support ↔ x ∈ oa.finSupport := by
-  rw [mem_support_evalDist_iff, mem_finSupport_iff_mem_support]
-
-lemma support_evalDist' [DecidableEq α] (oa : OracleComp spec α) :
-    (evalDist oa).support = ↑oa.finSupport := by
-  rw [support_evalDist, coe_finSupport]
-
-variable (oa : OracleComp spec α) (x : α) (p q : α → Prop)
+lemma support_evalDist' [DecidableEq α] : (evalDist oa).support = if [⊥ | oa] = 0 then
+    oa.finSupport.image some else insert none (oa.finSupport.image some) := by
+  rw [support_evalDist]
+  split_ifs with h <;> simp only [Finset.coe_insert, Finset.coe_image, coe_finSupport]
 
 @[simp low]
 lemma probOutput_eq_zero_iff : [= x | oa] = 0 ↔ x ∉ oa.support := by
-  rw [probOutput, PMF.apply_eq_zero_iff, support_evalDist]
+  rw [probOutput, PMF.apply_eq_zero_iff, mem_support_evalDist_iff]
+alias ⟨not_mem_support_of_probOutput_eq_zero, probOutput_eq_zero⟩ := probOutput_eq_zero_iff
+
 @[simp]
 lemma probOutput_eq_zero_iff' [DecidableEq α] : [= x | oa] = 0 ↔ x ∉ oa.finSupport := by
   rw [mem_finSupport_iff_mem_support, probOutput_eq_zero_iff]
+alias ⟨not_mem_fin_support_of_probOutput_eq_zero, probOutput_eq_zero'⟩ := probOutput_eq_zero_iff
 
 @[simp low]
 lemma probEvent_eq_zero_iff : [p | oa] = 0 ↔ ∀ x ∈ oa.support, ¬ p x := by
-  simp [probEvent_def, PMF.toOuterMeasure_apply_eq_zero_iff,
-    Set.disjoint_iff, ← Set.subset_empty_iff, Set.subset_def, support_evalDist]; rfl
+  suffices (∀ x, p x → x ∉ oa.support) ↔ ∀ x ∈ oa.support, ¬p x
+  by simpa [probEvent] using this
+  exact forall_congr' λ _ ↦ imp_not_comm
+alias ⟨not_of_mem_support_of_probEvent_eq_zero, probEvent_eq_zero⟩ := probEvent_eq_zero_iff
+
 @[simp]
 lemma probEvent_eq_zero_iff' [DecidableEq α] : [p | oa] = 0 ↔ ∀ x ∈ oa.finSupport, ¬ p x := by
   simp only [probEvent_eq_zero_iff, mem_finSupport_iff_mem_support]
+alias ⟨not_of_mem_finSupport_of_probEvent_eq_zero, probEvent_eq_zero'⟩ := probEvent_eq_zero_iff'
 
 @[simp low]
 lemma probOutput_pos_iff : 0 < [= x | oa] ↔ x ∈ oa.support := by
   rw [pos_iff_ne_zero, ne_eq, probOutput_eq_zero_iff, not_not]
+alias ⟨mem_support_of_probOutput_pos, probOutput_pos⟩ := probOutput_pos_iff
+
 @[simp]
 lemma probOutput_pos_iff' [DecidableEq α] : 0 < [= x | oa] ↔ x ∈ oa.finSupport := by
   rw [probOutput_pos_iff, mem_finSupport_iff_mem_support]
+alias ⟨mem_finSupport_of_probOutput_pos, probOutput_pos'⟩ := probOutput_pos_iff'
+
 @[simp low]
 lemma probEvent_pos_iff : 0 < [p | oa] ↔ ∃ x ∈ oa.support, p x := by
   simp_rw [pos_iff_ne_zero, ne_eq, probEvent_eq_zero_iff, not_forall, not_not, exists_prop]
+alias ⟨exists_mem_support_of_probEvent_pos, probEvent_pos⟩ := probEvent_pos_iff
+
 @[simp]
 lemma probEvent_pos_iff' [DecidableEq α] : 0 < [p | oa] ↔ ∃ x ∈ oa.finSupport, p x := by
   simp_rw [pos_iff_ne_zero, ne_eq, probEvent_eq_zero_iff', not_forall, not_not, exists_prop]
+alias ⟨exists_mem_finSupport_of_probEvent_pos, probEvent_pos'⟩ := probEvent_pos_iff'
 
 @[simp low]
-lemma probOutput_eq_one_iff : [= x | oa] = 1 ↔ oa.support ⊆ {x} := by
-  rw [probOutput_def, PMF.apply_eq_one_iff, support_evalDist, support_eq_singleton_iff]
+lemma probOutput_eq_one_iff :
+    [= x | oa] = 1 ↔ [⊥ | oa] = 0 ∧ oa.support = {x} := by
+  simp [probOutput_def, PMF.apply_eq_one_iff, Set.ext_iff, Option.forall]
+alias ⟨_, probOutput_eq_one⟩ := probOutput_eq_one_iff
+
 @[simp]
-lemma probOutput_eq_one_iff' [DecidableEq α] : [= x | oa] = 1 ↔ oa.finSupport ⊆ {x} := by
-  rw [probOutput_def, PMF.apply_eq_one_iff, support_evalDist, support_eq_singleton_iff,
-    finSupport_subset_iff_support_subset_coe, Finset.coe_singleton]
+lemma probOutput_eq_one_iff' [DecidableEq α] :
+    [= x | oa] = 1 ↔ [⊥ | oa] = 0 ∧ oa.finSupport = {x} := by
+  rw [probOutput_eq_one_iff, finSupport_eq_iff_support_eq_coe, Finset.coe_singleton]
+alias ⟨_, probOutput_eq_one'⟩ := probOutput_eq_one_iff'
+
 @[simp low]
-lemma probEvent_eq_one_iff : [p | oa] = 1 ↔ ∀ x ∈ oa.support, p x := by
-  simp [probEvent_def, PMF.toOuterMeasure_apply_eq_one_iff, Set.subset_def,
-    support_evalDist, Set.mem_def]
+lemma probEvent_eq_one_iff :
+    [p | oa] = 1 ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.support, p x := by
+  rw [probEvent]
+
 @[simp]
-lemma probEvent_eq_one_iff' [DecidableEq α] : [p | oa] = 1 ↔ ∀ x ∈ oa.finSupport, p x := by
+lemma probEvent_eq_one_iff' [DecidableEq α] :
+    [p | oa] = 1 ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.finSupport, p x := by
   simp_rw [probEvent_eq_one_iff, mem_finSupport_iff_mem_support]
 
 lemma mem_support_iff_probOutput_ne_zero : x ∈ oa.support ↔ [= x | oa] ≠ 0 := by
