@@ -28,19 +28,74 @@ We later introduce a set of type coercions that mitigate this for most common ca
 such as calling a computation with `spec` as part of a computation with `spec ++ spec'`.
 -/
 
-/-- `OracleComp spec α` represents computations with oracle access to oracles in `spec`,
+/-- `OracleComp' spec α` represents computations with oracle access to oracles in `spec`,
 where the final return value has type `α`.
-
 The constructor `pure' α x` allow for returning a pure Lean value `x`,
 and `queryBind' i t α oa` allows for querying oracle `i` on input `t`,
 calling `oa` on the result of the oracle call.
-We recursively define a more general monadic bind operation later. -/
-inductive OracleComp {ι : Type} (spec : OracleSpec ι) : Type → Type 1
-  | pure' (α : Type) (x : α) : OracleComp spec α
+We recursively define a more general monadic bind operation later.
+We then define the main `OracleComp` by applying the option monad transformer. -/
+inductive OracleComp' {ι : Type} (spec : OracleSpec ι) : Type → Type 1
+  | pure' (α : Type) (x : α) : OracleComp' spec α
   | queryBind' (i : ι) (t : spec.domain i) (α : Type)
-      (oa : spec.range i → OracleComp spec α) : OracleComp spec α
+      (oa : spec.range i → OracleComp' spec α) : OracleComp' spec α
+
+namespace OracleComp'
+
+variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
+
+/-- Bind operator on `OracleComp spec` operation used in the monad definition. -/
+def bind' : (α β : Type) → OracleComp' spec α → (α → OracleComp' spec β) → OracleComp' spec β
+  | _, _, pure' α a, ob => ob a
+  | _, β, queryBind' i t α oa, ob => queryBind' i t β (λ u ↦ bind' α β (oa u) ob)
+
+/-- `OracleComp spec` forms a monad under `OracleComp.pure'` and `OracleComp.bind'`. -/
+instance {ι : Type} (spec : OracleSpec ι) : Monad (OracleComp' spec) where
+  pure := @pure' ι spec
+  bind := @bind' ι spec
+
+@[simp] protected lemma pure'_eq_pure (spec : OracleSpec ι) (a : α) :
+  pure' α a = (pure a : OracleComp' spec α) := rfl
+
+@[simp] protected lemma bind'_eq_bind (oa : OracleComp' spec α) (ob : α → OracleComp' spec β) :
+  bind' α β oa ob = oa >>= ob := rfl
+
+instance (spec : OracleSpec ι) : LawfulMonad (OracleComp' spec) :=
+  LawfulMonad.mk' _
+    (λ oa ↦ by
+      induction' oa with α a i t α oa hoa; · rfl
+      · exact congr_arg (queryBind' i t α) (funext (λ u ↦ hoa u)))
+    (λ x ob ↦ rfl)
+    (λ oa ob oc ↦ by
+      induction' oa with α a i t α oa hoa; · rfl
+      · exact congr_arg (queryBind' i t _) <| funext (λ u ↦ hoa u ob))
+
+end OracleComp'
+
+def OracleComp {ι : Type} (spec : OracleSpec ι) : Type → Type 1 :=
+  OptionT (OracleComp' spec)
+
+#check failure
+
+example : OracleComp emptySpec ℕ := OptionT.fail
 
 namespace OracleComp
+
+variable {ι : Type} {spec : OracleSpec ι}
+
+instance (m : Type* → Type*) [Monad m] [LawfulMonad m] : LawfulMonad (OptionT m) :=
+  LawfulMonad.mk' _ (by {
+    dsimp [OptionT]
+    intro α x
+    have := id_map (f := m) (α := Option α) x
+
+    simp [Functor.map]
+
+    sorry
+  }) _ _
+
+instance : Monad (OracleComp spec) := by unfold OracleComp; infer_instance
+instance : LawfulMonad (OracleComp spec) := by unfold OracleComp; infer_instance
 
 /-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
 by assuming each query returns the `default` value given by the `Inhabited` instance. -/
