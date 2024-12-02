@@ -1,4 +1,4 @@
-# Formally Verified Cryptography Proofs Using Lean 4
+# Formally Verified Cryptography Proofs in Lean 4
 
 This is an ongoing port of the work found [here](https://github.com/dtumad/lean-crypto-formalization), from Lean 3 to Lean 4.
 All of the basic theory is present here, but some specific proofs and APIs are still actively being moved. 
