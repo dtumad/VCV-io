@@ -75,7 +75,7 @@ end List
 
 section Vector
 
-variable {n : ℕ} (oa : OracleComp spec α) (ob : OracleComp spec (Vector α n))
+variable {n : ℕ} (oa : OracleComp spec α) (ob : OracleComp spec (Mathlib.Vector α n))
 
 @[simp]
 lemma support_seq_map_vector_cons : ((· ::ᵥ ·) <$> oa <*> ob).support =
@@ -84,13 +84,13 @@ lemma support_seq_map_vector_cons : ((· ::ᵥ ·) <$> oa <*> ob).support =
   simp [Set.ext_iff, @eq_comm _ _ xs, Vector.eq_cons_iff]
 
 @[simp]
-lemma probOutput_seq_map_vector_cons_eq_mul (xs : Vector α (n + 1)) :
+lemma probOutput_seq_map_vector_cons_eq_mul (xs : Mathlib.Vector α (n + 1)) :
     [= xs | (· ::ᵥ ·) <$> oa <*> ob] = [= xs.head | oa] * [= xs.tail | ob] := by
   rw [← probOutput_seq_map_eq_mul_of_injective2 oa ob _ Vector.injective2_cons,
     Vector.cons_head_tail]
 
 @[simp]
-lemma probOutput_seq_map_vector_cons_eq_mul' (xs : Vector α (n + 1)) :
+lemma probOutput_seq_map_vector_cons_eq_mul' (xs : Mathlib.Vector α (n + 1)) :
     [= xs | (λ xs x ↦ x ::ᵥ xs) <$> ob <*> oa] = [= xs.head | oa] * [= xs.tail | ob] :=
   (probOutput_seq_map_swap oa ob (· ::ᵥ ·) (xs)).trans
     (probOutput_seq_map_vector_cons_eq_mul oa ob xs)
@@ -99,7 +99,7 @@ end Vector
 
 section Vector_toList
 
-variable {n : ℕ} (oa : OracleComp spec (Vector α n))
+variable {n : ℕ} (oa : OracleComp spec (Mathlib.Vector α n))
 
 @[simp]
 lemma probOutput_vector_toList (xs : List α) : [= xs | Vector.toList <$> oa] =

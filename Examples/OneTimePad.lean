@@ -27,6 +27,6 @@ Requires no oracles so the `OracleSpec` is always `[]ₒ`. -/
 namespace oneTimePad
 
 theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
-  λ m ↦ probOutput_eq_one (by simp [SymmEncAlg.soundnessExp])
+  λ m ↦ probOutput_eq_one _ _ (by simp [SymmEncAlg.soundnessExp]; sorry)
 
 end oneTimePad

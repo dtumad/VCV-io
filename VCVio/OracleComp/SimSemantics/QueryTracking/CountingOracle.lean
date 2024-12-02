@@ -52,8 +52,9 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
       Prod.map id (qc + ·) '' (simulate countingOracle 0 oa).support := by
   revert qc
   induction oa using OracleComp.inductionOn with
-  | h_pure a => simp
-  | h_queryBind i t oa hoa =>
+  | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply, id_eq,
+      add_zero, implies_true]
+  | query_bind i t oa hoa =>
       refine λ qc ↦ ?_
       simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
         support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
@@ -63,6 +64,7 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
         ← Set.image_comp, Function.comp, Prod.map_apply, id_eq, ← add_assoc]
       refine Set.image_congr' (λ z ↦ Prod.eq_iff_fst_eq_snd_eq.2 ⟨rfl, funext (λ j ↦ ?_)⟩)
       by_cases hij : j = i <;> simp [hij, add_assoc]
+  | failure => simp only [simulate_failure, support_failure, Set.image_empty, implies_true]
 
 /-- Reduce membership in the support of simulation with counting to membership in simulation
 starting with the count at `0`.

@@ -15,7 +15,8 @@ This file gives a centralized location to add lemmas that belong better
 in general mathlib than in the project itself.
 -/
 
-open Mathlib BigOperators ENNReal
+open Mathlib (Vector)
+open BigOperators ENNReal
 
 lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
   Finset.sum Finset.univ (λ _ ↦ (Fintype.card α)⁻¹ : α → ℝ≥0∞) = 1 := by
@@ -23,14 +24,14 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
 
 @[simp] -- mathlib?
-lemma vector_eq_nil {α : Type} (xs : Vector α 0) : xs = Vector.nil :=
+lemma vector_eq_nil {α : Type} (xs : Mathlib.Vector α 0) : xs = Vector.nil :=
   Vector.ext (IsEmpty.forall_iff.2 True.intro)
 
 lemma List.injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
   simp [Function.Injective2]
 
 lemma Vector.injective2_cons {α : Type} {n : ℕ} :
-    Function.Injective2 (Vector.cons : α → Vector α n → Vector α (n + 1)) := by
+    Function.Injective2 (Vector.cons : α → Mathlib.Vector α n → Mathlib.Vector α (n + 1)) := by
   simp [Function.Injective2, Vector.eq_cons_iff]
 
 lemma Prod.mk.injective2 {α β : Type} :
@@ -64,7 +65,7 @@ lemma List.card_filter_getElem_eq {α : Type} [DecidableEq α]
   simp only [Fin.getElem_fin, beq_iff_eq, Finset.sum_boole, Nat.cast_id]
 
 @[simp]
-lemma Vector.getElem_eq_get {α n} (xs : Vector α n) (i : ℕ) (h : i < n) :
+lemma Vector.getElem_eq_get {α n} (xs : Mathlib.Vector α n) (i : ℕ) (h : i < n) :
   xs[i]'h = xs.get ⟨i, h⟩ := rfl
 
 @[simp] lemma Finset.sum_boole' {ι β : Type} [AddCommMonoid β] (r : β)
@@ -117,3 +118,18 @@ lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
 
 instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :=
   ⟨id, Function.bijective_id⟩
+
+open Classical
+
+lemma tsum_option {α β : Type} [AddCommMonoid α] [TopologicalSpace α]
+    [ContinuousAdd α] [T2Space α]
+    (f : Option β → α) (hf : Summable (Function.update f none 0)) :
+    ∑' x : Option β, f x = f none + ∑' x : β, f (some x) := by
+  refine (tsum_eq_add_tsum_ite' none hf).trans ?_
+  refine congr_arg (f none + ·) ?_
+  refine tsum_eq_tsum_of_ne_zero_bij (λ x ↦ some x.1) ?_ ?_ ?_
+  · intro x y
+    simp [SetCoe.ext_iff]
+  · intro x
+    cases x <;> simp
+  · simp

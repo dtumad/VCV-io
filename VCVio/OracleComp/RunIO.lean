@@ -16,21 +16,26 @@ The semantics mirror `evalDist` in that the oracle will respond uniformly at ran
 however we need to limit the oracle set to `unifSpec` to get computability of the function.
 In particular we can't choose randomly from arbitrary types.
 Usually it's possible to reduce to this anyway using `SelectableType` instances (see `unifOracle`).
+
+NOTE: `OracleComp.failure` could instead be an error to allow error msg propogation.
 -/
 
 open OracleSpec
 
 namespace OracleComp
 
-def Foo : IO ℕ := do
+/-- The type of computation that `runIO` will produce. -/
+example : IO ℕ := do
   let x ← IO.rand 2 10
   let y ← IO.rand 100 200
   return (x * y)
 
-/-- Represent an `OracleComp` via the `IO` monad, allowing actual execution. -/
+/-- Represent an `OracleComp` via the `IO` monad, allowing actual execution.
+Note that `OracleComp` as currently defined doesn't allow error messaging. -/
 protected def runIO {α : Type} : ProbComp α → IO α
   | pure' α x => return x
   | queryBind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
+  | failure' _ => throw (IO.userError "Computation failed during execution")
 
 private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
   let xs ← (replicate $[0..4] trials).runIO

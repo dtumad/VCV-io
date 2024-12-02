@@ -42,6 +42,7 @@ def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) :
   | queryBind' i t α oa => do
       let (u, s') ← so i t s
       simulate so s' (oa u)
+  | failure' α => failure' (α × σ)
 
 /-- Version of `simulate` that tosses out the oracle state at the end.
 TODO: should this be an alias/notation? -/
@@ -61,14 +62,21 @@ lemma simulate_pure (s : σ) (x : α) : simulate so s (pure x) = pure (x, s) := 
 @[simp low]
 lemma simulate'_pure (s : σ) (x : α) : simulate' so s (pure x) = pure x := rfl
 
+@[simp]
+lemma simulate_failure (s : σ) : simulate so s (failure : OracleComp spec α) = failure := rfl
+
+@[simp]
+lemma simulate'_failure (s : σ) : simulate' so s (failure : OracleComp spec α) = failure := rfl
+
 @[simp low]
 lemma simulate_bind (s : σ)  (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (simulate so s (oa >>= ob) = do let z ← simulate so s oa; simulate so z.2 (ob z.1)) := by
   revert s
   induction oa using OracleComp.inductionOn with
-  | h_pure x => exact (λ _ ↦ rfl)
-  | h_queryBind i t oa hoa =>
+  | pure x => exact (λ _ ↦ rfl)
+  | query_bind i t oa hoa =>
       simp only [simulate, OracleComp.bind'_eq_bind, pure_bind, hoa, bind_assoc, implies_true]
+  | failure => simp [simulate]
 
 @[simp low]
 lemma simulate'_bind (s : σ) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
@@ -134,10 +142,11 @@ lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ
     (simulate so s oa).support ⊆ fst ⁻¹' oa.support := by
   revert s
   induction oa using OracleComp.inductionOn with
-  | h_pure x => simp
-  | h_queryBind i t oa hoa =>
+  | pure x => simp
+  | query_bind i t oa hoa =>
       simp [hoa]
       refine λ _ t s' _ ↦ Set.subset_iUnion_of_subset t (hoa t s')
+  | failure => simp
 
 /-- Simulation only reduces the possible oracle outputs, so can't reduce the support. In particular
 the first output of a simulation has support at most that of the original computation -/
@@ -162,9 +171,10 @@ lemma simulate'_eq_self (h : ∀ i t s, fst <$> so i t s = query i t)
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa := by
   revert s
   induction oa using OracleComp.inductionOn with
-  | h_pure x => simp
-  | h_queryBind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
+  | pure x => simp
+  | query_bind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
       hoa, ← h i t s, map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
+  | failure => simp
 
 -- TODO: this for various oracles?
 class StateIndep (so : spec →[σ]ₛₒ spec) where
@@ -199,12 +209,15 @@ lemma evalDist_simulate'_eq_evalDist
     (s : σ) (oa : OracleComp spec α) : evalDist (simulate' so s oa) = evalDist oa := by
   revert s
   induction oa using OracleComp.inductionOn with
-  | h_pure x => simp
-  | h_queryBind i t oa hoa => refine (λ s ↦ by
+  | pure x => simp
+  | query_bind i t oa hoa => refine (λ s ↦ by
       simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
         evalDist_query, ← h i t s, evalDist_map, PMF.bind_map]
       unfold Function.comp
-      simp [hoa])
+      simp [hoa]
+      sorry
+      )
+  | failure => simp
 
 end idem
 

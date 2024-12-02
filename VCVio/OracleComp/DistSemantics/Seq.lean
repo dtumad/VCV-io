@@ -36,8 +36,13 @@ lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)]
   simp [seq_eq_bind_map]
 
 @[simp]
-lemma evalDist_seq : evalDist (og <*> oa) = (evalDist og).seq (evalDist oa) := by
-  simp [PMF.ext_iff, seq_eq_bind_map, ← ENNReal.tsum_mul_left]
+lemma evalDist_seq : evalDist (og <*> oa) =
+    (evalDist og).bind (Option.rec (PMF.pure none) λ f ↦ (evalDist oa).map (Option.map f)) := by
+  rw [seq_eq_bind_map, evalDist_bind]
+  refine congr_arg (evalDist og).bind (funext λ mf ↦ ?_)
+  cases mf
+  · rfl
+  · simp only [Function.comp_apply, evalDist_map]
 
 lemma probOutput_seq_eq_tsum (y : β) : [= y | og <*> oa] =
     ∑' g, ∑' x, [= g | og] * [= x | oa] * [= y | (pure (g x) : OracleComp spec β)] := by
@@ -55,15 +60,15 @@ lemma probOutput_seq_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq (α →
   simp [seq_eq_bind, probOutput_bind_eq_sum_finSupport,
     probOutput_map_eq_sum_finSupport_ite, Finset.mul_sum]
 
-lemma probEvent_seq_eq_tsum (p : β → Prop) :
+lemma probEvent_seq_eq_tsum (p : β → Prop) [DecidablePred p] :
     [p | og <*> oa] = ∑' (g : α → β), [= g | og] * [p ∘ g | oa] := by
   simp only [seq_eq_bind, probEvent_bind_eq_tsum, probEvent_map]
 
 lemma probEvent_seq_eq_tsum_ite (p : β → Prop) [DecidablePred p] :
     [p | og <*> oa] = ∑' (g : α → β) (x : α),
       if p (g x) then [= g | og] * [= x | oa] else 0 := by
-  simp_rw [probEvent_seq_eq_tsum, probEvent_eq_tsum_ite, Function.comp_apply,
-    ← ENNReal.tsum_mul_left, mul_ite, mul_zero]
+  simp_rw [probEvent_seq_eq_tsum, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left,
+    Function.comp_apply, mul_ite, mul_zero]
 
 end basic
 
@@ -91,7 +96,8 @@ lemma finSupport_seq_map_eq_image2 [DecidableEq α] [DecidableEq β] [DecidableE
     Set.iUnion_exists, Set.biUnion_and', Set.iUnion_iUnion_eq_right, Finset.coe_image₂,
     coe_finSupport, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2, implies_true]
 
-lemma evalDist_seq_map : evalDist (f <$> oa <*> ob) = ((evalDist oa).map f).seq (evalDist ob) := by
+lemma evalDist_seq_map : evalDist (f <$> oa <*> ob) = ((evalDist oa).map (Option.map f)).bind
+    (Option.rec (PMF.pure none) (λ g ↦ (evalDist ob).map (Option.map g))) := by
   rw [evalDist_seq, evalDist_map]
 
 lemma probOutput_seq_map_eq_tsum (z : γ) : [= z | f <$> oa <*> ob] =
@@ -120,7 +126,7 @@ lemma probOutput_seq_map_eq_tsum_ite [DecidableEq γ] (z : γ) : [= z | f <$> oa
 -- by simp_rw [seq_map_eq_bind_bind, prob_event_bind_eq_sum, finset.mul_sum,
 --   prob_event_return, mul_ite, mul_one, mul_zero]
 
-lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) :
+lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) [DecidablePred p] :
     [p | f <$> oa <*> ob] = [p ∘ f.uncurry | Prod.mk <$> oa <*> ob] := by
   rw [probEvent_comp]
   refine probEvent_congr' ?_ (congr_arg evalDist ?_)
@@ -130,8 +136,8 @@ lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) :
     rfl
 
 
-lemma probEvent_seq_map_eq_probEvent (p : γ → Prop) :
-    [p | f <$> oa <*> ob] = [λ x ↦ p (f x.1 x.2) | Prod.mk <$> oa <*> ob] :=
+lemma probEvent_seq_map_eq_probEvent (p : γ → Prop) [DecidablePred p] :
+    [p | f <$> oa <*> ob] = [λ z ↦ p (f z.1 z.2) | Prod.mk <$> oa <*> ob] :=
   probEvent_seq_map_eq_probEvent_comp_uncurry oa ob f p
 
 section swap
@@ -150,9 +156,9 @@ lemma evalDist_seq_map_swap :
   evalDist_ext_probEvent (probOutput_seq_map_swap oa ob f)
 
 @[simp]
-lemma probEvent_seq_map_swap (p : γ → Prop) :
+lemma probEvent_seq_map_swap (p : γ → Prop) [DecidablePred p] :
     [p | Function.swap f <$> ob <*> oa] = [p | f <$> oa <*> ob] :=
-  probEvent_congr (evalDist_seq_map_swap oa ob f)
+  probEvent_congr (λ _ ↦ Iff.rfl) (evalDist_seq_map_swap oa ob f)
 
 @[simp]
 lemma support_seq_map_swap : (Function.swap f <$> ob <*> oa).support = (f <$> oa <*> ob).support :=
@@ -209,11 +215,9 @@ and `p` is an event such that outputs of `f` are in `p` iff the individual compo
 lie in some other events `q1` and `q2`, then the probability of the event `p` is the
 product of the probabilites holding individually. -/
 lemma probEvent_seq_map_eq_mul (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
+    [DecidablePred p] [DecidablePred q1] [DecidablePred q2]
     (h : ∀ x ∈ oa.support, ∀ y ∈ ob.support, p (f x y) ↔ q1 x ∧ q2 y) :
     [p | f <$> oa <*> ob] = [q1 | oa] * [q2 | ob] := by
-  have : DecidablePred p := Classical.decPred p
-  have : DecidablePred q1 := Classical.decPred q1
-  have : DecidablePred q2 := Classical.decPred q2
   rw [probEvent_seq_map_eq_probEvent]
   calc [λ (x, y) ↦ p (f x y) | (·, ·) <$> oa <*> ob] =
       [λ (x, y) ↦ q1 x ∧ q2 y | (·, ·) <$> oa <*> ob] :=
