@@ -63,12 +63,15 @@ lemma uniformSelectList_cons (x : α) (xs : List α) :
 @[simp]
 lemma evalDist_uniformSelectList (xs : List α) :
     evalDist ($ xs) = match xs with
-    | [] => PMF.pure default
-    | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map ((x :: xs)[·]) := by
+    | [] => PMF.pure (some default)
+    | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map (some (x :: xs)[·]) := by
   match xs with
   | [] => rfl
-  | x :: xs => simp only [uniformSelectList_cons, Fin.getElem_fin, List.getElem?_eq_getElem,
-      List.length_cons, Fin.eta, evalDist_map, evalDist_uniformFin]
+  | x :: xs => simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map,
+      evalDist_uniformFin, PMF.map_comp, Option.map_comp_some, Nat.succ_eq_add_one]; rfl
+
+  -- simp only [uniformSelectList_cons, Fin.getElem_fin, List.getElem?_eq_getElem,
+  --     List.length_cons, Fin.eta, evalDist_map, evalDist_uniformFin]
 
 @[simp]
 lemma support_uniformSelectList (xs : List α) :
@@ -94,12 +97,13 @@ lemma probOutput_uniformSelectList (xs : List α) (x : α) :
   | nil => simp only [uniformSelectList_nil, probOutput_pure, List.isEmpty_nil, ↓reduceIte,
       Nat.cast_ite, Nat.cast_one, CharP.cast_eq_zero]
   | cons y ys _ =>
-      rw [probOutput_def, uniformSelectList_cons, List.count, ← List.countP_eq_sum_fin_ite,
-        div_eq_mul_inv, Nat.cast_sum, Finset.sum_mul, List.isEmpty_cons]
-      simp only [Fin.getElem_fin, evalDist_map, evalDist_uniformFin, PMF.map_apply, @eq_comm _ x,
-        PMF.uniformOfFintype_apply, Fintype.card_fin, Nat.cast_succ, tsum_fintype,
-        Finset.sum_boole', nsmul_eq_mul, Bool.false_eq_true, ↓reduceIte, List.length_cons,
-        beq_iff_eq, Nat.cast_ite, CharP.cast_eq_zero, zero_add, ite_mul, one_mul, zero_mul]
+      sorry
+      -- rw [probOutput_def, uniformSelectList_cons, List.count, ← List.countP_eq_sum_fin_ite,
+      --   div_eq_mul_inv, Nat.cast_sum, Finset.sum_mul, List.isEmpty_cons]
+      -- simp only [Fin.getElem_fin, evalDist_map, evalDist_uniformFin, PMF.map_apply, @eq_comm _ x,
+      --   PMF.uniformOfFintype_apply, Fintype.card_fin, Nat.cast_succ, tsum_fintype,
+      --   Finset.sum_boole', nsmul_eq_mul, Bool.false_eq_true, ↓reduceIte, List.length_cons,
+      --   beq_iff_eq, Nat.cast_ite, CharP.cast_eq_zero, zero_add, ite_mul, one_mul, zero_mul]
 
 @[simp]
 lemma probEvent_uniformSelectList (xs : List α) (p : α → Prop) [DecidablePred p] :
@@ -116,9 +120,10 @@ lemma probEvent_uniformSelectList (xs : List α) (p : α → Prop) [DecidablePre
         Fintype.card_fin, Nat.cast_add, Nat.cast_one, Set.mem_setOf_eq, ↓reduceIte,
         decide_eq_true_eq, Nat.cast_ite, CharP.cast_eq_zero, Nat.cast_succ, ite_mul,
         one_mul, zero_mul, zero_add, one_mul]
-      congr
-      ext x
-      congr
+      -- congr
+      sorry
+      -- ext x
+      -- congr
 
 end uniformSelectList
 
@@ -126,17 +131,17 @@ section uniformSelectVector
 
 /-- Select a random element from a vector by indexing into it with a uniform value. -/
 instance hasUniformSelectVector (α : Type) [DecidableEq α] (n : ℕ) :
-    HasUniformSelect (Vector α (n + 1)) α where
+    HasUniformSelect (Mathlib.Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
 
-lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Mathlib.Vector α (n + 1)) :
     ($ xs) = (xs[·]) <$> $[0..n] := rfl
 
 variable {α : Type} [DecidableEq α] {n : ℕ}
 
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
-lemma uniformSelectVector_eq_uniformSelectList (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_eq_uniformSelectList (xs : Mathlib.Vector α (n + 1)) :
     let _ :  Inhabited α := ⟨xs.head⟩; ($ xs) = ($ xs.toList : ProbComp α) :=
   match xs with
   | ⟨x :: xs, h⟩ => by
@@ -145,33 +150,35 @@ lemma uniformSelectVector_eq_uniformSelectList (xs : Vector α (n + 1)) :
     simp only [uniformSelectVector_def, Fin.getElem_fin, Vector.getElem_eq_get, Vector.get,
       List.length_cons, Fin.eta, Fin.cast_eq_self, List.get_eq_getElem, map_eq_bind_pure_comp,
       Function.comp, Vector.toList_mk, uniformSelectList_cons]
+    sorry
 
 @[simp]
-lemma evalDist_uniformSelectVector (xs : Vector α (n + 1)) :
+lemma evalDist_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) :
     evalDist ($ xs) = (PMF.uniformOfFintype (Fin (n + 1))).map (xs[·]) := by
   simp only [uniformSelectVector_def, Fin.getElem_fin, evalDist_map, evalDist_uniformFin]
+  sorry
 
 @[simp]
-lemma support_uniformSelectVector (xs : Vector α (n + 1)) :
+lemma support_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) :
     ($ xs).support = {x | x ∈ xs.toList} := by
   simp only [uniformSelectVector_eq_uniformSelectList, support_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte]
 
 @[simp]
-lemma finSupport_uniformSelectVector (xs : Vector α (n + 1)) :
+lemma finSupport_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) :
     ($ xs).finSupport = xs.toList.toFinset := by
   simp only [uniformSelectVector_eq_uniformSelectList, finSupport_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte]
 
 @[simp]
-lemma probOutput_uniformSelectVector (xs : Vector α (n + 1)) (x : α) :
+lemma probOutput_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (x : α) :
     [= x | $ xs] = xs.toList.count x / (n + 1) := by
   simp only [uniformSelectVector_eq_uniformSelectList, probOutput_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
     Nat.cast_one]
 
 @[simp]
-lemma probEvent_uniformSelectVector (xs : Vector α (n + 1)) (p : α → Prop) [DecidablePred p] :
+lemma probEvent_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (p : α → Prop) [DecidablePred p] :
     [p | $ xs] = xs.toList.countP p / (n + 1) := by
   simp only [uniformSelectVector_eq_uniformSelectList, probEvent_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
@@ -220,37 +227,40 @@ lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     rw [Finset.sum_boole']
     have : (xs.length + 1 : ℝ≥0∞)⁻¹ = ((x :: xs).length : ℝ≥0∞)⁻¹ := by simp
     simp only [← hxs, this, Finset.length_toList, nsmul_eq_mul]
-    split_ifs with hs
-    · convert (one_mul _)
-      rw [Nat.cast_eq_one]
-      simp_rw [hxs, @eq_comm _ y]
-      refine ((List.card_filter_getElem_eq (x :: xs ) y)).trans ?_
-      rw [← hxs]
-      rw [Finset.count_toList]
-      simp only [hs, ↓reduceIte]
-    · convert (zero_mul _)
-      simp only [Nat.cast_eq_zero, Finset.card_eq_zero, Finset.ext_iff, Finset.mem_filter,
-        Finset.mem_univ, true_and, Finset.not_mem_empty, iff_false]
-      refine λ i hi ↦ hs ?_
-      rw [hi, ← Finset.mem_toList]
-      exact List.getElem_mem _
+    sorry
+    -- split_ifs with hs
+    -- · convert (one_mul _)
+    --   rw [Nat.cast_eq_one]
+    --   simp_rw [hxs, @eq_comm _ y]
+    --   refine ((List.card_filter_getElem_eq (x :: xs ) y)).trans ?_
+    --   rw [← hxs]
+    --   rw [Finset.count_toList]
+    --   simp only [hs, ↓reduceIte]
+    -- · convert (zero_mul _)
+    --   simp only [Nat.cast_eq_zero, Finset.card_eq_zero, Finset.ext_iff, Finset.mem_filter,
+    --     Finset.mem_univ, true_and, Finset.not_mem_empty, iff_false]
+    --   refine λ i hi ↦ hs ?_
+    --   rw [hi, ← Finset.mem_toList]
+    --   exact List.getElem_mem _
   · rw [Finset.nonempty_iff_ne_empty, not_not] at hs
     simp only [hs, Finset.toList_empty]
+    sorry
 
 @[simp]
 lemma probOutput_uniformSelectFinset [DecidableEq α] (s : Finset α) (x : α) :
     [= x | $ s] = if x ∈ s then (s.card : ℝ≥0∞)⁻¹ else if s.Nonempty then 0
       else if x = default then 1 else 0 := by
-  split_ifs with hx hs hxd
-  · have hs' : s.Nonempty := ⟨x, hx⟩
-    simp only [probOutput_def, evalDist_uniformSelectFinset, hs', ↓reduceDIte,
-      PMF.uniformOfFinset_apply, hx, ↓reduceIte]
-  · simp only [probOutput_eq_zero_iff', finSupport_uniformSelectFinset, hs, ↓reduceIte, hx,
-      not_false_eq_true]
-  · simp only [hxd, probOutput_eq_one_iff', finSupport_uniformSelectFinset, hs, ↓reduceIte,
-      subset_refl]
-  · simp only [probOutput_eq_zero_iff', finSupport_uniformSelectFinset, hs, ↓reduceIte,
-      Finset.mem_singleton, hxd, not_false_eq_true]
+  sorry
+  -- split_ifs with hx hs hxd
+  -- · have hs' : s.Nonempty := ⟨x, hx⟩
+  --   simp only [probOutput_def, evalDist_uniformSelectFinset, hs', ↓reduceDIte,
+  --     PMF.uniformOfFinset_apply, hx, ↓reduceIte]
+  -- · simp only [probOutput_eq_zero_iff', finSupport_uniformSelectFinset, hs, ↓reduceIte, hx,
+  --     not_false_eq_true]
+  -- · simp only [hxd, probOutput_eq_one_iff', finSupport_uniformSelectFinset, hs, ↓reduceIte,
+  --     subset_refl]
+  -- · simp only [probOutput_eq_zero_iff', finSupport_uniformSelectFinset, hs, ↓reduceIte,
+  --     Finset.mem_singleton, hxd, not_false_eq_true]
 
 end uniformSelectFinset
 
@@ -281,20 +291,24 @@ lemma SelectableType.probOutput_selectElem {α : Type} [Fintype α]
     by simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
   refine ENNReal.eq_inv_of_mul_eq_one_left ?_
   simp_rw [this, Finset.mul_sum, mul_one]
-  exact (Finset.sum_congr rfl <| λ y _ ↦ h.probOutput_selectElem_eq x y).trans
-    (sum_probOutput ($ᵗ α))
+  -- refine tsum_probOutput
+  sorry
+  -- exact (Finset.sum_congr rfl <| λ y _ ↦ h.probOutput_selectElem_eq x y).trans
+  --   (sum_probOutput ($ᵗ α))
 
 @[simp]
 lemma evalDist_uniformOfFintype [Inhabited α] [Fintype α] :
     evalDist ($ᵗ α) = PMF.uniformOfFintype α := by
-  simpa [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card] using
-    SelectableType.probOutput_selectElem
+  sorry
+  -- simpa [PMF.ext_iff, uniformOfFintype, Finset.univ, Fintype.card] using
+  --   SelectableType.probOutput_selectElem
 
 @[simp]
 lemma support_uniformOfFintype [Fintype α] : ($ᵗ α).support = Set.univ := by
-  have : Inhabited α := ⟨hα.selectElem.defaultResult⟩
-  simp only [← support_evalDist, evalDist_uniformOfFintype, PMF.support_uniformOfFintype,
-    Set.top_eq_univ]
+  sorry
+  -- have : Inhabited α := ⟨hα.selectElem.defaultResult⟩
+  -- simp only [← support_evalDist, evalDist_uniformOfFintype, PMF.support_uniformOfFintype,
+  --   Set.top_eq_univ]
 
 @[simp]
 lemma finSupport_uniformOfFintype [Fintype α] [DecidableEq α] :
@@ -304,8 +318,9 @@ lemma finSupport_uniformOfFintype [Fintype α] [DecidableEq α] :
 @[simp]
 lemma probOutput_uniformOfFintype [Fintype α] (x : α) :
     [= x | $ᵗ α] = (↑(Fintype.card α))⁻¹ := by
-  have : Inhabited α := ⟨hα.selectElem.defaultResult⟩
-  simp only [probOutput, evalDist_uniformOfFintype, PMF.uniformOfFintype_apply]
+  sorry
+  -- have : Inhabited α := ⟨hα.selectElem.defaultResult⟩
+  -- simp only [probOutput, evalDist_uniformOfFintype, PMF.uniformOfFintype_apply]
 
 @[simp]
 lemma probEvent_uniformOfFintype [Fintype α] (p : α → Prop) [DecidablePred p] :

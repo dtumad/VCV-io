@@ -370,6 +370,10 @@ lemma probEvent_eq_tsum_subtype_mem_support :
       probOutput_eq_zero_iff, not_false_eq_true]
   · exact (if_neg hpx).trans (by simp [Set.indicator, hpx])
 
+lemma probEvent_eq_tsum_ite : [p | oa] = ∑' x : α, if p x then [= x | oa] else 0 := by
+  simp_rw [probEvent_eq_tsum_subtype, tsum_subtype, Set.indicator]
+  refine tsum_congr λ x ↦ by congr
+
 lemma probEvent_eq_tsum_subtype_support_ite :
     [p | oa] = ∑' x : oa.support, if p x then [= x | oa] else 0 :=
 calc

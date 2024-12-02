@@ -24,7 +24,6 @@ import VCVio.OracleComp.DistSemantics.List
 import VCVio.OracleComp.DistSemantics.Prod
 import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Support
-import VCVio.OracleComp.OracleAlg
 import VCVio.OracleComp.OracleComp
 import VCVio.OracleComp.OracleImpl
 import VCVio.OracleComp.OracleSpec

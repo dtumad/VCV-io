@@ -27,5 +27,6 @@ def activeOracles [DecidableEq ι] : (oa : OracleComp spec α) → Finset ι
   | pure' _ _ => ∅
   | queryBind' i _ _ oa => insert i
       (Finset.univ.biUnion (λ j ↦ activeOracles (oa j)))
+  | failure' _ => ∅
 
 end OracleComp

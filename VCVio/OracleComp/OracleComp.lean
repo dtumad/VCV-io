@@ -97,6 +97,11 @@ instance (spec : OracleSpec ι) : LawfulMonad (OracleComp spec) :=
 
 @[simp] lemma failure_bind (ob : α → OracleComp spec β) : failure >>= ob = failure := rfl
 
+@[simp] lemma map_failure (f : α → β) : f <$> (failure : OracleComp spec α) = failure := rfl
+
+@[simp] lemma failure_seq (ob : OracleComp spec α) :
+    (failure : OracleComp spec (α → β)) <*> ob = failure := rfl
+
 protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' :=
   h ▸ (congr_arg (λ ob ↦ oa >>= ob) (funext h'))
@@ -268,7 +273,9 @@ alias ⟨_, pure_eq_bind⟩ := pure_eq_bind_iff
 
 /-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
 by assuming each query returns the `default` value given by the `Inhabited` instance.
-Returns `none` if the default path would lead to failure. -/
+Returns `none` if the default path would lead to failure.
+
+TODO: `default_result` -/
 def defaultResult {ι : Type} {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp spec α) : Option α :=
   oa.induction some (λ _ _ _ dr ↦ dr default) none
