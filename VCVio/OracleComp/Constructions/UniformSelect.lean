@@ -178,8 +178,8 @@ lemma probOutput_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (x : α) :
     Nat.cast_one]
 
 @[simp]
-lemma probEvent_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (p : α → Prop) [DecidablePred p] :
-    [p | $ xs] = xs.toList.countP p / (n + 1) := by
+lemma probEvent_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (p : α → Prop)
+    [DecidablePred p] : [p | $ xs] = xs.toList.countP p / (n + 1) := by
   simp only [uniformSelectVector_eq_uniformSelectList, probEvent_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
     Nat.cast_one]

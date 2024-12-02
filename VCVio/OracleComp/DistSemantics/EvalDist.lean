@@ -76,7 +76,7 @@ lemma evalDist_map (oa : OracleComp spec α) (f : α → β) :
 
 @[simp]
 lemma evalDist_eqRec (h : α = β) (oa : OracleComp spec α) :
-  evalDist (h ▸ oa) = h ▸ evalDist oa := by induction h; rfl
+    evalDist (h ▸ oa) = h ▸ evalDist oa := by induction h; rfl
 
 @[simp]
 lemma evalDist_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
@@ -570,7 +570,7 @@ lemma probFailure_failure : [⊥ | (failure : OracleComp spec α)] = 1 := by sim
 
 @[simp]
 lemma probEvent_failure (p : α → Prop) [DecidablePred p] :
-  [p | (failure : OracleComp spec α)] = 0 := by simp
+    [p | (failure : OracleComp spec α)] = 0 := by simp
 
 end failure
 

@@ -160,7 +160,7 @@ variable (oa : OracleComp spec α)
 --   | h_pure x => simp only [defaultResult, support_pure, Set.mem_singleton_iff]
 --   | h_queryBind i t oa hoa =>
 --       have : ∃ u, defaultResult (oa default) ∈ (oa u).support := ⟨default, hoa default⟩
---       simpa only [defaultResult, OracleComp.bind'_eq_bind, pure_bind, support_bind, support_query,
+--       simpa only [defaultResult, OracleComp.bind'_eq_bind, pure_bind,support_bind,support_query,
 --         Set.mem_univ, Set.iUnion_true, Set.mem_iUnion] using this
 
 -- lemma exists_mem_support : ∃ x : α, x ∈ oa.support :=
