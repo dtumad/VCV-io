@@ -16,7 +16,6 @@ which
 
 -/
 
-open Mathlib (Vector)
 open OracleSpec BigOperators
 
 namespace OracleComp
@@ -28,7 +27,7 @@ def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
   match activeOracles with
   | [] => return ∅
   | j :: js => QuerySeed.addValues <$> generateSeed spec qc js <*>
-      (Vector.toList <$> replicate ($ᵗ (spec.range j)) (qc j))
+      (Array.toList <$> Vector.toArray <$> replicate ($ᵗ (spec.range j)) (qc j))
 
 variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
   (qc : ι → ℕ) (j : ι) (js : List ι)

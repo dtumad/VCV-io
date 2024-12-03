@@ -35,15 +35,6 @@ lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)]
     (og <*> oa).finSupport = og.finSupport.biUnion (λ g ↦ oa.finSupport.image g) := by
   simp [seq_eq_bind_map]
 
-@[simp]
-lemma evalDist_seq : evalDist (og <*> oa) =
-    (evalDist og).bind (Option.rec (PMF.pure none) λ f ↦ (evalDist oa).map (Option.map f)) := by
-  rw [seq_eq_bind_map, evalDist_bind]
-  refine congr_arg (evalDist og).bind (funext λ mf ↦ ?_)
-  cases mf
-  · rfl
-  · simp only [Function.comp_apply, evalDist_map]
-
 lemma probOutput_seq_eq_tsum (y : β) : [= y | og <*> oa] =
     ∑' g, ∑' x, [= g | og] * [= x | oa] * [= y | (pure (g x) : OracleComp spec β)] := by
   simp [seq_eq_bind, probOutput_bind_eq_tsum, probOutput_map_eq_tsum,
@@ -59,6 +50,20 @@ lemma probOutput_seq_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq (α →
       if y = g x then [= g | og] * [= x | oa] else 0 := by
   simp [seq_eq_bind, probOutput_bind_eq_sum_finSupport,
     probOutput_map_eq_sum_finSupport_ite, Finset.mul_sum]
+
+lemma probFailure_seq : [⊥ | og <*> oa] = [⊥ | og] + [⊥ | oa] - [⊥ | og] * [⊥ | oa] := by
+  rw [seq_eq_bind_map, probFailure_bind_eq_tsum]
+  rw [AddLECancellable.add_tsub_assoc_of_le]
+  · refine congr_arg ([⊥ | og] + ·) ?_
+    simp [ENNReal.tsum_mul_right]
+    rw [tsum_probOutput_eq_sub, ENNReal.sub_mul (λ _ _ ↦ probFailure_ne_top), one_mul]
+  · rw [WithTop.addLECancellable_iff_ne_top]
+    refine ENNReal.mul_ne_top probFailure_ne_top probFailure_ne_top
+  · by_cases hoa : [⊥ | oa] = 0
+    · simp only [hoa, mul_zero, le_refl]
+    · refine ENNReal.mul_le_of_le_div ?_
+      rw [ENNReal.div_self hoa probFailure_ne_top]
+      exact probFailure_le_one
 
 lemma probEvent_seq_eq_tsum (p : β → Prop) [DecidablePred p] :
     [p | og <*> oa] = ∑' (g : α → β), [= g | og] * [p ∘ g | oa] := by

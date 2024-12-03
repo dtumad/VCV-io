@@ -75,6 +75,15 @@ lemma evalDist_map (oa : OracleComp spec α) (f : α → β) :
   cases x <;> simp
 
 @[simp]
+lemma evalDist_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) : evalDist (og <*> oa) =
+    (evalDist og).bind (Option.rec (PMF.pure none) λ f ↦ (evalDist oa).map (Option.map f)) := by
+  rw [seq_eq_bind_map, evalDist_bind]
+  refine congr_arg (evalDist og).bind (funext λ mf ↦ ?_)
+  cases mf
+  · rfl
+  · simp only [Function.comp_apply, evalDist_map]
+
+@[simp]
 lemma evalDist_eqRec (h : α = β) (oa : OracleComp spec α) :
     evalDist (h ▸ oa) = h ▸ evalDist oa := by induction h; rfl
 
@@ -543,7 +552,33 @@ lemma probEvent_bind_eq_sum_finSupport [DecidableEq α] (q : β → Prop) [Decid
     [q | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [q | ob x] :=
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_eq_sum' <| by simp)
 
+lemma probOutput_bind_of_const (y : β) (r : ℝ≥0∞) (h : ∀ x, [= y | ob x] = r) :
+    [= y | oa >>= ob] = (1 - [⊥ | oa]) * r := by
+  simp [probOutput_bind_eq_tsum, h, ENNReal.tsum_mul_right, tsum_probOutput_eq_sub]
+
+lemma probFailure_bind_of_const [Nonempty α] (r : ℝ≥0∞) (h : ∀ x, [⊥ | ob x] = r) :
+    [⊥ | oa >>= ob] = [⊥ | oa] + r - [⊥ | oa] * r := by
+  have : r ≠ ⊤ := λ hr ↦ probFailure_ne_top ((h (Classical.arbitrary α)).trans hr)
+  simp [probFailure_bind_eq_tsum, h, ENNReal.tsum_mul_right, tsum_probOutput_eq_sub]
+  rw [ENNReal.sub_mul λ _ _ ↦ this, one_mul]
+  refine symm (AddLECancellable.add_tsub_assoc_of_le ?_ ?_ _)
+  · refine ENNReal.addLECancellable_iff_ne.2 (ENNReal.mul_ne_top probFailure_ne_top this)
+  · by_cases hr : r = 0
+    · simp only [hr, mul_zero, le_refl]
+    refine mul_le_of_le_div (le_of_le_of_eq probFailure_le_one ?_)
+    refine symm (ENNReal.div_self hr this)
+
 end bind
+
+section bind_const
+
+variable (oa : OracleComp spec α) (ob : OracleComp spec β)
+
+-- lemma probFailure_bind_const :
+--   [⊥ | do oa; ob] = [⊥ | oa] + [⊥ | ob] - [⊥ | oa] * [⊥ | ob]
+
+
+end bind_const
 
 section query
 
