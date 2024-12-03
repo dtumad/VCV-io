@@ -142,7 +142,6 @@ lemma probOutput_liftComp (oa : OracleComp spec α) (x : α) :
 lemma probEvent_liftComp (oa : OracleComp spec α) (p : α → Prop) [DecidablePred p] :
     [p | h.liftComp oa] = [p | oa] := by
   simp only [probEvent_def, evalDist_liftComp]
-  sorry
 
 end liftComp
 
