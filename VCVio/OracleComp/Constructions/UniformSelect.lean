@@ -126,52 +126,52 @@ section uniformSelectVector
 
 /-- Select a random element from a vector by indexing into it with a uniform value. -/
 instance hasUniformSelectVector (α : Type) [DecidableEq α] (n : ℕ) :
-    HasUniformSelect (Vector α (n + 1)) α where
+    HasUniformSelect (Mathlib.Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ (xs[·]) <$> $[0..n]
 
-lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_def {α : Type} [DecidableEq α] {n : ℕ} (xs : Mathlib.Vector α (n + 1)) :
     ($ xs) = (xs[·]) <$> $[0..n] := rfl
 
 variable {α : Type} [DecidableEq α] {n : ℕ}
 
 /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
 given some `Inhabited` instance on the output type. -/
-lemma uniformSelectVector_eq_uniformSelectList (xs : Vector α (n + 1)) :
+lemma uniformSelectVector_eq_uniformSelectList (xs : Mathlib.Vector α (n + 1)) :
     let _ :  Inhabited α := ⟨xs.head⟩; ($ xs) = ($ xs.toList : ProbComp α) :=
   match xs with
   | ⟨x :: xs, h⟩ => by
     have hxs : n = List.length xs := by simpa using symm h
     cases hxs
-    simp only [uniformSelectVector_def, Fin.getElem_fin, Vector.getElem_eq_get, Vector.get,
+    simp only [uniformSelectVector_def, Fin.getElem_fin, Mathlib.Vector.getElem_eq_get, Mathlib.Vector.get,
       List.length_cons, Fin.eta, Fin.cast_eq_self, List.get_eq_getElem, map_eq_bind_pure_comp,
       Function.comp, Vector.toList_mk, uniformSelectList_cons]
 
 @[simp]
-lemma evalDist_uniformSelectVector (xs : Vector α (n + 1)) :
+lemma evalDist_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) :
     evalDist ($ xs) = (PMF.uniformOfFintype (Fin (n + 1))).map (xs[·]) := by
   simp only [uniformSelectVector_def, Fin.getElem_fin, evalDist_map, evalDist_uniformFin]
 
 @[simp]
-lemma support_uniformSelectVector (xs : Vector α (n + 1)) :
+lemma support_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) :
     ($ xs).support = {x | x ∈ xs.toList} := by
   simp only [uniformSelectVector_eq_uniformSelectList, support_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte]
 
 @[simp]
-lemma finSupport_uniformSelectVector (xs : Vector α (n + 1)) :
+lemma finSupport_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) :
     ($ xs).finSupport = xs.toList.toFinset := by
   simp only [uniformSelectVector_eq_uniformSelectList, finSupport_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte]
 
 @[simp]
-lemma probOutput_uniformSelectVector (xs : Vector α (n + 1)) (x : α) :
+lemma probOutput_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (x : α) :
     [= x | $ xs] = xs.toList.count x / (n + 1) := by
   simp only [uniformSelectVector_eq_uniformSelectList, probOutput_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
     Nat.cast_one]
 
 @[simp]
-lemma probEvent_uniformSelectVector (xs : Vector α (n + 1)) (p : α → Prop) [DecidablePred p] :
+lemma probEvent_uniformSelectVector (xs : Mathlib.Vector α (n + 1)) (p : α → Prop) [DecidablePred p] :
     [p | $ xs] = xs.toList.countP p / (n + 1) := by
   simp only [uniformSelectVector_eq_uniformSelectList, probEvent_uniformSelectList,
     Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,

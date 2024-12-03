@@ -23,8 +23,8 @@ namespace OracleComp
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 /-- Run the computation `oa` repeatedly `n` times to get a vector of `n` results. -/
-def replicate (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Vector α n)
-  | 0 => pure Vector.nil
+def replicate (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Mathlib.Vector α n)
+  | 0 => pure Mathlib.Vector.nil
   | n + 1 => (· ::ᵥ ·) <$> oa <*> replicate oa n
 
 variable (oa : OracleComp spec α)
@@ -80,8 +80,8 @@ lemma evalDist_replicate_zero_add (n : ℕ) :
   eq_of_heq <| (evalDist_replicate_zero_add_heq oa n).trans <| heq_eqRec_iff_heq.2 HEq.rfl
 
 @[simp]
-lemma probOutput_replicate_zero_add (n : ℕ) (xs : Vector α (0 + n)) :
-    let hxs : xs.1.length = n := (Vector.length_val xs).trans (zero_add n)
+lemma probOutput_replicate_zero_add (n : ℕ) (xs : Mathlib.Vector α (0 + n)) :
+    let hxs : xs.1.length = n := (Mathlib.Vector.length_val xs).trans (zero_add n)
     [= xs | oa.replicate (0 + n)] = [= ⟨xs.1, hxs⟩ | oa.replicate n] := by
   have h : [= xs | oa.replicate (0 + n)] = [= (zero_add n).symm ▸ xs | oa.replicate n] :=
   by congr <;> simp
@@ -92,7 +92,7 @@ lemma probOutput_replicate_zero_add (n : ℕ) (xs : Vector α (0 + n)) :
   congr <;> try simp
 
 -- @[simp] TODO: should we simp this with the `subst` there?
-lemma probEvent_replicate_zero_add (n : ℕ) (xss : Set (Vector α (0 + n))) :
+lemma probEvent_replicate_zero_add (n : ℕ) (xss : Set (Mathlib.Vector α (0 + n))) :
     [xss | oa.replicate (0 + n)] = [(zero_add n).symm ▸ xss | oa.replicate n] := by
   congr <;> simp
 
@@ -124,7 +124,7 @@ end comm
 /-- The probability of getting a vector from `replicate` is the product of the chances of
 getting each of the individual elements. -/
 @[simp]
-lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n) :
+lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Mathlib.Vector α n) :
     [= xs | replicate oa n] = (xs.toList.map ([= · | oa])).prod := by
   induction n with
     | zero => simp
@@ -152,7 +152,7 @@ section SelectableTypeVector
 /-- Vectors can be selected uniformly if the underlying type can be.
 Note: this isn't very efficient as an actual implementation in practice. -/
 instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
-    SelectableType (Vector α n) where
+    SelectableType (Mathlib.Vector α n) where
   selectElem := replicate ($ᵗ α) n
   probOutput_selectElem_eq xs ys := by simp
 

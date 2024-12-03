@@ -23,15 +23,15 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
 
 @[simp] -- mathlib?
-lemma vector_eq_nil {α : Type} (xs : Vector α 0) : xs = Vector.nil :=
-  Vector.ext (IsEmpty.forall_iff.2 True.intro)
+lemma vector_eq_nil {α : Type} (xs : Mathlib.Vector α 0) : xs = Mathlib.Vector.nil :=
+  Mathlib.Vector.ext (IsEmpty.forall_iff.2 True.intro)
 
 lemma List.injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
   simp [Function.Injective2]
 
 lemma Vector.injective2_cons {α : Type} {n : ℕ} :
-    Function.Injective2 (Vector.cons : α → Vector α n → Vector α (n + 1)) := by
-  simp [Function.Injective2, Vector.eq_cons_iff]
+    Function.Injective2 (Vector.cons : α → Mathlib.Vector α n → Mathlib.Vector α (n + 1)) := by
+  simp [Function.Injective2, Mathlib.Vector.eq_cons_iff]
 
 lemma Prod.mk.injective2 {α β : Type} :
     Function.Injective2 (Prod.mk : α → β → α × β) := by
@@ -64,7 +64,11 @@ lemma List.card_filter_getElem_eq {α : Type} [DecidableEq α]
   simp only [Fin.getElem_fin, beq_iff_eq, Finset.sum_boole, Nat.cast_id]
 
 @[simp]
-lemma Vector.getElem_eq_get {α n} (xs : Vector α n) (i : ℕ) (h : i < n) :
+lemma Vector.getElem_eq_get {α n} (xs : _root_.Vector α n) (i : ℕ) (h : i < n) :
+  xs[i]'h = xs.get ⟨i, h⟩ := rfl
+
+@[simp]
+lemma Mathlib.Vector.getElem_eq_get {α n} (xs : Mathlib.Vector α n) (i : ℕ) (h : i < n) :
   xs[i]'h = xs.get ⟨i, h⟩ := rfl
 
 @[simp] lemma Finset.sum_boole' {ι β : Type} [AddCommMonoid β] (r : β)
