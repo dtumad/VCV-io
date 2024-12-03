@@ -41,13 +41,16 @@ def replicate_list {ι : Type} {spec : OracleSpec ι} {α : Type}
   | 0 => pure []
   | n + 1 => List.cons <$> oa <*> replicate_list oa n
 
+#check Fin.foldlM
+
 -- TODO: this is probably the right way to be doing this
 def replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) := do
-  let mut xs := []
-  for _ in List.range n do
-    xs ← (· :: xs) <$> oa
-  return xs
+  Fin.foldrM n (λ _ xs ↦ (· :: xs) <$> oa) []
+  -- let mut xs := []
+  -- for _ in List.range n do
+  --   xs ← (· :: xs) <$> oa
+  -- return xs
 
 lemma probOutput_replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp spec α) (n : ℕ) (xs : List α) (h : xs.length = n) :
