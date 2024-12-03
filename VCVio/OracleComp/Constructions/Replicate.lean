@@ -30,6 +30,32 @@ def replicate {ι : Type} {spec : OracleSpec ι} {α : Type}
   | 0 => pure #v[]
   | n + 1 => push <$> oa <*> replicate oa n
 
+def replicate_general {ι : Type} {spec : OracleSpec ι} {α : Type} (oa : OracleComp spec α)
+    (Cont : ℕ → Type) (empty : Cont 0) (comb : {n : ℕ} → α → Cont n → Cont (n + 1))
+    (n : ℕ) : OracleComp spec (Cont n) := match n with
+  | 0 => pure empty
+  | n + 1 => comb <$> oa <*> replicate_general oa Cont empty comb n
+
+def replicate_list {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (List α)
+  | 0 => pure []
+  | n + 1 => List.cons <$> oa <*> replicate_list oa n
+
+-- TODO: this is probably the right way to be doing this
+def replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) := do
+  let mut xs := []
+  for _ in List.range n do
+    xs ← (· :: xs) <$> oa
+  return xs
+
+lemma probOutput_replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) (n : ℕ) (xs : List α) (h : xs.length = n) :
+    [= xs | replicate_for oa n] = (xs.map ([= · | oa])).prod := by
+  rw [replicate_for]
+  simp
+  sorry
+
 variable (oa : OracleComp spec α)
 
 @[simp]
