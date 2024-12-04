@@ -41,23 +41,42 @@ def replicate_list {ι : Type} {spec : OracleSpec ι} {α : Type}
   | 0 => pure []
   | n + 1 => List.cons <$> oa <*> replicate_list oa n
 
-#check Fin.foldlM
-
 -- TODO: this is probably the right way to be doing this
 def replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) := do
-  Fin.foldrM n (λ _ xs ↦ (· :: xs) <$> oa) []
-  -- let mut xs := []
-  -- for _ in List.range n do
-  --   xs ← (· :: xs) <$> oa
-  -- return xs
+  let mut xs := []
+  for _ in List.finRange n do
+    let x ← oa
+    xs := x :: xs
+  return xs
 
 lemma probOutput_replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp spec α) (n : ℕ) (xs : List α) (h : xs.length = n) :
     [= xs | replicate_for oa n] = (xs.map ([= · | oa])).prod := by
+  revert xs
   rw [replicate_for]
   simp
-  sorry
+  induction n with
+  | zero => {
+      simp
+  }
+  | succ n hn => {
+    intro xs hxs
+    -- have := hxs
+    -- rw [← List.length_reverse] at hxs
+    have : xs.reverse.length = n + 1 := List.length_reverse xs ▸ hxs
+    have h := List.exists_cons_of_length_eq_add_one this
+    simp_rw [List.reverse_eq_cons_iff] at h
+    obtain ⟨x, xs, rfl⟩ := h
+    have : xs.length = n := by simpa using hxs
+    specialize hn xs this
+    -- rw [← List.prod_reverse, ← List.map_reverse, List.reverse_cons]
+    rw [List.map_append, List.map_singleton, List.prod_append, List.prod_singleton,
+      List.map_reverse, List.prod_reverse,
+      ← hn]
+    simp [Fin.foldlM_succ]
+    sorry
+  }
 
 variable (oa : OracleComp spec α)
 
