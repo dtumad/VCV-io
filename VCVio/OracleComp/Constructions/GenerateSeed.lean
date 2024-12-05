@@ -24,7 +24,7 @@ variable {ι : Type} [DecidableEq ι]
 
 /-- Generate a `QuerySeed` uniformly at random for some set of oracles `spec : OracleSpec ι`,
 with `qc i : ℕ` values seeded for each `i ∈ activeOracles`.
-`activeOracles` can in theory have duplicate values, but in most use cases will not. -/
+Note that `activeOracles` is allowed to contain duplicates, but usually won't in practice. -/
 def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
     (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) := do
   let mut seed : QuerySeed spec := ∅
@@ -33,6 +33,16 @@ def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
     seed := seed.addValues xs.toArray.toList
   return seed
 
+-- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+--   (qc : ι → ℕ) (j : ι) (js : List ι)
+
+-- lemma probOutput_generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+--     (qc : ι → ℕ) (js : List ι) (seed : QuerySeed spec)
+--     (h : seed ∈ (generateSeed spec qc js).support) :
+--     [= seed | generateSeed spec qc js] =
+--       1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod :=
+--   sorry
+
 -- def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --     (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) :=
 --   match activeOracles with
@@ -40,11 +50,11 @@ def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   | j :: js => QuerySeed.addValues <$> generateSeed spec qc js <*>
 --       (Array.toList <$> Vector.toArray <$> replicate ($ᵗ (spec.range j)) (qc j))
 
--- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
---   (qc : ι → ℕ) (j : ι) (js : List ι)
+variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+  (qc : ι → ℕ) (j : ι) (js : List ι)
 
--- @[simp]
--- lemma generateSeed_nil : generateSeed spec qc [] = return ∅ := rfl
+@[simp]
+lemma generateSeed_nil : generateSeed spec qc [] = return ∅ := rfl
 
 -- @[simp]
 -- lemma generateSeed_cons : generateSeed spec qc (j :: js) = QuerySeed.addValues <$>
@@ -56,9 +66,10 @@ def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   | nil => rfl
 --   | cons j js h => simp [h]
 
--- @[simp]
--- lemma support_generateSeed : (generateSeed spec qc js).support =
---     {seed | ∀ i, (seed i).length = qc i * js.count i} := by
+@[simp]
+lemma support_generateSeed : (generateSeed spec qc js).support =
+    {seed | ∀ i, (seed i).length = qc i * js.count i} := by
+  sorry
 --   induction js with
 --   | nil => {
 --     simp [Set.ext_iff, DFunLike.ext_iff]
@@ -86,9 +97,10 @@ def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --           simp [h, mul_add_one]
 --   }
 
--- lemma probOutput_generateSeed (seed : QuerySeed spec)
---     (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
---     1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
+lemma probOutput_generateSeed (seed : QuerySeed spec)
+    (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
+    1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
+  sorry
 --   revert seed
 --   induction js with
 --   | nil => {
