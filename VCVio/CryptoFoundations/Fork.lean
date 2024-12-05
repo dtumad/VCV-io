@@ -42,6 +42,7 @@ namespace OracleComp
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
+-- TODO: move back
 instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
     Coe (ProbComp α) (OracleComp spec α) where
   coe := λ oa ↦ SubSpec.liftComp oa
@@ -51,15 +52,23 @@ variable [∀ i, SelectableType (spec.range i)]
 def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
     (activeOracles : List ι) (i : ι)
     (cf : α → QueryLog spec → Option (Fin (qb i + 1))) :
-    OracleComp spec (Option (α × α × Fin (qb i + 1))) := do
+    OracleComp spec ((α × α × Fin (qb i + 1))) := do
+  -- Choose a random query index `s` at which to fork the execution
   let s : Fin (qb i + 1) ← $[0..qb i]
+  -- Generate a shared seed for the initial execution
   let sharedSeed : QuerySeed spec ← generateSeed spec (update qb i s) activeOracles
-  let seed₁ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
-  let seed₂ ← sharedSeed.addValue i <$> ($ᵗ spec.range i)
+  -- Generate the query outputs for the query to be forked
+  let u₁ ←$ᵗ spec.range i
+  let u₂ ←$ᵗ spec.range i
+  guard (u₁ ≠ u₂)
+  let seed₁ := sharedSeed.addValue i u₁
+  let seed₂ := sharedSeed.addValue i u₂
+  -- Execute the program with the two slightly different seeds
   let (x₁, (log₁, _)) ← simulate (seededOracle ∘ₛₒ loggingOracle) (∅, seed₁) oa
   let (x₂, (log₂, _)) ← simulate (seededOracle ∘ₛₒ loggingOracle) (∅, seed₂) oa
-  return if cf x₁ log₁ = some s ∧ cf x₂ log₂ = some s ∧
-    (seed₁ i).getI s ≠ (seed₂ i).getI s then some (x₁, x₂, s) else none
+  -- Check that `cf` chooses to fork at `s` in both cases
+  guard (cf x₁ log₁ = some s ∧ cf x₂ log₂ = some s)
+  return (x₁, x₂, s)
 
 variable [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι)
@@ -69,12 +78,12 @@ variable [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
 succeeding in producing a result. By the filtering in the final `ite` this bounds the
 chance of getting a result with the desired forking semantics. -/
 theorem le_probEvent_isSome_fork :
-    let frk := [λ z ↦ z.isSome | fork oa qb js i cf]
+    let frk := 1 - [⊥ | fork oa qb js i cf]
     let acc := [λ (x, log) ↦ (cf x log).isSome | simulate loggingOracle ∅ oa]
     let q : ℝ≥0∞ := qb i
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
     (acc / q) ^ 2 - acc / h ≤ frk := by
-  sorry
+  sorry -- TODO: proof after change to "guard"
 
 -- /-- Succesfull outputs of `fork oa qb js i cf` are outputs of running `oa` with a seeded oracle
 -- where the seeds agree up until query `s` to the oracle at index `i`, at which point
@@ -95,7 +104,7 @@ Weaker than the full characterization of the `support` of fork,
 but often more useful in practice -/
 theorem exists_log_of_mem_support_fork (x₁ x₂ : α) (s : Fin (qb i + 1))
     (hcf : ∀ x log, (cf x log).isSome → ↑s < (log i).length)
-    (h : some (x₁, x₂, s) ∈ ((fork oa qb js i cf)).support) :
+    (h : (x₁, x₂, s) ∈ ((fork oa qb js i cf)).support) :
     ∃ log₁ : QueryLog spec, ∃ log₂ : QueryLog spec,
       ∃ h₁ : cf x₁ log₁ = some s, ∃ h₂ : cf x₂ log₂ = some s,
       let hcf₁ : ↑s < (log₁ i).length := hcf x₁ log₁ (h₁ ▸ isSome_some)
@@ -103,6 +112,6 @@ theorem exists_log_of_mem_support_fork (x₁ x₂ : α) (s : Fin (qb i + 1))
       ((log₁ i)[s]'hcf₁).1 = ((log₂ i)[s]'hcf₂).1 ∧
       ((log₁ i)[s]'hcf₁).2 ≠ ((log₂ i)[s]'hcf₂).2 ∧
       (x₁, log₁) ∈ (simulate loggingOracle log₁ oa).support ∧
-      (x₂, log₂) ∈ (simulate loggingOracle log₂ oa).support := sorry
+      (x₂, log₂) ∈ (simulate loggingOracle log₂ oa).support := sorry -- TODO: proof after guard ch
 
 end OracleComp
