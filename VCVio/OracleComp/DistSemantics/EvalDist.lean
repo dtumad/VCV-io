@@ -195,10 +195,26 @@ lemma tsum_probOutput_eq_sub (oa : OracleComp spec α) :
     ∑' x, [= x | oa] = 1 - [⊥ | oa] := by
   refine ENNReal.eq_sub_of_add_eq probFailure_ne_top (tsum_probOutput_add_probFailure oa)
 
-lemma probFailure_eq_sub (oa : OracleComp spec α) :
+lemma sum_probOutput_eq_sub [Fintype α] (oa : OracleComp spec α) :
+    ∑ x, [= x | oa] = 1 - [⊥ | oa] := by
+  rw [← tsum_fintype, tsum_probOutput_eq_sub]
+
+lemma probFailure_eq_sub_tsum (oa : OracleComp spec α) :
     [⊥ | oa] = 1 - ∑' x, [= x | oa] := by
   refine ENNReal.eq_sub_of_add_eq (ne_top_of_le_ne_top one_ne_top tsum_probOutput_le_one)
     (probFailure_add_tsum_probOutput oa)
+
+lemma probFailure_eq_sub_sum [Fintype α] (oa : OracleComp spec α) :
+    [⊥ | oa] = 1 - ∑ x, [= x | oa] := by
+  rw [← tsum_fintype, probFailure_eq_sub_tsum]
+
+lemma tsum_probOutput_eq_one (oa : OracleComp spec α) (h : [⊥ | oa] = 0) :
+    ∑' x, [= x | oa] = 1 := by
+  rw [tsum_probOutput_eq_sub, h, tsub_zero]
+
+lemma sum_probOutput_eq_one [Fintype α] (oa : OracleComp spec α) (h : [⊥ | oa] = 0) :
+    ∑ x, [= x | oa] = 1 := by
+  rw [sum_probOutput_eq_sub, h, tsub_zero]
 
 section support
 
@@ -463,7 +479,7 @@ lemma probEvent_false (oa : OracleComp spec α) : [λ _ ↦ false | oa] = 0 := b
 lemma evalDist_ext_probEvent {oa : OracleComp spec α} {oa' : OracleComp spec' α}
     (h : ∀ x, [= x | oa] = [= x | oa']) : evalDist oa = evalDist oa' :=
   PMF.ext λ x ↦ match x with
-  | none => by simp [← probFailure_def, probFailure_eq_sub, h]
+  | none => by simp [← probFailure_def, probFailure_eq_sub_tsum, h]
   | some x => h x
 
 section pure
