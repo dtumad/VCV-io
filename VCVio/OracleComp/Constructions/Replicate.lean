@@ -55,7 +55,7 @@ lemma probOutput_replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
     [= xs | replicate_for oa n] = (xs.map ([= · | oa])).prod := by
   revert xs
   rw [replicate_for]
-  simp
+  simp only [bind_pure_comp, map_pure, List.forIn_yield_eq_foldlM, List.foldlM_range, bind_pure]
   induction n with
   | zero => {
       simp
@@ -96,8 +96,7 @@ lemma replicate_pure (x : α) (n : ℕ) :
       apply Vector.toArray_inj
       simp [Vector.push, Vector.ofFn]
       ext x
-      simp
-      simp
+      simp only [Array.size_push, Array.size_ofFn]
       rw [Array.getElem_push]
       simp only [Array.size_ofFn, Array.getElem_ofFn, Function.const_apply, dite_eq_ite, ite_self]
   }

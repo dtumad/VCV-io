@@ -136,7 +136,8 @@ lemma probOutput_generateSeed (seed : QuerySeed spec)
 --         specialize h j
 --         simp only [List.count_cons_self] at h
 --         simp only [Nat.cast_list_prod, List.map_map, one_div, probOutput_vector_toList,
---           List.length_drop, h, mul_add_one, add_tsub_cancel_left, ↓reduceDIte, probOutput_replicate,
+--           List.length_drop, h, mul_add_one, add_tsub_cancel_left, ↓reduceDIte,
+              -- probOutput_replicate,
 --           probOutput_uniformOfFintype, Vector.toList_mk, List.map_drop, List.map_const',
 --           List.drop_replicate, List.prod_replicate, List.map_cons, List.prod_cons, Nat.cast_mul,
 --           Nat.cast_pow]
