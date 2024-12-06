@@ -125,7 +125,7 @@ lemma uniformSelectVector_def {α : Type} {n : ℕ} (xs : Vector α (n + 1)) :
 
 -- variable {α : Type} {n : ℕ}
 
--- -- /-- Uniform selection from a vector is exactly equal to uniform selection from the underlying list,
+-- -- /-- Uniform selection from a vector is as uniform selection from the underlying list,
 -- -- given some `Inhabited` instance on the output type. -/
 -- -- lemma uniformSelectVector_eq_uniformSelectList (xs : Mathlib.Vector α (n + 1)) :
 -- --     ($ xs) = ($ xs.toList : ProbComp α) :=
@@ -160,14 +160,15 @@ lemma uniformSelectVector_def {α : Type} {n : ℕ} (xs : Vector α (n + 1)) :
 -- lemma probOutput_uniformSelectVector [DecidableEq α] (xs : Vector α (n + 1)) (x : α) :
 --     [= x | $ xs] = xs.toList.count x / (n + 1) := by sorry
 --   -- simp only [uniformSelectVector_eq_uniformSelectList, probOutput_uniformSelectList,
---   --   Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
---   --   Nat.cast_one]
+--   --   Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length,
+    --Nat.cast_add, --   Nat.cast_one]
 
 -- @[simp]
 -- lemma probEvent_uniformSelectVector (xs : Vector α (n + 1)) (p : α → Prop)
 --     [DecidablePred p] : [p | $ xs] = xs.toList.countP p / (n + 1) := by sorry
 --   -- simp only [uniformSelectVector_eq_uniformSelectList, probEvent_uniformSelectList,
---   --   Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length, Nat.cast_add,
+--   --   Vector.empty_toList_eq_ff, Bool.false_eq_true, ↓reduceIte, Vector.toList_length,
+      -- Nat.cast_add,
 --   --   Nat.cast_one]
 
 end uniformSelectVector
