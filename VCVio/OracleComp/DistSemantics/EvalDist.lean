@@ -493,6 +493,12 @@ lemma probEvent_pure (p : α → Prop) [DecidablePred p] :
   simp [probEvent_eq_tsum_ite]
   refine (tsum_eq_single x (by simp; tauto)).trans (by simp)
 
+lemma probEvent_pure_eq_zero {p : α → Prop} {x : α} (h : ¬ p x) :
+    [p | (pure x : OracleComp spec α)] = 0 := by simpa
+
+lemma probEvent_pure_eq_one {p : α → Prop} {x : α} (h : p x) :
+    [p | (pure x : OracleComp spec α)] = 1 := by simpa
+
 end pure
 
 section bind

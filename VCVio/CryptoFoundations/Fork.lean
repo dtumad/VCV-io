@@ -77,12 +77,11 @@ variable [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
 /-- Proof of non-negligible lower bound on the failure chance of forking a computation
 succeeding in producing a result. By the filtering in the final `ite` this bounds the
 chance of getting a result with the desired forking semantics. -/
-theorem le_probEvent_isSome_fork :
-    let frk := 1 - [⊥ | fork oa qb js i cf]
+theorem probFailure_fork_le :
     let acc := [λ (x, log) ↦ (cf x log).isSome | simulate loggingOracle ∅ oa]
     let q : ℝ≥0∞ := qb i
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
-    (acc / q) ^ 2 - acc / h ≤ frk := by
+    [⊥ | fork oa qb js i cf] ≤ 1 / h + (acc / q) ^ 2 := by
   sorry -- TODO: proof after change to "guard"
 
 -- /-- Succesfull outputs of `fork oa qb js i cf` are outputs of running `oa` with a seeded oracle
