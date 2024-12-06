@@ -6,6 +6,7 @@ Authors: Devon Tuma
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.List
+import Init.Data.Vector.Lemmas
 
 /-!
 # Running a Computation Multiple Times
@@ -16,31 +17,89 @@ returning the result as a list of length `n`.
 Note that while the executions are independent, they may no longer be after calling `simulate`.
 -/
 
-open OracleSpec Mathlib
+
+open OracleSpec Vector
 
 namespace OracleComp
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 /-- Run the computation `oa` repeatedly `n` times to get a vector of `n` results. -/
-def replicate (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Mathlib.Vector α n)
-  | 0 => pure Vector.nil
-  | n + 1 => (· ::ᵥ ·) <$> oa <*> replicate oa n
+def replicate {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (Vector α n)
+  | 0 => pure #v[]
+  | n + 1 => push <$> oa <*> replicate oa n
+
+def replicate_general {ι : Type} {spec : OracleSpec ι} {α : Type} (oa : OracleComp spec α)
+    (Cont : ℕ → Type) (empty : Cont 0) (comb : {n : ℕ} → α → Cont n → Cont (n + 1))
+    (n : ℕ) : OracleComp spec (Cont n) := match n with
+  | 0 => pure empty
+  | n + 1 => comb <$> oa <*> replicate_general oa Cont empty comb n
+
+def replicate_list {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) : (n : ℕ) → OracleComp spec (List α)
+  | 0 => pure []
+  | n + 1 => List.cons <$> oa <*> replicate_list oa n
+
+-- TODO: this is probably the right way to be doing this
+def replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) (n : ℕ) : OracleComp spec (List α) := do
+  let mut xs := []
+  for _ in List.finRange n do
+    let x ← oa
+    xs := x :: xs
+  return xs
+
+lemma probOutput_replicate_for {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (oa : OracleComp spec α) (n : ℕ) (xs : List α) (h : xs.length = n) :
+    [= xs | replicate_for oa n] = (xs.map ([= · | oa])).prod := by
+  revert xs
+  rw [replicate_for]
+  simp only [bind_pure_comp, map_pure, List.forIn_yield_eq_foldlM, List.foldlM_range, bind_pure]
+  induction n with
+  | zero => {
+      simp
+  }
+  | succ n hn => {
+    intro xs hxs
+    -- have := hxs
+    -- rw [← List.length_reverse] at hxs
+    have : xs.reverse.length = n + 1 := List.length_reverse xs ▸ hxs
+    have h := List.exists_cons_of_length_eq_add_one this
+    simp_rw [List.reverse_eq_cons_iff] at h
+    obtain ⟨x, xs, rfl⟩ := h
+    have : xs.length = n := by simpa using hxs
+    specialize hn xs this
+    -- rw [← List.prod_reverse, ← List.map_reverse, List.reverse_cons]
+    rw [List.map_append, List.map_singleton, List.prod_append, List.prod_singleton,
+      List.map_reverse, List.prod_reverse,
+      ← hn]
+    simp [Fin.foldlM_succ]
+    sorry
+  }
 
 variable (oa : OracleComp spec α)
 
 @[simp]
-lemma replicate_zero : oa.replicate 0 = pure Vector.nil := rfl
+lemma replicate_zero : oa.replicate 0 = pure #v[] := rfl
 
 @[simp]
-lemma replicate_succ (n : ℕ) : oa.replicate (n + 1) = (· ::ᵥ ·) <$> oa <*> replicate oa n := rfl
+lemma replicate_succ (n : ℕ) : oa.replicate (n + 1) = push <$> oa <*> replicate oa n := rfl
 
 /-- Repeating a specific value just returns a list of that element repeated. -/
 lemma replicate_pure (x : α) (n : ℕ) :
-    (pure x : OracleComp spec α).replicate n = pure (Vector.replicate n x) := by
+    (pure x : OracleComp spec α).replicate n = pure (ofFn (Function.const _ x)) := by
   induction n with
-  | zero => simp
-  | succ n hn => simp [hn]
+  | zero => rfl
+  | succ n hn => {
+      simp [pure_seq, hn]
+      apply Vector.toArray_inj
+      simp [Vector.push, Vector.ofFn]
+      ext x
+      simp only [Array.size_push, Array.size_ofFn]
+      rw [Array.getElem_push]
+      simp only [Array.size_ofFn, Array.getElem_ofFn, Function.const_apply, dite_eq_ite, ite_self]
+  }
 
 section zero_add
 
@@ -80,16 +139,13 @@ lemma evalDist_replicate_zero_add (n : ℕ) :
   eq_of_heq <| (evalDist_replicate_zero_add_heq oa n).trans <| heq_eqRec_iff_heq.2 HEq.rfl
 
 @[simp]
-lemma probOutput_replicate_zero_add (n : ℕ) (xs : Mathlib.Vector α (0 + n)) :
-    let hxs : xs.1.length = n := (Vector.length_val xs).trans (zero_add n)
-    [= xs | oa.replicate (0 + n)] = [= ⟨xs.1, hxs⟩ | oa.replicate n] := by
+lemma probOutput_replicate_zero_add (n : ℕ) (xs : Vector α (0 + n)) :
+    -- let hxs : xs.1.length = n := (Vector.length_val xs).trans (zero_add n)
+    [= xs | oa.replicate (0 + n)] = [= zero_add n ▸ xs | oa.replicate n] := by
   have h : [= xs | oa.replicate (0 + n)] = [= (zero_add n).symm ▸ xs | oa.replicate n] :=
   by congr <;> simp
   refine h.trans ?_
   congr
-  refine eq_of_heq (HEq.symm ?_)
-  rw [heq_eqRec_iff_heq]
-  congr <;> try simp
 
 -- -- @[simp] TODO: should we simp this with the `subst` there?
 -- lemma probEvent_replicate_zero_add (n : ℕ) (xss : (Mathlib.Vector α (0 + n)) → Prop)
@@ -122,14 +178,34 @@ lemma replicate_add_comm (n m : ℕ) :
 
 end comm
 
+
+-- lemma probFailure_seq_map (oa : OracleComp spec α) (ob : OracleComp spec β) (f : α → β → γ) :
+--     [⊥ | f <$> oa <*> ob] = [⊥ | oa] + (1 - [⊥ | oa]) * [⊥ | ob] := by
+--   -- rw [probFailure_seq_map]
+--   sorry
+
+
+
+@[simp]
+lemma probFailure_replicate (oa : OracleComp spec α) (n : ℕ) :
+    [⊥ | replicate oa n] = 1 - (1 - [⊥ | replicate oa n]) ^ n := by
+  induction n with
+  | zero => simp only [replicate_zero, probFailure_pure, tsub_zero, pow_zero, tsub_self]
+  | succ n hn => {
+      sorry
+  }
+
 /-- The probability of getting a vector from `replicate` is the product of the chances of
 getting each of the individual elements. -/
 @[simp]
-lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Mathlib.Vector α n) :
+lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : Vector α n) :
     [= xs | replicate oa n] = (xs.toList.map ([= · | oa])).prod := by
-  induction n with
-    | zero => simp
-    | succ n hn => obtain ⟨x, xs, rfl⟩ := Vector.exists_eq_cons xs; simp [hn]
+  induction xs using Vector.elimAsList with
+  | mk xs hxs => match xs with
+    | [] => {
+      sorry
+    }
+    | x :: xs => sorry
 
 @[simp]
 lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
@@ -153,7 +229,7 @@ section SelectableTypeVector
 /-- Vectors can be selected uniformly if the underlying type can be.
 Note: this isn't very efficient as an actual implementation in practice. -/
 instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
-    SelectableType (Mathlib.Vector α n) where
+    SelectableType (Vector α n) where
   selectElem := replicate ($ᵗ α) n
   probOutput_selectElem_eq xs ys := by simp
 

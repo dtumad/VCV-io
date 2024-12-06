@@ -10,8 +10,8 @@ package VCVio where
     ⟨`relaxedAutoImplicit, false⟩
   ]
 
-require mathlib from git "https://github.com/leanprover-community/mathlib4.git" @ "master"
-require Cli from git "https://github.com/leanprover/lean4-cli" @ "main"
+require "leanprover-community" / "batteries" @ git "main"
+require "leanprover-community" / "mathlib" @ git "main"
 
 @[default_target] lean_lib VCVio
 

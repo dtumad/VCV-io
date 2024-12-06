@@ -133,3 +133,19 @@ lemma tsum_option {α β : Type} [AddCommMonoid α] [TopologicalSpace α]
   · intro x
     cases x <;> simp
   · simp
+
+universe u v w
+
+@[simp]
+lemma List.foldlM_range {m : Type u → Type v} [Monad m] [LawfulMonad m]
+    {s : Type u} (n : ℕ) (f : s → Fin n → m s) (init : s)  :
+    List.foldlM f init (List.finRange n) =
+      Fin.foldlM n f init := by
+  revert init
+  induction n with
+  | zero => simp
+  | succ n hn =>
+      intro init
+      simp only [List.finRange_succ, List.foldlM_cons, Fin.foldlM_succ]
+      refine congr_arg (_ >>= ·) (funext λ x ↦ ?_)
+      rw [← hn, List.foldlM_map]
