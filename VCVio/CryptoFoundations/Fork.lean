@@ -42,11 +42,6 @@ namespace OracleComp
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
--- TODO: move back
-instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
-    Coe (ProbComp α) (OracleComp spec α) where
-  coe := λ oa ↦ SubSpec.liftComp oa
-
 variable [∀ i, SelectableType (spec.range i)]
 
 def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
