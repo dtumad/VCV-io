@@ -69,12 +69,22 @@ in the experiment, and the structure extends an oracle implementation for `spec`
 
 structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
     extends OracleImpl spec σ where
-  main : OracleComp spec Bool
+  main : OracleComp spec Unit
 
 noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
     (exp : SecExp spec σ) : ℝ≥0∞ :=
-  [= true | fst <$> exp.exec exp.main]
+  1 - [⊥ | exp.exec exp.main]
 
+namespace SecExp
+
+variable {ι : Type} {spec : OracleSpec ι} {σ : Type}
+
+@[simp]
+lemma advantage_eq_one_iff (exp : SecExp spec σ) :
+    exp.advantage = 1 ↔ [⊥ | exp.exec exp.main] = 0 := by
+  sorry
+
+end SecExp
 
 -- noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
 --     (exp : SecExp spec σ) (p : σ → Bool) : ℝ≥0∞ :=

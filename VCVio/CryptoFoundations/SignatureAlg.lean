@@ -39,7 +39,8 @@ def soundnessExp (sigAlg : SignatureAlg spec σ M PK SK S)
   main := do
     let (pk, sk) ← sigAlg.keygen
     let sig ← sigAlg.sign pk sk m
-    sigAlg.verify pk m sig
+    let b ← sigAlg.verify pk m sig
+    guard b
   __ := sigAlg
 
 /-- A signature algorithm is complete if valid signatures always verify. -/
@@ -68,7 +69,7 @@ def unforgeableExp {sigAlg : SignatureAlg spec σ M PK SK S}
     let adv_so := (sigAlg.signingOracle pk sk).liftRight
     let ((m, σ), log) ← simulate adv_so ∅ (adv.run pk)
     let b ← sigAlg.verify pk m σ
-    return b && !(log.wasQueried () m)
+    guard (!(log.wasQueried () m) && b)
   __ := sigAlg
 
 end unforgeable

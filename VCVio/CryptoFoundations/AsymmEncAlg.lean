@@ -50,7 +50,7 @@ def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C)
     let (pk, sk) ← encAlg.keygen
     let σ ← encAlg.encrypt m pk
     let m' ← encAlg.decrypt σ sk
-    return m' = m
+    guard (m' = m)
   __ := encAlg
 
 def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C) : Prop :=
