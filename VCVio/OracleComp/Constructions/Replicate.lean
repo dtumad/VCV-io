@@ -188,7 +188,7 @@ end comm
 
 @[simp]
 lemma probFailure_replicate (oa : OracleComp spec α) (n : ℕ) :
-    [⊥ | replicate oa n] = 1 - (1 - [⊥ | replicate oa n]) ^ n := by
+    [⊥ | replicate oa n] = 1 - (1 - [⊥ | oa]) ^ n := by
   induction n with
   | zero => simp only [replicate_zero, probFailure_pure, tsub_zero, pow_zero, tsub_self]
   | succ n hn => {
@@ -232,6 +232,7 @@ instance (α : Type) [Fintype α] [Inhabited α] [SelectableType α] (n : ℕ) :
     SelectableType (Vector α n) where
   selectElem := replicate ($ᵗ α) n
   probOutput_selectElem_eq xs ys := by simp
+  probFailure_selectElem := by simp
 
 end SelectableTypeVector
 

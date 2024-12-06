@@ -408,9 +408,13 @@ calc
   _ = ∑' x : oa.support, if p x then [= x | oa] else 0 := by
     rw [tsum_subtype (support oa) (λ x ↦ if p x then [= x | oa] else 0)]
 
+lemma probEvent_eq_sum_fintype_indicator [Fintype α] (oa : OracleComp spec α) (p : α → Prop) :
+    [p | oa] = ∑ x : α, {x | p x}.indicator ([= · | oa]) x :=
+  (probEvent_eq_tsum_indicator oa p).trans (tsum_fintype _)
+
 lemma probEvent_eq_sum_fintype_ite [DecidablePred p] [Fintype α] :
     [p | oa] = ∑ x : α, if p x then [= x | oa] else 0 :=
-  (probEvent_eq_tsum_ite oa p).trans <| tsum_eq_sum' <| by simp
+  (probEvent_eq_tsum_ite oa p).trans (tsum_fintype _)
 
 lemma probEvent_eq_sum_filter_univ [DecidablePred p] [Fintype α] :
     [p | oa] = ∑ x in Finset.univ.filter p, [= x | oa] := by
@@ -540,15 +544,15 @@ lemma probEvent_bind_eq_tsum_subtype (q : β → Prop) [DecidablePred q] :
 
 lemma probOutput_bind_eq_sum_fintype [Fintype α] (y : β) :
     [= y | oa >>= ob] = ∑ x : α, [= x | oa] * [= y | ob x] :=
-  (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum' <| by simp)
+  (probOutput_bind_eq_tsum oa ob y).trans (tsum_fintype _)
 
 lemma probFailure_bind_eq_sum_fintype [Fintype α] :
     [⊥ | oa >>= ob] = [⊥ | oa] + ∑ x : α, [= x | oa] * [⊥ | ob x] :=
-  (probFailure_bind_eq_tsum oa ob).trans (congr_arg ([⊥ | oa] + ·) <| tsum_eq_sum' <| by simp)
+  (probFailure_bind_eq_tsum oa ob).trans (congr_arg ([⊥ | oa] + ·) <| tsum_fintype _)
 
 lemma probEvent_bind_eq_sum_fintype [Fintype α] (q : β → Prop) [DecidablePred q] :
     [q | oa >>= ob] = ∑ x : α, [= x | oa] * [q | ob x] :=
-  (probEvent_bind_eq_tsum oa ob q).trans (tsum_eq_sum' <| by simp)
+  (probEvent_bind_eq_tsum oa ob q).trans (tsum_fintype _)
 
 lemma probOutput_bind_eq_sum_finSupport [DecidableEq α] (y : β) :
     [= y | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [= y | ob x] :=
@@ -708,7 +712,9 @@ section eqRec
 variable (oa : OracleComp spec α) (h : α = β)
 
 lemma probOutput_eqRec (y : β) : [= y | h ▸ oa] = [= h ▸ y | oa] := by induction h; rfl
-lemma probFailure_eqRec : [⊥ | h ▸ oa] = [⊥ | oa] := by induction h; rfl
+
+@[simp] lemma probFailure_eqRec : [⊥ | h ▸ oa] = [⊥ | oa] := by induction h; rfl
+
 lemma probEvent_eqRec (q : β → Prop) [DecidablePred q] :
     [q | h ▸ oa] = [λ x ↦ q (h ▸ x) | oa] := by induction h; rfl
 
