@@ -11,7 +11,7 @@ package VCVio where
   ]
 
 require "leanprover-community" / "batteries" @ git "main"
-require "leanprover-community" / "mathlib" @ git "main"
+require "leanprover-community" / "mathlib" @ git "master"
 
 @[default_target] lean_lib VCVio
 
