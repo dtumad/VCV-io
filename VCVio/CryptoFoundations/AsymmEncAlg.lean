@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
+import VCVio.OracleComp.Coercions.SubSpec
 
 /-!
 # Asymmetric Encryption Schemes.
@@ -50,7 +51,7 @@ def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C)
     let (pk, sk) ← encAlg.keygen
     let σ ← encAlg.encrypt m pk
     let m' ← encAlg.decrypt σ sk
-    return m' = m
+    guard (m' = m)
   __ := encAlg
 
 def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C) : Prop :=
@@ -75,40 +76,43 @@ def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C) : Prop :=
 
 end sound
 
--- section IND_CPA
+section IND_CPA
 
 -- variable [DecidableEq ι]
 
--- /-- `IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an
--- asymmetric encryption with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
--- Adversary is given a public key and returns a pair of messages that it thinks
--- it can distinguish the encryption of. It addionally has a `distinguish` function
--- that given a pair of messages and an encryption, returns whether it is an encryption of
--- the first message or the second message. -/
--- structure IND_CPA_Adv (encAlg : AsymmEncAlg spec M PK SK C)
---     extends SecAdv spec (λ sp ↦ PK sp) (λ sp ↦ M sp × M sp) where
---   distinguish (sp : ℕ) : PK sp → M sp × M sp →
---     C sp → OracleComp (spec sp) Bool
+variable [DecidableEq ι]
 
--- /-- Experiment for IND-CPA security of an asymmetric encryption algorithm.
--- `inp_gen` generates a key and pre-selects a random boolean value.
--- `main` runs the adversary on the public key, and encrypts the resulting message corresponding to
--- the boolean chosen in `inp_gen`, finally asking the adversary to determine the boolean
--- given the messages and resulting ciphertext. `is_valid` checks that this choice is correct.
--- The simulation oracles are pulled in directly from the encryption algorithm. -/
--- def IND_CPA_Exp {encAlg : AsymmEncAlg spec M PK SK C}
---     (adv : IND_CPA_Adv encAlg) :
---     SecExp spec where
---   main := λ sp ↦ do
---     let (pk, _) ← encAlg.keygen sp
---     let (m₁, m₂) ← adv.run sp pk
---     let b : Bool ← coin
---     let m := if b then m₁ else m₂
---     let c ← encAlg.encrypt sp m pk
---     let b' ← adv.distinguish sp pk (m₁, m₂) c
---     return b = b'
---   __ := encAlg
+/-- `IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an
+asymmetric encryption with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
+Adversary is given a public key and returns a pair of messages that it thinks
+it can distinguish the encryption of. It addionally has a `distinguish` function
+that given a pair of messages and an encryption, returns whether it is an encryption of
+the first message or the second message.
+TODO: should use sim oracles to allow state sharing -/
+structure IND_CPA_Adv (encAlg : AsymmEncAlg spec σ M PK SK C)
+    extends SecAdv spec PK (M × M) where
+  distinguish : PK → M × M → C → OracleComp spec Bool
 
--- end IND_CPA
+/-- Experiment for IND-CPA security of an asymmetric encryption algorithm.
+`inp_gen` generates a key and pre-selects a random boolean value.
+`main` runs the adversary on the public key, and encrypts the resulting message corresponding to
+the boolean chosen in `inp_gen`, finally asking the adversary to determine the boolean
+given the messages and resulting ciphertext. `is_valid` checks that this choice is correct.
+The simulation oracles are pulled in directly from the encryption algorithm. -/
+def IND_CPA_Exp [unifSpec ⊂ₒ spec]
+    {encAlg : AsymmEncAlg spec σ M PK SK C}
+    (adv : IND_CPA_Adv encAlg) :
+    SecExp spec σ where
+  main := do
+    let (pk, _) ← encAlg.keygen
+    let (m₁, m₂) ← adv.run pk
+    let b : Bool ← coin
+    let m := if b then m₁ else m₂
+    let c ← encAlg.encrypt m pk
+    let b' ← adv.distinguish pk (m₁, m₂) c
+    guard (b = b')
+  __ := encAlg
+
+end IND_CPA
 
 end AsymmEncAlg

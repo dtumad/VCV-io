@@ -178,3 +178,14 @@ end instances
 end SubSpec
 
 end OracleSpec
+
+namespace OracleComp
+
+/-- View a probabalistic computation as one with a larger set of oracles.
+We make this a special instance as it's often needed in situations where the
+type-class instance is not yet available (e.g. defining security experiments). -/
+instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
+    Coe (ProbComp α) (OracleComp spec α) where
+  coe := λ oa ↦ SubSpec.liftComp oa
+
+end OracleComp

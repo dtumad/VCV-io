@@ -39,7 +39,7 @@ def soundnessExp (encAlg : SymmEncAlg spec σ M K C)
     let k ← encAlg.keygen
     let σ ← encAlg.encrypt k m
     let m' ← encAlg.decrypt k σ
-    return m' = m
+    guard (m' = m)
   __ := encAlg
 
 /-- A symmetric encryption algorithm is complete if correctly generated ciphertexts
