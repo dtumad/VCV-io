@@ -184,10 +184,22 @@ variable {oa : OracleComp spec α} {x : α} {p : α → Prop}
 
 @[simp] lemma probOutput_ne_top : [= x | oa] ≠ ∞ := PMF.apply_ne_top (evalDist oa) x
 @[simp] lemma probOutput_lt_top : [= x | oa] < ∞ := PMF.apply_lt_top (evalDist oa) x
+@[simp] lemma not_one_lt_probOutput : ¬ 1 < [= x | oa] := not_lt.2 probOutput_le_one
+
 @[simp] lemma probEvent_ne_top : [p | oa] ≠ ∞ := ne_top_of_le_ne_top one_ne_top probEvent_le_one
 @[simp] lemma probEvent_lt_top : [p | oa] < ∞ := lt_top_iff_ne_top.2 probEvent_ne_top
+@[simp] lemma not_one_lt_probEvent : ¬ 1 < [p | oa] := not_lt.2 probEvent_le_one
+
 @[simp] lemma probFailure_ne_top : [⊥ | oa] ≠ ∞ := PMF.apply_ne_top (evalDist oa) none
 @[simp] lemma probFailure_lt_top : [⊥ | oa] < ∞ := PMF.apply_lt_top (evalDist oa) none
+@[simp] lemma not_one_lt_probFailure : ¬ 1 < [⊥ | oa] := not_lt.2 probFailure_le_one
+
+@[simp] lemma one_le_probOutput_iff : 1 ≤ [= x | oa] ↔ [= x | oa] = 1 := by
+  simp only [le_iff_eq_or_lt, not_one_lt_probOutput, or_false, eq_comm]
+@[simp] lemma one_le_probEvent_iff : 1 ≤ [p | oa] ↔ [p | oa] = 1 := by
+  simp only [le_iff_eq_or_lt, not_one_lt_probEvent, or_false, eq_comm]
+@[simp] lemma one_le_probFailure_iff : 1 ≤ [⊥ | oa] ↔ [⊥ | oa] = 1 := by
+  simp only [le_iff_eq_or_lt, not_one_lt_probFailure, or_false, eq_comm]
 
 end bounds
 
@@ -475,6 +487,10 @@ lemma probEvent_congr' {p q : α → Prop}
 
 lemma probEvent_true (oa : OracleComp spec α) : [λ _ ↦ true | oa] = 1 - [⊥ | oa] := by simp
 lemma probEvent_false (oa : OracleComp spec α) : [λ _ ↦ false | oa] = 0 := by simp
+
+lemma probFailure_eq_sub_probEvent (oa : OracleComp spec α) :
+    [⊥ | oa] = 1 - [λ _ ↦ true | oa] := by
+  rw [probEvent_true, ENNReal.sub_sub_cancel one_ne_top probFailure_le_one]
 
 lemma evalDist_ext_probEvent {oa : OracleComp spec α} {oa' : OracleComp spec' α}
     (h : ∀ x, [= x | oa] = [= x | oa']) : evalDist oa = evalDist oa' :=
