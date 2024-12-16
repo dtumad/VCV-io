@@ -151,6 +151,28 @@ lemma mem_support_of_mem_finSupport {x : α} (hx : x ∈ oa.finSupport) : x ∈ 
 
 end coe
 
+section decidable
+
+/-- If the output type of a computation has `DecidableEq` then membership in the `support`
+of a computation is also decidable as a predicate.
+NOTE: will need to be restricted if we allow infinite oracle codomains. -/
+instance decidablePred_mem_support [hα : DecidableEq α] (oa : OracleComp spec α) :
+    DecidablePred (· ∈ oa.support) := by
+  induction oa using OracleComp.induction with
+  | pure x => exact λ y ↦ hα y x
+  | failure => exact λ _ ↦ Decidable.isFalse (not_false)
+  | query_bind i t oa hoa =>
+      simp only [support_bind, support_query, Set.mem_univ, Set.iUnion_true, Set.mem_iUnion]
+      exact λ _ ↦ Fintype.decidableExistsFintype
+
+/-- Membership in `finSupport` is a decidable predicate if it's defined. -/
+instance decidablePred_mem_finSupport [DecidableEq α] (oa : OracleComp spec α) :
+    DecidablePred (· ∈ oa.finSupport) := by
+  simp [mem_finSupport_iff_mem_support]
+  apply decidablePred_mem_support
+
+end decidable
+
 section nonempty
 
 variable (oa : OracleComp spec α)

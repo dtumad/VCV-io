@@ -6,6 +6,7 @@ Authors: Devon Tuma
 import VCVio.OracleComp.SimSemantics.QueryTracking.SeededOracle
 import VCVio.OracleComp.Constructions.Replicate
 import VCVio.OracleComp.Constructions.UniformSelect
+import Mathlib.Data.List.Basic
 
 /-!
 # Counting Queries Made by a Computation
@@ -26,12 +27,16 @@ variable {ι : Type} [DecidableEq ι]
 with `qc i : ℕ` values seeded for each `i ∈ activeOracles`.
 Note that `activeOracles` is allowed to contain duplicates, but usually won't in practice. -/
 def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
-    (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) := do
-  let mut seed : QuerySeed spec := ∅
-  for j in activeOracles do
-    let xs ← replicate ($ᵗ (spec.range j)) (qc j)
-    seed := seed.addValues xs.toList
-  return seed
+    (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) :=
+  List.foldrM (λ j seed ↦ do
+    let xs ← ($ᵗ spec.range j).replicate (qc j)
+    return seed.addValues xs) ∅ activeOracles
+  -- do
+  -- let mut seed : QuerySeed spec := ∅
+  -- for j in activeOracles do
+  --   let xs ← ($ᵗ spec.range j).replicate (qc j)
+  --   seed := seed.addValues xs
+  -- return seed
 
 -- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   (qc : ι → ℕ) (j : ι) (js : List ι)
@@ -56,27 +61,15 @@ variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 @[simp]
 lemma generateSeed_nil : generateSeed spec qc [] = return ∅ := rfl
 
-#check ForIn
-
--- @[simp]
-lemma generateSeed_cons : generateSeed spec qc (j :: js) = (λ xs s ↦ s.addValues xs.toList) <$>
-    replicate ($ᵗ (spec.range j)) (qc j) <*> generateSeed spec qc js := by
+@[simp]
+lemma generateSeed_cons : generateSeed spec qc (j :: js) = QuerySeed.addValues <$>
+    generateSeed spec qc js <*> ($ᵗ (spec.range j)).replicate (qc j) := by
   simp [generateSeed, map_eq_bind_pure_comp,
     seq_eq_bind, bind_assoc]
-  refine congr_arg (_ >>= ·) (funext λ xs ↦ ?_)
-  -- simp [Function.comp_def, map_eq_bind_pure_comp]
-  sorry
-  -- congr
 
-
-
-
-
--- @[simp]
--- lemma generateSeed_zero : generateSeed spec 0 js = return ∅ := by
---   induction js with
---   | nil => rfl
---   | cons j js h => simp [h]
+@[simp]
+lemma generateSeed_zero : generateSeed spec 0 js = return ∅ := by
+  induction js with | nil => rfl | cons j js h => simp [h]
 
 @[simp]
 lemma support_generateSeed : (generateSeed spec qc js).support =
@@ -113,14 +106,17 @@ lemma probOutput_generateSeed (seed : QuerySeed spec)
     (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
     1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
   revert seed
-  induction js with
+  induction js using List.reverseRecOn with
   | nil => {
     -- simp at h
     simp
 
   }
-  | cons j js hjs => {
+  | append_singleton j js hjs => {
+    intro seed hs
+    simp [generateSeed, List.forIn_eq_foldlM]
 
+    -- rw [Array.forIn_toList]
     sorry
   }
 

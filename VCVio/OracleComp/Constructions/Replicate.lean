@@ -73,24 +73,55 @@ lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : List α) :
   · exact congr_arg List.prod <| List.ext_getElem (by simp [hxs]) (by simp)
   · rfl
 
+lemma probEvent_of_probEvent_cons (oa : OracleComp spec α) (n : ℕ)
+    (p : List α → Prop) (hp : p [])
+    (q : α → Prop) (hq : ∀ x xs, p (x :: xs) ↔ q x ∧ p xs) :
+    [p | oa.replicate n] = [q | oa] ^ n := by
+  induction n with
+  | zero => {
+    simpa using hp
+  }
+  | succ n hn => {
+    simp [pow_succ, ← hn]
+
+    sorry
+  }
+
+@[simp]
+lemma probEvent_all_replicate (oa : OracleComp spec α) (n : ℕ) (p : α → Bool) :
+    [λ xs ↦ List.all xs p | oa.replicate n] = [λ x ↦ p x | oa] ^ n := by
+  induction n with
+  | zero => {
+    simp
+  }
+  | succ n hn => {
+    simp [pow_succ, ← hn]
+
+    sorry
+  }
+
+lemma support_eq_setOf_probOutput_eq_zero (oa : OracleComp spec α) :
+    oa.support = {x | [= x | oa] ≠ 0} := by
+  simp only [ne_eq, probOutput_eq_zero_iff, not_not, Set.setOf_mem_eq]
+
+/-- Possible ouptuts of `replicate n oa` are lists of length `n` where
+ecah element in the list is a possible output of `oa`. -/
 @[simp]
 lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
-    (oa.replicate n).support = {xs | ∀ x ∈ xs, x ∈ oa.support} := by
-  refine Set.ext (λ xs ↦ ?_)
-  rw [← probOutput_pos_iff, probOutput_replicate]
-  simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
-    and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, Set.mem_setOf_eq]
-  sorry
+    (oa.replicate n).support = {xs | xs.length = n ∧ ∀ x ∈ xs, x ∈ oa.support} := by
+  rw [support_eq_setOf_probOutput_eq_zero]; simp
 
--- @[simp] TODO: decidablility of this pred should be inferred from something else?
-lemma support_replicate' (oa : OracleComp spec α) [DecidablePred (· ∈ oa.support)] (n : ℕ) :
-    (oa.replicate n).support = {xs | xs.all (· ∈ oa.support)} := by
-  refine Set.ext (λ xs ↦ ?_)
-  rw [← probOutput_pos_iff, probOutput_replicate]
-  simp only [CanonicallyOrderedCommSemiring.list_prod_pos, List.mem_map, forall_exists_index,
-    and_imp, forall_apply_eq_imp_iff₂, probOutput_pos_iff, List.all_eq_true, decide_eq_true_eq,
-    Set.mem_setOf_eq]
-  sorry
+/-- Version of `support_replicate` using `List.all` instead of quantifiers.
+Requires decidable equality on the output type of the computation. -/
+lemma support_replicate' [DecidableEq α] (oa : OracleComp spec α) (n : ℕ) :
+    (oa.replicate n).support = {xs | xs.length = n ∧ xs.all (· ∈ oa.support)} := by
+  simp only [support_replicate, List.all_eq_true, decide_eq_true_eq]
+
+@[simp]
+lemma mem_finSupport_replicate [DecidableEq α] (oa : OracleComp spec α) (n : ℕ)
+    (xs : List α) : xs ∈ (oa.replicate n).finSupport ↔
+      xs.length = n ∧ xs.all (· ∈ oa.finSupport) := by
+  simp [mem_finSupport_iff_mem_support]
 
 -- section SelectableTypeVector
 
