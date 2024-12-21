@@ -278,11 +278,19 @@ lemma support_evalDist' [DecidableEq α] : (evalDist oa).support = if [⊥ | oa]
 lemma probOutput_eq_zero_iff : [= x | oa] = 0 ↔ x ∉ oa.support := by
   rw [probOutput, PMF.apply_eq_zero_iff, mem_support_evalDist_iff]
 alias ⟨not_mem_support_of_probOutput_eq_zero, probOutput_eq_zero⟩ := probOutput_eq_zero_iff
+@[simp low]
+lemma zero_eq_probOutput_iff : 0 = [= x | oa] ↔ x ∉ oa.support := by
+  rw [eq_comm, probOutput_eq_zero_iff]
+alias ⟨_, zero_eq_probOutput⟩ := zero_eq_probOutput_iff
 
 @[simp]
 lemma probOutput_eq_zero_iff' [DecidableEq α] : [= x | oa] = 0 ↔ x ∉ oa.finSupport := by
   rw [mem_finSupport_iff_mem_support, probOutput_eq_zero_iff]
 alias ⟨not_mem_fin_support_of_probOutput_eq_zero, probOutput_eq_zero'⟩ := probOutput_eq_zero_iff
+@[simp]
+lemma zero_eq_probOutput_iff' [DecidableEq α] : 0 = [= x | oa] ↔ x ∉ oa.finSupport := by
+  rw [eq_comm, probOutput_eq_zero_iff']
+alias ⟨_, zero_eq_probOutput'⟩ := zero_eq_probOutput_iff'
 
 @[simp low]
 lemma probEvent_eq_zero_iff : [p | oa] = 0 ↔ ∀ x ∈ oa.support, ¬ p x := by
@@ -291,11 +299,19 @@ lemma probEvent_eq_zero_iff : [p | oa] = 0 ↔ ∀ x ∈ oa.support, ¬ p x := b
   refine forall_congr' λ x ↦ forall_congr' λ hx ↦ ?_
   refine ⟨λ h hx ↦ h x hx rfl, λ h y hy hxy ↦ h (hxy ▸ hy)⟩
 alias ⟨not_of_mem_support_of_probEvent_eq_zero, probEvent_eq_zero⟩ := probEvent_eq_zero_iff
+@[simp low]
+lemma zero_eq_probEvent_iff : 0 = [p | oa] ↔ ∀ x ∈ oa.support, ¬ p x := by
+  rw [eq_comm, probEvent_eq_zero_iff]
+alias ⟨_, zero_eq_probEvent⟩ := zero_eq_probEvent_iff
 
 @[simp]
 lemma probEvent_eq_zero_iff' [DecidableEq α] : [p | oa] = 0 ↔ ∀ x ∈ oa.finSupport, ¬ p x := by
   simp only [probEvent_eq_zero_iff, mem_finSupport_iff_mem_support]
 alias ⟨not_of_mem_finSupport_of_probEvent_eq_zero, probEvent_eq_zero'⟩ := probEvent_eq_zero_iff'
+@[simp]
+lemma zero_eq_probEvent_iff' [DecidableEq α] : 0 = [p | oa] ↔ ∀ x ∈ oa.finSupport, ¬ p x := by
+  rw [eq_comm, probEvent_eq_zero_iff']
+alias ⟨_, zero_eq_probEvent'⟩ := zero_eq_probEvent_iff'
 
 @[simp low]
 lemma probOutput_pos_iff : 0 < [= x | oa] ↔ x ∈ oa.support := by
@@ -322,31 +338,59 @@ lemma probOutput_eq_one_iff :
     [= x | oa] = 1 ↔ [⊥ | oa] = 0 ∧ oa.support = {x} := by
   simp [probOutput_def, PMF.apply_eq_one_iff, Set.ext_iff, Option.forall]
 alias ⟨_, probOutput_eq_one⟩ := probOutput_eq_one_iff
+@[simp low]
+lemma one_eq_probOutput_iff :
+    1 = [= x | oa] ↔ [⊥ | oa] = 0 ∧ oa.support = {x} := by
+  rw [eq_comm, probOutput_eq_one_iff]
+alias ⟨_, one_eq_probOutput⟩ := one_eq_probOutput_iff
 
 @[simp]
 lemma probOutput_eq_one_iff' [DecidableEq α] :
     [= x | oa] = 1 ↔ [⊥ | oa] = 0 ∧ oa.finSupport = {x} := by
   rw [probOutput_eq_one_iff, finSupport_eq_iff_support_eq_coe, Finset.coe_singleton]
 alias ⟨_, probOutput_eq_one'⟩ := probOutput_eq_one_iff'
+@[simp]
+lemma one_eq_probOutput_iff' [DecidableEq α] :
+    1 = [= x | oa] ↔ [⊥ | oa] = 0 ∧ oa.finSupport = {x} := by
+  rw [eq_comm, probOutput_eq_one_iff']
+alias ⟨_, one_eq_probOutput'⟩ := one_eq_probOutput_iff'
 
 @[simp low]
-lemma probEvent_eq_one_iff :
-    [p | oa] = 1 ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.support, p x := by
-  rw [probEvent]
-  rw [← tsum_probOutput_add_probFailure oa]
-  sorry
+lemma probEvent_eq_one_iff : [p | oa] = 1 ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.support, p x := by
+  rw [probEvent, PMF.toOuterMeasure_apply_eq_one_iff]
+  simp [support_evalDist]
+  split_ifs with hoa
+  · simp [hoa, Set.preimage_image_eq _ (some_injective α), Set.subset_def]
+  · simp [hoa]
+    intro h
+    specialize h (Set.mem_insert none _)
+    simp at h
 alias ⟨_, probEvent_eq_one⟩ := probEvent_eq_one_iff
+@[simp low]
+lemma one_eq_probEvent_iff : 1 = [p | oa] ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.support, p x := by
+  rw [eq_comm, probEvent_eq_one_iff]
+alias ⟨_, one_eq_probEvent⟩ := probEvent_eq_one_iff
 
 @[simp]
 lemma probEvent_eq_one_iff' [DecidableEq α] :
     [p | oa] = 1 ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.finSupport, p x := by
   simp_rw [probEvent_eq_one_iff, mem_finSupport_iff_mem_support]
 alias ⟨_, probEvent_eq_one'⟩ := probEvent_eq_one_iff'
+@[simp]
+lemma one_eq_probEvent_iff' [DecidableEq α] :
+    1 = [p | oa] ↔ [⊥ | oa] = 0 ∧ ∀ x ∈ oa.finSupport, p x := by
+  rw [eq_comm, probEvent_eq_one_iff']
+alias ⟨_, one_eq_probEvent'⟩ := one_eq_probEvent_iff'
 
 lemma mem_support_iff_probOutput_ne_zero : x ∈ oa.support ↔ [= x | oa] ≠ 0 := by
   simp only [ne_eq, probOutput_eq_zero_iff, not_not]
+lemma mem_finSupport_iff_probOutput_ne_zero [DecidableEq α] :
+    x ∈ oa.finSupport ↔ [= x | oa] ≠ 0 := by
+  rw [mem_finSupport_iff_mem_support, mem_support_iff_probOutput_ne_zero]
+
 lemma mem_support_iff_probOutput_pos : x ∈ oa.support ↔ 0 < [= x | oa] := by
   simp only [probOutput_pos_iff]
+
 lemma not_mem_support_iff_probOutput_eq_zero : x ∉ oa.support ↔ [= x | oa] = 0 := by
   simp only [probOutput_eq_zero_iff]
 
@@ -464,21 +508,30 @@ lemma probOutput_congr {x y : α} {oa oa' : OracleComp spec α}
     (h1 : x = y) (h2 : evalDist oa = evalDist oa') : [= x | oa] = [= y | oa'] := by
   simp_rw [probOutput, h1, h2]
 
-lemma probEvent_congr' {p q : α → Prop}
-    {oa oa' : OracleComp spec α}
+lemma probEvent_congr' {p q : α → Prop} {oa oa' : OracleComp spec α}
     (h1 : ∀ x, x ∈ oa.support → x ∈ oa'.support → (p x ↔ q x))
     (h2 : evalDist oa = evalDist oa') : [p | oa] = [q | oa'] := by
-  have h : ∀ x, x ∈ oa.support ↔ x ∈ oa'.support := by
-    refine mem_support_iff_of_evalDist_eq h2
-  simp [probEvent, probOutput_congr rfl h2]
-  refine tsum_congr (λ x ↦ ?_)
-  sorry
-  -- specialize h1 x
-  -- split_ifs with hp hq hq
-  -- · rfl
-  -- · simpa [h, hp, hq] using h1
-  -- · symm; simpa [h, hp, hq] using h1
-  -- · rfl
+  have : DecidablePred q := Classical.decPred q
+  have h : ∀ x, x ∈ oa.support ↔ x ∈ oa'.support := mem_support_iff_of_evalDist_eq h2
+  have h' : ∀ x, [= x | oa] = [= x | oa'] := λ x ↦ probOutput_congr rfl h2
+  rw [probEvent_eq_tsum_indicator, probEvent_eq_tsum_indicator]
+  refine tsum_congr λ x ↦ ?_
+  simp [Set.indicator, h']
+  by_cases hp : p x
+  · by_cases hq : q x
+    · simp [hp, hq]
+    · simp [hp, hq, h]
+      refine λ hoa ↦ hq ?_
+      refine (h1 _ ?_ hoa).1 hp
+      refine (h _).2 hoa
+  · by_cases hq : q x
+    · simp [hp, hq]
+      simp [h] at h1
+      intro hoa
+      specialize h1 _ hoa
+      tauto
+    · rw [if_neg hp, if_neg hq]
+
 
 @[simp] lemma probEvent_const (oa : OracleComp spec α) (p : Prop) [Decidable p] :
     [λ _ ↦ p | oa] = if p then 1 - [⊥ | oa] else 0 := by
@@ -721,10 +774,11 @@ lemma probFailure_map : [⊥ | f <$> oa] = [⊥ | oa] := by
 
 @[simp]
 lemma probEvent_map (q : β → Prop) [DecidablePred q] : [q | f <$> oa] = [q ∘ f | oa] := by
-  simp [probEvent, probOutput]
-  sorry
-  -- simp only [probEvent_def, evalDist_map, PMF.toOuterMeasure_map_apply]; congr
-
+  simp only [probEvent, evalDist_map, PMF.toOuterMeasure_map_apply, Function.comp_apply]
+  refine congr_arg (oa.evalDist.toOuterMeasure) ?_
+  simp only [Set.preimage, Set.mem_image, Set.mem_setOf_eq, Set.ext_iff]
+  intro x
+  cases x <;> simp
 lemma probEvent_comp (q : β → Prop) [DecidablePred q] : [q ∘ f | oa] = [q | f <$> oa] :=
   symm <| probEvent_map oa f q
 
