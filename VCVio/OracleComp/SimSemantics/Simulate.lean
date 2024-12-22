@@ -212,9 +212,12 @@ lemma evalDist_simulate'_eq_evalDist
   | pure x => simp
   | query_bind i t oa hoa => refine (λ s ↦ by
       simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp, hoa,
-        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map]
+        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map, hoa]
+
       unfold Function.comp
       simp [hoa]
+
+
       sorry
       )
   | failure => simp

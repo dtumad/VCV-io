@@ -23,12 +23,14 @@ We also define a number of basic oracle constructions:
 * `unifSpec`: A family of oracles for selecting from `[0..n]` for any `n`
 -/
 
+universe u
+
 /-- A structure to represents a specification of oracles available to a computation.
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
 For each `i : ι`, `domain i` and `range i` are the input and output types of the oracle. -/
 structure OracleSpec (ι : Type) where
-  domain : ι → Type
-  range : ι → Type
+  domain : ι → Type u
+  range : ι → Type u
   domain_decidableEq' : ∀ i, DecidableEq $ domain i
   range_decidableEq' : ∀ i, DecidableEq $ range i
   range_inhabited' : ∀ i, Inhabited $ range i

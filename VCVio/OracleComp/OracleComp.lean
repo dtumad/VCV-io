@@ -32,6 +32,8 @@ We later introduce a set of type coercions that mitigate this for most common ca
 such as calling a computation with `spec` as part of a computation with `spec ++ spec'`.
 -/
 
+universe u v w
+
 /-- `OracleComp spec α` represents computations with oracle access to oracles in `spec`,
 where the final return value has type `α`.
 
@@ -39,31 +41,35 @@ The constructor `pure' α x` allow for returning a pure Lean value `x`,
 and `queryBind' i t α ou` allows for querying oracle `i` on input `t`,
 calling `ou` on the result of the oracle call.
 `failure' α` fails to return but expects to have return type `α`.
-We recursively define a more general monadic bind operation later. -/
-inductive OracleComp {ι : Type} (spec : OracleSpec ι) : Type → Type 1
-  | pure' (α : Type) (x : α) : OracleComp spec α
-  | queryBind' (i : ι) (t : spec.domain i) (α : Type)
+We recursively define a more general monadic bind operation later.
+
+NOTE: if we want full universe polymorphism then `OracleSpec` needs that too. -/
+inductive OracleComp {ι : Type} (spec : OracleSpec.{u} ι) : Type u → Type (u + 1)
+  | pure' (α : Type u) (x : α) : OracleComp spec α
+  | queryBind' (i : ι) (t : spec.domain i) (α : Type u)
       (ou : spec.range i → OracleComp spec α) : OracleComp spec α
-  | failure' (α : Type) : OracleComp spec α
+  | failure' (α : Type u) : OracleComp spec α
 
 abbrev ProbComp := OracleComp unifSpec
 
 namespace OracleComp
 
-variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
+variable {ι : Type} {spec : OracleSpec ι}
 
-instance : Inhabited (OracleComp spec α) := ⟨failure' α⟩
+instance {α : Type u} : Inhabited (OracleComp spec α) := ⟨failure' α⟩
 
 /-- Returns `true` for computations that don't query any oracles or fail, else `false` -/
-def isPure : OracleComp spec α → Bool | pure' _ _ => true | _ => false
+def isPure {α : Type u} : OracleComp spec α → Bool | pure' _ _ => true | _ => false
 
 /-- Returns `true` for computations that fail else `false`. -/
-def isFailure : OracleComp spec α → Bool | failure' _ => true | _ => false
+def isFailure {α : Type u} : OracleComp spec α → Bool | failure' _ => true | _ => false
 
 section Monad
 
+variable {α β : Type u}
+
 /-- Bind operator on `OracleComp spec` operation used in the monad definition. -/
-def bind' : (α β : Type) → OracleComp spec α → (α → OracleComp spec β) → OracleComp spec β
+def bind' : (α β : Type u) → OracleComp spec α → (α → OracleComp spec β) → OracleComp spec β
   | _, _, pure' _ a, ob => ob a
   | α, β, queryBind' i t _ oa, ob => queryBind' i t β (λ u ↦ bind' α β (oa u) ob)
   | _, β, failure' _, _ => failure' β
@@ -119,10 +125,24 @@ variable (i : ι) (t : spec.domain i)
 
 lemma query_def : query i t = queryBind' i t (spec.range i) pure := rfl
 
-@[simp] lemma queryBind'_eq_queryBind (oa : spec.range i → OracleComp spec α) :
+@[simp] lemma queryBind'_eq_queryBind {α : Type} (oa : spec.range i → OracleComp spec α) :
     queryBind' i t α oa = query i t >>= oa := rfl
 
 end query
+
+section mapM
+
+/-- Implement all queries in a computation using some other monad `m`,
+preserving the pure and bind operations, giving a computation in the new monad. -/
+protected def mapM {ι : Type} {spec : OracleSpec.{u} ι}
+    {m : Type u → Type w} [Monad m] [Alternative m] :
+    {α : Type u} → (oa : OracleComp spec α) →
+      (f : (i : ι) → spec.domain i → m (spec.range i)) → m α
+  | _, pure' α x, _ => return x
+  | _, failure' _, _ => failure
+  | _, queryBind' i t _ oa, f => (do let u ← f i t; OracleComp.mapM (oa u) f)
+
+end mapM
 
 /-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline]
@@ -141,7 +161,7 @@ example : ProbComp ℕ := do
 
 /-- Total number of queries in a computation across all possible execution paths.
 Can be a helpful alternative to `sizeOf` when proving recursive calls terminate. -/
-def totalQueries : (oa : OracleComp spec α) → ℕ
+def totalQueries {α : Type u} : (oa : OracleComp spec α) → ℕ
   | queryBind' _ _ _ oa => 1 + ∑ u, totalQueries (oa u) | _ => 0
 
 /-- Nicer induction rule for `OracleComp` that uses monad notation.
@@ -151,7 +171,7 @@ Allows inductive definitions on compuations by considering the three cases:
 * `failure`
 See `oracleComp_emptySpec_equiv` for an example of using this in a proof. -/
 @[elab_as_elim]
-protected def inductionOn {C : OracleComp spec α → Sort*}
+protected def inductionOn {α : Type} {C : OracleComp spec α → Sort*}
     (pure : ∀ (a : α), C (pure a)) (query_bind : ∀ (i : ι) (t : spec.domain i)
       (oa : spec.range i → OracleComp spec α), (∀ u, C (oa u)) → C (do let u ← query i t; oa u))
     (failure : C failure) : (oa : OracleComp spec α) → C oa
@@ -165,10 +185,12 @@ protected def inductionOn {C : OracleComp spec α → Sort*}
   termination_by oa => totalQueries oa
 
 @[elab_as_elim]
-protected def induction {C : OracleComp spec α → Sort*} (oa : OracleComp spec α)
+protected def induction {α : Type} {C : OracleComp spec α → Sort*} (oa : OracleComp spec α)
     (pure : ∀ (a : α), C (pure a)) (query_bind : ∀ (i : ι) (t : spec.domain i)
       (oa : spec.range i → OracleComp spec α), (∀ u, C (oa u)) → C (do let u ← query i t; oa u))
     (failure : C failure) : C oa := oa.inductionOn pure query_bind failure
+
+variable {α β : Type}
 
 section noConfusion
 

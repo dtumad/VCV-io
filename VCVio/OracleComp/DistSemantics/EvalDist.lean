@@ -37,21 +37,26 @@ variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β 
 
 section evalDist
 
+/-- Backend definition for `evalDist`, mapping each query to a uniform distribution,
+lifting into the `OptionT` type to handle `failure`.
+The actual `evalDist` definition just runs the option transformer layer. -/
+noncomputable def evalDistT {α : Type} (oa : OracleComp spec α) : OptionT PMF α := by
+  refine oa.mapM λ i t ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i))
+
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 NOTE: the rest can probably go in a `defs` file or something. -/
-noncomputable def evalDist {α : Type} : OracleComp spec α → PMF (Option α)
-  | pure' α x => PMF.pure (some x)
-  | queryBind' i _ α oa =>
-      (PMF.uniformOfFintype (spec.range i)).bind (λ u ↦ evalDist (oa u))
-  | failure' α => PMF.pure none
+noncomputable def evalDist {α : Type} (oa : OracleComp spec α) :
+    PMF (Option α) := oa.evalDistT.run
 
 @[simp]
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = PMF.pure (some x) := rfl
 
 @[simp]
 lemma evalDist_query (i : ι) (t : spec.domain i) :
-    evalDist (query i t) = (PMF.uniformOfFintype (spec.range i)).map some := rfl
+    evalDist (query i t) = (PMF.uniformOfFintype (spec.range i)).map some := by
+  simp [query_def, -queryBind'_eq_queryBind, evalDist, evalDistT, PMF.map,
+    OracleComp.mapM, OptionT.lift, PMF.monad_map_eq_map]
 
 @[simp]
 lemma evalDist_failure : evalDist (failure : OracleComp spec α) = PMF.pure none := rfl
@@ -61,11 +66,12 @@ lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     evalDist (oa >>= ob) = (evalDist oa).bind (Option.rec (PMF.pure none) (evalDist ∘ ob)) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp only [pure_bind, evalDist_pure, PMF.pure_bind, Function.comp_apply]
-  | query_bind i t oa hoa => simp [← queryBind'_eq_queryBind, evalDist, hoa]
+  | query_bind i t oa hoa => sorry --simp [← queryBind'_eq_queryBind, evalDist, hoa]
   | failure => simp only [failure_bind, evalDist_failure, PMF.pure_bind]
 
 lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
-    evalDist (query i t >>= ou) = (PMF.uniformOfFintype (spec.range i)).bind (evalDist ∘ ou) := rfl
+    evalDist (query i t >>= ou) = (PMF.uniformOfFintype (spec.range i)).bind (evalDist ∘ ou) := by
+  sorry
 
 @[simp]
 lemma evalDist_map (oa : OracleComp spec α) (f : α → β) :

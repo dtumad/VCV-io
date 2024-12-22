@@ -33,7 +33,8 @@ def support : (oa : OracleComp spec α) → Set α
   | queryBind' _ _ _ oa => ⋃ u, (oa u).support
   | failure' _ => ∅
 
--- lemma support_pure' (x : α) : support (pure' α x : OracleComp spec α) = {x} := rfl
+@[simp]
+lemma support_pure' (x : α) : support (pure' α x : OracleComp spec α) = {x} := rfl
 
 -- lemma support_queryBind' (i : ι) (t : spec.domain i)
 --     (oa : spec.range i → OracleComp spec α) :
