@@ -29,7 +29,7 @@ def OracleSpec (ι : Type u) : Type (u + 1) :=
 
 namespace OracleSpec
 
-variable {ι : Type u} {spec : OracleSpec ι} (i : ι)
+variable {ι τ : Type u} {spec : OracleSpec ι} (i : ι)
 
 instance : Inhabited (OracleSpec ι) := ⟨λ _ ↦ (PUnit, PUnit)⟩
 
@@ -87,6 +87,10 @@ instance [h₁ : spec₁.FiniteRange] [h₂ : spec₂.FiniteRange] :
   range_fintype' := λ i ↦ Sum.recOn i h₁.range_fintype' h₂.range_fintype'
 
 end append
+
+/-- Reduce the indexing set by pulling back along some map `f`. -/
+@[inline, reducible]
+def rename (spec : OracleSpec ι) (f : τ → ι) : OracleSpec τ := spec ∘ f
 
 end OracleSpec
 
