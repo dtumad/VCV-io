@@ -105,11 +105,17 @@ section mapM
 
 /-- Implement all queries in a computation using some other monad `m`,
 preserving the pure and bind operations, giving a computation in the new monad. -/
-protected def mapM {ι : Type u} {spec : OracleSpec.{u} ι}
-    {m : Type u → Type w} [Monad m] [Alternative m]
-    {α : Type u} (oa : OracleComp spec α)
-      (f : (i : ι) → spec.domain i → m (spec.range i)) : m α :=
+protected def mapM {m : Type u → Type w} [Monad m] [Alternative m]
+    (oa : OracleComp spec α) (f : (i : ι) → spec.domain i → m (spec.range i)) : m α :=
   OptionT.mapM (FreeMonad.mapM λ (OracleQuery.mk i t) ↦ f i t) oa
+
+variable {m : Type u → Type w} [Monad m] [Alternative m] [LawfulMonad m]
+  (f : (i : ι) → spec.domain i → m (spec.range i))
+
+@[simp]
+lemma mapM_pure (x : α) : (pure x : OracleComp spec α).mapM f = pure x := by
+  simp [OracleComp.mapM, OptionT.mapM, FreeMonad.mapM]
+  rfl
 
 end mapM
 
@@ -146,11 +152,10 @@ protected def inductionOn {C : OracleComp spec α → Prop}
     (pure : (a : α) → C (pure a))
     (query_bind : (i : ι) → (t : spec.domain i) → (oa : spec.range i → OracleComp spec α) →
       ((u : spec.range i) → C (oa u)) → C (do let u ← query i t; oa u))
-    (failure : C failure) : (oa : OracleComp spec α) → C oa := sorry
-  -- | pure' _ a => pure a
-  -- | queryBind' i t _ oa => query_bind i t oa (λ u ↦
-  --     OracleComp.inductionOn pure query_bind failure (oa u))
-  -- | failure' _ => failure
+    (failure : C failure) (oa : OracleComp spec α) : C oa := by
+  induction oa using FreeMonad.inductionOn with
+  | pure x => exact x.recOn failure pure
+  | roll x f h => cases' x with i t; exact query_bind i t f h
 
 @[elab_as_elim]
 protected def induction {C : OracleComp spec α → Prop} (oa : OracleComp spec α)
@@ -167,12 +172,10 @@ protected def construct {C : OracleComp spec α → Type*}
     (pure : (a : α) → C (pure a))
     (query_bind : (i : ι) → (t : spec.domain i) → (oa : spec.range i → OracleComp spec α) →
       ((u : spec.range i) → C (oa u)) → C (do let u ← query i t; oa u))
-    (failure : C failure) : (oa : OracleComp spec α) → C oa := sorry
-  -- | pure' _ a => pure a
-  -- | queryBind' i t _ oa => query_bind i t oa (λ u ↦
-  --     OracleComp.construct pure query_bind failure (oa u))
-  -- | failure' _ => failure
-
+    (failure : C failure) (oa : OracleComp spec α) : C oa := by
+  induction oa using FreeMonad.construct with
+  | pure x => exact x.recOn failure pure
+  | roll x f h => cases' x with i t; exact query_bind i t f h
 
 section noConfusion
 

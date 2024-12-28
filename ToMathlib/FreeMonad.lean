@@ -63,6 +63,16 @@ protected def inductionOn {C : FreeMonad f α → Prop}
   | FreeMonad.roll x r => roll x _ (λ u ↦
       FreeMonad.inductionOn pure roll (r u))
 
+@[elab_as_elim]
+protected def construct {C : FreeMonad f α → Type*}
+    (pure : ∀ x, C (pure x))
+    (roll : ∀ {β} (x : f β), (r : β → FreeMonad f α) →
+      (∀ y, C (r y)) → C (FreeMonad.lift x >>= r)) :
+    (oa : FreeMonad f α) → C oa
+  | FreeMonad.pure x => pure x
+  | FreeMonad.roll x r => roll x _ (λ u ↦
+      FreeMonad.construct pure roll (r u))
+
 /-- Canonical mapping of a free monad into any other monad, given a map on the base functor -/
 protected def mapM {m : Type u → Type v} [Monad m]
     (s : {α : Type u} → f α → m α) :
@@ -71,8 +81,6 @@ protected def mapM {m : Type u → Type v} [Monad m]
   | FreeMonad.roll x r => (s x >>= λ u ↦ (r u).mapM s)
 
 end FreeMonad
-
-#check Option.getM
 
 def OptionT.mapM {m : Type u → Type v} {n : Type u → Type w} [Monad m] [Monad n] [Alternative n]
     {α : Type u} (f : {α : Type u} → m α → n α) : OptionT m α → n α := by

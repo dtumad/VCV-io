@@ -34,14 +34,15 @@ namespace OracleComp
 open Option ENNReal BigOperators
 
 variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β : Type}
+  [spec.FiniteRange]
 
 section evalDist
 
 /-- Backend definition for `evalDist`, mapping each query to a uniform distribution,
 lifting into the `OptionT` type to handle `failure`.
 The actual `evalDist` definition just runs the option transformer layer. -/
-noncomputable def evalDistT {α : Type} (oa : OracleComp spec α) : OptionT PMF α := by
-  refine oa.mapM λ i t ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i))
+noncomputable def evalDistT {α : Type} (oa : OracleComp spec α) : OptionT PMF α :=
+  oa.mapM λ i _ ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i))
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
@@ -50,7 +51,8 @@ noncomputable def evalDist {α : Type} (oa : OracleComp spec α) :
     PMF (Option α) := oa.evalDistT.run
 
 @[simp]
-lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = PMF.pure (some x) := rfl
+lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = PMF.pure (some x) :=
+  OracleComp.mapM_pure _ x
 
 @[simp]
 lemma evalDist_query (i : ι) (t : spec.domain i) :
