@@ -12,10 +12,6 @@ This file defines a type `OracleSpec` to represent a set of available oracles.
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`,
 and for each index `i` a pair of types `domain i` and `range i`.
 
-We also bundle a number of typeclasses into the defintion.
-Specifically these are necessary to give most of the denotational semantics.
-Seperating them out would require making some typeclass for "computable" specs.
-
 We also define a number of basic oracle constructions:
 * `∅`: Access to no oracles
 * `T →ₒ U`: Access to a single oracle with given input and output
@@ -27,105 +23,130 @@ universe u
 
 /-- A structure to represents a specification of oracles available to a computation.
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
-For each `i : ι`, `domain i` and `range i` are the input and output types of the oracle. -/
-structure OracleSpec (ι : Type) where
-  domain : ι → Type u
-  range : ι → Type u
-  domain_decidableEq' : ∀ i, DecidableEq $ domain i
-  range_decidableEq' : ∀ i, DecidableEq $ range i
-  range_inhabited' : ∀ i, Inhabited $ range i
-  range_fintype' : ∀ i, Fintype $ range i
+Represented as a map from indices `i` to the domain and codomain of the corresponding oracle. -/
+def OracleSpec (ι : Type u) : Type (u + 1) :=
+  (i : ι) → Type u × Type u
 
 namespace OracleSpec
 
-variable {ι : Type} {spec : OracleSpec ι} (i : ι)
+variable {ι : Type u} {spec : OracleSpec ι} (i : ι)
 
--- instance ι_decidableEq : DecidableEq ι := spec.ι_decidableEq'
-instance domain_decidableEq : DecidableEq (spec.domain i) := spec.domain_decidableEq' i
-instance range_decidableEq : DecidableEq (spec.range i) := spec.range_decidableEq' i
-instance range_inhabited : Inhabited (spec.range i) := spec.range_inhabited' i
-instance range_fintype : Fintype (spec.range i) := spec.range_fintype' i
+instance : Inhabited (OracleSpec ι) := ⟨λ _ ↦ (PUnit, PUnit)⟩
 
-@[simp] lemma card_range_ne_zero (i : ι) :
-  Fintype.card (spec.range i) ≠ 0 := Fintype.card_ne_zero
+/-- Type of the domain for calls to the oracle corresponding to `i`. -/
+@[inline, reducible]
+protected def domain (spec : OracleSpec ι) (i : ι) : Type u := (spec i).1
+
+/-- Type of the range for calls to the oracle corresponding to `i`. -/
+@[inline, reducible]
+protected def range (spec : OracleSpec ι) (i : ι) : Type u := (spec i).2
+
+/-- Typeclass to capture decidable equality of the oracle input and outputs.
+Needed for things like `finSupport` to be well defined. -/
+class DecidableSpec (spec : OracleSpec ι) : Type (u + 1) where
+  domain_decidableEq' (i : ι) : DecidableEq (spec.domain i)
+  range_decidableEq' (i : ι) : DecidableEq (spec.range i)
+
+instance domain_decidableEq {i : ι} [h : spec.DecidableSpec] :
+    DecidableEq (spec.domain i) := h.domain_decidableEq' i
+
+instance range_decidableEq {i : ι} [h : spec.DecidableSpec] :
+    DecidableEq (spec.range i) := h.range_decidableEq' i
+
+/-- Typeclass for specs where each oracle has a finite and non-empty output type.
+Needed for things like `evalDist` and `probOutput`. -/
+class FiniteRange (spec : OracleSpec ι) : Type (u + 1) where
+    range_inhabited' (i : ι) : Inhabited (spec.range i)
+    range_fintype' (i : ι) : Fintype (spec.range i)
+
+instance range_inhabited {i : ι} [h : FiniteRange spec] :
+    Inhabited (spec.range i) := h.range_inhabited' i
+
+instance range_fintype {i : ι} [h : FiniteRange spec] :
+    Fintype (spec.range i) := h.range_fintype' i
+
+section append
 
 /-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
 `inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
-def append {ι₁ ι₂ : Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
-    OracleSpec (ι₁ ⊕ ι₂) where
-  domain := λ i ↦ match i with
-    | Sum.inl i => spec₁.domain i
-    | Sum.inr i => spec₂.domain i
-  range := λ i ↦ match i with
-    | Sum.inl i => spec₁.range i
-    | Sum.inr i => spec₂.range i
-  range_inhabited' := λ i ↦ Sum.recOn i spec₁.range_inhabited spec₂.range_inhabited
-  domain_decidableEq' := λ i ↦ Sum.recOn i spec₁.domain_decidableEq spec₂.domain_decidableEq
-  range_decidableEq' := λ i ↦ Sum.recOn i spec₁.range_decidableEq spec₂.range_decidableEq
-  range_fintype' := λ i ↦ Sum.recOn i spec₁.range_fintype spec₂.range_fintype
+def append {ι₁ ι₂ : Type u} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
+    OracleSpec (ι₁ ⊕ ι₂) := Sum.elim spec₁ spec₂
 
 infixl : 65 " ++ₒ " => OracleSpec.append
 
+variable {ι₁ ι₂ : Type u} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
+
+instance [h₁ : spec₁.DecidableSpec] [h₂ : spec₂.DecidableSpec] :
+    (spec₁ ++ₒ spec₂).DecidableSpec where
+  domain_decidableEq' := Sum.rec h₁.domain_decidableEq' h₂.domain_decidableEq'
+  range_decidableEq' := Sum.rec h₁.range_decidableEq' h₂.range_decidableEq'
+
+instance [h₁ : spec₁.FiniteRange] [h₂ : spec₂.FiniteRange] :
+    (spec₁ ++ₒ spec₂).FiniteRange where
+  range_inhabited' := λ i ↦ Sum.recOn i h₁.range_inhabited' h₂.range_inhabited'
+  range_fintype' := λ i ↦ Sum.recOn i h₁.range_fintype' h₂.range_fintype'
+
+end append
+
 end OracleSpec
 
+open OracleSpec
+
 /-- Access to no oracles, represented by an empty indexing set.
-We take the domain and range to be `Unit` (rather than e.g. `empty.elim i`),
+We take the domain and range to be `PUnit` (rather than e.g. `empty.elim i`),
 which often gives better behavior for proofs even though the oracle is never called. -/
-@[simps] def emptySpec : OracleSpec Empty where
-  domain := λ _ ↦ Unit
-  range := λ _ ↦ Unit
-  range_inhabited' := inferInstance
-  domain_decidableEq' := inferInstance
-  range_decidableEq' := inferInstance
-  range_fintype' := inferInstance
+@[inline, reducible]
+def emptySpec : OracleSpec PEmpty := λ _ ↦ (PUnit, PUnit)
 
 notation "[]ₒ" => emptySpec
 
-instance (i : Empty) : Unique ([]ₒ.domain i) := PUnit.unique
-instance (i : Empty) : Unique ([]ₒ.range i) := PUnit.unique
+instance (i : PEmpty) : Unique ([]ₒ.domain i) := PUnit.instUnique
+instance (i : PEmpty) : Unique ([]ₒ.range i) := PUnit.instUnique
 
-instance {ι : Type} [DecidableEq ι] : Inhabited (OracleSpec ι) :=
-  ⟨{
-    domain := λ _ ↦ Unit
-    range := λ _ ↦ Unit
-    domain_decidableEq' := inferInstance
-    range_decidableEq' := inferInstance
-    range_inhabited' := inferInstance
-    range_fintype' := inferInstance
-  }⟩
-
-/-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`. -/
-@[inline, reducible] def singletonSpec (T U : Type) [Inhabited U] [DecidableEq T]
-    [DecidableEq U] [Fintype U] : OracleSpec Unit where
-  domain _ := T
-  range _ := U
-  range_inhabited' := inferInstance
+instance : DecidableSpec []ₒ where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
+
+instance : FiniteRange []ₒ where
+  range_inhabited' := inferInstance
   range_fintype' := inferInstance
+
+/-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`.
+Uses the singleton type `PUnit` as the indexing set. -/
+@[inline, reducible]
+def singletonSpec (T U : Type u) : OracleSpec PUnit :=
+  λ _ ↦ (T, U)
 
 infixl : 25 " →ₒ " => singletonSpec
 
--- instance (T U : Type) [Inhabited U] [DecidableEq T]
---   [DecidableEq U] [Fintype U] : Unique (T →ₒ U).ι := PUnit.unique
-
-/-- A coin flipping oracle produces a random `Bool` with no meaningful input.
-
-NOTE: debate on whether inlining this is good -/
-@[inline, reducible] def coinSpec : OracleSpec Unit := Unit →ₒ Bool
-
-/-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
-By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.
-
-NOTE: debate on whether inlining this is good -/
-@[inline, reducible] def unifSpec : OracleSpec ℕ where
-  -- ι := ℕ
-  domain := λ _ ↦ Unit
-  range := λ n ↦ Fin (n + 1)
-  range_inhabited' := inferInstance
-  -- ι_decidableEq' := inferInstance
+instance {T U : Type u} [DecidableEq T] [DecidableEq U] : DecidableSpec (T →ₒ U) where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
+
+instance {T U : Type u} [Inhabited U] [Fintype U] : FiniteRange (T →ₒ U) where
+  range_inhabited' := inferInstance
   range_fintype' := inferInstance
 
-instance (i : ℕ) : Unique (unifSpec.domain i) := PUnit.unique
+/-- A coin flipping oracle produces a random `Bool` with no meaningful input. -/
+@[inline, reducible] def coinSpec : OracleSpec Unit := Unit →ₒ Bool
+
+instance : DecidableSpec coinSpec where
+  domain_decidableEq' := inferInstance
+  range_decidableEq' := inferInstance
+
+instance : FiniteRange coinSpec where
+  range_inhabited' := inferInstance
+  range_fintype' := inferInstance
+
+/-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
+By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.-/
+@[inline, reducible] def unifSpec : OracleSpec ℕ :=
+  λ n ↦ (Unit, Fin (n + 1))
+
+instance : DecidableSpec unifSpec where
+  domain_decidableEq' := inferInstance
+  range_decidableEq' := inferInstance
+
+instance : FiniteRange unifSpec where
+  range_inhabited' := inferInstance
+  range_fintype' := inferInstance
