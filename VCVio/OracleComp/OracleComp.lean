@@ -51,9 +51,8 @@ and `failure` is also added after by the `OptionT` transformer.
 In practive computations in `OracleComp spec α` have have one of three forms:
 * `return x` to succeed with some `x : α` as the result.
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
-*  `failure` which terminates the computation early
+* `failure` which terminates the computation early
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-@[reducible]
 def OracleComp {ι : Type u} (spec : OracleSpec.{u} ι) : Type u → Type (u + 1) :=
   OptionT <| FreeMonad (OracleQuery spec)
 
@@ -65,10 +64,13 @@ namespace OracleComp
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
 -- NOTE: as long as `OracleComp` is reducible we don't need these instances
--- instance : Monad (OracleComp spec) := inferInstance
--- instance : LawfulMonad (OracleComp spec) := inferInstance
--- instance : Alternative (OracleComp spec) := inferInstance
--- instance : Inhabited (OracleComp spec α) := inferInstance
+instance : Monad (OracleComp spec) := OptionT.instMonad
+instance : LawfulMonad (OracleComp spec) := instLawfulMonadOptionT_mathlib _
+instance : Alternative (OracleComp spec) := OptionT.instAlternative
+instance : Inhabited (OracleComp spec α) := Plausible.Testable.instInhabitedOptionTOfPure
+
+instance : MonadFunctor (FreeMonad (OracleQuery spec)) (OracleComp spec) where
+  monadMap f := (OptionT.instMonadFunctor).monadMap f
 
 /-- Returns `true` for computations that don't query any oracles or fail, else `false` -/
 def isPure {α : Type u} : OracleComp spec α → Bool
@@ -88,7 +90,6 @@ def query {spec : OracleSpec ι} (i : ι) (t : spec.domain i) : OracleComp spec 
 lemma query_def (i : ι) (t : spec.domain i) :
     query i t = OptionT.lift (FreeMonad.lift (OracleQuery.mk i t)) := rfl
 
-
 -- NOTE: might be nice to have a `LawfulAlternative?`
 @[simp] lemma failure_bind (ob : α → OracleComp spec β) : failure >>= ob = failure := rfl
 
@@ -100,24 +101,6 @@ lemma query_def (i : ι) (t : spec.domain i) :
 protected lemma bind_congr {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' :=
   h ▸ (congr_arg (λ ob ↦ oa >>= ob) (funext h'))
-
-section mapM
-
-/-- Implement all queries in a computation using some other monad `m`,
-preserving the pure and bind operations, giving a computation in the new monad. -/
-protected def mapM {m : Type u → Type w} [Monad m] [Alternative m]
-    (oa : OracleComp spec α) (f : (i : ι) → spec.domain i → m (spec.range i)) : m α :=
-  OptionT.mapM (FreeMonad.mapM λ (OracleQuery.mk i t) ↦ f i t) oa
-
-variable {m : Type u → Type w} [Monad m] [Alternative m] [LawfulMonad m]
-  (f : (i : ι) → spec.domain i → m (spec.range i))
-
-@[simp]
-lemma mapM_pure (x : α) : (pure x : OracleComp spec α).mapM f = pure x := by
-  simp [OracleComp.mapM, OptionT.mapM, FreeMonad.mapM]
-  rfl
-
-end mapM
 
 /-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline]
@@ -176,6 +159,52 @@ protected def construct {C : OracleComp spec α → Type*}
   induction oa using FreeMonad.construct with
   | pure x => exact x.recOn failure pure
   | roll x f h => cases' x with i t; exact query_bind i t f h
+
+section mapM
+
+-- protected def mapM' {m : Type u → Type v} [Monad m] [Alternative m]
+--     (f : {α : Type u} → OracleQuery spec α → m α)
+--     (oa : OracleComp spec α) : OptionT m α := by
+--   -- have := FreeMonad.mapM f
+--   -- refine @monadMap (FreeMonad (OracleQuery spec)) (OracleComp spec) _
+--   refine OracleComp.instMonadFunctorFreeMonadOracleQuery.monadMap (FreeMonad.mapM f)
+
+
+/-- Implement all queries in a computation using some other monad `m`,
+preserving the pure and bind operations, giving a computation in the new monad.
+The function `f` specifies how to replace the queries in the computation. -/
+protected def mapM {m : Type u → Type v} [Alternative m] [Monad m]
+    (f : {α : Type u} → OracleQuery spec α → m α)
+    (oa : OracleComp spec α) : m α := do
+  match (← FreeMonad.mapM f oa.run) with
+  | some x => pure x
+  | none => failure
+
+variable {m : Type u → Type w} [Alternative m] [Monad m] [LawfulMonad m]
+  (f : {α : Type u} → OracleQuery spec α → m α)
+
+@[simp]
+lemma mapM_pure (x : α) : (pure x : OracleComp spec α).mapM f = pure x := by
+  simp [OracleComp.mapM, Option.getM]
+
+@[simp]
+lemma mapM_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    (oa >>= ob).mapM f = oa.mapM f >>= λ x ↦ OracleComp.mapM f (ob x) := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => {
+    simp
+
+    have := symm <| pure_bind x (λ x ↦ OracleComp.mapM f (ob x))
+
+    convert this
+
+  }
+  | query_bind i t oa h => sorry
+  | failure => sorry
+
+
+
+end mapM
 
 section noConfusion
 

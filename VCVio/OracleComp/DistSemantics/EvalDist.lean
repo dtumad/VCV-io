@@ -47,8 +47,8 @@ noncomputable def evalDistT {α : Type} (oa : OracleComp spec α) : OptionT PMF 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 NOTE: the rest can probably go in a `defs` file or something. -/
-noncomputable def evalDist {α : Type} (oa : OracleComp spec α) :
-    PMF (Option α) := oa.evalDistT.run
+noncomputable def evalDist {α : Type} (oa : OracleComp spec α) : OptionT PMF α :=
+  oa.mapM λ i _ ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i))
 
 @[simp]
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = PMF.pure (some x) :=
@@ -57,8 +57,7 @@ lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = PMF.pure
 @[simp]
 lemma evalDist_query (i : ι) (t : spec.domain i) :
     evalDist (query i t) = (PMF.uniformOfFintype (spec.range i)).map some := by
-  simp [query_def, -queryBind'_eq_queryBind, evalDist, evalDistT, PMF.map,
-    OracleComp.mapM, OptionT.lift, PMF.monad_map_eq_map]
+  rw [evalDist]
 
 @[simp]
 lemma evalDist_failure : evalDist (failure : OracleComp spec α) = PMF.pure none := rfl
