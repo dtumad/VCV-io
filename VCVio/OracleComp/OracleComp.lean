@@ -66,7 +66,6 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 -- NOTE: as long as `OracleComp` is reducible we don't need these instances
 instance : Monad (OracleComp spec) := OptionT.instMonad
 instance : LawfulMonad (OracleComp spec) := instLawfulMonadOptionT_mathlib _
-instance : Alternative (OracleComp spec) := OptionT.instAlternative
 instance : Inhabited (OracleComp spec α) := Plausible.Testable.instInhabitedOptionTOfPure
 
 instance : MonadFunctor (FreeMonad (OracleQuery spec)) (OracleComp spec) where
@@ -81,6 +80,8 @@ def isPure {α : Type u} : OracleComp spec α → Bool
 def isFailure {α : Type u} : OracleComp spec α → Bool
   | FreeMonad.pure x => Option.isNone x
   | _ => false
+
+instance : Alternative (OracleComp spec) := OptionT.instAlternative
 
 /-- `query i t` represents querying the oracle corresponding to `i` on input `t`.
 The continuation for the computation in this case just returns the original result-/
@@ -175,12 +176,16 @@ preserving the pure and bind operations, giving a computation in the new monad.
 The function `f` specifies how to replace the queries in the computation. -/
 protected def mapM {m : Type u → Type v} [Alternative m] [Monad m]
     (f : {α : Type u} → OracleQuery spec α → m α)
-    (oa : OracleComp spec α) : m α := do
-  match (← FreeMonad.mapM f oa.run) with
-  | some x => pure x
-  | none => failure
+    (oa : OracleComp spec α) : m α :=
+  oa.construct pure _ _
 
-variable {m : Type u → Type w} [Alternative m] [Monad m] [LawfulMonad m]
+    -- do
+
+  -- match (← FreeMonad.mapM f oa.run) with
+  -- | some x => pure x
+  -- | none => failure
+
+variable {m : Type u → Type w} [ha : Alternative m] [LawfulApplicative m] [hm : Monad m] [LawfulMonad m]
   (f : {α : Type u} → OracleQuery spec α → m α)
 
 @[simp]
@@ -189,14 +194,22 @@ lemma mapM_pure (x : α) : (pure x : OracleComp spec α).mapM f = pure x := by
 
 @[simp]
 lemma mapM_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    (oa >>= ob).mapM f = oa.mapM f >>= λ x ↦ OracleComp.mapM f (ob x) := by
+    (oa >>= ob).mapM f =
+      @bind m Monad.toBind α β (oa.mapM f) (λ x ↦ OracleComp.mapM f (ob x)) := by
+  simp [OracleComp.mapM]
+
+    -- oa.mapM f >>= λ x ↦ OracleComp.mapM f (ob x) := by
   induction oa using OracleComp.inductionOn with
   | pure x => {
     simp
-
+    -- simp [OracleComp.mapM]
     have := symm <| pure_bind x (λ x ↦ OracleComp.mapM f (ob x))
+    refine this.trans ?_
+    congr
+    -- refine (congr_arg (pure x >>= ·) ?_).trans ?_
 
     convert this
+
 
   }
   | query_bind i t oa h => sorry
