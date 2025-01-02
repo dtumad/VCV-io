@@ -170,27 +170,27 @@ section mapM
 --   -- refine @monadMap (FreeMonad (OracleQuery spec)) (OracleComp spec) _
 --   refine OracleComp.instMonadFunctorFreeMonadOracleQuery.monadMap (FreeMonad.mapM f)
 
-
 /-- Implement all queries in a computation using some other monad `m`,
 preserving the pure and bind operations, giving a computation in the new monad.
 The function `f` specifies how to replace the queries in the computation. -/
 protected def mapM {m : Type u → Type v} [Alternative m] [Monad m]
     (f : {α : Type u} → OracleQuery spec α → m α)
-    (oa : OracleComp spec α) : m α :=
-  oa.construct pure _ _
+    (oa : OracleComp spec α) : m α := do
+  -- induction oa using OracleComp.construct with
+  -- | pure x => exact pure x
+  -- | query_bind i t oa r => exact f ⟨i, t⟩ >>= r
+  -- | failure => exact failure
+  match (← FreeMonad.mapM f (OptionT.run oa)) with
+  | some x => pure x
+  | none => failure
 
-    -- do
-
-  -- match (← FreeMonad.mapM f oa.run) with
-  -- | some x => pure x
-  -- | none => failure
-
-variable {m : Type u → Type w} [ha : Alternative m] [LawfulApplicative m] [hm : Monad m] [LawfulMonad m]
+variable {m : Type u → Type w} [ha : Alternative m] [hm : Monad m] [LawfulMonad m]
   (f : {α : Type u} → OracleQuery spec α → m α)
 
 @[simp]
 lemma mapM_pure (x : α) : (pure x : OracleComp spec α).mapM f = pure x := by
-  simp [OracleComp.mapM, Option.getM]
+  simp [OracleComp.mapM, OracleComp.construct, Option.getM]
+
 
 @[simp]
 lemma mapM_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
@@ -202,13 +202,14 @@ lemma mapM_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
   induction oa using OracleComp.inductionOn with
   | pure x => {
     simp
-    -- simp [OracleComp.mapM]
     have := symm <| pure_bind x (λ x ↦ OracleComp.mapM f (ob x))
     refine this.trans ?_
     congr
     -- refine (congr_arg (pure x >>= ·) ?_).trans ?_
 
     convert this
+    simp [OracleComp.mapM]
+
 
 
   }
