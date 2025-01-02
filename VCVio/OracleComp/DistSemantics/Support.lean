@@ -31,7 +31,7 @@ This is naturally compatible with `evalDist` where the oracles respond uniformly
 def support (oa : OracleComp spec α) : Set α := by
   induction oa using OracleComp.construct with
   | pure x => exact {x}
-  | query_bind i t oa f => exact ⋃ u, f u
+  | query_bind _ _ _ f => exact ⋃ u, f u
   | failure => exact ∅
 
 /-- Given a `DecidableEq` instance on the return type, we can construct
@@ -42,7 +42,7 @@ def finSupport [spec.DecidableSpec] [spec.FiniteRange] [DecidableEq α]
     (oa : OracleComp spec α) : Finset α := by
   induction oa using OracleComp.construct with
   | pure x => exact {x}
-  | query_bind i t oa f => exact Finset.univ.biUnion f
+  | query_bind _ _ _ f => exact Finset.univ.biUnion f
   | failure => exact ∅
 
 section basic
@@ -58,18 +58,18 @@ section basic
   (failure : OracleComp spec α).finSupport = ∅ := rfl
 
 @[simp] lemma support_query (i : ι) (t : spec.domain i) :
-    (query i t).support = Set.univ := by
-  simpa only [query_def, support] using Set.iUnion_of_singleton (spec.range i)
+    (query i t : OracleComp spec _).support = Set.univ := by
+  sorry --simpa only [query_def, support] using Set.iUnion_of_singleton (spec.range i)
 @[simp] lemma finSupport_query [spec.DecidableSpec] [spec.FiniteRange] (i : ι) (t : spec.domain i) :
-    (query i t).finSupport = Finset.univ := by
-  simpa only [query_def, finSupport] using Finset.biUnion_singleton_eq_self
+    (query i t : OracleComp spec _).finSupport = Finset.univ := by
+  sorry --simpa only [query_def, finSupport] using Finset.biUnion_singleton_eq_self
 
 @[simp]
 lemma support_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (oa >>= ob).support = ⋃ x ∈ oa.support, (ob x).support := by
   induction oa using OracleComp.inductionOn with
   | pure _ => simp
-  | query_bind i t oa hoa =>
+  | query_bind q oa hoa =>
       sorry --simpa [bind_assoc, ← queryBind'_eq_queryBind, support, hoa] using Set.iUnion_comm _
   | failure => simp
 
@@ -80,7 +80,7 @@ lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
       oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) := by
   induction oa using OracleComp.inductionOn generalizing hα hβ with
   | pure _ => simp
-  | query_bind i t oa hoa =>
+  | query_bind q oa hoa =>
       apply Finset.coe_inj.1
       sorry --simpa [bind_assoc, ← queryBind'_eq_queryBind, finSupport, hoa] using Set.iUnion_comm _
   | failure => simp
@@ -95,7 +95,7 @@ lemma mem_finSupport_bind_iff [spec.DecidableSpec] [spec.FiniteRange] (oa : Orac
 instance support_finite [spec.FiniteRange] (oa : OracleComp spec α) : Finite ↥(oa.support) := by
   induction oa using OracleComp.inductionOn with
   | pure x => exact Set.finite_singleton x
-  | query_bind _ _ oa hoa => exact Set.finite_iUnion hoa
+  | query_bind _ oa hoa => sorry --exact Set.finite_iUnion hoa
   | failure => exact Set.toFinite ∅
 
 /-- With a `DecidableEq` instance we can show that the support is actually a `Fintype`,

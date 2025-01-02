@@ -74,6 +74,11 @@ instance : LawfulMonad (FreeMonad f) :=
       · rfl
       · exact congr_arg (FreeMonad.roll g) (funext λ u ↦ hr u))
 
+instance : MonadFunctor f (FreeMonad f) where
+  monadMap g
+    | FreeMonad.pure x => FreeMonad.pure x
+    | FreeMonad.roll x r => g x >>= r
+
 /-- Proving something about `FreeMonad f α` only requires two cases:
 * `pure x` for some `x : α`
 Note that we can't use `Sort v` instead of `Prop` due to universe levels.-/
@@ -87,6 +92,8 @@ protected def inductionOn {C : FreeMonad f α → Prop}
   | FreeMonad.roll x r => roll x _ (λ u ↦
       FreeMonad.inductionOn pure roll (r u))
 
+section construct
+
 /-- Shoulde be possible to unify with the above-/
 @[elab_as_elim]
 protected def construct {C : FreeMonad f α → Type v}
@@ -97,6 +104,15 @@ protected def construct {C : FreeMonad f α → Type v}
   | FreeMonad.pure x => pure x
   | FreeMonad.roll x r => roll x _ (λ u ↦
       FreeMonad.construct pure roll (r u))
+
+variable {C : FreeMonad f α → Type v} (h_pure : (x : α) → C (pure x))
+  (h_roll : {β : Type u} → (x : f β) → (r : β → FreeMonad f α) →
+    ((y : β) → C (r y)) → C (x >>= r))
+
+@[simp]
+lemma construct_pure (y : α) : FreeMonad.construct h_pure h_roll (pure y) = h_pure y := rfl
+
+end construct
 
 section mapM
 
