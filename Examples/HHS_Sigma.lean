@@ -20,14 +20,14 @@ section commits
 variable {G P M : Type} [DecidableEq M]
     [AddCommGroup G] [AddTorsor G P] {n : ℕ}
 
-def zipCommits (sk : G) (gs : Mathlib.Vector G n)
-    (bs : Mathlib.Vector Bool n) : Mathlib.Vector G n :=
-  Mathlib.Vector.zipWith (λ c b ↦
+def zipCommits (sk : G) (gs : List.Vector G n)
+    (bs : List.Vector Bool n) : List.Vector G n :=
+  List.Vector.zipWith (λ c b ↦
     if b then c else c + sk) gs bs
 
-def unzipCommits (x₀ pk : P) (zs : Mathlib.Vector G n)
-    (hash : Mathlib.Vector Bool n) : Mathlib.Vector P n :=
-  Mathlib.Vector.zipWith (λ z b ↦
+def unzipCommits (x₀ pk : P) (zs : List.Vector G n)
+    (hash : List.Vector Bool n) : List.Vector P n :=
+  List.Vector.zipWith (λ z b ↦
     if b then z +ᵥ pk else z +ᵥ x₀) zs hash
 
 end commits
