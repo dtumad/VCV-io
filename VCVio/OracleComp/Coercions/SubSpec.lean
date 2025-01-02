@@ -74,8 +74,14 @@ variable [h : spec ⊂ₒ superSpec]
 
 @[simp]
 lemma evalDist_toFun [superSpec.FiniteRange] [Fintype α] [Nonempty α] (q : OracleQuery spec α) :
-    evalDist (h.monadLift q : OracleComp superSpec α) = PMF.uniformOfFintype α := by
+    evalDist (h.monadLift q : OracleComp superSpec α) =
+      OptionT.lift (PMF.uniformOfFintype α) := by
   simp [PMF.monad_map_eq_map]
+  refine congr_arg OptionT.lift ?_
+  ext x
+  sorry
+  -- simp
+
 
 @[simp]
 lemma support_toFun (q : OracleQuery spec α) :
@@ -179,17 +185,6 @@ instance [Inhabited ι₁] : MonadLift (OracleComp []ₒ) (OracleComp spec) wher
 @[simp]
 lemma coe_subSpec_empty_eq_liftComp {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type}
     (oa : OracleComp []ₒ α) : (oa : OracleComp spec α) = liftComp oa := rfl
-
--- Note the new more explicit mappings don't allow this particular one
--- /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
--- instance : coinSpec ⊂ₒ unifSpec where
---   toFun := λ q ↦ match q with | query i t => query 1 ()
--- -- Note: we should be lifting like this mostly instead of coe
--- instance : MonadLift (OracleComp coinSpec) (ProbComp) where
---   monadLift := liftComp
-
--- lemma coe_subSpec_coinSpec_unifSpec_eq_liftComp {α : Type} (oa : OracleComp coinSpec α) :
---     (↑oa : ProbComp α) = liftComp oa := rfl
 
 end instances
 

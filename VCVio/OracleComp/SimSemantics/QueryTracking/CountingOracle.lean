@@ -56,7 +56,7 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
       add_zero, implies_true]
   | query_bind i t oa hoa =>
       sorry -- refine λ qc ↦ ?_
-      -- simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
+      -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,support_bind,support_map,
       --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
       --   Prod.map_apply, id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
       -- refine Set.iUnion_congr (λ u ↦ ?_)
@@ -163,7 +163,8 @@ lemma mem_support_simulate_pure_iff (x : α) (qc : ι → ℕ) (z : α × (ι �
 
 lemma apply_ne_zero_of_mem_support_simulate_queryBind {i : ι} {t : spec.domain i}
     {oa : spec.range i → OracleComp spec α} {qc : ι → ℕ} {z : α × (ι → ℕ)}
-    (hz : z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support) : z.2 i ≠ 0 := by
+    (hz : z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support) :
+      z.2 i ≠ 0 := by
   rw [mem_support_simulate_iff, simulate_query_bind] at hz
   rw [support_bind] at hz
   simp at hz
@@ -231,8 +232,9 @@ lemma exists_mem_support_of_mem_support_simulate_queryBind {i : ι} {t : spec.do
 
 lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
-    z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support ↔ z.2 i ≠ 0 ∧ ∃ u,
-      (z.1, Function.update z.2 i (z.2 i - 1)) ∈ (simulate countingOracle qc (oa u)).support := by
+    z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support ↔
+      z.2 i ≠ 0 ∧ ∃ u, (z.1, Function.update z.2 i (z.2 i - 1)) ∈
+        (simulate countingOracle qc (oa u)).support := by
   refine ⟨λ h ↦ ⟨?_, ?_⟩, λ h ↦ ?_⟩
   · refine apply_ne_zero_of_mem_support_simulate_queryBind h
   · refine exists_mem_support_of_mem_support_simulate_queryBind h

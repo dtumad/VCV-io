@@ -42,7 +42,7 @@ namespace OracleComp
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
-variable [∀ i, SelectableType (spec.range i)]
+variable [∀ i, SelectableType (spec.range i)] [spec.DecidableSpec]
 
 def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
     (activeOracles : List ι) (i : ι)
@@ -72,7 +72,7 @@ variable [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
 /-- Proof of non-negligible lower bound on the failure chance of forking a computation
 succeeding in producing a result. By the filtering in the final `ite` this bounds the
 chance of getting a result with the desired forking semantics. -/
-theorem probFailure_fork_le :
+theorem probFailure_fork_le [spec.FiniteRange] :
     let acc := [λ (x, log) ↦ (cf x log).isSome | simulate loggingOracle ∅ oa]
     let q : ℝ≥0∞ := qb i
     let h : ℝ≥0∞ := Fintype.card (spec.range i)

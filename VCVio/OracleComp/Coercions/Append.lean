@@ -58,19 +58,6 @@ instance subSpec_append_left : spec₁ ⊂ₒ (spec₁ ++ₒ spec₂) where
 instance subSpec_append_right : spec₂ ⊂ₒ (spec₁ ++ₒ spec₂) where
   monadLift | query i t => query (inr i) t
 
--- /-- Using a existing `subSpec`, also expand to even more additional oracles on the left. -/
--- instance subSpec_append_left_of_subSpec [h : spec₁ ⊂ₒ spec₃] : spec₁ ⊂ₒ (spec₂ ++ₒ spec₃) where
---   toFun := λ i t ↦ SubSpec.liftComp (h.toFun i t)
--- instance coe_append_left_of_subSpec [h : spec₁ ⊂ₒ spec₃] :
---     Coe (OracleComp spec₁ α) (OracleComp (spec₂ ++ₒ spec₃) α) where
---   coe := SubSpec.liftComp
-
-  /-- Using a existing `subSpec`, also expand to even more additional oracles on the right. -/
--- instance subSpec_append_right_of_subSpec [h : spec₁ ⊂ₒ spec₂] :
---     spec₁ ⊂ₒ (spec₂ ++ₒ spec₃) where monadLift := monadLift
--- instance [h : spec₁ ⊂ₒ spec₂] : MonadLift (OracleComp spec₁) (OracleComp (spec₂ ++ₒ spec₃)) where
---   monadLift := SubSpec.liftComp
-
 instance subSpec_left_append_left_append_of_subSpec [h : spec₁ ⊂ₒ spec₃] :
     spec₁ ++ₒ spec₂ ⊂ₒ spec₃ ++ₒ spec₂ where
   monadLift | query (inl i) t => h.monadLift (query i t) | query (inr i) t => query (inr i) t

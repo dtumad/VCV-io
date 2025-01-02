@@ -23,13 +23,13 @@ open OracleSpec Vector
 namespace OracleComp
 
 @[simp]
-lemma probFailure_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
+lemma probFailure_list_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
     (xs : List α) (f : α → OracleComp spec β) :
     [⊥ | xs.mapM f] = 1 - (xs.map (1 - [⊥ | f ·])).prod := by
   sorry
 
 @[simp]
-lemma probOutput_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
+lemma probOutput_list_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
     (xs : List α) (f : α → OracleComp spec β) (ys : List β) :
     [= ys | xs.mapM f] = if ys.length = xs.length then
       (List.zipWith (λ x y ↦ [= y | f x]) xs ys).prod else 0 := by
@@ -61,14 +61,14 @@ lemma replicate_pure (x : α) (n : ℕ) :
 @[simp]
 lemma probFailure_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) :
     [⊥ | oa.replicate n] = 1 - (1 - [⊥ | oa]) ^ n := by
-  rw [replicate, probFailure_mapM, List.map_replicate, List.prod_replicate]
+  rw [replicate, probFailure_list_mapM, List.map_replicate, List.prod_replicate]
 
 /-- The probability of getting a vector from `replicate` is the product of the chances of
 getting each of the individual elements. -/
 @[simp]
 lemma probOutput_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) (xs : List α) :
     [= xs | oa.replicate n] = if xs.length = n then (xs.map ([= · | oa])).prod else 0 := by
-  rw [replicate, probOutput_mapM, List.length_replicate]
+  rw [replicate, probOutput_list_mapM, List.length_replicate]
   split_ifs with hxs
   · exact congr_arg List.prod <| List.ext_getElem (by simp [hxs]) (by simp)
   · rfl

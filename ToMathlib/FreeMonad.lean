@@ -6,6 +6,8 @@ Authors: Devon Tuma
 -/
 import Mathlib.Data.Finset.Card
 import Mathlib.Control.Lawful
+import Mathlib.Probability.ProbabilityMassFunction.Monad
+import Mathlib.Data.Fintype.Card
 
 /-!
 # Free Monad of a Functor
@@ -132,9 +134,25 @@ lemma mapM_roll (x : f α) (r : α → FreeMonad f β) :
 
 end mapM
 
--- instance [h : Alternative f] : Alternative (FreeMonad f) where
---   failure := FreeMonad.lift h.failure
---   orElse {α} x g := _
---   __ := Monad.toApplicative
-
 end FreeMonad
+
+section PMF
+
+variable {α β : Type u}
+
+@[simp]
+lemma PMF.monad_pure_eq_pure (x : α) : (Pure.pure x : PMF α) = PMF.pure x := rfl
+
+@[simp]
+lemma PMF.monad_bind_eq_bind (p : PMF α) (q : α → PMF β) :
+    p >>= q = p.bind q := rfl
+
+end PMF
+
+section OptionT
+
+@[simp]
+lemma OptionT.run_failure {α : Type u} {m : Type u → Type v} [Monad m] :
+    (failure : OptionT m α).run = pure none := rfl
+
+end OptionT

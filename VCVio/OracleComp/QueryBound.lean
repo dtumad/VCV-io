@@ -194,7 +194,8 @@ section minimalQueryBound
 -- --     intro hα
 -- --     rw [bind_assoc]
 -- --     rw [minimalQueryBound_query_bind]
--- --   simp only [hoa, Pi.add_apply, minimalQueryBound_query_bind, finSupport_bind, finSupport_query]
+-- --   simp only [hoa, Pi.add_apply, minimalQueryBound_query_bind,
+  --finSupport_bind, finSupport_query]
 -- --     refine funext (λ j ↦ ?_)
 -- --     by_cases hj : j = i
 -- --     · induction hj
@@ -211,7 +212,8 @@ section minimalQueryBound
 --   | query_bind i t oa hoa =>
 --     · refine isQueryBound_bind (by simp) <| λ u _ ↦ isQueryBound_mono _ (hoa u)
 --         (λ j ↦ Finset.le_max' _ _ ?_)
---       simp only [OracleComp.bind'_eq_bind, pure_bind, Finset.mem_image, Finset.mem_univ, true_and,
+--       simp only [OracleComp.bind'_eq_bind, pure_bind, Finset.mem_image,
+    -- Finset.mem_univ, true_and,
 --         exists_apply_eq_apply]
 --   | failure => sorry
 

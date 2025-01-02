@@ -55,12 +55,12 @@ lemma cons_mem_finSupport_seq_map_cons_iff [spec.FiniteRange] [spec.DecidableSpe
   simp only [finSupport_seq_map_eq_image2, Finset.mem_image₂, List.cons.injEq,
     exists_eq_right_right]
 
-lemma probOutput_cons_seq_map_cons_eq_mul [spec.FiniteRange] [spec.DecidableSpec] (x : α) (xs : List α) :
-    [= x :: xs | (· :: ·) <$> oa <*> ob] = [= x | oa] * [= xs | ob] :=
+lemma probOutput_cons_seq_map_cons_eq_mul [spec.FiniteRange] [spec.DecidableSpec] (x : α)
+    (xs : List α) : [= x :: xs | (· :: ·) <$> oa <*> ob] = [= x | oa] * [= xs | ob] :=
   probOutput_seq_map_eq_mul_of_injective2 oa ob List.cons List.injective2_cons x xs
 
-lemma probOutput_cons_seq_map_cons_eq_mul' [spec.FiniteRange] [spec.DecidableSpec] (x : α) (xs : List α) :
-    [= x :: xs | (λ xs x ↦ x :: xs) <$> ob <*> oa] = [= x | oa] * [= xs | ob] :=
+lemma probOutput_cons_seq_map_cons_eq_mul' [spec.FiniteRange] [spec.DecidableSpec] (x : α)
+    (xs : List α) : [= x :: xs | (λ xs x ↦ x :: xs) <$> ob <*> oa] = [= x | oa] * [= xs | ob] :=
   (probOutput_seq_map_swap oa ob (· :: ·) (x :: xs)).trans
     (probOutput_cons_seq_map_cons_eq_mul oa ob x xs)
 

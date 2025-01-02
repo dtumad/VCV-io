@@ -33,10 +33,11 @@ example : IO ℕ := do
 /-- Represent an `OracleComp` via the `IO` monad, allowing actual execution.
 NOTE: `OracleComp` as currently defined doesn't allow specialized error messaging.
 Changing this would just require adding a `String` to the `failure` constructor -/
-protected def runIO {α : Type} : ProbComp α → IO α
-  | pure' α x => return x
-  | queryBind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
-  | failure' _ => throw (IO.userError "Computation failed during execution")
+protected def runIO {α : Type} (oa : ProbComp α) : IO α := by
+  induction oa using OracleComp.construct with
+  | pure x => exact return x
+  | query_bind i t oa r => exact do let u ← IO.rand 0 i; r u
+  | failure => exact throw (IO.userError "Computation failed during execution")
 
 private def lawLargeNumsTest (trials : ℕ) (die : ℕ) : IO Unit := do
   let n : ℕ := trials * die
@@ -45,6 +46,6 @@ private def lawLargeNumsTest (trials : ℕ) (die : ℕ) : IO Unit := do
   for i in List.range die do
     IO.println <| "▸Num " ++ toString (i + 1) ++ "s: " ++ toString (xs.count i)
 
-#eval lawLargeNumsTest 100 6
+#eval lawLargeNumsTest 200 6
 
 end OracleComp

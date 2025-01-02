@@ -106,17 +106,18 @@ lemma finSupport_seq_map_eq_image2 [spec.FiniteRange] [spec.DecidableSpec]
     coe_finSupport, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2, implies_true]
 
 lemma evalDist_seq_map [spec.FiniteRange] :
-    evalDist (f <$> oa <*> ob) = ((evalDist oa).map (Option.map f)).bind
-      (Option.rec (PMF.pure none) (λ g ↦ (evalDist ob).map (Option.map g))) := by
+    evalDist (f <$> oa <*> ob) = f <$> evalDist oa <*> evalDist ob := by
   rw [evalDist_seq, evalDist_map]
 
-lemma probOutput_seq_map_eq_tsum [spec.FiniteRange] (z : γ) : [= z | f <$> oa <*> ob] =
-    ∑' (x : α) (y : β), [= x | oa] * [= y | ob] * [= z | (pure (f x y) : OracleComp spec γ)] := by
+lemma probOutput_seq_map_eq_tsum [spec.FiniteRange]
+    (z : γ) : [= z | f <$> oa <*> ob] = ∑' (x : α) (y : β),
+      [= x | oa] * [= y | ob] * [= z | (pure (f x y) : OracleComp spec γ)] := by
   simp only [map_eq_bind_pure_comp, Function.comp, seq_eq_bind, bind_assoc, pure_bind,
     probOutput_bind_eq_tsum, ← ENNReal.tsum_mul_left, mul_assoc]
 
-lemma probOutput_seq_map_eq_tsum_ite [spec.FiniteRange] [DecidableEq γ] (z : γ) : [= z | f <$> oa <*> ob] =
-    ∑' (x : α) (y : β), if z = f x y then [= x | oa] * [= y | ob] else 0 := by
+lemma probOutput_seq_map_eq_tsum_ite [spec.FiniteRange] [DecidableEq γ]
+    (z : γ) : [= z | f <$> oa <*> ob] =
+      ∑' (x : α) (y : β), if z = f x y then [= x | oa] * [= y | ob] else 0 := by
   simp only [probOutput_seq_map_eq_tsum, probOutput_pure, mul_ite, mul_one, mul_zero]
 
 -- @[simp] lemma prob_output_seq_map_eq_sum [decidable_eq α] [decidable_eq β]

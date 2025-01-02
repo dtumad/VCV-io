@@ -23,20 +23,18 @@ namespace OracleComp
 
 variable {ι : Type} [DecidableEq ι]
 
+def generateSeedT (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
+    (qc : ι → ℕ) (activeOracles : List ι) :
+    StateT (QuerySeed spec) ProbComp Unit :=
+  for j in activeOracles do
+    modify (QuerySeed.addValues (← ($ᵗ spec.range j).replicate (qc j)))
+
 /-- Generate a `QuerySeed` uniformly at random for some set of oracles `spec : OracleSpec ι`,
 with `qc i : ℕ` values seeded for each `i ∈ activeOracles`.
 Note that `activeOracles` is allowed to contain duplicates, but usually won't in practice. -/
 def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
     (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) :=
-  List.foldrM (λ j seed ↦ do
-    let xs ← ($ᵗ spec.range j).replicate (qc j)
-    return seed.addValues xs) ∅ activeOracles
-  -- do
-  -- let mut seed : QuerySeed spec := ∅
-  -- for j in activeOracles do
-  --   let xs ← ($ᵗ spec.range j).replicate (qc j)
-  --   seed := seed.addValues xs
-  -- return seed
+  Prod.snd <$> (generateSeedT spec qc activeOracles).run ∅
 
 -- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   (qc : ι → ℕ) (j : ι) (js : List ι)
@@ -62,10 +60,12 @@ variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 lemma generateSeed_nil : generateSeed spec qc [] = return ∅ := rfl
 
 @[simp]
-lemma generateSeed_cons : generateSeed spec qc (j :: js) = QuerySeed.addValues <$>
-    generateSeed spec qc js <*> ($ᵗ (spec.range j)).replicate (qc j) := by
+lemma generateSeed_cons : generateSeed spec qc (j :: js) =
+    ($ᵗ (spec.range j)).replicate (qc j) >>= λ xs ↦
+      generateSeed spec qc js := by
   simp [generateSeed, map_eq_bind_pure_comp,
     seq_eq_bind, bind_assoc]
+  sorry
 
 @[simp]
 lemma generateSeed_zero : generateSeed spec 0 js = return ∅ := by
@@ -102,7 +102,7 @@ lemma support_generateSeed : (generateSeed spec qc js).support =
 --           simp [h, mul_add_one]
 --   }
 
-lemma probOutput_generateSeed (seed : QuerySeed spec)
+lemma probOutput_generateSeed [spec.FiniteRange] (seed : QuerySeed spec)
     (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
     1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
   revert seed

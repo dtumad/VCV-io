@@ -229,15 +229,16 @@ section mapM
 
 /-- Implement all queries in a computation using some other monad `m`,
 preserving the pure and bind operations, giving a computation in the new monad.
-The function `f` specifies how to replace the queries in the computation. -/
+The function `qm` specifies how to replace the queries in the computation,
+and `fail` is used whenever `failure` is encountered. -/
 protected def mapM {m : Type u → Type v} [Monad m]
-    (fail : m α) -- Implementation of `failure`
-    (qm : (i : ι) → (t : spec.domain i) → m (spec.range i)) -- Implementation of `query`
+    (fail : {α : Type u} → m α)
+    (qm : {α : Type u} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) : m α :=
-  OracleComp.construct pure (λ i t _ r ↦ qm i t >>= r) fail oa
+  OracleComp.construct pure (λ i t _ r ↦ qm (query i t) >>= r) fail oa
 
 variable {m : Type u → Type w} [Monad m]
-  (fail : {α : Type u} → m α) (qm : (i : ι) → (t : spec.domain i) → m (spec.range i))
+  (fail : {α : Type u} → m α) (qm : {α : Type u} → OracleQuery spec α → m α)
 
 @[simp]
 lemma mapM_pure (x : α) :
@@ -252,15 +253,18 @@ lemma mapM_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleCom
   | failure => sorry
 
 @[simp]
-lemma mapM_query (i : ι) (t : spec.domain i) :
-    (query i t : OracleComp spec _).mapM fail qm = qm i t := by
-  rw [OracleComp.mapM]
-  rw [lift_query_def]
-  rw [FreeMonad.lift]
-  rw [OptionT.lift]
-  simp [OptionT.mk, OracleComp.construct]
+lemma mapM_liftM [LawfulMonad m] (q : OracleQuery spec α) :
+    (q : OracleComp spec α).mapM fail qm = qm q :=
+  match q with | query i t => by simp only [OracleComp.mapM, OracleComp.construct,
+    FreeMonad.construct, bind_pure]
 
-  sorry
+@[simp]
+lemma mapM_query [LawfulMonad m] (i : ι) (t : spec.domain i) :
+    (query i t : OracleComp spec _).mapM fail qm = qm (query i t) := by
+  rw [mapM_liftM]
+
+@[simp]
+lemma mapM_failure : (failure : OracleComp spec α).mapM fail qm = fail := rfl
 
 end mapM
 
@@ -293,12 +297,16 @@ def isFailure {α : Type u} : OracleComp spec α → Bool
 -- @[simp] lemma query_ne_pure : query i t ≠ pure u := sorry --OracleComp.noConfusion
 -- @[simp] lemma pure_ne_query_bind : pure x ≠ query i t >>= ou := sorry --OracleComp.noConfusion
 -- @[simp] lemma query_bind_ne_pure : query i t >>= ou ≠ pure x := sorry --OracleComp.noConfusion
--- @[simp] lemma pure_ne_failure : (pure x : OracleComp spec α) ≠ failure := sorry --OracleComp.noConfusion
--- @[simp] lemma failure_ne_pure : failure ≠ (pure x : OracleComp spec α) := sorry --OracleComp.noConfusion
+-- @[simp] lemma pure_ne_failure :
+--(pure x : OracleComp spec α) ≠ failure := sorry --OracleComp.noConfusion
+-- @[simp] lemma failure_ne_pure : failure ≠ (pure x : OracleComp spec α) :=
+--sorry --OracleComp.noConfusion
 -- @[simp] lemma query_ne_failure : query i t ≠ failure := sorry --OracleComp.noConfusion
 -- @[simp] lemma failure_ne_query : failure ≠ query i t := sorry --OracleComp.noConfusion
--- @[simp] lemma failure_ne_query_bind : failure ≠ query i t >>= ou := sorry --OracleComp.noConfusion
--- @[simp] lemma query_bind_ne_failure : query i t >>= ou ≠ failure := sorry --OracleComp.noConfusion
+-- @[simp] lemma failure_ne_query_bind : failure ≠ query i t >>= ou :=
+  --sorry --OracleComp.noConfusion
+-- @[simp] lemma query_bind_ne_failure : query i t >>= ou ≠ failure :=
+  --sorry --OracleComp.noConfusion
 
 -- lemma exists_eq_of_isPure {oa : OracleComp spec α} (h : isPure oa) :  ∃ x, oa = pure x := by
 --   induction oa using OracleComp.inductionOn with

@@ -100,7 +100,8 @@ lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 
 lemma mem_support_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
     y ∈ (oa >>= ob).support ↔ ∃ x ∈ oa.support, y ∈ (ob x).support := by simp
-lemma mem_finSupport_bind_iff [spec.DecidableSpec] [spec.FiniteRange] (oa : OracleComp spec α) (ob : α → OracleComp spec β)
+lemma mem_finSupport_bind_iff [spec.DecidableSpec] [spec.FiniteRange]
+    (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     [hoa : DecidableEq α] [hob : DecidableEq β] (y : β) : y ∈ (oa >>= ob).finSupport ↔
       ∃ x ∈ oa.finSupport, y ∈ (ob x).finSupport := by simp
 
@@ -161,8 +162,8 @@ section decidable
 /-- If the output type of a computation has `DecidableEq` then membership in the `support`
 of a computation is also decidable as a predicate.
 NOTE: will need to be restricted if we allow infinite oracle codomains. -/
-instance decidablePred_mem_support [spec.FiniteRange] [hα : DecidableEq α] (oa : OracleComp spec α) :
-    DecidablePred (· ∈ oa.support) := by
+instance decidablePred_mem_support [spec.FiniteRange] [hα : DecidableEq α]
+    (oa : OracleComp spec α) : DecidablePred (· ∈ oa.support) := by
   induction oa using OracleComp.construct with
   | pure x => exact λ y ↦ hα y x
   | failure => exact λ _ ↦ Decidable.isFalse (not_false)
@@ -218,9 +219,10 @@ end nonempty
 @[simp] lemma support_eqRec (oa : OracleComp spec α) (h : α = β) :
     (h ▸ oa).support = h.symm ▸ oa.support := by
   induction h; rfl
-@[simp] lemma finSupport_eqRec [spec.DecidableSpec] [spec.FiniteRange] [hα : DecidableEq α] [hβ : DecidableEq β]
-    (oa : OracleComp spec α) (h : α = β) :
-    @finSupport _ _ _ _ _ hβ (h ▸ oa : OracleComp spec β) = h.symm ▸ @finSupport _ _ _ _ _ hα oa := by
+@[simp] lemma finSupport_eqRec [spec.DecidableSpec] [spec.FiniteRange]
+    [hα : DecidableEq α] [hβ : DecidableEq β] (oa : OracleComp spec α) (h : α = β) :
+    @finSupport _ _ _ _ _ hβ (h ▸ oa : OracleComp spec β) =
+      h.symm ▸ @finSupport _ _ _ _ _ hα oa := by
   refine Finset.ext (λ x ↦ ?_)
   simp [mem_finSupport_iff_mem_support]
   induction h -- We can't do this earlier without running into trouble with `DecidableEq`
@@ -229,16 +231,17 @@ end nonempty
 @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
     (f <$> oa).support = f '' oa.support := by
   simp only [map_eq_pure_bind, ← Set.image_eq_iUnion, support_bind, support_pure]
-@[simp] lemma fin_support_map [spec.DecidableSpec] [spec.FiniteRange] [DecidableEq α] [DecidableEq β]
-    (oa : OracleComp spec α) (f : α → β) : (f <$> oa).finSupport = oa.finSupport.image f := by
+@[simp] lemma fin_support_map [spec.DecidableSpec] [spec.FiniteRange]
+    [DecidableEq α] [DecidableEq β] (oa : OracleComp spec α) (f : α → β) :
+    (f <$> oa).finSupport = oa.finSupport.image f := by
   simp [finSupport_eq_iff_support_eq_coe]
 
 @[simp] lemma support_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
-    (ite p oa oa').support = ite p oa.support oa'.support :=
+    (if p then oa else oa').support = if p then oa.support else oa'.support :=
   apply_ite support p oa oa'
-@[simp] lemma finSupport_ite [spec.DecidableSpec] [spec.FiniteRange] [DecidableEq α] (p : Prop) [Decidable p]
-    (oa oa' : OracleComp spec α) : (ite p oa oa').finSupport =
-      ite p oa.finSupport oa'.finSupport :=
+@[simp] lemma finSupport_ite [spec.DecidableSpec] [spec.FiniteRange] [DecidableEq α]
+    (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
+    (if p then oa else oa').finSupport = if p then oa.finSupport else oa'.finSupport :=
   apply_ite finSupport p oa oa'
 
 @[simp] lemma support_coin : coin.support = {true, false} :=

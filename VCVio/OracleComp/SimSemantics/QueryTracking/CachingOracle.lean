@@ -85,7 +85,8 @@ namespace cachingOracle
 variable [spec.DecidableSpec]
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) : cachingOracle i t = (do match (← get) i t with
+lemma apply_eq (i : ι) (t : spec.domain i) : cachingOracle i t =
+    (do match (← get) i t with
     | Option.some u => return u
     | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)) :=
   rfl
