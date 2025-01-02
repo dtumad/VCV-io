@@ -15,7 +15,7 @@ This file gives a centralized location to add lemmas that belong better
 in general mathlib than in the project itself.
 -/
 
--- open Mathlib (Vector)
+open List (Vector)
 open BigOperators ENNReal
 
 lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
@@ -24,15 +24,15 @@ lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
 
 @[simp] -- mathlib?
-lemma vector_eq_nil {α : Type} (xs : List.Vector α 0) : xs = List.Vector.nil :=
-  List.Vector.ext (IsEmpty.forall_iff.2 True.intro)
+lemma vector_eq_nil {α : Type} (xs : List.Vector α 0) : xs = Vector.nil :=
+  Vector.ext (IsEmpty.forall_iff.2 True.intro)
 
 lemma List.injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
   simp [Function.Injective2]
 
 lemma Vector.injective2_cons {α : Type} {n : ℕ} :
-    Function.Injective2 (List.Vector.cons : α → List.Vector α n → List.Vector α (n + 1)) := by
-  simp [Function.Injective2, List.Vector.eq_cons_iff]
+    Function.Injective2 (Vector.cons : α → List.Vector α n → List.Vector α (n + 1)) := by
+  simp [Function.Injective2, Vector.eq_cons_iff]
 
 lemma Prod.mk.injective2 {α β : Type} :
     Function.Injective2 (Prod.mk : α → β → α × β) := by
