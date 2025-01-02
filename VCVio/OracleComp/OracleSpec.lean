@@ -79,8 +79,8 @@ which often gives better behavior for proofs even though the oracle is never cal
 
 notation "[]ₒ" => emptySpec
 
-instance (i : Empty) : Unique ([]ₒ.domain i) := PUnit.unique
-instance (i : Empty) : Unique ([]ₒ.range i) := PUnit.unique
+instance (i : Empty) : Unique ([]ₒ.domain i) := PUnit.instUnique
+instance (i : Empty) : Unique ([]ₒ.range i) := PUnit.instUnique
 
 instance {ι : Type} [DecidableEq ι] : Inhabited (OracleSpec ι) :=
   ⟨{
@@ -126,4 +126,4 @@ NOTE: debate on whether inlining this is good -/
   range_decidableEq' := inferInstance
   range_fintype' := inferInstance
 
-instance (i : ℕ) : Unique (unifSpec.domain i) := PUnit.unique
+instance (i : ℕ) : Unique (unifSpec.domain i) := PUnit.instUnique
