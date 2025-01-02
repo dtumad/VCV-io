@@ -43,8 +43,30 @@ Implemented as a functor with the oracle output type as the constructor result. 
 inductive OracleQuery {ι : Type u} (spec : OracleSpec ι) : Type u → Type u
   | query (i : ι) : (t : spec.domain i) → OracleQuery spec (spec.range i)
 
-def OracleQuery.defaultOutput {ι : Type} {spec : OracleSpec ι} [h : FiniteRange spec]
-    {α : Type} : (q : OracleQuery spec α) → α | query i t => default
+namespace OracleQuery
+
+def defaultOutput {ι : Type u} {spec : OracleSpec ι} [h : FiniteRange spec]
+    {α : Type u} : (q : OracleQuery spec α) → α | query i t => default
+
+def index {ι : Type u} {spec : OracleSpec ι} {α : Type u} :
+    (q : OracleQuery spec α) → ι | query i t => i
+
+def input {ι : Type u} {spec : OracleSpec ι} {α : Type u} :
+    (q : OracleQuery spec α) → spec.domain q.index | query i t => t
+
+def rangeFintype {ι : Type u} {spec : OracleSpec ι} {α : Type u}
+    [spec.FiniteRange] : OracleQuery spec α → Fintype α | query i t => inferInstance
+
+def rangeInhabited {ι : Type u} {spec : OracleSpec ι} {α : Type u}
+    [spec.FiniteRange] : OracleQuery spec α → Inhabited α | query i t => inferInstance
+
+def rangeDecidableEq {ι : Type u} {spec : OracleSpec ι} {α : Type u}
+    [spec.DecidableSpec] : OracleQuery spec α → DecidableEq α | query i t => inferInstance
+
+instance isEmpty {α : Type u} : IsEmpty (OracleQuery []ₒ α) where
+  false | query i t => i.elim
+
+end OracleQuery
 
 /-- `OracleComp spec α` represents computations with oracle access to oracles in `spec`,
 where the final return value has type `α`.
@@ -115,6 +137,11 @@ notation "$[0.." n "]" => uniformFin n
 example : ProbComp ℕ := do
   let x ← $[0..31415]; let y ← $[0..16180]
   return x + 2 * y
+
+
+@[simp]
+lemma guard_eq {ι : Type} {spec : OracleSpec ι} (p : Prop) [Decidable p] :
+    (guard p : OracleComp spec Unit) = if p then pure () else failure := rfl
 
 -- /-- Total number of queries in a computation across all possible execution paths.
 -- Can be a helpful alternative to `sizeOf` when proving recursive calls terminate. -/

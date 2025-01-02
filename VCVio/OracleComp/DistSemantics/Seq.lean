@@ -31,27 +31,30 @@ lemma support_seq : (og <*> oa).support = ⋃ g ∈ og.support, g '' oa.support 
   simp [seq_eq_bind_map]
 
 @[simp low]
-lemma finSupport_seq [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)] :
+lemma finSupport_seq [spec.DecidableSpec] [spec.FiniteRange]
+    [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)] :
     (og <*> oa).finSupport = og.finSupport.biUnion (λ g ↦ oa.finSupport.image g) := by
   simp [seq_eq_bind_map]
 
-lemma probOutput_seq_eq_tsum (y : β) : [= y | og <*> oa] =
+lemma probOutput_seq_eq_tsum [spec.FiniteRange] (y : β) : [= y | og <*> oa] =
     ∑' g, ∑' x, [= g | og] * [= x | oa] * [= y | (pure (g x) : OracleComp spec β)] := by
   simp [seq_eq_bind, probOutput_bind_eq_tsum, probOutput_map_eq_tsum,
     ← ENNReal.tsum_mul_left, mul_assoc]
 
-lemma probOutput_seq_eq_tsum_ite [DecidableEq β] (y : β) : [= y | og <*> oa] =
-    ∑' g, ∑' x, if y = g x then [= g | og] * [= x | oa] else 0 := by
+lemma probOutput_seq_eq_tsum_ite [spec.FiniteRange] [DecidableEq β] (y : β) :
+    [= y | og <*> oa] = ∑' g, ∑' x, if y = g x then [= g | og] * [= x | oa] else 0 := by
   simp [seq_eq_bind, probOutput_bind_eq_tsum,
     probOutput_map_eq_tsum_ite, ← ENNReal.tsum_mul_left]
 
-lemma probOutput_seq_eq_sum_finSupport_ite [DecidableEq α] [DecidableEq (α → β)] [DecidableEq β]
+lemma probOutput_seq_eq_sum_finSupport_ite [spec.FiniteRange] [spec.DecidableSpec]
+    [DecidableEq α] [DecidableEq (α → β)] [DecidableEq β]
     (y : β) : [= y | og <*> oa] = ∑ g in og.finSupport, ∑ x in oa.finSupport,
       if y = g x then [= g | og] * [= x | oa] else 0 := by
   simp [seq_eq_bind, probOutput_bind_eq_sum_finSupport,
     probOutput_map_eq_sum_finSupport_ite, Finset.mul_sum]
 
-lemma probFailure_seq : [⊥ | og <*> oa] = [⊥ | og] + [⊥ | oa] - [⊥ | og] * [⊥ | oa] := by
+lemma probFailure_seq [spec.FiniteRange] :
+    [⊥ | og <*> oa] = [⊥ | og] + [⊥ | oa] - [⊥ | og] * [⊥ | oa] := by
   rw [seq_eq_bind_map, probFailure_bind_eq_tsum]
   rw [AddLECancellable.add_tsub_assoc_of_le]
   · refine congr_arg ([⊥ | og] + ·) ?_
@@ -65,11 +68,11 @@ lemma probFailure_seq : [⊥ | og <*> oa] = [⊥ | og] + [⊥ | oa] - [⊥ | og]
       rw [ENNReal.div_self hoa probFailure_ne_top]
       exact probFailure_le_one
 
-lemma probEvent_seq_eq_tsum (p : β → Prop) [DecidablePred p] :
+lemma probEvent_seq_eq_tsum [spec.FiniteRange] (p : β → Prop) [DecidablePred p] :
     [p | og <*> oa] = ∑' (g : α → β), [= g | og] * [p ∘ g | oa] := by
   simp only [seq_eq_bind, probEvent_bind_eq_tsum, probEvent_map]
 
-lemma probEvent_seq_eq_tsum_ite (p : β → Prop) [DecidablePred p] :
+lemma probEvent_seq_eq_tsum_ite [spec.FiniteRange] (p : β → Prop) [DecidablePred p] :
     [p | og <*> oa] = ∑' (g : α → β) (x : α),
       if p (g x) then [= g | og] * [= x | oa] else 0 := by
   simp_rw [probEvent_seq_eq_tsum, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left,
@@ -95,22 +98,24 @@ lemma support_seq_map_eq_image2 :
     implies_true]
 
 @[simp low + 1]
-lemma finSupport_seq_map_eq_image2 [DecidableEq α] [DecidableEq β] [DecidableEq γ] :
+lemma finSupport_seq_map_eq_image2 [spec.FiniteRange] [spec.DecidableSpec]
+    [DecidableEq α] [DecidableEq β] [DecidableEq γ] :
     (f <$> oa <*> ob).finSupport = Finset.image₂ f oa.finSupport ob.finSupport := by
   simp only [finSupport_eq_iff_support_eq_coe, support_seq, support_map, Set.mem_image,
     Set.iUnion_exists, Set.biUnion_and', Set.iUnion_iUnion_eq_right, Finset.coe_image₂,
     coe_finSupport, Set.ext_iff, Set.mem_iUnion, exists_prop, Set.mem_image2, implies_true]
 
-lemma evalDist_seq_map : evalDist (f <$> oa <*> ob) = ((evalDist oa).map (Option.map f)).bind
-    (Option.rec (PMF.pure none) (λ g ↦ (evalDist ob).map (Option.map g))) := by
+lemma evalDist_seq_map [spec.FiniteRange] :
+    evalDist (f <$> oa <*> ob) = ((evalDist oa).map (Option.map f)).bind
+      (Option.rec (PMF.pure none) (λ g ↦ (evalDist ob).map (Option.map g))) := by
   rw [evalDist_seq, evalDist_map]
 
-lemma probOutput_seq_map_eq_tsum (z : γ) : [= z | f <$> oa <*> ob] =
+lemma probOutput_seq_map_eq_tsum [spec.FiniteRange] (z : γ) : [= z | f <$> oa <*> ob] =
     ∑' (x : α) (y : β), [= x | oa] * [= y | ob] * [= z | (pure (f x y) : OracleComp spec γ)] := by
   simp only [map_eq_bind_pure_comp, Function.comp, seq_eq_bind, bind_assoc, pure_bind,
     probOutput_bind_eq_tsum, ← ENNReal.tsum_mul_left, mul_assoc]
 
-lemma probOutput_seq_map_eq_tsum_ite [DecidableEq γ] (z : γ) : [= z | f <$> oa <*> ob] =
+lemma probOutput_seq_map_eq_tsum_ite [spec.FiniteRange] [DecidableEq γ] (z : γ) : [= z | f <$> oa <*> ob] =
     ∑' (x : α) (y : β), if z = f x y then [= x | oa] * [= y | ob] else 0 := by
   simp only [probOutput_seq_map_eq_tsum, probOutput_pure, mul_ite, mul_one, mul_zero]
 
@@ -131,8 +136,9 @@ lemma probOutput_seq_map_eq_tsum_ite [DecidableEq γ] (z : γ) : [= z | f <$> oa
 -- by simp_rw [seq_map_eq_bind_bind, prob_event_bind_eq_sum, finset.mul_sum,
 --   prob_event_return, mul_ite, mul_one, mul_zero]
 
-lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) [DecidablePred p] :
-    [p | f <$> oa <*> ob] = [p ∘ f.uncurry | Prod.mk <$> oa <*> ob] := by
+lemma probEvent_seq_map_eq_probEvent_comp_uncurry [spec.FiniteRange]
+    (p : γ → Prop) [DecidablePred p] : [p | f <$> oa <*> ob] =
+      [p ∘ f.uncurry | Prod.mk <$> oa <*> ob] := by
   rw [probEvent_comp]
   refine probEvent_congr' ?_ (congr_arg evalDist ?_)
   · simp only [support_seq_map_eq_image2, Set.mem_image2, support_map, Set.image2_mk_eq_prod,
@@ -141,14 +147,14 @@ lemma probEvent_seq_map_eq_probEvent_comp_uncurry (p : γ → Prop) [DecidablePr
     rfl
 
 
-lemma probEvent_seq_map_eq_probEvent (p : γ → Prop) [DecidablePred p] :
+lemma probEvent_seq_map_eq_probEvent [spec.FiniteRange] (p : γ → Prop) [DecidablePred p] :
     [p | f <$> oa <*> ob] = [λ z ↦ p (f z.1 z.2) | Prod.mk <$> oa <*> ob] :=
   probEvent_seq_map_eq_probEvent_comp_uncurry oa ob f p
 
 section swap
 
 @[simp]
-lemma probOutput_seq_map_swap (z : γ) :
+lemma probOutput_seq_map_swap [spec.FiniteRange] (z : γ) :
     [= z | Function.swap f <$> ob <*> oa] = [= z | f <$> oa <*> ob] := by
   simp [probOutput_seq_map_eq_tsum, Function.swap]
   rw [ENNReal.tsum_comm]
@@ -156,21 +162,22 @@ lemma probOutput_seq_map_swap (z : γ) :
   rw [mul_comm [= x | oa]]
 
 @[simp]
-lemma evalDist_seq_map_swap :
+lemma evalDist_seq_map_swap [spec.FiniteRange] :
     evalDist (Function.swap f <$> ob <*> oa) = evalDist (f <$> oa <*> ob) :=
   evalDist_ext_probEvent (probOutput_seq_map_swap oa ob f)
 
 @[simp]
-lemma probEvent_seq_map_swap (p : γ → Prop) [DecidablePred p] :
+lemma probEvent_seq_map_swap [spec.FiniteRange] (p : γ → Prop) [DecidablePred p] :
     [p | Function.swap f <$> ob <*> oa] = [p | f <$> oa <*> ob] :=
   probEvent_congr (λ _ ↦ Iff.rfl) (evalDist_seq_map_swap oa ob f)
 
 @[simp]
-lemma support_seq_map_swap : (Function.swap f <$> ob <*> oa).support = (f <$> oa <*> ob).support :=
+lemma support_seq_map_swap [spec.FiniteRange] :
+    (Function.swap f <$> ob <*> oa).support = (f <$> oa <*> ob).support :=
   Set.ext (mem_support_iff_of_evalDist_eq (evalDist_seq_map_swap oa ob f))
 
 @[simp]
-lemma finSupport_seq_map_swap [DecidableEq γ] :
+lemma finSupport_seq_map_swap [spec.FiniteRange] [spec.DecidableSpec] [DecidableEq γ] :
     (Function.swap f <$> ob <*> oa).finSupport = (f <$> oa <*> ob).finSupport :=
   Finset.ext (mem_finSupport_iff_of_evalDist_eq (evalDist_seq_map_swap oa ob f))
 
@@ -182,12 +189,14 @@ lemma mem_support_seq_map_iff_of_injective2 (hf : f.Injective2) (x : α) (y : β
     f x y ∈ (f <$> oa <*> ob).support ↔ x ∈ oa.support ∧ y ∈ ob.support := by
   rw [support_seq_map_eq_image2, Set.mem_image2_iff hf]
 
-lemma mem_finSupport_seq_map_iff_of_injective2 [DecidableEq α] [DecidableEq β] [DecidableEq γ]
+lemma mem_finSupport_seq_map_iff_of_injective2 [spec.FiniteRange] [spec.DecidableSpec]
+    [DecidableEq α] [DecidableEq β] [DecidableEq γ]
     (hf : f.Injective2) (x : α) (y : β) : f x y ∈ (f <$> oa <*> ob).finSupport ↔
       x ∈ oa.finSupport ∧ y ∈ ob.finSupport := by
   simp_rw [mem_finSupport_iff_mem_support, mem_support_seq_map_iff_of_injective2 oa ob f hf]
 
-lemma probOutput_seq_map_eq_mul_of_injective2 (hf : f.Injective2) (x : α) (y : β) :
+lemma probOutput_seq_map_eq_mul_of_injective2 [spec.FiniteRange]
+    (hf : f.Injective2) (x : α) (y : β) :
     [= f x y | f <$> oa <*> ob] = [= x | oa] * [= y | ob] := by
   rw [probOutput_seq_map_eq_tsum]
   rw [← ENNReal.tsum_prod]
@@ -202,7 +211,7 @@ end injective2
 and there exists unique `x` and `y` such that `f x y = z` (given as explicit arguments),
 then the probability of getting `z` as an output of `f <$> oa <*> ob`
 is the product of probabilities of getting `x` and `y` from `oa` and `ob` respectively. -/
-lemma probOutput_seq_map_eq_mul (x : α) (y : β) (z : γ)
+lemma probOutput_seq_map_eq_mul [spec.FiniteRange] (x : α) (y : β) (z : γ)
     (h : ∀ x' ∈ oa.support, ∀ y' ∈ ob.support, z = f x' y' ↔ x' = x ∧ y' = y) :
     [= z | f <$> oa <*> ob] = [= x | oa] * [= y | ob] := by
   have : DecidableEq γ := Classical.decEq γ
@@ -219,7 +228,8 @@ lemma probOutput_seq_map_eq_mul (x : α) (y : β) (z : γ)
 and `p` is an event such that outputs of `f` are in `p` iff the individual components
 lie in some other events `q1` and `q2`, then the probability of the event `p` is the
 product of the probabilites holding individually. -/
-lemma probEvent_seq_map_eq_mul (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
+lemma probEvent_seq_map_eq_mul [spec.FiniteRange]
+    (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
     [DecidablePred p] [DecidablePred q1] [DecidablePred q2]
     (h : ∀ x ∈ oa.support, ∀ y ∈ ob.support, p (f x y) ↔ q1 x ∧ q2 y) :
     [p | f <$> oa <*> ob] = [q1 | oa] * [q2 | ob] := by
@@ -240,7 +250,7 @@ lemma probEvent_seq_map_eq_mul (p : γ → Prop) (q1 : α → Prop) (q2 : β →
 end seq_map
 
 -- TODO: should have a map lemmas file probably
-lemma probOutput_map_eq_single {oa : OracleComp spec α} {f : α → β} {y : β}
+lemma probOutput_map_eq_single [spec.FiniteRange] {oa : OracleComp spec α} {f : α → β} {y : β}
     (x : α) (h : ∀ x' ∈ oa.support, y = f x' → x = x') (h' : f x = y) :
     [= y | f <$> oa] = [= x | oa] := by
   rw [probOutput_map_eq_tsum]

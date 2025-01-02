@@ -57,12 +57,25 @@ section basic
 @[simp] lemma finSupport_failure [spec.DecidableSpec] [spec.FiniteRange] [DecidableEq α] :
   (failure : OracleComp spec α).finSupport = ∅ := rfl
 
+@[simp] lemma support_liftM (q : OracleQuery spec α) :
+    (q : OracleComp spec α).support = Set.univ := by
+  cases q
+  rw [lift_query_def]
+  -- simp [OptionT.lift, FreeMonad.lift, OptionT.mk, support,
+    -- OracleComp.construct]
+  sorry
+
+@[simp] lemma finSupport_liftM [spec.DecidableSpec] [spec.FiniteRange]
+    [DecidableEq α] [Fintype α] (q : OracleQuery spec α) :
+    (q : OracleComp spec α).finSupport = Finset.univ := by
+  sorry
+
 @[simp] lemma support_query (i : ι) (t : spec.domain i) :
     (query i t : OracleComp spec _).support = Set.univ := by
-  sorry --simpa only [query_def, support] using Set.iUnion_of_singleton (spec.range i)
+  rw [support_liftM]
 @[simp] lemma finSupport_query [spec.DecidableSpec] [spec.FiniteRange] (i : ι) (t : spec.domain i) :
     (query i t : OracleComp spec _).finSupport = Finset.univ := by
-  sorry --simpa only [query_def, finSupport] using Finset.biUnion_singleton_eq_self
+  rw [finSupport_liftM]
 
 @[simp]
 lemma support_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :

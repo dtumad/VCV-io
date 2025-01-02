@@ -42,10 +42,12 @@ it can be perfectly simulated by a computation using the oracles of `superSpec`.
 
 We avoid implementing this via the built-in subset type as we care about the actual data
 of the mapping rather than just its existence, which is needed when defining type coercions. -/
-class SubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 where
-  toFun (i : ι₁) (t : spec.domain i) : OracleComp superSpec (spec.range i)
-  evalDist_toFun' (i : ι₁) (t : spec.domain i) : evalDist (toFun i t) = evalDist (query i t)
+-- class SubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 where
+--   toFun (i : ι₁) (t : spec.domain i) : OracleComp superSpec (spec.range i)
 
+class SubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂)
+  extends MonadLift (OracleQuery spec) (OracleQuery superSpec) where
+  -- toFun : {α : Type} → OracleQuery spec α → OracleQuery superSpec α
 -- Note: this version has some nicer properties but is usually more annoying.
 -- class SubSpec' (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 where
 --   index_map (i : ι₁) : ι₂
@@ -58,54 +60,65 @@ class SubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂) : Type 1 
 
 infix : 50 " ⊂ₒ " => SubSpec
 
+-- class lawfulSubSpec (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂)
+--     [h : spec ⊂ₒ superSpec] [spec.FiniteRange] [superSpec.FiniteRange] where
+--   evalDist_toFun' (i : ι₁) (t : spec.domain i) :
+--     evalDist (h.toFun i t) = evalDist (query i t : OracleComp spec _)
+
 namespace SubSpec
 
 variable [h : spec ⊂ₒ superSpec]
 
-@[simp]
-lemma evalDist_toFun (i : ι₁) (t : spec.domain i) :
-    evalDist (h.toFun i t) = PMF.uniformOfFintype (spec.range i) := by
-  sorry
-  -- rw [h.evalDist_toFun' i t, evalDist_query]
+
+  -- [lawfulSubSpec spec superSpec]
 
 @[simp]
-lemma support_toFun (i : ι₁) (t : spec.domain i) :
-    support (h.toFun i t) = Set.univ := by
-  sorry
-  -- rw [← support_evalDist, h.evalDist_toFun, PMF.support_uniformOfFintype, Set.top_eq_univ]
+lemma evalDist_toFun [superSpec.FiniteRange] [Fintype α] [Nonempty α] (q : OracleQuery spec α) :
+    evalDist (h.monadLift q : OracleComp superSpec α) = PMF.uniformOfFintype α := by
+  simp [PMF.monad_map_eq_map]
 
 @[simp]
-lemma finSupport_toFun (i : ι₁) (t : spec.domain i) :
-    finSupport (h.toFun i t) = Finset.univ := by
-  rw [finSupport_eq_iff_support_eq_coe, support_toFun, Finset.coe_univ]
+lemma support_toFun (q : OracleQuery spec α) :
+    support (h.monadLift q : OracleComp superSpec α) = Set.univ := by
+  rw [support_liftM]
 
 @[simp]
-lemma probOutput_toFun (i : ι₁) (t : spec.domain i) (u : spec.range i) :
-    [= u | h.toFun i t] = (↑(Fintype.card (spec.range i)) : ℝ≥0∞)⁻¹ :=
-  sorry --by rw [probOutput_def, evalDist_toFun, PMF.uniformOfFintype_apply]
+lemma finSupport_toFun [spec.DecidableSpec] [superSpec.DecidableSpec] [superSpec.FiniteRange]
+    [DecidableEq α] [Fintype α] (q : OracleQuery spec α) :
+    finSupport (h.monadLift q : OracleComp superSpec α) = Finset.univ := by
+  rw [finSupport_liftM]
 
 @[simp]
-lemma probEvent_toFun (i : ι₁) (t : spec.domain i)
-    (p : spec.range i → Prop) [DecidablePred p] :
-    [p | h.toFun i t] = (Finset.univ.filter p).card / Fintype.card (spec.range i) := by
-  sorry
-  -- rw [probEvent_def, h.evalDist_toFun, ← evalDist_query i t, ← probEvent_def,
-  --   probEvent_query_eq_div]
+lemma probOutput_toFun [superSpec.FiniteRange] [Fintype α]
+    (q : OracleQuery spec α) (u : α) :
+    [= u | (h.monadLift q : OracleComp superSpec α)] =
+      (↑(Fintype.card α) : ℝ≥0∞)⁻¹ := by
+  rw [probOutput_liftM]
+
+@[simp]
+lemma probEvent_toFun [superSpec.FiniteRange] [Fintype α]
+    (q : OracleQuery spec α) (p : α → Prop) [DecidablePred p] :
+    [p | (h.monadLift q : OracleComp superSpec α)] =
+      (Finset.univ.filter p).card / Fintype.card α := by
+  rw [probEvent_liftM_eq_div]
 
 section liftComp
 
+def liftingOracle (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂)
+    [h : spec ⊂ₒ superSpec] : spec →[Unit]ₛₒ superSpec :=
+  λ i t ↦ h.monadLift (query i t)
+
 def liftComp [h : spec ⊂ₒ superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
-  simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa
+  simulate' (liftingOracle spec superSpec) () oa
 
 lemma liftComp_def (oa : OracleComp spec α) : h.liftComp oa =
-    simulate' (λ i t () ↦ (·, ()) <$> h.toFun i t) () oa := rfl
+    simulate' (liftingOracle spec superSpec) () oa := rfl
 
 lemma liftComp_pure (x : α) : h.liftComp (pure x : OracleComp spec α) = pure x :=
   simulate'_pure _ () x
 
 lemma liftComp_query (i : ι₁) (t : spec.domain i) :
-    h.liftComp (query i t) = h.toFun i t :=
-  by rw [liftComp, simulate'_query, fst_map_prod_mk_of_subsingleton]
+    h.liftComp (query i t) = h.monadLift (query i t) := rfl
 
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     h.liftComp (oa >>= ob) = h.liftComp oa >>= λ x ↦ h.liftComp (ob x) := by
@@ -114,7 +127,7 @@ lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
   simp [simulate', Functor.map_map, Function.comp, map_eq_bind_pure_comp]
 
 @[simp]
-lemma evalDist_liftComp (oa : OracleComp spec α) :
+lemma evalDist_liftComp [spec.FiniteRange] [superSpec.FiniteRange] (oa : OracleComp spec α) :
     evalDist (h.liftComp oa) = evalDist oa := by
   sorry
   -- induction oa using OracleComp.inductionOn with
@@ -125,53 +138,58 @@ lemma evalDist_liftComp (oa : OracleComp spec α) :
 
 @[simp]
 lemma support_liftComp (oa : OracleComp spec α) :
-    (h.liftComp oa).support = oa.support :=
-  Set.ext (mem_support_iff_of_evalDist_eq <| evalDist_liftComp oa)
+    (h.liftComp oa).support = oa.support := sorry
+  -- Set.ext (mem_support_iff_of_evalDist_eq <| evalDist_liftComp oa)
 
 @[simp]
-lemma finSupport_liftComp [DecidableEq α] (oa : OracleComp spec α) :
-    (h.liftComp oa).finSupport = oa.finSupport :=
-  Finset.ext (mem_finSupport_iff_of_evalDist_eq <| evalDist_liftComp oa)
+lemma finSupport_liftComp [spec.DecidableSpec] [superSpec.DecidableSpec] [DecidableEq α]
+    [spec.FiniteRange] [superSpec.FiniteRange]
+    (oa : OracleComp spec α) : (h.liftComp oa).finSupport = oa.finSupport :=
+  sorry
+  -- Finset.ext (mem_finSupport_iff_of_evalDist_eq <| evalDist_liftComp oa)
 
 @[simp]
-lemma probOutput_liftComp (oa : OracleComp spec α) (x : α) :
-    [= x | h.liftComp oa] = [= x | oa] := by
+lemma probOutput_liftComp [spec.FiniteRange] [superSpec.FiniteRange]
+    (oa : OracleComp spec α) (x : α) : [= x | h.liftComp oa] = [= x | oa] := by
   simp only [probOutput_def, evalDist_liftComp]
 
 @[simp]
-lemma probEvent_liftComp (oa : OracleComp spec α) (p : α → Prop) [DecidablePred p] :
+lemma probEvent_liftComp [spec.FiniteRange] [superSpec.FiniteRange]
+    (oa : OracleComp spec α) (p : α → Prop) [DecidablePred p] :
     [p | h.liftComp oa] = [p | oa] := by
   simp only [probEvent_def, evalDist_liftComp]
 
 end liftComp
 
+instance [MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
+    MonadLift (OracleComp spec) (OracleComp superSpec) where
+  monadLift := liftComp
+
 section instances
 
 /-- The empty set of oracles is a subspec of any other oracle set.
-We require `ι` to be inhabited to prevent the reflexive case.  -/
-instance {ι : Type} [Inhabited ι] {spec : OracleSpec ι} : []ₒ ⊂ₒ spec where
-  toFun := λ i ↦ Empty.elim i
-  evalDist_toFun' := λ i ↦ Empty.elim i
+We require `ι₁` to be inhabited to prevent the reflexive case.  -/
+instance [Inhabited ι₁] : []ₒ ⊂ₒ spec where
+  monadLift := λ q ↦ OracleQuery.isEmpty.elim q
 
 /-- A computation with no oracles can be viewed as one with any other set of oracles. -/
-instance coe_subSpec_empty {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type} :
-    Coe (OracleComp []ₒ α) (OracleComp spec α) where
-  coe := liftComp
+instance [Inhabited ι₁] : MonadLift (OracleComp []ₒ) (OracleComp spec) where
+  monadLift := liftComp
 
+@[simp]
 lemma coe_subSpec_empty_eq_liftComp {ι : Type} [Inhabited ι] {spec : OracleSpec ι} {α : Type}
-    (oa : OracleComp []ₒ α) : (↑oa : OracleComp spec α) = liftComp oa := rfl
+    (oa : OracleComp []ₒ α) : (oa : OracleComp spec α) = liftComp oa := rfl
 
-/-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
-instance : coinSpec ⊂ₒ unifSpec where
-  toFun := λ () () ↦ $ᵗ Bool
-  evalDist_toFun' := λ i t ↦ sorry --by simp [evalDist_query i t]
+-- Note the new more explicit mappings don't allow this particular one
+-- /-- `coinSpec` seen as a subset of `unifSpec`, choosing a random `Bool` uniformly. -/
+-- instance : coinSpec ⊂ₒ unifSpec where
+--   toFun := λ q ↦ match q with | query i t => query 1 ()
+-- -- Note: we should be lifting like this mostly instead of coe
+-- instance : MonadLift (OracleComp coinSpec) (ProbComp) where
+--   monadLift := liftComp
 
-instance coe_subSpec_coinSpec_unifSpec {α : Type} :
-    Coe (OracleComp coinSpec α) (ProbComp α) where
-  coe := liftComp
-
-lemma coe_subSpec_coinSpec_unifSpec_eq_liftComp {α : Type} (oa : OracleComp coinSpec α) :
-    (↑oa : ProbComp α) = liftComp oa := rfl
+-- lemma coe_subSpec_coinSpec_unifSpec_eq_liftComp {α : Type} (oa : OracleComp coinSpec α) :
+--     (↑oa : ProbComp α) = liftComp oa := rfl
 
 end instances
 

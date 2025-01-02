@@ -106,8 +106,8 @@ construct a simulation oracle that responds to the queries with that computation
 This assumes no shared state across responses, so we use `Unit` as the state.
 `maskState` is often useful to hide this when appending or composing this. -/
 def statelessOracle {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
-    (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i)) : spec →[Unit]ₛₒ spec' :=
-  λ i t _ ↦ (·, ()) <$> f i t
+    (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i)) :
+    spec →[Unit]ₛₒ spec' := λ i t ↦ f i t
 
 namespace statelessOracle
 
@@ -115,7 +115,7 @@ variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
   (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i))
 
 @[simp]
-lemma apply_eq  (i : ι) : statelessOracle f i = λ t _ ↦ (·, ()) <$> f i t := rfl
+lemma apply_eq (i : ι) (t : spec.domain i) : statelessOracle f i t = f i t := rfl
 
 end statelessOracle
 
@@ -134,14 +134,14 @@ namespace idOracle
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 @[simp]
-lemma apply_eq (i : ι) : idOracle (spec := spec) i = λ t _ ↦ ((·, ())) <$> query i t := rfl
+lemma apply_eq (i : ι) (t : spec.domain i) : idOracle i t = query i t := rfl
 
 @[simp]
 lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
     simulate' idOracle u oa = oa := by
   induction oa using OracleComp.inductionOn with
   | pure x => rfl
-  | query_bind i t oa hoa => simp [Functor.map_map, hoa, seq_bind_eq]
+  | query_bind i t oa hoa => sorry --simp [Functor.map_map, hoa, seq_bind_eq]
   | failure => rfl
 
 @[simp]
@@ -166,7 +166,7 @@ variable {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i
 lemma apply_eq (i : ι) : unifOracle i = λ _ _ ↦ (·, ()) <$> ($ᵗ spec.range i) := rfl
 
 @[simp]
-lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
+lemma evalDist_simulate [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit) :
     evalDist (simulate unifOracle u oa) = (evalDist oa).map (Option.map (·, ())) := by
   sorry
   -- revert u; induction oa using OracleComp.inductionOn with
@@ -178,7 +178,7 @@ lemma evalDist_simulate (oa : OracleComp spec α) (u : Unit) :
   --   simp [hoa, PMF.map]
 
 @[simp]
-lemma evalDist_simulate' (oa : OracleComp spec α) (u : Unit) :
+lemma evalDist_simulate' [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit) :
     evalDist (simulate' unifOracle u oa) = evalDist oa := by
   simp [simulate'_def, PMF.map_comp, Function.comp]
   sorry
@@ -194,20 +194,23 @@ lemma support_simulate (oa : OracleComp spec α) (u : Unit) :
 lemma support_simulate' (oa : OracleComp spec α) (u : Unit) :
     (simulate' unifOracle u oa).support = oa.support := by
   simp [simulate', Set.ext_iff]
+  sorry
 
 @[simp]
-lemma finSupport_simulate [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
+lemma finSupport_simulate [spec.FiniteRange] [spec.DecidableSpec]
+    [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
     (simulate unifOracle u oa).finSupport = oa.finSupport.image (·, ()) := by
   simp [finSupport_eq_iff_support_eq_coe, Set.ext_iff]
 
 @[simp]
-lemma finSupport_simulate' [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
+lemma finSupport_simulate' [spec.FiniteRange] [spec.DecidableSpec]
+    [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
     (simulate' unifOracle u oa).finSupport = oa.finSupport := by
   simp [simulate'_def, Finset.ext_iff]
 
 @[simp]
-lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) :
-    [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
+lemma probOutput_simulate [spec.FiniteRange] (oa : OracleComp spec α)
+    (u : Unit) (z : α × Unit) : [= z | simulate unifOracle u oa] = [= z.1 | oa] := by
   sorry
   -- rw [simulate_eq_map_simulate', PUnit.default_eq_unit,
   --   ← probEvent_eq_eq_probOutput, probEvent_map]
@@ -215,20 +218,21 @@ lemma probOutput_simulate (oa : OracleComp spec α) (u : Unit) (z : α × Unit) 
   -- simp [Function.comp, Prod.eq_iff_fst_eq_snd_eq, probOutput_def]
 
 @[simp]
-lemma probOutput_simulate' (oa : OracleComp spec α) (u : Unit) (x : α) :
+lemma probOutput_simulate' [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit) (x : α) :
     [= x | simulate' unifOracle u oa] = [= x | oa] := by
   simp [probOutput_def]
 
 @[simp]
-lemma probEvent_simulate (oa : OracleComp spec α) (u : Unit) (p : α × Unit → Prop)
-    [DecidablePred p] :
+lemma probEvent_simulate [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit)
+    (p : α × Unit → Prop) [DecidablePred p] :
     [p | simulate unifOracle u oa] = [λ x ↦ p (x, ()) | oa] := by
   rw [simulate_eq_map_simulate', probEvent_map, PUnit.default_eq_unit]
   sorry
   -- exact probEvent_congr <| evalDist_simulate' oa u
 
 @[simp]
-lemma probEvent_simulate' (oa : OracleComp spec α) (u : Unit) (p : α → Prop) [DecidablePred p] :
+lemma probEvent_simulate' [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit)
+    (p : α → Prop) [DecidablePred p] :
     [p | simulate' unifOracle u oa] = [p | oa] :=
   sorry --probEvent_congr <| evalDist_simulate' oa u
 
@@ -237,15 +241,17 @@ end unifOracle
 /-- Simulate a computation by having each oracle return the default value of the query output type
 for all queries. This gives a way to run arbitrary computations to get *some* output.
 Mostly useful in some existence proofs, not usually used in an actual implementation. -/
-def defaultOracle {ι : Type} {spec : OracleSpec ι} : spec →[Unit]ₛₒ []ₒ :=
+def defaultOracle {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] :
+    spec →[Unit]ₛₒ []ₒ :=
   statelessOracle (λ _ _ ↦ return default)
 
 namespace defaultOracle
 
-variable {ι : Type} {spec : OracleSpec ι} {α : Type}
+variable {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α : Type}
 
 @[simp]
-lemma apply_eq (i : ι) : defaultOracle (spec := spec) i = λ _ _ ↦ return (default, ()) := rfl
+lemma apply_eq (i : ι) (t : spec.domain i) :
+    defaultOracle i t = return default := rfl
 
 @[simp]
 lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :

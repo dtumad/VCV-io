@@ -23,13 +23,13 @@ open OracleSpec Vector
 namespace OracleComp
 
 @[simp]
-lemma probFailure_mapM {ι : Type} {spec : OracleSpec ι} {α β : Type}
+lemma probFailure_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
     (xs : List α) (f : α → OracleComp spec β) :
     [⊥ | xs.mapM f] = 1 - (xs.map (1 - [⊥ | f ·])).prod := by
   sorry
 
 @[simp]
-lemma probOutput_mapM {ι : Type} {spec : OracleSpec ι} {α β : Type}
+lemma probOutput_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
     (xs : List α) (f : α → OracleComp spec β) (ys : List β) :
     [= ys | xs.mapM f] = if ys.length = xs.length then
       (List.zipWith (λ x y ↦ [= y | f x]) xs ys).prod else 0 := by
@@ -59,21 +59,21 @@ lemma replicate_pure (x : α) (n : ℕ) :
   | succ n hn => simp [hn, List.replicate]
 
 @[simp]
-lemma probFailure_replicate (oa : OracleComp spec α) (n : ℕ) :
+lemma probFailure_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) :
     [⊥ | oa.replicate n] = 1 - (1 - [⊥ | oa]) ^ n := by
   rw [replicate, probFailure_mapM, List.map_replicate, List.prod_replicate]
 
 /-- The probability of getting a vector from `replicate` is the product of the chances of
 getting each of the individual elements. -/
 @[simp]
-lemma probOutput_replicate (oa : OracleComp spec α) (n : ℕ) (xs : List α) :
+lemma probOutput_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) (xs : List α) :
     [= xs | oa.replicate n] = if xs.length = n then (xs.map ([= · | oa])).prod else 0 := by
   rw [replicate, probOutput_mapM, List.length_replicate]
   split_ifs with hxs
   · exact congr_arg List.prod <| List.ext_getElem (by simp [hxs]) (by simp)
   · rfl
 
-lemma probEvent_of_probEvent_cons (oa : OracleComp spec α) (n : ℕ)
+lemma probEvent_of_probEvent_cons [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ)
     (p : List α → Prop) (hp : p [])
     (q : α → Prop) (hq : ∀ x xs, p (x :: xs) ↔ q x ∧ p xs) :
     [p | oa.replicate n] = [q | oa] ^ n := by
@@ -88,7 +88,7 @@ lemma probEvent_of_probEvent_cons (oa : OracleComp spec α) (n : ℕ)
   }
 
 @[simp]
-lemma probEvent_all_replicate (oa : OracleComp spec α) (n : ℕ) (p : α → Bool) :
+lemma probEvent_all_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) (p : α → Bool) :
     [λ xs ↦ List.all xs p | oa.replicate n] = [λ x ↦ p x | oa] ^ n := by
   induction n with
   | zero => {
@@ -100,25 +100,26 @@ lemma probEvent_all_replicate (oa : OracleComp spec α) (n : ℕ) (p : α → Bo
     sorry
   }
 
-lemma support_eq_setOf_probOutput_eq_zero (oa : OracleComp spec α) :
+lemma support_eq_setOf_probOutput_eq_zero [spec.FiniteRange] (oa : OracleComp spec α) :
     oa.support = {x | [= x | oa] ≠ 0} := by
   simp only [ne_eq, probOutput_eq_zero_iff, not_not, Set.setOf_mem_eq]
 
 /-- Possible ouptuts of `replicate n oa` are lists of length `n` where
 ecah element in the list is a possible output of `oa`. -/
 @[simp]
-lemma support_replicate (oa : OracleComp spec α) (n : ℕ) :
+lemma support_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) :
     (oa.replicate n).support = {xs | xs.length = n ∧ ∀ x ∈ xs, x ∈ oa.support} := by
   rw [support_eq_setOf_probOutput_eq_zero]; simp
 
 /-- Version of `support_replicate` using `List.all` instead of quantifiers.
 Requires decidable equality on the output type of the computation. -/
-lemma support_replicate' [DecidableEq α] (oa : OracleComp spec α) (n : ℕ) :
+lemma support_replicate' [spec.FiniteRange] [DecidableEq α] (oa : OracleComp spec α) (n : ℕ) :
     (oa.replicate n).support = {xs | xs.length = n ∧ xs.all (· ∈ oa.support)} := by
   simp only [support_replicate, List.all_eq_true, decide_eq_true_eq]
 
 @[simp]
-lemma mem_finSupport_replicate [DecidableEq α] (oa : OracleComp spec α) (n : ℕ)
+lemma mem_finSupport_replicate [spec.FiniteRange] [spec.DecidableSpec] [DecidableEq α]
+    (oa : OracleComp spec α) (n : ℕ)
     (xs : List α) : xs ∈ (oa.replicate n).finSupport ↔
       xs.length = n ∧ xs.all (· ∈ oa.finSupport) := by
   simp [mem_finSupport_iff_mem_support]

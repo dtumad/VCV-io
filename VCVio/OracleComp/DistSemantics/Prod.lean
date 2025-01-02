@@ -20,7 +20,7 @@ namespace OracleComp
 
 variable {ι : Type} {spec : OracleSpec ι} {α β γ δ : Type}
 
-lemma probOutput_prod_mk_eq_probEvent [DecidableEq α] [DecidableEq β]
+lemma probOutput_prod_mk_eq_probEvent [spec.FiniteRange] [DecidableEq α] [DecidableEq β]
     (oa : OracleComp spec (α × β)) (x : α) (y : β) :
     [= (x, y) | oa] = [λ z ↦ z.1 = x ∧ z.2 = y | oa] := by
   simp [← probEvent_eq_eq_probOutput, eq_iff_fst_eq_snd_eq]
@@ -41,18 +41,18 @@ variable (oa : OracleComp spec α) (ob : OracleComp spec β)
     (x : α) (y : β)
 
 @[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul :
+lemma probOutput_seq_map_prod_mk_eq_mul [spec.FiniteRange] :
     [= (x, y) | (·, ·) <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
   probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
 
 @[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul' :
+lemma probOutput_seq_map_prod_mk_eq_mul' [spec.FiniteRange] :
     [= (x, y) | (λ x y ↦ (y, x)) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
   (probOutput_seq_map_swap oa ob (·, ·) (x, y)).trans
     (probOutput_seq_map_prod_mk_eq_mul oa ob x y)
 
 @[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul'':
+lemma probOutput_seq_map_prod_mk_eq_mul'' [spec.FiniteRange] :
     [= (x, y) | Prod.mk <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
   probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
 
@@ -73,7 +73,7 @@ lemma snd_map_prod_mk_of_subsingleton [Subsingleton α]
 
 end mk_subsingleton
 
-lemma probEvent_fst_eq_snd [DecidableEq α] (oa : OracleComp spec (α × α)) :
+lemma probEvent_fst_eq_snd [spec.FiniteRange] [DecidableEq α] (oa : OracleComp spec (α × α)) :
     [λ z ↦ z.1 = z.2 | oa] = ∑' x : α, [= (x, x) | oa] := by
   rw [probEvent_eq_tsum_ite, ENNReal.tsum_prod', ENNReal.tsum_comm]
   refine tsum_congr (λ x ↦ _root_.trans (tsum_congr (λ x' ↦ ?_)) (tsum_ite_eq x [= (x, x) | oa]))
