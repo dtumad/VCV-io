@@ -16,6 +16,7 @@ namespace OracleComp
 open OracleSpec BitVec
 
 variable {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
+  [spec.FiniteRange]
 
 @[simp]
 lemma probOutput_bitVec_ofFin_map {n : ℕ} (oa : OracleComp spec (Fin (2 ^ n)))

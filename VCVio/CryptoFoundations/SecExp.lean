@@ -26,63 +26,56 @@ The main definition is `SecExp spec α β`, which extends `OracleAlg` with three
 open OracleComp OracleSpec ENNReal Polynomial Prod
 
 /-- A security adversary bundling a computation with a bound on the number of queries it makes,
-where the bound is given by a polynomial that is evaluated for each security parameter.
-This is useful both for asymptotic security as well as in some concrete security bounds.
-
-Port: We should eventually include polynomial time in this -/
--- structure SecAdv {ι : Type} [DecidableEq ι]
---     (spec : ℕ → OracleSpec ι) (α β : ℕ → Type) where
---   run (n : ℕ) : α n → OracleComp (spec n) (β n)
---   qb (i : ι) : ℕ[X] -- Bound on the number of queries made by adversary.
---   qb_isQueryBound (n : ℕ) (x : α n) :
---     IsQueryBound (run n x) (λ i ↦ (qb i).eval n)
-
+where the bound must be shown to satisfy `IsQueryBound`.
+We also require an explicit list of all oracles used in the computation,
+which is necessary in order to make certain reductions computable. -/
 structure SecAdv {ι : Type} [DecidableEq ι]
     (spec : OracleSpec ι) (α β : Type) where
   run : α → OracleComp spec β
   qb : ι → ℕ
   qb_isQueryBound (x : α) : IsQueryBound (run x) (qb)
+  activeOracles : List ι
+  mem_activeOracles_iff (i : ι) : i ∈ activeOracles ↔ qb i ≠ 0
 
 namespace SecAdv
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
+
+
 end SecAdv
-
--- structure SecExp {ι : Type} (spec : ℕ → OracleSpec ι)
---     extends OracleAlg spec where
---   main (n : ℕ) : OracleComp (unifSpec ++ₒ spec n) Bool
-
--- structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
---     extends OracleImpl spec σ where
---   main : OracleComp spec Bool
 
 /-- Structure to represent a security experiment. `spec` is the set of oracles available
 in the experiment, and the structure extends an oracle implementation for `spec`.
-`σ` is the state type for the implementation, and `ρ` is the result type of the expirement.
-
-`is_valid : σ → ρ → Bool` determines if the experiment was succesfull or not.  -/
--- structure SecExp {ι : Type} (spec : OracleSpec ι) (σ ρ : Type)
---     extends OracleImpl spec σ where
---   main : OracleComp spec ρ
---   is_valid : ρ × σ → Prop
-
+`σ` is the state type for the implementation.
+The expirement is considered successfull unless it terminates with `failure`.
+This is usually based off of `guard` statements but can be anything. -/
 structure SecExp {ι : Type} (spec : OracleSpec ι) (σ : Type)
     extends OracleImpl spec σ where
   main : OracleComp spec Unit
-
-noncomputable def SecExp.advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
-    (exp : SecExp spec σ) : ℝ≥0∞ :=
-  1 - [⊥ | exp.exec exp.main]
 
 namespace SecExp
 
 variable {ι : Type} {spec : OracleSpec ι} {σ : Type}
 
+section advantage
+
+noncomputable def advantage {ι : Type} {spec : OracleSpec ι} {σ : Type}
+    (exp : SecExp spec σ) : ℝ≥0∞ :=
+  1 - [⊥ | exp.exec exp.main]
+
+@[simp]
+lemma advantage_eq_zero_iff (exp : SecExp spec σ) :
+    exp.advantage = 0 ↔ [⊥ | exp.exec exp.main] = 1 := by
+  simp [SecExp.advantage, tsub_eq_zero_iff_le]
+
 @[simp]
 lemma advantage_eq_one_iff (exp : SecExp spec σ) :
     exp.advantage = 1 ↔ [⊥ | exp.exec exp.main] = 0 := by
-  sorry
+  rw [SecExp.advantage, ← probEvent_true, probFailure_eq_sub_probEvent,
+    tsub_eq_zero_iff_le, one_le_probEvent_iff]
+
+end advantage
 
 end SecExp
 

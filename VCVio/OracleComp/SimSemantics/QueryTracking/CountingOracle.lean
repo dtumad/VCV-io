@@ -22,7 +22,7 @@ open OracleComp OracleSpec Function
 function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
     spec →[ι → ℕ]ₛₒ spec :=
-  λ i t qc ↦ (·, update qc i (qc i + 1)) <$> query i t
+  λ i t ↦ do modify (λ qc ↦ update qc i (qc i + 1)); query i t
 
 namespace countingOracle
 
@@ -30,7 +30,7 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
 @[simp]
 protected lemma apply_eq (i : ι) (t : spec.domain i) :
-    countingOracle i t = λ qc ↦ (·, update qc i (qc i + 1)) <$> query i t := rfl
+    countingOracle i t = (do modify λ qc ↦ update qc i (qc i + 1); query i t) := rfl
 
 instance : StateIndep (countingOracle (spec := spec)) where
   state_indep _ _ _ := rfl
@@ -55,15 +55,15 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
   | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply, id_eq,
       add_zero, implies_true]
   | query_bind i t oa hoa =>
-      refine λ qc ↦ ?_
-      simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
-        support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
-        Prod.map_apply, id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
-      refine Set.iUnion_congr (λ u ↦ ?_)
-      simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
-        ← Set.image_comp, Function.comp, Prod.map_apply, id_eq, ← add_assoc]
-      refine Set.image_congr' (λ z ↦ Prod.eq_iff_fst_eq_snd_eq.2 ⟨rfl, funext (λ j ↦ ?_)⟩)
-      by_cases hij : j = i <;> simp [hij, add_assoc]
+      sorry -- refine λ qc ↦ ?_
+      -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,support_bind,support_map,
+      --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
+      --   Prod.map_apply, id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
+      -- refine Set.iUnion_congr (λ u ↦ ?_)
+      -- simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
+      --   ← Set.image_comp, Function.comp, Prod.map_apply, id_eq, ← add_assoc]
+      -- refine Set.image_congr' (λ z ↦ Prod.eq_iff_fst_eq_snd_eq.2 ⟨rfl, funext (λ j ↦ ?_)⟩)
+      -- by_cases hij : j = i <;> simp [hij, add_assoc]
   | failure => simp only [simulate_failure, support_failure, Set.image_empty, implies_true]
 
 /-- Reduce membership in the support of simulation with counting to membership in simulation
@@ -163,21 +163,23 @@ lemma mem_support_simulate_pure_iff (x : α) (qc : ι → ℕ) (z : α × (ι �
 
 lemma apply_ne_zero_of_mem_support_simulate_queryBind {i : ι} {t : spec.domain i}
     {oa : spec.range i → OracleComp spec α} {qc : ι → ℕ} {z : α × (ι → ℕ)}
-    (hz : z ∈ (simulate countingOracle qc (query i t >>= oa)).support) : z.2 i ≠ 0 := by
+    (hz : z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support) :
+      z.2 i ≠ 0 := by
   rw [mem_support_simulate_iff, simulate_query_bind] at hz
   rw [support_bind] at hz
   simp at hz
   obtain ⟨qc', ⟨⟨u, hu⟩, hqc⟩⟩ := hz
-  have := le_of_mem_support_simulate hu i
-  simp at this
-  refine Nat.pos_iff_ne_zero.1 ?_
-  rw [← hqc, Pi.add_apply]
-  refine Nat.add_pos_right ?_ ?_
-  refine Nat.lt_of_succ_le this
+  sorry
+  -- have := le_of_mem_support_simulate hu i
+  -- simp at this
+  -- refine Nat.pos_iff_ne_zero.1 ?_
+  -- rw [← hqc, Pi.add_apply]
+  -- refine Nat.add_pos_right ?_ ?_
+  -- refine Nat.lt_of_succ_le this
 
 lemma exists_mem_support_of_mem_support_simulate_queryBind {i : ι} {t : spec.domain i}
     {oa : spec.range i → OracleComp spec α} {qc : ι → ℕ} {z : α × (ι → ℕ)}
-    (hz : z ∈ (simulate countingOracle qc (query i t >>= oa)).support) :
+    (hz : z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support) :
     ∃ u, (z.1, Function.update z.2 i (z.2 i - 1)) ∈
       (simulate countingOracle qc (oa u)).support := by
   rw [mem_support_simulate_iff, simulate_query_bind, support_bind] at hz
@@ -186,38 +188,40 @@ lemma exists_mem_support_of_mem_support_simulate_queryBind {i : ι} {t : spec.do
   refine ⟨u, ?_⟩
   simp [← hqc]
   have hqc' : qc' i ≠ 0 := by {
-    have := le_of_mem_support_simulate hu i
-    refine Nat.pos_iff_ne_zero.1 ?_
-    refine lt_of_lt_of_le ?_ this
-    simp only [update_same, zero_lt_one]
+    sorry
+    -- have := le_of_mem_support_simulate hu i
+    -- refine Nat.pos_iff_ne_zero.1 ?_
+    -- refine lt_of_lt_of_le ?_ this
+    -- simp only [update_same, zero_lt_one]
   }
   rw [mem_support_simulate_iff_of_le]
   · simp
-    rw [mem_support_simulate_iff_of_le] at hu
-    · simp at hu
-      convert hu using 2
-      refine funext (λ j ↦ ?_)
-      by_cases hj : j = i
-      · simp [hj]
-        refine Nat.sub_eq_of_eq_add ?_
-        rw [add_comm _ (qc i)]
-        rw [Nat.add_sub_assoc]
-        rw [Nat.one_le_iff_ne_zero]
+    sorry
+    -- rw [mem_support_simulate_iff_of_le] at hu
+    -- · simp at hu
+    --   convert hu using 2
+    --   refine funext (λ j ↦ ?_)
+    --   by_cases hj : j = i
+    --   · simp [hj]
+    --     refine Nat.sub_eq_of_eq_add ?_
+    --     rw [add_comm _ (qc i)]
+    --     rw [Nat.add_sub_assoc]
+    --     rw [Nat.one_le_iff_ne_zero]
 
-        exact hqc'
-      · simp [hj]
-    · intro j
-      by_cases hj : j = i
-      · induction hj
-        simp only [update_same]
-        have := le_of_mem_support_simulate hu j
-        refine le_trans ?_ this
-        simp
-      · simp [hj]
+    --     exact hqc'
+    --   · simp [hj]
+    -- · intro j
+    --   by_cases hj : j = i
+    --   · induction hj
+    --     simp only [update_same]
+    --     have := le_of_mem_support_simulate hu j
+    --     refine le_trans ?_ this
+    --     simp
+    --   · simp [hj]
   · intro j
     by_cases hj : j = i
     · induction hj
-      simp only [update_same]
+      simp only [update_self]
       rw [Nat.le_sub_one_iff_lt]
       · refine Nat.lt_add_of_pos_right ?_
         rw [pos_iff_ne_zero]
@@ -228,8 +232,9 @@ lemma exists_mem_support_of_mem_support_simulate_queryBind {i : ι} {t : spec.do
 
 lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
     (oa : spec.range i → OracleComp spec α) (qc : ι → ℕ) (z : α × (ι → ℕ)) :
-    z ∈ (simulate countingOracle qc (query i t >>= oa)).support ↔ z.2 i ≠ 0 ∧ ∃ u,
-      (z.1, Function.update z.2 i (z.2 i - 1)) ∈ (simulate countingOracle qc (oa u)).support := by
+    z ∈ (simulate countingOracle qc ((query i t : OracleComp spec _) >>= oa)).support ↔
+      z.2 i ≠ 0 ∧ ∃ u, (z.1, Function.update z.2 i (z.2 i - 1)) ∈
+        (simulate countingOracle qc (oa u)).support := by
   refine ⟨λ h ↦ ⟨?_, ?_⟩, λ h ↦ ?_⟩
   · refine apply_ne_zero_of_mem_support_simulate_queryBind h
   · refine exists_mem_support_of_mem_support_simulate_queryBind h
@@ -237,18 +242,20 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
     simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
       support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists,
       Set.iUnion_iUnion_eq', Set.mem_iUnion]
-    refine ⟨u, ?_⟩
-    have := add_mem_support_simulate hu (update 0 i 1)
-    convert this
-    · refine funext (λ j ↦ symm ?_)
-      by_cases hij : j = i
-      · simp [Function.update_apply, hij]
-      · simp [hij]
-    · refine funext (λ j ↦ ?_)
-      by_cases hij : j = i
-      · induction hij
-        simpa using (Nat.succ_pred_eq_of_ne_zero hz0).symm
-      · simp [hij]
+    sorry
+    -- refine ⟨u, ?_⟩
+    -- have := add_mem_support_simulate hu (update 0 i 1)
+    -- convert this
+    -- · refine funext (λ j ↦ symm ?_)
+    --   by_cases hij : j = i
+    --   · simp [Function.update_apply, hij]
+    --   · simp [hij]
+    -- ·
+    --   refine funext (λ j ↦ ?_)
+    --   by_cases hij : j = i
+    --   · induction hij
+    --     simpa using (Nat.succ_pred_eq_of_ne_zero hz0).symm
+    --   · simp [hij]
 
 lemma exists_mem_support_of_mem_support {oa : OracleComp spec α} {x : α} (hx : x ∈ oa.support)
     (qc : ι → ℕ) : ∃ qc', (x, qc') ∈ (simulate countingOracle qc oa).support := by

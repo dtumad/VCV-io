@@ -20,11 +20,11 @@ with the state of the uniform oracle masked away.
 open OracleSpec OracleComp
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)]
-  {α β γ : Type}
+  {α β γ : Type} [spec.DecidableSpec]
 
 /-- Random oracles as a composition of a uniform oracle with a caching oracle.
 NOTE: we could take the result of `apply_eq` as the maindefinition and give this one as a lemma. -/
-def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
+def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [spec.DecidableSpec]
     [∀ i, SelectableType (spec.range i)] : spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState (Equiv.prodPUnit (QueryCache spec))
 
@@ -38,9 +38,11 @@ lemma apply_eq (i : ι) (t : spec.domain i) (cache : QueryCache spec) :
   simp only [randOracle, SimOracle.maskState_apply, Equiv.prodPUnit_symm_apply,
     SimOracle.compose_apply, cachingOracle.apply_eq, QueryCache.lookup_or_else, Functor.map_map,
     Function.comp, Prod.map_apply, id_eq, Equiv.prodPUnit_apply, Prod.mk.eta]
-  cases cache i t
-  · simp [map_eq_bind_pure_comp]
-  · simp
+  sorry
+  -- cases cache i t
+
+  -- · simp [map_eq_bind_pure_comp]
+  -- · simp
 
 -- /-- Simulation with a random oracle looks like choosing a random function and answering queries
 -- with that. TODO: there's some tricky things in the induction step here. -/

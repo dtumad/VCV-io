@@ -27,7 +27,7 @@ section logQuery
 
 /-- Update a query log by adding a new element to the appropriate list.
 Note that this requires decidable equality on the indexing set. -/
-def logQuery  (log : QueryLog spec) {i : ι}
+def logQuery (log : QueryLog spec) {i : ι}
     (t : spec.domain i) (u : spec.range i) : QueryLog spec :=
   Function.update log i ((t, u) :: log i)
 
@@ -35,7 +35,7 @@ end logQuery
 
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
-def wasQueried (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
+def wasQueried [spec.DecidableSpec] (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
   match (log i).find? (λ (t', _) ↦ t = t') with
   | Option.some _ => true
   | Option.none => false
@@ -50,13 +50,12 @@ open OracleComp OracleSpec
 behavior of the oracle. Requires decidable equality of the indexing set to determine
 which list to update when queries come in. -/
 def loggingOracle : spec →[QueryLog spec]ₛₒ spec :=
-  λ i t log ↦ do let u ← query i t; return (u, log.logQuery t u)
+  λ i t ↦ do let u ← query i t; modifyGet λ log ↦ (u, log.logQuery t u)
 
 namespace loggingOracle
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) (log : QueryLog spec) :
-    loggingOracle i t log = do let u ← query i t; return (u, log.logQuery t u) := rfl
-
+lemma apply_eq (i : ι) (t : spec.domain i) : loggingOracle i t =
+    (do let u ← query i t; modifyGet λ log ↦ (u, log.logQuery t u)) := rfl
 
 end loggingOracle

@@ -23,10 +23,9 @@ variable {ι : Type} {spec : OracleSpec ι} {α : Type}
 /-- Given that the indexing set has decidable equality, return a finite set of all
 the indices that can ever be used in a query by a computation,
 by just traversing all possible execution paths. -/
-def activeOracles [DecidableEq ι] : (oa : OracleComp spec α) → Finset ι
-  | pure' _ _ => ∅
-  | queryBind' i _ _ oa => insert i
-      (Finset.univ.biUnion (λ j ↦ activeOracles (oa j)))
-  | failure' _ => ∅
+def activeOracles [spec.FiniteRange] [DecidableEq ι] (oa : OracleComp spec α) : Finset ι := by
+  induction oa using OracleComp.construct with
+  | query_bind i _ _ r => exact insert i (Finset.univ.biUnion r)
+  | _ => exact ∅
 
 end OracleComp

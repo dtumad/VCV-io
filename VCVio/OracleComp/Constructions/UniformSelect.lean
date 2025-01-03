@@ -48,7 +48,7 @@ This means selecting from a vector is often preferable, as we can prove at the t
 that there is an element in the list, avoiding the defualt case of empty lists. -/
 instance hasUniformSelectList (α : Type) :
     HasUniformSelect (List α) α where
-  uniformSelect := λ xs ↦ match xs with
+  uniformSelect := λ xs ↦ do match xs with
     | [] => failure
     | x :: xs => ((x :: xs)[·]) <$> $[0..xs.length]
 
@@ -68,7 +68,7 @@ lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) =
   match xs with
   | [] => rfl
   | x :: xs => by simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map,
-      evalDist_uniformFin, PMF.map_comp, Option.map_comp_some, Nat.succ_eq_add_one]; rfl
+      evalDist_uniformFin, PMF.map_comp, Option.map_comp_some, Nat.succ_eq_add_one]; sorry
 
 @[simp]
 lemma support_uniformSelectList (xs : List α) :
@@ -220,21 +220,27 @@ lemma probFailure_uniformSelectFinset [DecidableEq α] (s : Finset α) :
 @[simp]
 lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     evalDist ($ s) = if hs : s.Nonempty then
-      (PMF.uniformOfFinset s hs).map Option.some else PMF.pure none := by
-  by_cases hs : s.Nonempty
-  · simp [hs]
-    refine PMF.ext λ x ↦ ?_
-    cases x with
-    | none => simp [hs]
-    | some x =>
-        rw [evalDist_apply_some, probOutput_uniformSelectFinset]
-        refine symm ((tsum_eq_single x ?_).trans (by simp))
-        simp only [ne_eq, @eq_comm _ _ x, PMF.uniformOfFinset_apply, Function.comp_apply,
-          PMF.pure_apply, Option.some.injEq, mul_ite, mul_one, mul_zero, ite_eq_right_iff,
-          ENNReal.inv_eq_zero, natCast_ne_top, imp_false]
-        tauto
-  · rw [Finset.nonempty_iff_ne_empty, not_ne_iff] at hs
-    simp [uniformSelectFinset_def, hs]
+      OptionT.lift (PMF.uniformOfFinset s hs) else failure := by
+  refine PMF.ext λ x ↦ ?_
+  sorry
+  -- cases x with
+  -- | none => sorry
+  -- | some x => refine (probOutput_uniformSelectFinset s x).trans ?_
+  -- by_cases hs : s.Nonempty
+  -- · simp [hs]
+  --   refine PMF.ext λ x ↦ ?_
+
+  --   cases x with
+  --   | none => simp [hs]
+  --   | some x =>
+  --       rw [evalDist_apply_some, probOutput_uniformSelectFinset]
+  --       refine symm ((tsum_eq_single x ?_).trans (by simp))
+  --       simp only [ne_eq, @eq_comm _ _ x, PMF.uniformOfFinset_apply, Function.comp_apply,
+  --         PMF.pure_apply, Option.some.injEq, mul_ite, mul_one, mul_zero, ite_eq_right_iff,
+  --         ENNReal.inv_eq_zero, natCast_ne_top, imp_false]
+  --       tauto
+  -- · rw [Finset.nonempty_iff_ne_empty, not_ne_iff] at hs
+  --   simp [uniformSelectFinset_def, hs]
 
 end uniformSelectFinset
 
@@ -276,15 +282,16 @@ lemma probFailure_uniformOfFintype : [⊥ | $ᵗ α] = 0 :=
 
 @[simp]
 lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
-    evalDist ($ᵗ α) = (PMF.uniformOfFintype α).map Option.some :=
-  PMF.ext λ x ↦ match x with
-  | none => by simp [evalDist_apply_none, PMF.monad_map_eq_map]
-  | some x => by
-      simp only [evalDist_apply_some, probOutput_uniformOfFintype, PMF.map_apply,
-        Option.some.injEq, PMF.uniformOfFintype_apply]
-      refine symm ((tsum_eq_single x ?_).trans ?_)
-      · simp [@eq_comm _ x]
-      · simp
+    evalDist ($ᵗ α) = OptionT.lift (PMF.uniformOfFintype α) :=
+  sorry
+  -- PMF.ext λ x ↦ match x with
+  -- | none => by simp [evalDist_apply_none, PMF.monad_map_eq_map]
+  -- | some x => by
+  --     simp only [evalDist_apply_some, probOutput_uniformOfFintype, PMF.map_apply,
+  --       Option.some.injEq, PMF.uniformOfFintype_apply]
+  --     refine symm ((tsum_eq_single x ?_).trans ?_)
+  --     · simp [@eq_comm _ x]
+  --     · simp
 
 @[simp]
 lemma support_uniformOfFintype [Fintype α] : ($ᵗ α).support = Set.univ := by

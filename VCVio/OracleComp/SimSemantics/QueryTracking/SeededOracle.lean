@@ -44,8 +44,8 @@ protected lemma ext (seed₁ seed₂ : QuerySeed spec) (h : ∀ i, seed₁ i = s
 section addValues
 
 /-- Add a list of values to the query seed.-/
-def addValues [DecidableEq ι] {i : ι} (seed : QuerySeed spec)
-    (us : List (spec.range i)) : QuerySeed spec :=
+def addValues [DecidableEq ι] {i : ι}
+    (us : List (spec.range i)) (seed : QuerySeed spec) : QuerySeed spec :=
   Function.update seed i (seed i ++ us)
 
 variable [DecidableEq ι] {i : ι} (seed : QuerySeed spec) (us : List (spec.range i))
