@@ -19,31 +19,31 @@ We also define a number of basic oracle constructions:
 * `unifSpec`: A family of oracles for selecting from `[0..n]` for any `n`
 -/
 
-universe u
+universe u u' v w
 
 /-- A structure to represents a specification of oracles available to a computation.
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
 Represented as a map from indices `i` to the domain and codomain of the corresponding oracle. -/
-def OracleSpec (ι : Type u) : Type (u + 1) :=
-  (i : ι) → Type u × Type u
+def OracleSpec (ι : Type u) : Type (max (max u (v + 1)) (w + 1)) :=
+  (i : ι) → Type v × Type w
 
 namespace OracleSpec
 
-variable {ι τ : Type u} {spec : OracleSpec ι} (i : ι)
+variable {ι : Type u} {τ : Type u'} {spec : OracleSpec ι} (i : ι)
 
 instance : Inhabited (OracleSpec ι) := ⟨λ _ ↦ (PUnit, PUnit)⟩
 
 /-- Type of the domain for calls to the oracle corresponding to `i`. -/
 @[inline, reducible]
-protected def domain (spec : OracleSpec ι) (i : ι) : Type u := (spec i).1
+protected def domain (spec : OracleSpec ι) (i : ι) : Type v := (spec i).1
 
 /-- Type of the range for calls to the oracle corresponding to `i`. -/
 @[inline, reducible]
-protected def range (spec : OracleSpec ι) (i : ι) : Type u := (spec i).2
+protected def range (spec : OracleSpec ι) (i : ι) : Type w := (spec i).2
 
 /-- Typeclass to capture decidable equality of the oracle input and outputs.
 Needed for things like `finSupport` to be well defined. -/
-class DecidableSpec (spec : OracleSpec ι) : Type (u + 1) where
+class DecidableSpec (spec : OracleSpec ι) where
   domain_decidableEq' (i : ι) : DecidableEq (spec.domain i)
   range_decidableEq' (i : ι) : DecidableEq (spec.range i)
 
@@ -55,7 +55,7 @@ instance range_decidableEq {i : ι} [h : spec.DecidableSpec] :
 
 /-- Typeclass for specs where each oracle has a finite and non-empty output type.
 Needed for things like `evalDist` and `probOutput`. -/
-class FiniteRange (spec : OracleSpec ι) : Type (u + 1) where
+class FiniteRange (spec : OracleSpec ι) where
     range_inhabited' (i : ι) : Inhabited (spec.range i)
     range_fintype' (i : ι) : Fintype (spec.range i)
 
@@ -69,12 +69,12 @@ section append
 
 /-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
 `inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
-def append {ι₁ ι₂ : Type u} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
+def append {ι₁ : Type u} {ι₂ : Type u'} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
     OracleSpec (ι₁ ⊕ ι₂) := Sum.elim spec₁ spec₂
 
 infixl : 65 " ++ₒ " => OracleSpec.append
 
-variable {ι₁ ι₂ : Type u} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
+variable {ι₁ : Type u} {ι₂ : Type u'} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
 
 instance [h₁ : spec₁.DecidableSpec] [h₂ : spec₂.DecidableSpec] :
     (spec₁ ++ₒ spec₂).DecidableSpec where
@@ -118,16 +118,16 @@ instance : FiniteRange []ₒ where
 /-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`.
 Uses the singleton type `PUnit` as the indexing set. -/
 @[inline, reducible]
-def singletonSpec (T U : Type u) : OracleSpec PUnit :=
+def singletonSpec (T : Type v) (U : Type w) : OracleSpec PUnit :=
   λ _ ↦ (T, U)
 
 infixl : 25 " →ₒ " => singletonSpec
 
-instance {T U : Type u} [DecidableEq T] [DecidableEq U] : DecidableSpec (T →ₒ U) where
+instance {T : Type v} {U : Type w} [DecidableEq T] [DecidableEq U] : DecidableSpec (T →ₒ U) where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
 
-instance {T U : Type u} [Inhabited U] [Fintype U] : FiniteRange (T →ₒ U) where
+instance {T : Type v} {U : Type w} [Inhabited U] [Fintype U] : FiniteRange (T →ₒ U) where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance
 
