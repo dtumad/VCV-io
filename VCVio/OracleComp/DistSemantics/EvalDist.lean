@@ -684,6 +684,15 @@ lemma probFailure_bind_of_const [Nonempty α] (r : ℝ≥0∞) (h : ∀ x, [⊥ 
     refine mul_le_of_le_div (le_of_le_of_eq probFailure_le_one ?_)
     refine symm (ENNReal.div_self hr this)
 
+lemma probFailure_bind_eq_sub_mul {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
+    {oa : OracleComp spec α} {ob : α → OracleComp spec β} (r : ℝ≥0∞)
+    (h : ∀ x, [⊥ | ob x] = r) :
+    [⊥ | oa >>= ob] = 1 - (1 - [⊥ | oa]) * (1 - r) := by
+  rw [probFailure_bind_eq_tsum]
+  rw [← tsum_probOutput_eq_sub]
+  rw [← ENNReal.tsum_mul_right]
+  sorry
+
 end bind
 
 section bind_const

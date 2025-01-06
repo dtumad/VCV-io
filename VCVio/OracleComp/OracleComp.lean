@@ -78,7 +78,7 @@ In practive computations in `OracleComp spec α` have have one of three forms:
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
 * `failure` which terminates the computation early
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-def OracleComp {ι : Type u} (spec : OracleSpec.{u} ι) : Type u → Type (u + 1) :=
+def OracleComp {ι : Type u} (spec : OracleSpec ι) : Type u → Type (u + 1) :=
   OptionT (FreeMonad (OracleQuery spec))
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/

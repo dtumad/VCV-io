@@ -137,12 +137,24 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 lemma apply_eq (i : ι) (t : spec.domain i) : idOracle i t = query i t := rfl
 
 @[simp]
-lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
-    simulate' idOracle u oa = oa := by
+lemma simulateT_eq (oa : OracleComp spec α) :
+    simulateT idOracle oa = oa := by
   induction oa using OracleComp.inductionOn with
   | pure x => rfl
-  | query_bind i t oa hoa => sorry --simp [Functor.map_map, hoa, seq_bind_eq]
+  | query_bind i t oa hoa => {
+    simp [simulateT] at hoa
+    simp [simulateT, hoa]
+    rfl
+  }
   | failure => rfl
+
+@[simp]
+lemma simulate'_eq (u : Unit) (oa : OracleComp spec α) :
+    simulate' idOracle u oa = oa := by
+  rw [simulate', simulateT_eq]
+  rw [liftM, monadLift]
+  sorry
+
 
 @[simp]
 lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :

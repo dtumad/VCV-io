@@ -35,7 +35,6 @@ Note that `activeOracles` is allowed to contain duplicates, but usually won't in
 def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
     (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) :=
   Prod.snd <$> (generateSeedT spec qc activeOracles).run ∅
-
 -- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   (qc : ι → ℕ) (j : ι) (js : List ι)
 
