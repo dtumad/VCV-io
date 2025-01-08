@@ -65,8 +65,12 @@ lemma probOutput_list_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange]
 
 /-- Run the computation `oa` repeatedly `n` times to get a vector of `n` results. -/
 def replicate {ι : Type} {spec : OracleSpec ι} {α : Type}
-    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) :=
+    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) := do
   (List.replicate n ()).mapM (λ () ↦ oa)
+
+def replicateTR {ι : Type} {spec : OracleSpec ι} {α : Type}
+    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) := do
+  (List.replicateTR n ()).mapM (λ () ↦ oa)
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type} (oa : OracleComp spec α)
 

@@ -24,28 +24,27 @@ open OracleSpec
 
 namespace OracleComp
 
-/-- The type of computation that `runIO` will produce. -/
-example : IO ℕ := do
-  let x ← IO.rand 2 10
-  let y ← IO.rand 100 200
-  return (x * y)
-
 /-- Represent an `OracleComp` via the `IO` monad, allowing actual execution.
 NOTE: `OracleComp` as currently defined doesn't allow specialized error messaging.
 Changing this would just require adding a `String` to the `failure` constructor -/
-protected def runIO {α : Type} (oa : ProbComp α) : IO α := by
-  induction oa using OracleComp.construct with
-  | pure x => exact return x
-  | query_bind i t oa r => exact do let u ← IO.rand 0 i; r u
-  | failure => exact throw (IO.userError "Computation failed during execution")
+protected def runIO {α : Type} (oa : ProbComp α) : IO α :=
+  oa.mapM (fail := throw (IO.userError "Computation failed during execution"))
+    (qm := λ (query i _) ↦ IO.rand 0 i) -- Queries become random selection
+
+/-- Automatic lifting of probabalistic computations into `IO`. -/
+instance : MonadLift ProbComp IO where
+  monadLift := OracleComp.runIO
 
 private def lawLargeNumsTest (trials : ℕ) (die : ℕ) : IO Unit := do
   let n : ℕ := trials * die
-  let xs ← (replicate n $[0..die - 1]).runIO
+  let xs ← replicateTR n $[0..die - 1]
   IO.println ("Rolling " ++ toString n ++ " " ++ toString die ++ "-sided dice:")
   for i in List.range die do
     IO.println <| "▸Num " ++ toString (i + 1) ++ "s: " ++ toString (xs.count i)
 
-#eval lawLargeNumsTest 200 6
+#eval (do
+  let trials : ℕ ← (100 + ·) <$> $[0..100]
+  let die : ℕ ← (4 + ·) <$> $[0..4]
+  lawLargeNumsTest trials die : IO Unit)
 
 end OracleComp

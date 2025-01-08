@@ -53,6 +53,10 @@ lemma bind_pure (x : α) (r : α → FreeMonad f β) :
 lemma bind_roll (x : f α) (r : α → FreeMonad f β) (g : β → FreeMonad f γ) :
     FreeMonad.bind (FreeMonad.roll x r) g = FreeMonad.roll x (λ u ↦ FreeMonad.bind (r u) g) := rfl
 
+@[simp]
+lemma bind_lift (x : f α) (r : α → FreeMonad f β) :
+    FreeMonad.bind (FreeMonad.lift x) r = FreeMonad.roll x r := rfl
+
 instance : Monad (FreeMonad f) where
   pure := FreeMonad.pure
   bind := FreeMonad.bind
@@ -114,6 +118,11 @@ variable {C : FreeMonad f α → Type v} (h_pure : (x : α) → C (pure x))
 @[simp]
 lemma construct_pure (y : α) : FreeMonad.construct h_pure h_roll (pure y) = h_pure y := rfl
 
+@[simp]
+lemma construct_roll (x : f β) (r : β → FreeMonad f α) :
+    (FreeMonad.construct h_pure h_roll (roll x r) : C (roll x r)) =
+      (h_roll x r (λ u ↦ FreeMonad.construct h_pure h_roll (r u))) := rfl
+
 end construct
 
 section mapM
@@ -123,14 +132,14 @@ variable {m : Type u → Type v} [Monad m] (s : {α : Type u} → f α → m α)
 /-- Canonical mapping of a free monad into any other monad, given a map on the base functor, -/
 protected def mapM (s : {α : Type u} → f α → m α) : (oa : FreeMonad f α) → m α
   | FreeMonad.pure x => pure x
-  | FreeMonad.roll x r => (s x >>= λ u ↦ (r u).mapM s)
+  | FreeMonad.roll x r => s x >>= λ u ↦ (r u).mapM s
 
 @[simp]
 lemma mapM_pure (x : α) : (FreeMonad.pure x : FreeMonad f α).mapM s = pure x := rfl
 
 @[simp]
 lemma mapM_roll (x : f α) (r : α → FreeMonad f β) :
-    (FreeMonad.roll x r).mapM s = (s x >>= λ u ↦ (r u).mapM s) := rfl
+    (FreeMonad.roll x r).mapM s = s x >>= λ u ↦ (r u).mapM s := rfl
 
 end mapM
 

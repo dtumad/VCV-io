@@ -43,7 +43,7 @@ namespace OracleComp
 
 def simulateT {α : Type} (so : spec →[σ]ₛₒ specₜ)
     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α := by
-  induction oa using OracleComp.construct with
+  induction oa using OracleComp.construct' with
   | pure x => exact pure x
   | query_bind i t oa r => exact so i t >>= r
   | failure => exact failure

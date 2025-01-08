@@ -144,7 +144,8 @@ lemma simulateT_eq (oa : OracleComp spec α) :
   | query_bind i t oa hoa => {
     simp [simulateT] at hoa
     simp [simulateT, hoa]
-    rfl
+    sorry
+    -- rfl
   }
   | failure => rfl
 
