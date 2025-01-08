@@ -150,7 +150,7 @@ lemma support_replicate' [spec.FiniteRange] [DecidableEq α] (oa : OracleComp sp
   simp only [support_replicate, List.all_eq_true, decide_eq_true_eq]
 
 @[simp]
-lemma mem_finSupport_replicate [spec.FiniteRange] [spec.DecidableSpec] [DecidableEq α]
+lemma mem_finSupport_replicate [spec.FiniteRange] [spec.DecidableEq] [DecidableEq α]
     (oa : OracleComp spec α) (n : ℕ)
     (xs : List α) : xs ∈ (oa.replicate n).finSupport ↔
       xs.length = n ∧ xs.all (· ∈ oa.finSupport) := by

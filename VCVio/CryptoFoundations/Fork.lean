@@ -42,7 +42,7 @@ namespace OracleComp
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
-variable [∀ i, SelectableType (spec.range i)] [spec.DecidableSpec]
+variable [∀ i, SelectableType (spec.range i)] [spec.DecidableEq]
 
 def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
     (activeOracles : List ι) (i : ι)

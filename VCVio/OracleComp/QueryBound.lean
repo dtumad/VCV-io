@@ -135,7 +135,7 @@ section minimalQueryBound
 -- path that results in the most possible queries, individually for each oracle index.
 -- Minimal in the sense that any other query bound will be point-wise smaller than this query bound.
 -- In general this count is not an actual possible result of simulating with `countingOracle`. -/
--- def minimalQueryBound [spec.FiniteRange] [DecidableEq ι] [spec.DecidableSpec]
+-- def minimalQueryBound [spec.FiniteRange] [DecidableEq ι] [spec.DecidableEq]
 --   {α : Type} (oa : OracleComp spec α) : (ι → ℕ) := by
 --   induction oa using OracleComp.construct with
 --   | pure x => exact 0

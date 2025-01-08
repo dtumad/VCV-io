@@ -31,7 +31,7 @@ lemma support_seq : (og <*> oa).support = ⋃ g ∈ og.support, g '' oa.support 
   simp [seq_eq_bind_map]
 
 @[simp low]
-lemma finSupport_seq [spec.DecidableSpec] [spec.FiniteRange]
+lemma finSupport_seq [spec.DecidableEq] [spec.FiniteRange]
     [DecidableEq α] [DecidableEq β] [DecidableEq (α → β)] :
     (og <*> oa).finSupport = og.finSupport.biUnion (λ g ↦ oa.finSupport.image g) := by
   simp [seq_eq_bind_map]
@@ -46,7 +46,7 @@ lemma probOutput_seq_eq_tsum_ite [spec.FiniteRange] [DecidableEq β] (y : β) :
   simp [seq_eq_bind, probOutput_bind_eq_tsum,
     probOutput_map_eq_tsum_ite, ← ENNReal.tsum_mul_left]
 
-lemma probOutput_seq_eq_sum_finSupport_ite [spec.FiniteRange] [spec.DecidableSpec]
+lemma probOutput_seq_eq_sum_finSupport_ite [spec.FiniteRange] [spec.DecidableEq]
     [DecidableEq α] [DecidableEq (α → β)] [DecidableEq β]
     (y : β) : [= y | og <*> oa] = ∑ g in og.finSupport, ∑ x in oa.finSupport,
       if y = g x then [= g | og] * [= x | oa] else 0 := by
@@ -98,7 +98,7 @@ lemma support_seq_map_eq_image2 :
     implies_true]
 
 @[simp low + 1]
-lemma finSupport_seq_map_eq_image2 [spec.FiniteRange] [spec.DecidableSpec]
+lemma finSupport_seq_map_eq_image2 [spec.FiniteRange] [spec.DecidableEq]
     [DecidableEq α] [DecidableEq β] [DecidableEq γ] :
     (f <$> oa <*> ob).finSupport = Finset.image₂ f oa.finSupport ob.finSupport := by
   simp only [finSupport_eq_iff_support_eq_coe, support_seq, support_map, Set.mem_image,
@@ -178,7 +178,7 @@ lemma support_seq_map_swap [spec.FiniteRange] :
   Set.ext (mem_support_iff_of_evalDist_eq (evalDist_seq_map_swap oa ob f))
 
 @[simp]
-lemma finSupport_seq_map_swap [spec.FiniteRange] [spec.DecidableSpec] [DecidableEq γ] :
+lemma finSupport_seq_map_swap [spec.FiniteRange] [spec.DecidableEq] [DecidableEq γ] :
     (Function.swap f <$> ob <*> oa).finSupport = (f <$> oa <*> ob).finSupport :=
   Finset.ext (mem_finSupport_iff_of_evalDist_eq (evalDist_seq_map_swap oa ob f))
 
@@ -190,7 +190,7 @@ lemma mem_support_seq_map_iff_of_injective2 (hf : f.Injective2) (x : α) (y : β
     f x y ∈ (f <$> oa <*> ob).support ↔ x ∈ oa.support ∧ y ∈ ob.support := by
   rw [support_seq_map_eq_image2, Set.mem_image2_iff hf]
 
-lemma mem_finSupport_seq_map_iff_of_injective2 [spec.FiniteRange] [spec.DecidableSpec]
+lemma mem_finSupport_seq_map_iff_of_injective2 [spec.FiniteRange] [spec.DecidableEq]
     [DecidableEq α] [DecidableEq β] [DecidableEq γ]
     (hf : f.Injective2) (x : α) (y : β) : f x y ∈ (f <$> oa <*> ob).finSupport ↔
       x ∈ oa.finSupport ∧ y ∈ ob.finSupport := by

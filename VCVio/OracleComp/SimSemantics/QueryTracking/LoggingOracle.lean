@@ -35,7 +35,7 @@ end logQuery
 
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
-def wasQueried [spec.DecidableSpec] (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
+def wasQueried [spec.DecidableEq] (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
   match (log i).find? (λ (t', _) ↦ t = t') with
   | Option.some _ => true
   | Option.none => false

@@ -32,7 +32,7 @@ instance : EmptyCollection (QueryCache spec) := ⟨λ _ _ ↦ none⟩
 
 section cacheQuery
 
-variable [spec.DecidableSpec]
+variable [spec.DecidableEq]
 
 /-- Add a index + input pair to the cache by updating the function -/
 def cacheQuery (i : ι) (t : spec.domain i) (u : spec.range i) :
@@ -53,7 +53,7 @@ end cacheQuery
 
 section lookup_or_query
 
-variable {ι' : Type} {spec' : OracleSpec ι'} [spec.DecidableSpec]
+variable {ι' : Type} {spec' : OracleSpec ι'} [spec.DecidableEq]
 
 /-- Lookup a value in the cache, querying a fresh value if no value is cached.
 Returns both the value and updated cache. -/
@@ -75,14 +75,14 @@ end QueryCache
 end OracleSpec
 
 /-- Oracle for caching queries to the oracles in `spec`, querying fresh values if needed. -/
-def cachingOracle [spec.DecidableSpec] : spec →[QueryCache spec]ₛₒ spec :=
+def cachingOracle [spec.DecidableEq] : spec →[QueryCache spec]ₛₒ spec :=
   λ i t ↦ do match (← get) i t with
   | Option.some u => return u
   | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)
 
 namespace cachingOracle
 
-variable [spec.DecidableSpec]
+variable [spec.DecidableEq]
 
 @[simp]
 lemma apply_eq (i : ι) (t : spec.domain i) : cachingOracle i t =

@@ -89,7 +89,7 @@ lemma support_toFun (q : OracleQuery spec α) :
   rw [support_liftM]
 
 @[simp]
-lemma finSupport_toFun [spec.DecidableSpec] [superSpec.DecidableSpec] [superSpec.FiniteRange]
+lemma finSupport_toFun [spec.DecidableEq] [superSpec.DecidableEq] [superSpec.FiniteRange]
     [DecidableEq α] [Fintype α] (q : OracleQuery spec α) :
     finSupport (h.monadLift q : OracleComp superSpec α) = Finset.univ := by
   rw [finSupport_liftM]
@@ -148,7 +148,7 @@ lemma support_liftComp (oa : OracleComp spec α) :
   -- Set.ext (mem_support_iff_of_evalDist_eq <| evalDist_liftComp oa)
 
 @[simp]
-lemma finSupport_liftComp [spec.DecidableSpec] [superSpec.DecidableSpec] [DecidableEq α]
+lemma finSupport_liftComp [spec.DecidableEq] [superSpec.DecidableEq] [DecidableEq α]
     [spec.FiniteRange] [superSpec.FiniteRange]
     (oa : OracleComp spec α) : (h.liftComp oa).finSupport = oa.finSupport :=
   sorry

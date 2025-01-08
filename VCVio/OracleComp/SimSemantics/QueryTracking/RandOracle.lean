@@ -20,11 +20,11 @@ with the state of the uniform oracle masked away.
 open OracleSpec OracleComp
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)]
-  {α β γ : Type} [spec.DecidableSpec]
+  {α β γ : Type} [spec.DecidableEq]
 
 /-- Random oracles as a composition of a uniform oracle with a caching oracle.
 NOTE: we could take the result of `apply_eq` as the maindefinition and give this one as a lemma. -/
-def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [spec.DecidableSpec]
+def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [spec.DecidableEq]
     [∀ i, SelectableType (spec.range i)] : spec →[QueryCache spec]ₛₒ unifSpec :=
   (unifOracle ∘ₛₒ cachingOracle).maskState (Equiv.prodPUnit (QueryCache spec))
 

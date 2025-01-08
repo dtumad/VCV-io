@@ -61,7 +61,7 @@ def rangeInhabited {ι : Type u} {spec : OracleSpec ι} {α : Type u}
     [spec.FiniteRange] : OracleQuery spec α → Inhabited α | query i t => inferInstance
 
 def rangeDecidableEq {ι : Type u} {spec : OracleSpec ι} {α : Type u}
-    [spec.DecidableSpec] : OracleQuery spec α → DecidableEq α | query i t => inferInstance
+    [spec.DecidableEq] : OracleQuery spec α → DecidableEq α | query i t => inferInstance
 
 instance isEmpty {α : Type u} : IsEmpty (OracleQuery []ₒ α) where
   false | query i t => i.elim
@@ -183,7 +183,7 @@ protected def construct {C : OracleComp spec α → Type v}
   FreeMonad.construct (Option.rec failure pure) query_bind oa
 
 /-- Version of `construct` with automatic induction on the `query` in when defining the
-`query_bind` case. Can be useful with `spec.DecidableSpec` and `spec.FiniteRange`.
+`query_bind` case. Can be useful with `spec.DecidableEq` and `spec.FiniteRange`.
 NOTE: may be better to just use this universally in all cases? avoids duplicating lemmas below. -/
 @[elab_as_elim]
 protected def construct' {C : OracleComp spec α → Type v}
@@ -357,7 +357,7 @@ lemma queryBind_inj (i : ι) (t t' : spec.domain i) (oa oa' : spec.range i → O
 
 /-- If the final output type of a computation has decidable equality,
 then computations themselves have decidable equality. -/
-protected instance instDecidableEq [DecidableSpec spec] [FiniteRange spec]
+protected instance instDecidableEq [spec.DecidableEq] [FiniteRange spec]
     [DecidableEq ι] [h : DecidableEq α] : DecidableEq (OracleComp spec α) := sorry
   -- | pure' _ x, pure' _ x' => by simpa [pure_inj x x'] using h x x'
   -- | pure' _ _, queryBind' _ _ _ _ => by simpa using instDecidableFalse

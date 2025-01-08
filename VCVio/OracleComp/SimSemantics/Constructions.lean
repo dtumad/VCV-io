@@ -210,13 +210,13 @@ lemma support_simulate' (oa : OracleComp spec α) (u : Unit) :
   sorry
 
 @[simp]
-lemma finSupport_simulate [spec.FiniteRange] [spec.DecidableSpec]
+lemma finSupport_simulate [spec.FiniteRange] [spec.DecidableEq]
     [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
     (simulate unifOracle u oa).finSupport = oa.finSupport.image (·, ()) := by
   simp [finSupport_eq_iff_support_eq_coe, Set.ext_iff]
 
 @[simp]
-lemma finSupport_simulate' [spec.FiniteRange] [spec.DecidableSpec]
+lemma finSupport_simulate' [spec.FiniteRange] [spec.DecidableEq]
     [DecidableEq α] (oa : OracleComp spec α) (u : Unit) :
     (simulate' unifOracle u oa).finSupport = oa.finSupport := by
   simp [simulate'_def, Finset.ext_iff]
