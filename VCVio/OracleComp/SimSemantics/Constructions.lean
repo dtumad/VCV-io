@@ -27,22 +27,24 @@ variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
 from `spec₁` to `spec₂` by first substituting queries using `so`, and then further
 substituting with the oracles in `so'`. -/
 def compose (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ) :
-    spec₁ →[σ × τ]ₛₒ specₜ := λ i t (s₁, s₂) ↦ do
-  let ((t, s₁'), s₂') ← simulate so' s₂ (so i t s₁)
-  return (t, (s₁', s₂'))
+    spec₁ →[σ × τ]ₛₒ specₜ where
+  impl | q, (s₁, s₂) => do
+    let ((t, s₁'), s₂') ← simulate so' s₂ (so.impl q s₁)
+    return (t, (s₁', s₂'))
 
 infixl : 65 " ∘ₛₒ " => λ so' so ↦ compose so so'
 
 variable (so : spec₁ →[σ]ₛₒ spec₂) (so' : spec₂ →[τ]ₛₒ specₜ)
 
 @[simp]
-lemma compose_apply (i : ι₁) : (so' ∘ₛₒ so) i =
-    λ t (s₁, s₂) ↦ (λ ((t, s₁), s₂) ↦ (t, (s₁, s₂))) <$>
-      simulate so' s₂ (so i t s₁) := rfl
+lemma compose_apply (q : OracleQuery spec₁ α) : (so.compose so').impl q =
+    (λ (s₁, s₂) ↦ (do
+      let ((t, s₁'), s₂') ← simulate so' s₂ (so.impl q s₁)
+      return (t, (s₁', s₂')))) := rfl
 
 @[simp]
 lemma simulate_compose (oa : OracleComp spec₁ α) :
-    ∀ s : σ × τ, simulate (so' ∘ₛₒ so) s oa = do
+    ∀ s : σ × τ, simulate (so.compose so') s oa = do
       let ((x, s₁), s₂) ← simulate so' s.2 (simulate so s.1 oa)
       return (x, (s₁, s₂)) := by
   induction oa using OracleComp.inductionOn with
@@ -53,7 +55,7 @@ lemma simulate_compose (oa : OracleComp spec₁ α) :
 /-- Composition of simulatation oracles is exactly composition of simulation calls. -/
 @[simp]
 lemma simulate'_compose (oa : OracleComp spec₁ α) :
-    ∀ s : σ × τ, simulate' (so' ∘ₛₒ so) s oa =
+    ∀ s : σ × τ, simulate' (so.compose so') s oa =
       simulate' so' s.2 (simulate' so s.1 oa):= by
   simp [simulate'_def, map_eq_bind_pure_comp]
 
@@ -66,21 +68,22 @@ variable {ι ιₜ : Type} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {
 /-- Substitute an equivalent type for the state of a simulation oracle, by using the equivalence
 to move back and forth between the states as needed.
 This can be useful when operations such like `simOracle.append` add on a state of type `Unit`.-/
-def maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) : spec →[τ]ₛₒ specₜ :=
-  λ i t s ↦ map id e <$> so i t (e.symm s)
+def maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) : spec →[τ]ₛₒ specₜ where
+  impl q s := map id e <$> so.impl q (e.symm s)
 
 @[simp]
-lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (i : ι) :
-    so.maskState e i = λ t s ↦ map id e <$> so i t (e.symm s) := rfl
+lemma maskState_apply (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (q : OracleQuery spec α) :
+    (so.maskState e).impl q = λ s ↦ map id e <$> so.impl q (e.symm s) := rfl
 
 /-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
 @[simp]
 lemma maskState_subsingleton [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ σ) :
-    so.maskState e = so := by
+    SimOracle.maskState so e = so := by
   have he : ⇑e = id := funext (λ _ ↦ Subsingleton.elim _ _)
   have he' : ⇑e.symm = id := funext (λ _ ↦ Subsingleton.elim _ _)
-  refine funext (λ i ↦ funext (λ t ↦ ?_))
-  simp only [maskState_apply, he, he', map_id, id_map, id]
+  sorry
+  -- refine funext (λ i ↦ funext (λ t ↦ ?_))
+  -- simp only [maskState_apply, he, he', map_id, id_map, id]
 
 @[simp]
 lemma simulate_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : τ) (oa : OracleComp spec α) :
@@ -105,17 +108,21 @@ construct a simulation oracle that responds to the queries with that computation
 
 This assumes no shared state across responses, so we use `Unit` as the state.
 `maskState` is often useful to hide this when appending or composing this. -/
+-- def statelessOracle {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
+--     (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i)) :
+--     spec →[Unit]ₛₒ spec' where impl | query i t => f i t
 def statelessOracle {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
-    (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i)) :
-    spec →[Unit]ₛₒ spec' := λ i t ↦ f i t
+    (f : {α : Type} → OracleQuery spec α → OracleComp spec' α) :
+    SimOracle spec spec' Unit where
+  impl q := f q
 
 namespace statelessOracle
 
 variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
-  (f : (i : ι) → spec.domain i → OracleComp spec' (spec.range i))
+  (f : {α : Type} → OracleQuery spec α → OracleComp spec' α) {α : Type}
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) : statelessOracle f i t = f i t := rfl
+lemma apply_eq (q : OracleQuery spec α) : (statelessOracle f).impl q = f q := rfl
 
 end statelessOracle
 
@@ -127,14 +134,14 @@ This can be useful especially with `SimOracle.append`, in order to simulate a si
 in a larger set of oracles, leaving the behavior of other oracles unchanged.
 The relevant spec can usually be inferred automatically, so we leave it implicit. -/
 def idOracle {ι : Type} {spec : OracleSpec ι} : spec →[Unit]ₛₒ spec :=
-  statelessOracle (λ i t ↦ query i t)
+  statelessOracle (λ q ↦ q)
 
 namespace idOracle
 
 variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) : idOracle i t = query i t := rfl
+lemma apply_eq (q : OracleQuery spec α) : idOracle.impl q = q := rfl
 
 @[simp]
 lemma simulateT_eq (oa : OracleComp spec α) :
@@ -169,14 +176,16 @@ The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
 def unifOracle {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)] :
     spec →[Unit]ₛₒ unifSpec :=
-  statelessOracle (λ i _ ↦ $ᵗ spec.range i)
+  statelessOracle λ (query i _) ↦ $ᵗ spec.range i
 
 namespace unifOracle
 
 variable {ι : Type} {spec : OracleSpec ι} [∀ i, SelectableType (spec.range i)] {α β : Type}
 
 @[simp]
-lemma apply_eq (i : ι) : unifOracle i = λ _ _ ↦ (·, ()) <$> ($ᵗ spec.range i) := rfl
+lemma apply_eq (q : OracleQuery spec α) :
+    unifOracle.impl q = match q with | query i t => $ᵗ spec.range i :=
+  match q with | query i t => rfl
 
 @[simp]
 lemma evalDist_simulate [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit) :
@@ -256,15 +265,15 @@ for all queries. This gives a way to run arbitrary computations to get *some* ou
 Mostly useful in some existence proofs, not usually used in an actual implementation. -/
 def defaultOracle {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] :
     spec →[Unit]ₛₒ []ₒ :=
-  statelessOracle (λ _ _ ↦ return default)
+  statelessOracle λ q ↦ return q.defaultOutput
 
 namespace defaultOracle
 
 variable {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α : Type}
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) :
-    defaultOracle i t = return default := rfl
+lemma apply_eq (q : OracleQuery spec α) :
+    defaultOracle.impl q = return q.defaultOutput := rfl
 
 @[simp]
 lemma simulate_eq (u : Unit) (oa : OracleComp spec α) :

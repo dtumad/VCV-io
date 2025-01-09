@@ -20,33 +20,70 @@ For example `idOracle` has no effect upon simulation, and we should apply that f
 
 open OracleSpec Prod
 
+variable {ι ιₜ : Type}
+
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
 -- def SimOracle {ι ιₜ : Type} (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) :=
 --   (i : ι) → spec.domain i → σ → OracleComp specₜ (spec.range i × σ)
 
-def SimOracle {ι ιₜ : Type} (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ)
-    (σ : Type) := (i : ι) → spec.domain i → StateT σ (OracleComp specₜ) (spec.range i)
+-- def SimOracle {ι ιₜ : Type} (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ)
+--     (σ : Type) := (i : ι) → spec.domain i → StateT σ (OracleComp specₜ) (spec.range i)
+
+structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) where
+  impl : {α : Type} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
 -- notation : 55 spec " →[" σ "]ₛₒₜ " specₜ => SimOracleT spec specₜ σ
 
 
-variable {ι ιₜ : Type} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {α β σ : Type}
+variable {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {α β σ : Type}
+
+-- instance SimOracle.Inhabited [spec.FiniteRange] :
+--   Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure ⟨default, s⟩⟩
 
 instance SimOracle.Inhabited [spec.FiniteRange] :
-  Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure ⟨default, s⟩⟩
+  Inhabited (spec →[σ]ₛₒ specₜ) := ⟨{impl q := pure q.defaultOutput}⟩
 
 namespace OracleComp
 
-def simulateT {α : Type} (so : spec →[σ]ₛₒ specₜ)
-    (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α := by
-  induction oa using OracleComp.construct' with
-  | pure x => exact pure x
-  | query_bind i t oa r => exact so i t >>= r
-  | failure => exact failure
+section simulateT
+
+-- def simulateT' {α : Type} (so : spec →[σ]ₛₒ specₜ)
+--     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α := by
+--   induction oa using OracleComp.construct' with
+--   | pure x => exact pure x
+--   | query_bind i t oa r => exact so i t >>= r
+--   | failure => exact failure
+
+def simulateT {α : Type} (so : SimOracle spec specₜ σ)
+    (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α :=
+  oa.mapM (fail := failure) (query_map := so.impl)
+
+variable {α : Type} (so : spec →[σ]ₛₒ specₜ)
+    (oa : OracleComp spec α)
+
+-- @[simp]
+-- lemma simulateT_query_bind :
+--   (q : OracleQuery spec α) → (ob : α → OracleComp spec β) →
+--   simulateT so ((q : OracleComp spec α) >>= ob) =
+--     so q >>= simulateT so ∘ ob
+--   | query i t, _ => by
+--     simp only [simulateT, OracleComp.construct']
+--     rw [construct_query_bind]
+--     simp
+--     simp [simulateT, OracleComp.construct',
+--       query_bind_eq_roll, OptionT.mk]
+--     rw [FreeMonad.construct_roll]
+
+@[simp]
+lemma simulateT'_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
+  simulateT so ((q : OracleComp spec α) >>= ob) =
+    so.impl q >>= simulateT so ∘ ob := rfl
+
+end simulateT
 
 /-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
 answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
@@ -95,23 +132,23 @@ lemma simulate'_bind (s : σ) (oa : OracleComp spec α) (ob : α → OracleComp 
   sorry --simp only [simulate', simulate_bind, map_bind]
 
 @[simp low]
-lemma simulate_query (s : σ) (i : ι) (t : spec.domain i) :
-    simulate so s (query i t) = so i t s := by
+lemma simulate_query (s : σ) (q : OracleQuery spec α) :
+    simulate so s q = so.impl q s := by
   sorry --simp_rw [query_def, simulate, Prod.mk.eta, bind_pure]
 
 @[simp low]
-lemma simulate'_query (s : σ) (i : ι) (t : spec.domain i) :
-    simulate' so s (query i t) = fst <$> so i t s := by
+lemma simulate'_query (s : σ) (q : OracleQuery spec α) :
+    simulate' so s q = fst <$> so.impl q s := by
   sorry --rw [simulate', simulate_query]
 
-lemma simulate_query_bind (s : σ) (i : ι) (t : spec.domain i)
-    (oa : spec.range i → OracleComp spec α) : simulate so s (query i t >>= oa) =
-    (do let (u, s') ← so i t s; simulate so s' (oa u)) := by
+lemma simulate_query_bind (s : σ) (q : OracleQuery spec β)
+    (oa : β → OracleComp spec α) : simulate so s (q >>= oa) =
+    (do let (u, s') ← so.impl q s; simulate so s' (oa u)) := by
   rw [simulate_bind, simulate_query]
 
-lemma simulate'_query_bind (s : σ) (i : ι) (t : spec.domain i)
-    (oa : spec.range i → OracleComp spec α) : simulate' so s (query i t >>= oa) =
-    (do let (u, s') ← so i t s; simulate' so s' (oa u)) := by
+lemma simulate'_query_bind (s : σ) (q : OracleQuery spec β)
+    (oa : β → OracleComp spec α) : simulate' so s (q >>= oa) =
+    (do let (u, s') ← so.impl q s; simulate' so s' (oa u)) := by
   rw [simulate'_bind, simulate_query]
 
 @[simp low]
@@ -179,23 +216,27 @@ section stateIndep
 
 variable {σ : Type} (so : spec →[σ]ₛₒ spec)
 
-lemma simulate'_eq_self (h : ∀ i t s, fst <$> so i t s = query i t)
+lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, fst <$> so.impl q s = q)
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa := by
   revert s
   induction oa using OracleComp.inductionOn with
   | pure x => simp
-  | query_bind i t oa hoa => refine λ s ↦ by simp_rw [simulate'_bind, simulate_query,
-      hoa, ← h i t s, map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
   | failure => simp
+  | query_bind i t oa hoa =>
+      intro s
+      simp [hoa]
+      rw [← h (spec.range i) (query i t) s]
+      simp only [bind_map_left]
 
 -- TODO: this for various oracles?
 class StateIndep (so : spec →[σ]ₛₒ spec) where
-    state_indep : ∀ i t s, fst <$> so i t s = query i t
+    state_indep : ∀ α (q : OracleQuery spec α) s, fst <$> so.impl q s = q
 
 @[simp]
 lemma simulate'_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [h : StateIndep so]
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
-  simulate'_eq_self so (h.state_indep) s oa
+  simulate'_eq_self so (λ α (query i t) s ↦
+    by simp [h.state_indep _ (query i t)]) s oa
 
 @[simp]
 lemma fst_map_simulate_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [StateIndep so]
@@ -217,7 +258,8 @@ variable {σ : Type} (so : spec →[σ]ₛₒ spec)
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this -/
 lemma evalDist_simulate'_eq_evalDist [spec.FiniteRange]
-    (h : ∀ i t s, evalDist (fst <$> so i t s) = OptionT.lift (PMF.uniformOfFintype (spec.range i)))
+    (h : ∀ i t s, evalDist (fst <$> so.impl (query i t) s) =
+      OptionT.lift (PMF.uniformOfFintype (spec.range i)))
     (s : σ) (oa : OracleComp spec α) : evalDist (simulate' so s oa) = evalDist oa := by
   revert s
   induction oa using OracleComp.inductionOn with

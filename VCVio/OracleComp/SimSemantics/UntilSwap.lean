@@ -21,7 +21,7 @@ NOTE: this could be generalized to go back and forth more generally,
 but seems unneeded until we have an actual use case.
 -/
 
-open OracleSpec OracleComp Sum
+open OracleSpec OracleComp Sum Prod
 
 namespace SimOracle
 
@@ -37,11 +37,10 @@ The function `f` is used to move to the second state type after the swap.
 NOTE: `f` could eventually be an `OracleComp spec σ₂`, but no clear use case,
 maybe if this where a two way thing then it could be used for failures. -/
 def untilSwap (so : spec₁ →[σ₁]ₛₒ spec) (so' : spec₂ →[σ₂]ₛₒ spec)
-    (f : σ₁ → σ₂) : spec₁ ++ₒ spec₂ →[σ₁ ⊕ σ₂]ₛₒ spec :=
-  λ i t s ↦ match i, s with
-  | inl i, inl s => Prod.map id inl <$> so i t s
-  | inr i, inl s => Prod.map id inr <$> so' i t (f s)
-  | inr i, inr s => Prod.map id inr <$> so' i t s
+    (f : σ₁ → σ₂) : spec₁ ++ₒ spec₂ →[σ₁ ⊕ σ₂]ₛₒ spec where impl
+  | query (inl i) t, inl s => map id inl <$> so.impl (query i t) s
+  | query (inr i) t, inl s => map id inr <$> so'.impl (query i t) (f s)
+  | query (inr i) t, inr s => map id inr <$> so'.impl (query i t) s
   | _, _ => failure -- swapped back to first from second
 
 variable (so : spec₁ →[σ₁]ₛₒ spec) (so' : spec₂ →[σ₂]ₛₒ spec) (f : σ₁ → σ₂)

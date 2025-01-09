@@ -27,11 +27,6 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
 namespace oneTimePad
 
 theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
-  λ m ↦ by simp [SymmEncAlg.soundnessExp]
-  -- λ m ↦  by simp only [SymmEncAlg.soundnessExp, oneTimePad_keygen, oneTimePad_encrypt,
-  --   oneTimePad_decrypt, guard_eq, pure_bind, BitVec.xor_self_xor, ↓reduceIte, bind_pure_comp,
-  --   SecExp.advantage_eq_one_iff, simulate_map, oneTimePad_baseSimOracle, oneTimePad_init_state,
-  --   idOracle.simulate_eq, Functor.map_map, Prod.map_apply, id_eq, probFailure_map,
-  --   probFailure_uniformOfFintype]
+  λ m ↦ by simp [SymmEncAlg.soundnessExp, oneTimePad]
 
 end oneTimePad

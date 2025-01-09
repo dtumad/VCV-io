@@ -54,10 +54,10 @@ section unforgeable
 variable [DecidableEq ι] [Inhabited S] [Fintype S] [DecidableEq S] [DecidableEq M]
 
 def signingOracle (sigAlg : SignatureAlg spec σ M PK SK S)
-    (pk : PK) (sk : SK) : (M →ₒ S) →[QueryLog (M →ₒ S)]ₛₒ spec :=
-  λ () m log ↦ do
+    (pk : PK) (sk : SK) : (M →ₒ S) →[QueryLog (M →ₒ S)]ₛₒ spec where
+  impl | query () m => do
     let σ ← sigAlg.sign pk sk m
-    return (σ, log.logQuery m σ)
+    modifyGet λ log ↦ (σ, log.logQuery m σ)
 
 abbrev unforgeableAdv (_sigAlg : SignatureAlg spec σ M PK SK S) :=
   SecAdv (spec ++ₒ (M →ₒ S)) PK (M × S)

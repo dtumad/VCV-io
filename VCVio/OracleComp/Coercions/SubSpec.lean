@@ -111,8 +111,8 @@ lemma probEvent_toFun [superSpec.FiniteRange] [Fintype α]
 section liftComp
 
 def liftingOracle (spec : OracleSpec ι₁) (superSpec : OracleSpec ι₂)
-    [h : spec ⊂ₒ superSpec] : spec →[Unit]ₛₒ superSpec :=
-  λ i t ↦ h.monadLift (query i t)
+    [h : spec ⊂ₒ superSpec] : spec →[Unit]ₛₒ superSpec where
+  impl q := h.monadLift q
 
 def liftComp [h : spec ⊂ₒ superSpec] (oa : OracleComp spec α) : OracleComp superSpec α :=
   simulate' (liftingOracle spec superSpec) () oa

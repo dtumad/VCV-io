@@ -49,13 +49,17 @@ open OracleComp OracleSpec
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
 which list to update when queries come in. -/
-def loggingOracle : spec →[QueryLog spec]ₛₒ spec :=
-  λ i t ↦ do let u ← query i t; modifyGet λ log ↦ (u, log.logQuery t u)
+def loggingOracle : SimOracle spec spec (QueryLog spec) where
+  impl | query i t => do
+    let u ← query i t
+    modifyGet λ log ↦ (u, log.logQuery t u)
 
 namespace loggingOracle
 
 @[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) : loggingOracle i t =
-    (do let u ← query i t; modifyGet λ log ↦ (u, log.logQuery t u)) := rfl
+lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
+    match q with | query i t => (do
+      let u ← query i t
+      modifyGet λ log ↦ (u, log.logQuery t u)) := rfl
 
 end loggingOracle

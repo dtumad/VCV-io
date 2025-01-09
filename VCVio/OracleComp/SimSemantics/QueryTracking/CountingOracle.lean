@@ -21,19 +21,20 @@ open OracleComp OracleSpec Function
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
-    spec →[ι → ℕ]ₛₒ spec :=
-  λ i t ↦ do modify (λ qc ↦ update qc i (qc i + 1)); query i t
+    spec →[ι → ℕ]ₛₒ spec where impl
+  | query i t => do modify λ qc ↦ update qc i (qc i + 1); query i t
 
 namespace countingOracle
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
 @[simp]
-protected lemma apply_eq (i : ι) (t : spec.domain i) :
-    countingOracle i t = (do modify λ qc ↦ update qc i (qc i + 1); query i t) := rfl
+protected lemma apply_eq (q : OracleQuery spec α) :
+    countingOracle.impl q = match q with
+      | query i t => (do modify λ qc ↦ update qc i (qc i + 1); query i t) := rfl
 
 instance : StateIndep (countingOracle (spec := spec)) where
-  state_indep _ _ _ := rfl
+  state_indep | _, query _ _, _ => rfl
 
 protected lemma simulate'_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
     simulate' countingOracle qc oa = oa :=

@@ -231,7 +231,7 @@ protected def construct' {C : OracleComp spec α → Type*}
       (oa : spec.range i → OracleComp spec α) →
       ((u : spec.range i) → C (oa u)) → C (query i t >>= oa))
     (failure : C failure) (oa : OracleComp spec α) : C oa :=
-  FreeMonad.construct (Option.rec failure pure) (λ (query i t) ↦ query_bind i t) oa
+  oa.construct pure (λ (query i t) ↦ query_bind i t) failure
 
 variable {C : OracleComp spec α → Type w}
   (h_pure : (a : α) → C (pure a))

@@ -30,15 +30,15 @@ def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [spec.Decidab
 
 namespace randOracle
 
-/-- Executing a random oracle is the same as lookuping up the value and choosing a uniformly
-random new value if it doesn't already exist. -/
-@[simp]
-lemma apply_eq (i : ι) (t : spec.domain i) (cache : QueryCache spec) :
-    randOracle i t cache = cache.lookup_or_else i t ($ᵗ spec.range i) := by
-  simp only [randOracle, SimOracle.maskState_apply, Equiv.prodPUnit_symm_apply,
-    SimOracle.compose_apply, cachingOracle.apply_eq, QueryCache.lookup_or_else, Functor.map_map,
-    Function.comp, Prod.map_apply, id_eq, Equiv.prodPUnit_apply, Prod.mk.eta]
-  sorry
+-- /-- Executing a random oracle is the same as lookuping up the value and choosing a uniformly
+-- random new value if it doesn't already exist. -/
+-- @[simp]
+-- lemma apply_eq (q : OracleQuery spec α) (cache : QueryCache spec) :
+--     randOracle.impl q cache = cache.lookup_or_else i t ($ᵗ spec.range i) := by
+--   simp only [randOracle, SimOracle.maskState_apply, Equiv.prodPUnit_symm_apply,
+--     SimOracle.compose_apply, cachingOracle.apply_eq, QueryCache.lookup_or_else, Functor.map_map,
+--     Function.comp, Prod.map_apply, id_eq, Equiv.prodPUnit_apply, Prod.mk.eta]
+--   sorry
   -- cases cache i t
 
   -- · simp [map_eq_bind_pure_comp]

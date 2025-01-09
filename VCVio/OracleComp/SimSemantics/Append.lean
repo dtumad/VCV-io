@@ -31,23 +31,22 @@ variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
 with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
 answering queries to either oracle set with queries to the corresponding simulation oracle. -/
 def append (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ) :
-    spec₁ ++ₒ spec₂ →[σ × τ]ₛₒ specₜ := λ i ↦ match i with
-  | inl i => λ t (s₁, s₂) ↦ do
-      let (u, s₁') ← so i t s₁ return (u, s₁', s₂)
-  | inr i => λ t (s₁, s₂) ↦ do
-      let (u, s₂') ← so' i t s₂ return (u, s₁, s₂')
-
+    spec₁ ++ₒ spec₂ →[σ × τ]ₛₒ specₜ where impl
+  | query (inl i) t => λ (s₁, s₂) ↦ do
+      let (u, s₁') ← so.impl (query i t) s₁ return (u, s₁', s₂)
+  | query (inr i) t => λ (s₁, s₂) ↦ do
+      let (u, s₂') ← so'.impl (query i t) s₂ return (u, s₁, s₂')
 infixl : 65 " ++ₛₒ " => append
 
 @[simp]
 lemma append_apply_inl (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (i : ι₁) : (so ++ₛₒ so') (inl i) = λ t (s₁, s₂) ↦ do
-      let (u, s₁') ← so i t s₁ return (u, s₁', s₂) := rfl
+    (i : ι₁) (t : spec₁.domain i) : (so ++ₛₒ so').impl (query (inl i) t) = λ (s₁, s₂) ↦ do
+      let (u, s₁') ← so.impl (query i t) s₁ return (u, s₁', s₂) := rfl
 
 @[simp]
 lemma append_apply_inr (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
-    (i : ι₂) : (so ++ₛₒ so') (inr i) = λ t (s₁, s₂) ↦ do
-      let (u, s₂') ← so' i t s₂ return (u, s₁, s₂') := rfl
+    (i : ι₂) (t : spec₂.domain i) : (so ++ₛₒ so').impl (query (inr i) t) = λ (s₁, s₂) ↦ do
+      let (u, s₂') ← so'.impl (query i t) s₂ return (u, s₁, s₂') := rfl
 
 section subSpec
 
