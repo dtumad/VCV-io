@@ -102,7 +102,8 @@ lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 
 -- @[simp]
 -- lemma finSupport_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β)
---     [DecidableEq β] [Fintype α] [spec.FiniteRange] : ((q : OracleComp spec _) >>= ob).finSupport =
+--     [DecidableEq β] [Fintype α] [spec.FiniteRange] :
+  -- ((q : OracleComp spec _) >>= ob).finSupport =
 --       Finset.univ.biUnion λ u ↦ (ob u).finSupport := by
 --   cases q
 --   simp [query_bind_eq_roll, finSupport]
