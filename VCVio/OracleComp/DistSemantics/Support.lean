@@ -61,57 +61,53 @@ section basic
 
 @[simp] lemma support_liftM (q : OracleQuery spec α) :
     (q : OracleComp spec α).support = Set.univ := by
-  rw [liftM_def]
-  -- simp [OptionT.lift, FreeMonad.lift, OptionT.mk, support,
-    -- OracleComp.construct]
-  sorry
+  simpa [support] using Set.iUnion_of_singleton α
 
 @[simp] lemma finSupport_liftM [spec.FiniteRange]
     [DecidableEq α] [Fintype α] (q : OracleQuery spec α) :
     (q : OracleComp spec α).finSupport = Finset.univ := by
-  sorry
+  cases q; simp [finSupport, Finset.ext_iff]
 
-@[simp] lemma support_query (i : ι) (t : spec.domain i) :
+lemma support_query (i : ι) (t : spec.domain i) :
     (query i t : OracleComp spec _).support = Set.univ := by
   rw [support_liftM]
 
-@[simp] lemma finSupport_query [spec.FiniteRange] (i : ι) (t : spec.domain i)
+lemma finSupport_query [spec.FiniteRange] (i : ι) (t : spec.domain i)
     [DecidableEq (spec.range i)] : (query i t : OracleComp spec _).finSupport = Finset.univ := by
   rw [finSupport_liftM]
+
+@[simp]
+lemma support_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
+    ((q : OracleComp spec α) >>= ob).support = ⋃ x, (ob x).support := by
+  simp [support]
+
+@[simp]
+lemma finSupport_query_bind [spec.FiniteRange] [DecidableEq β] : {α : Type} → [Fintype α] →
+    (q : OracleQuery spec α) → (ob : α → OracleComp spec β) →
+    ((q : OracleComp spec α) >>= ob).finSupport =
+      Finset.univ.biUnion λ x ↦ (ob x).finSupport
+  | _, _, query i t, ob => by simp [finSupport, Finset.ext_iff]
 
 @[simp]
 lemma support_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (oa >>= ob).support = ⋃ x ∈ oa.support, (ob x).support := by
   induction oa using OracleComp.inductionOn with
   | pure _ => simp
-  | query_bind q oa hoa =>
-      sorry --simpa [bind_assoc, ← queryBind'_eq_queryBind, support, hoa] using Set.iUnion_comm _
+  | query_bind i t oa hoa =>
+      simp [bind_assoc, hoa]
+      apply Set.iUnion_comm
   | failure => simp
 
 @[simp]
 lemma finSupport_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     [hα : DecidableEq α] [hβ : DecidableEq β] [spec.FiniteRange] :
-    (oa >>= ob).finSupport =
-      oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) := by
+    (oa >>= ob).finSupport = oa.finSupport.biUnion (λ x ↦ (ob x).finSupport) := by
   induction oa using OracleComp.inductionOn generalizing hα hβ with
   | pure _ => simp
-  | query_bind q oa hoa =>
-      apply Finset.coe_inj.1
-      sorry --simpa [bind_assoc, ← queryBind'_eq_queryBind, finSupport, hoa] using Set.iUnion_comm _
+  | query_bind i t oa hoa =>
+      simp [bind_assoc, hoa]
+      rw [Finset.biUnion_biUnion]
   | failure => simp
-
--- @[simp]
--- lemma finSupport_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β)
---     [DecidableEq β] [Fintype α] [spec.FiniteRange] :
-  -- ((q : OracleComp spec _) >>= ob).finSupport =
---       Finset.univ.biUnion λ u ↦ (ob u).finSupport := by
---   cases q
---   simp [query_bind_eq_roll, finSupport]
---   refine (OracleComp.construct_roll _ _ _ _ ob).trans ?_
---   simp
-
---   congr
-
 
 lemma mem_support_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
     y ∈ (oa >>= ob).support ↔ ∃ x ∈ oa.support, y ∈ (ob x).support := by simp
@@ -125,7 +121,9 @@ lemma mem_finSupport_bind_iff [spec.FiniteRange]
 instance support_finite [spec.FiniteRange] (oa : OracleComp spec α) : Finite ↥(oa.support) := by
   induction oa using OracleComp.inductionOn with
   | pure x => exact Set.finite_singleton x
-  | query_bind _ oa hoa => sorry --exact Set.finite_iUnion hoa
+  | query_bind i t oa hoa =>
+      simp only [support_bind, support_liftM, Set.mem_univ, Set.iUnion_true]
+      exact Finite.Set.finite_iUnion fun i ↦ (oa i).support
   | failure => exact Set.toFinite ∅
 
 /-- With a `DecidableEq` instance we can show that the support is actually a `Fintype`,
@@ -147,16 +145,10 @@ lemma coe_finSupport [spec.FiniteRange] [DecidableEq α]
     (oa : OracleComp spec α) : ↑oa.finSupport = oa.support := by
   induction oa using OracleComp.induction with
   | pure x => apply Finset.coe_singleton
-  | query_bind i t oa hoa => {
-    sorry
-    -- rw [finSupport_bind]
-    -- simp [hoa]
-
-  }
+  | query_bind i t oa hoa => simp [hoa]
   | failure => apply Finset.coe_empty
 
-variable [spec.DecidableEq] [spec.FiniteRange]
-  [DecidableEq α] (oa : OracleComp spec α) (s : Finset α)
+variable [spec.FiniteRange] [DecidableEq α] (oa : OracleComp spec α) (s : Finset α)
 
 lemma finSupport_eq_iff_support_eq_coe : oa.finSupport = s ↔ oa.support = ↑s :=
   Finset.coe_inj.symm.trans (by rw [coe_finSupport])
@@ -266,10 +258,10 @@ end nonempty
     (if p then oa else oa').finSupport = if p then oa.finSupport else oa'.finSupport :=
   apply_ite finSupport p oa oa'
 
-@[simp] lemma support_coin : coin.support = {true, false} :=
-  by sorry --simp [Set.ext_iff, coin, support_query (spec := coinSpec)]
-@[simp] lemma finSupport_coin : coin.finSupport = {true, false} :=
-  by simp [finSupport_eq_iff_support_eq_coe]
+@[simp] lemma support_coin : coin.support = {true, false} := by
+  simpa using Set.pair_comm false true
+@[simp] lemma finSupport_coin : coin.finSupport = {true, false} := by
+  simp [finSupport_eq_iff_support_eq_coe]
 
 @[simp] lemma support_uniformFin (n : ℕ) : ($[0..n]).support = Set.univ := support_query n _
 @[simp] lemma finSupport_uniformFin (n : ℕ) : ($[0..n]).finSupport = Finset.univ :=

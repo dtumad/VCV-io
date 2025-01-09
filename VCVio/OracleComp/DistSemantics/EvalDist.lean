@@ -38,17 +38,12 @@ variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β 
 
 section evalDist
 
-/-- Backend definition for `evalDist`, mapping each query to a uniform distribution,
-lifting into the `OptionT` type to handle `failure`.
-The actual `evalDist` definition just runs the option transformer layer. -/
+/-- Associate a probability mass function to a computation, where the probability is the odds of
+getting a given output assuming all oracles responded uniformly at random.
+We use `OptionT PMF` rather than `PMF ∘ Option` as the generated monad instance is nicer. -/
 noncomputable def evalDist {α : Type} (oa : OracleComp spec α) : OptionT PMF α :=
-  oa.mapM failure (λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype _))
-
--- /-- Associate a probability mass function to a computation, where the probability is the odds of
--- getting a given output assuming all oracles responded uniformly at random.
--- NOTE: the rest can probably go in a `defs` file or something. -/
--- noncomputable def evalDist {α : Type} (oa : OracleComp spec α) : PMF (Option α) :=
---   evalDistT oa
+  oa.mapM (fail := failure)
+    (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
 
 @[simp]
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := rfl
@@ -72,7 +67,7 @@ lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := rf
 @[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by
-  apply mapM_bind
+  apply mapM_bind'
 
 lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
     evalDist ((query i t : OracleComp spec _) >>= ou) =
@@ -185,6 +180,9 @@ variable {oa : OracleComp spec α} {x : α} {p : α → Prop}
 
 @[simp] lemma tsum_probOutput_le_one : ∑' x : α, [= x | oa] ≤ 1 :=
   le_of_le_of_eq (le_add_self) (probFailure_add_tsum_probOutput oa)
+@[simp] lemma tsum_probOutput_ne_top : ∑' x : α, [= x | oa] ≠ ⊤ :=
+  ne_top_of_le_ne_top one_ne_top tsum_probOutput_le_one
+
 @[simp] lemma probEvent_le_one : [p | oa] ≤ 1 := by
   rw [probEvent_def, PMF.toOuterMeasure_apply]
   refine le_of_le_of_eq (ENNReal.tsum_le_tsum ?_) (oa.evalDist.tsum_coe)
@@ -691,7 +689,25 @@ lemma probFailure_bind_eq_sub_mul {ι : Type} {spec : OracleSpec ι} [spec.Finit
   rw [probFailure_bind_eq_tsum]
   rw [← tsum_probOutput_eq_sub]
   rw [← ENNReal.tsum_mul_right]
-  sorry
+  have hl : ∀ x, [=x|oa] * [⊥|ob x] ≤ [=x|oa] :=
+    λ x ↦ le_of_le_of_eq (mul_le_mul' le_rfl probFailure_le_one) (mul_one _)
+  calc [⊥ | oa] + ∑' x, [= x | oa] * [⊥ | ob x]
+    _ = 1 - (∑' x, [= x | oa]) + (∑' x, [= x | oa] * [⊥ | ob x]) := by
+      rw [probFailure_eq_sub_tsum]
+    _ = 1 - (∑' x, [= x | oa] - ∑' x, [= x | oa] * [⊥ | ob x]) := by
+      exact Eq.symm (AddLECancellable.tsub_tsub_assoc
+        (by simp) tsum_probOutput_le_one (ENNReal.tsum_le_tsum hl))
+    _ = 1 - ∑' x, ([= x | oa] - [= x | oa] * [⊥ | ob x]) := by
+      refine congr_arg (1 - ·) (ENNReal.eq_sub_of_add_eq ?_ ?_).symm
+      · refine ne_top_of_le_ne_top one_ne_top ?_
+        refine le_trans ?_ (@tsum_probOutput_le_one _ _ _ _ oa)
+        refine ENNReal.tsum_le_tsum λ x ↦ ?_
+        exact hl x
+      rw [← ENNReal.tsum_add]
+      refine tsum_congr λ x ↦ tsub_add_cancel_of_le (hl x)
+    _ = 1 - ∑' x : α, [= x | oa] * (1 - r) := by
+      refine congr_arg (1 - ·) (tsum_congr λ x ↦ ?_)
+      rw [ENNReal.mul_sub (λ _ _ ↦ probOutput_ne_top), mul_one, ← h x]
 
 end bind
 
@@ -716,7 +732,9 @@ lemma probOutput_liftM [Fintype α] (q : OracleQuery spec α) (u : α) :
   simp [probOutput, PMF.monad_map_eq_map, OptionT.lift]
   refine (tsum_eq_single u ?_).trans ?_
   · simp [not_imp_not]
-  · sorry
+  · simp only [↓reduceIte, inv_inj, Nat.cast_inj]
+    refine Finset.card_equiv (Equiv.refl α) ?_
+    simp
 
 lemma probOutput_query (u : spec.range i) :
     [= u | (query i t : OracleComp spec _)] = (Fintype.card (spec.range i) : ℝ≥0∞)⁻¹ := by
