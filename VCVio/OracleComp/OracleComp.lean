@@ -40,31 +40,36 @@ open OracleSpec
 /-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
 use for querying that oracle, implemented as a dependent pair.
 Implemented as a functor with the oracle output type as the constructor result. -/
-inductive OracleQuery {ι : Type u} (spec : OracleSpec ι) : Type u → Type u
+inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v,v} ι) : Type v → Type (max u (v + 1))
   | query (i : ι) : (t : spec.domain i) → OracleQuery spec (spec.range i)
 
 namespace OracleQuery
 
-def defaultOutput {ι : Type u} {spec : OracleSpec ι} [h : FiniteRange spec]
-    {α : Type u} : (q : OracleQuery spec α) → α | query i t => default
+section Defs
 
-def index {ι : Type u} {spec : OracleSpec ι} {α : Type u} :
-    (q : OracleQuery spec α) → ι | query i t => i
+variable {ι : Type u} {spec : OracleSpec ι} {α : Type v}
 
-def input {ι : Type u} {spec : OracleSpec ι} {α : Type u} :
-    (q : OracleQuery spec α) → spec.domain q.index | query i t => t
+def defaultOutput [h : spec.FiniteRange] : (q : OracleQuery spec α) → α
+  | query i t => default
 
-def rangeFintype {ι : Type u} {spec : OracleSpec ι} {α : Type u}
-    [spec.FiniteRange] : OracleQuery spec α → Fintype α | query i t => inferInstance
+def index : (q : OracleQuery spec α) → ι
+  | query i t => i
 
-def rangeInhabited {ι : Type u} {spec : OracleSpec ι} {α : Type u}
-    [spec.FiniteRange] : OracleQuery spec α → Inhabited α | query i t => inferInstance
+def input : (q : OracleQuery spec α) → spec.domain q.index
+  | query i t => t
 
-def rangeDecidableEq {ι : Type u} {spec : OracleSpec ι} {α : Type u}
-    [spec.DecidableEq] : OracleQuery spec α → DecidableEq α | query i t => inferInstance
+def rangeDecidableEq [spec.DecidableEq] : OracleQuery spec α → DecidableEq α
+  | query i t => inferInstance
 
-instance isEmpty {α : Type u} : IsEmpty (OracleQuery []ₒ α) where
-  false | query i t => i.elim
+def rangeFintype [spec.FiniteRange] : OracleQuery spec α → Fintype α
+  | query i t => inferInstance
+
+def rangeInhabited [spec.FiniteRange] : OracleQuery spec α → Inhabited α
+  | query i t => inferInstance
+
+instance isEmpty : IsEmpty (OracleQuery []ₒ α) where false | query i t => i.elim
+
+end Defs
 
 end OracleQuery
 
@@ -78,7 +83,8 @@ In practive computations in `OracleComp spec α` have have one of three forms:
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
 * `failure` which terminates the computation early
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-def OracleComp {ι : Type u} (spec : OracleSpec ι) : Type u → Type (u + 1) :=
+def OracleComp {ι : Type u} (spec : OracleSpec.{u,v,v} ι) :
+    Type v → Type (max (max u (v + 1)) (v + 1)) :=
   OptionT (FreeMonad (OracleQuery spec))
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/
@@ -86,7 +92,7 @@ abbrev ProbComp := OracleComp unifSpec
 
 namespace OracleComp
 
-variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
+variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
 export OracleQuery (query)
 
@@ -175,9 +181,9 @@ section construct
 /-- NOTE: if `inductionOn` could work with `Sort u` instead of `Prop` we wouldn't need this,
 not clear to me why lean doesn't like unifying the `Prop` and `Type` cases. -/
 @[elab_as_elim]
-protected def construct {C : OracleComp spec α → Type v}
+protected def construct {C : OracleComp spec α → Type*}
     (pure : (a : α) → C (pure a))
-    (query_bind : {β : Type u} → (q : OracleQuery spec β) →
+    (query_bind : {β : Type v} → (q : OracleQuery spec β) →
       (oa : β → OracleComp spec α) → ((u : β) → C (oa u)) → C (q >>= oa))
     (failure : C failure) (oa : OracleComp spec α) : C oa :=
   FreeMonad.construct (Option.rec failure pure) query_bind oa
@@ -186,7 +192,7 @@ protected def construct {C : OracleComp spec α → Type v}
 `query_bind` case. Can be useful with `spec.DecidableEq` and `spec.FiniteRange`.
 NOTE: may be better to just use this universally in all cases? avoids duplicating lemmas below. -/
 @[elab_as_elim]
-protected def construct' {C : OracleComp spec α → Type v}
+protected def construct' {C : OracleComp spec α → Type*}
     (pure : (a : α) → C (pure a))
     (query_bind : (i : ι) → (t : spec.domain i) →
       (oa : spec.range i → OracleComp spec α) →
@@ -194,9 +200,9 @@ protected def construct' {C : OracleComp spec α → Type v}
     (failure : C failure) (oa : OracleComp spec α) : C oa :=
     FreeMonad.construct (Option.rec failure pure) (λ (query i t) ↦ query_bind i t) oa
 
-variable {C : OracleComp spec α → Type*}
+variable {C : OracleComp spec α → Type w}
   (h_pure : (a : α) → C (pure a))
-  (h_query_bind : {β : Type u} → (q : OracleQuery spec β) →
+  (h_query_bind : {β : Type v} → (q : OracleQuery spec β) →
       (oa : β → OracleComp spec α) → ((u : β) → C (oa u)) → C (q >>= oa))
   (h_failure : C failure) (oa : OracleComp spec α)
 
@@ -233,14 +239,14 @@ section mapM
 preserving the pure and bind operations, giving a computation in the new monad.
 The function `qm` specifies how to replace the queries in the computation,
 and `fail` is used whenever `failure` is encountered. -/
-protected def mapM {m : Type u → Type v} [Monad m]
-    (fail : {α : Type u} → m α)
-    (qm : {α : Type u} → OracleQuery spec α → m α)
+protected def mapM {m : Type v → Type w} [Monad m]
+    (fail : {α : Type v} → m α)
+    (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) : m α :=
   OracleComp.construct pure (λ q _ r ↦ qm q >>= r) fail oa
 
-variable {m : Type u → Type w} [Monad m]
-  (fail : {α : Type u} → m α) (qm : {α : Type u} → OracleQuery spec α → m α)
+variable {m : Type v → Type w} [Monad m]
+  (fail : {α : Type v} → m α) (qm : {α : Type v} → OracleQuery spec α → m α)
 
 @[simp]
 lemma mapM_pure (x : α) :
@@ -274,7 +280,7 @@ end mapM
 
 /-- Total number of queries in a computation across all possible execution paths.
 Can be a helpful alternative to `sizeOf` when proving recursive calls terminate. -/
-def totalQueries [FiniteRange spec] {α : Type u} (oa : OracleComp spec α) : ℕ := by
+def totalQueries [FiniteRange spec] {α : Type v} (oa : OracleComp spec α) : ℕ := by
   induction oa using OracleComp.construct' with
   | query_bind i t _ n => exact 1 + ∑ x, n x
   | _ => exact 0
@@ -286,12 +292,12 @@ variable (i : ι) (t : spec.domain i) (u : spec.range i) (x : α)
   (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β)
 
 /-- Returns `true` for computations that don't query any oracles or fail, else `false` -/
-def isPure {α : Type u} : OracleComp spec α → Bool
+def isPure {α : Type v} : OracleComp spec α → Bool
   | FreeMonad.pure x => Option.isSome x
   | _ => false
 
 /-- Returns `true` for computations that fail else `false`. -/
-def isFailure {α : Type u} : OracleComp spec α → Bool
+def isFailure {α : Type v} : OracleComp spec α → Bool
   | FreeMonad.pure x => Option.isNone x
   | _ => false
 
@@ -400,7 +406,7 @@ alias ⟨_, pure_eq_bind⟩ := pure_eq_bind_iff
 /-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
 by assuming each query returns the `default` value given by the `Inhabited` instance.
 Returns `none` if the default path would lead to failure. -/
-def defaultResult {ι : Type} {spec : OracleSpec ι} {α : Type} [FiniteRange spec]
+def defaultResult {ι : Type u} {spec : OracleSpec ι} {α : Type v} [spec.FiniteRange]
     (oa : OracleComp spec α) : Option α :=
   oa.construct' some (λ _ _ _ r ↦ r default) none
 

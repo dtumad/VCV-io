@@ -3,14 +3,13 @@ open Lake DSL
 
 package VCVio where
   -- Settings applied to both builds and interactive editing
-  -- leanOptions := #[
-  --   ⟨`pp.unicode.fun, true⟩, -- pretty-prints `fun a ↦ b`
-  --   ⟨`pp.proofs.withType, false⟩,
-  --   ⟨`autoImplicit, false⟩,
-  --   ⟨`relaxedAutoImplicit, false⟩
-  -- ]
+  leanOptions := #[
+    ⟨`pp.unicode.fun, true⟩, -- pretty-prints `fun a ↦ b`
+    ⟨`pp.proofs.withType, false⟩,
+    ⟨`autoImplicit, false⟩,
+    ⟨`relaxedAutoImplicit, false⟩
+  ]
 
---require "leanprover-community" / "batteries" @ git "main"
 require "leanprover-community" / "mathlib" @ git "v4.15.0"
 
 @[default_target] lean_lib VCVio
