@@ -29,7 +29,7 @@ NOTE: `OracleComp` as currently defined doesn't allow specialized error messagin
 Changing this would just require adding a `String` to the `failure` constructor -/
 protected def runIO {α : Type} (oa : ProbComp α) : IO α :=
   oa.mapM (fail := throw (IO.userError "Computation failed during execution"))
-    (qm := λ (query i _) ↦ IO.rand 0 i) -- Queries become random selection
+    (query_map := λ (query i _) ↦ IO.rand 0 i) -- Queries become random selection
 
 /-- Automatic lifting of probabalistic computations into `IO`. -/
 instance : MonadLift ProbComp IO where

@@ -147,6 +147,24 @@ end mapM
 
 end FreeMonad
 
+section AlternativeMonad
+
+class AlternativeMonad (m : Type u → Type v) extends Monad m, Alternative m where
+  failure_bind {α β : Type u} (g : α → m β) : failure >>= g = failure
+
+variable (m : Type u → Type v) [AlternativeMonad m] {α β : Type u}
+
+@[simp] lemma failure_bind (g : α → m β) : (failure : m α) >>= g = failure :=
+  AlternativeMonad.failure_bind g
+
+@[simp] lemma map_failure [LawfulMonad m] (g : α → β) : g <$> (failure : m α) = failure := by
+  rw [map_eq_bind_pure_comp, failure_bind]
+
+@[simp] lemma failure_seq [LawfulMonad m] (ob : m α) : (failure : m (α → β)) <*> ob = failure := by
+  rw [seq_eq_bind_map, failure_bind]
+
+end AlternativeMonad
+
 section PMF
 
 variable {α β : Type u}
@@ -165,5 +183,18 @@ section OptionT
 @[simp]
 lemma OptionT.run_failure {α : Type u} {m : Type u → Type v} [Monad m] :
     (failure : OptionT m α).run = pure none := rfl
+
+example : Alternative Option := by exact instAlternativeOption
+
+instance : AlternativeMonad Option where
+  failure_bind _ := rfl
+  __ := instAlternativeOption
+  __ := instMonadOption
+
+instance (m : Type u → Type v) [Monad m] [LawfulMonad m] : AlternativeMonad (OptionT m) where
+  failure_bind {α β} g := OptionT.ext_iff.mpr <|
+    by simp only [OptionT.run_bind, OptionT.run_failure, pure_bind]
+  __ := OptionT.instAlternative
+  __ := OptionT.instMonad
 
 end OptionT
