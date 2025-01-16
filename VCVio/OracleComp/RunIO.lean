@@ -35,16 +35,4 @@ protected def runIO {α : Type} (oa : ProbComp α) : IO α :=
 instance : MonadLift ProbComp IO where
   monadLift := OracleComp.runIO
 
-private def lawLargeNumsTest (trials : ℕ) (die : ℕ) : IO Unit := do
-  let n : ℕ := trials * die
-  let xs ← replicateTR n $[0..die - 1]
-  IO.println ("Rolling " ++ toString n ++ " " ++ toString die ++ "-sided dice:")
-  for i in List.range die do
-    IO.println <| "▸Num " ++ toString (i + 1) ++ "s: " ++ toString (xs.count i)
-
-#eval (do
-  let trials : ℕ ← (100 + ·) <$> $[0..100]
-  let die : ℕ ← (4 + ·) <$> $[0..4]
-  lawLargeNumsTest trials die : IO Unit)
-
 end OracleComp

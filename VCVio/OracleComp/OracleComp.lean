@@ -5,8 +5,6 @@ Authors: Devon Tuma
 -/
 import ToMathlib.FreeMonad
 import VCVio.OracleComp.OracleSpec
-import Mathlib.Algebra.BigOperators.Group.Finset
-import Mathlib.NumberTheory.Cyclotomic.PrimitiveRoots
 
 /-!
 # Computations with Oracle Access
@@ -212,7 +210,9 @@ protected def induction {C : OracleComp spec α → Prop}
 section construct
 
 /-- NOTE: if `inductionOn` could work with `Sort u` instead of `Prop` we wouldn't need this,
-not clear to me why lean doesn't like unifying the `Prop` and `Type` cases. -/
+not clear to me why lean doesn't like unifying the `Prop` and `Type` cases.
+
+If the output type of `C` is a monad then `OracleComp.mapM` is usually preferable. -/
 @[elab_as_elim]
 protected def construct {C : OracleComp spec α → Type*}
     (pure : (a : α) → C (pure a))
@@ -347,21 +347,16 @@ variable {m : Type v → Type w} [Monad m]
 @[simp] lemma mapM_failure : (failure : OracleComp spec α).mapM fail qm = fail := rfl
 
 @[simp]
-lemma mapM_liftM [LawfulMonad m] (q : OracleQuery spec α) :
+lemma mapM_query [LawfulMonad m] (q : OracleQuery spec α) :
     (q : OracleComp spec α).mapM fail qm = qm q :=
   by simp only [OracleComp.mapM, construct_query, bind_pure]
-
-lemma mapM_query [LawfulMonad m] (i : ι) (t : spec.domain i) :
-    (query i t : OracleComp spec _).mapM fail qm = qm (query i t) := by
-  rw [mapM_liftM]
 
 @[simp]
 lemma mapM_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
     ((q : OracleComp spec α) >>= ob).mapM fail qm =
       (do let x ← qm q; (ob x).mapM fail qm) := rfl
 
-lemma mapM_bind [LawfulMonad m]
-    (oa : OracleComp spec α) (ob : α → OracleComp spec β)
+lemma mapM_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleComp spec β)
     (hfail : ∀ f : α → m β, fail >>= f = fail) :
     (oa >>= ob).mapM fail qm =
       oa.mapM fail qm >>= λ x ↦ (ob x).mapM fail qm := by
@@ -370,7 +365,7 @@ lemma mapM_bind [LawfulMonad m]
   | query_bind i t oa h => simp [h]
   | failure => simp [hfail]
 
-@[simp]
+@[simp] -- NOTE this has better automation but seems that its harder later
 lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
     (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
@@ -381,6 +376,26 @@ lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
   | query_bind i t oa h => simp [h]
   | failure => simp
 
+lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
+    (hfail : ∀ f : α → β, f <$> fail = fail) :
+    (f <$> oa).mapM fail qm = f <$> oa.mapM fail qm := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | query_bind i t oa h => simp [h]
+  | failure => simp [hfail]
+
+lemma mapM_seq [LawfulMonad m] (og : OracleComp spec (α → β)) (oa : OracleComp spec α)
+    (hfail : ∀ f : (α → β) → m β, fail >>= f = fail)
+    (hfail' : ∀ f : α → β, f <$> fail = fail) :
+    (og <*> oa).mapM fail qm = og.mapM fail qm <*> oa.mapM fail qm := by
+  rw [seq_eq_bind, seq_eq_bind]
+  exact (mapM_bind _ _ _ _ hfail).trans
+    (congr_arg (_ >>= ·) (funext λ f ↦ (mapM_map _ _ _ _ hfail')))
+
+@[simp]
+lemma mapM_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
+    (ite p oa oa').mapM fail qm = ite p (oa.mapM fail qm) (oa'.mapM fail qm) := by
+  split_ifs <;> rfl
 
 end mapM
 

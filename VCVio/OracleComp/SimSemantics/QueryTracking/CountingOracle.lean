@@ -34,7 +34,7 @@ protected lemma apply_eq (q : OracleQuery spec α) :
       | query i t => (do modify λ qc ↦ update qc i (qc i + 1); query i t) := rfl
 
 instance : StateIndep (countingOracle (spec := spec)) where
-  state_indep | _, query _ _, _ => rfl
+  state_indep | query _ _, _ => rfl
 
 protected lemma simulate'_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
     simulate' countingOracle qc oa = oa :=

@@ -25,63 +25,59 @@ variable {ι ιₜ : Type}
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
--- def SimOracle {ι ιₜ : Type} (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) :=
---   (i : ι) → spec.domain i → σ → OracleComp specₜ (spec.range i × σ)
-
--- def SimOracle {ι ιₜ : Type} (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ)
---     (σ : Type) := (i : ι) → spec.domain i → StateT σ (OracleComp specₜ) (spec.range i)
-
 structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) where
   impl : {α : Type} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
--- notation : 55 spec " →[" σ "]ₛₒₜ " specₜ => SimOracleT spec specₜ σ
-
-
 variable {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {α β σ : Type}
 
--- instance SimOracle.Inhabited [spec.FiniteRange] :
---   Inhabited (spec →[σ]ₛₒ specₜ) := ⟨λ _ _ s ↦ pure ⟨default, s⟩⟩
-
 instance SimOracle.Inhabited [spec.FiniteRange] :
-  Inhabited (spec →[σ]ₛₒ specₜ) := ⟨{impl q := pure q.defaultOutput}⟩
+  Inhabited (SimOracle spec specₜ σ) := ⟨{impl q := pure q.defaultOutput}⟩
 
 namespace OracleComp
 
 section simulateT
 
--- def simulateT' {α : Type} (so : spec →[σ]ₛₒ specₜ)
---     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α := by
---   induction oa using OracleComp.construct' with
---   | pure x => exact pure x
---   | query_bind i t oa r => exact so i t >>= r
---   | failure => exact failure
-
 def simulateT {α : Type} (so : SimOracle spec specₜ σ)
     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α :=
   oa.mapM (fail := failure) (query_map := so.impl)
 
-variable {α : Type} (so : spec →[σ]ₛₒ specₜ)
-    (oa : OracleComp spec α)
-
--- @[simp]
--- lemma simulateT_query_bind :
---   (q : OracleQuery spec α) → (ob : α → OracleComp spec β) →
---   simulateT so ((q : OracleComp spec α) >>= ob) =
---     so q >>= simulateT so ∘ ob
---   | query i t, _ => by
---     simp only [simulateT, OracleComp.construct']
---     rw [construct_query_bind]
---     simp
---     simp [simulateT, OracleComp.construct',
---       query_bind_eq_roll, OptionT.mk]
---     rw [FreeMonad.construct_roll]
+variable {α : Type} (so : SimOracle spec specₜ σ)
 
 @[simp]
-lemma simulateT'_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
-  simulateT so ((q : OracleComp spec α) >>= ob) =
-    so.impl q >>= simulateT so ∘ ob := rfl
+lemma simulateT_pure (x : α) : simulateT so (pure x) = pure x := mapM_pure _ _ x
+
+@[simp]
+lemma simulateT_failure : simulateT so (failure : OracleComp spec α) = failure := rfl
+
+@[simp]
+lemma simulateT_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
+    simulateT so ((q : OracleComp spec α) >>= ob) = so.impl q >>= simulateT so ∘ ob := rfl
+
+@[simp]
+lemma simulateT_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    simulateT so (oa >>= ob) = simulateT so oa >>= (simulateT so ∘ ob) :=
+  mapM_bind _ _ oa ob (λ _ ↦ rfl)
+
+@[simp]
+lemma simulateT_query (q : OracleQuery spec α) : simulateT so q = so.impl q :=
+  mapM_query _ _ q
+
+@[simp]
+lemma simulateT_map (oa : OracleComp spec α) (f : α → β) :
+    simulateT so (f <$> oa) = f <$> simulateT so oa :=
+  mapM_map _ _ oa f (λ _ ↦ rfl)
+
+@[simp]
+lemma simulateT_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
+    simulateT so (og <*> oa) = simulateT so og <*> simulateT so oa :=
+  mapM_seq _ _ og oa (λ _ ↦ rfl) (λ _ ↦ rfl)
+
+@[simp]
+lemma simulateT_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
+    simulateT so (ite p oa oa') = ite p (simulateT so oa) (simulateT so oa') := by
+  split_ifs <;> rfl
 
 end simulateT
 
@@ -118,28 +114,22 @@ lemma simulate'_failure (s : σ) : simulate' so s (failure : OracleComp spec α)
 @[simp low]
 lemma simulate_bind (s : σ)  (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (simulate so s (oa >>= ob) = do let z ← simulate so s oa; simulate so z.2 (ob z.1)) := by
-  revert s
-  sorry
-  -- induction oa using OracleComp.inductionOn with
-  -- | pure x => exact (λ _ ↦ rfl)
-  -- | query_bind i t oa hoa =>
-  --     simp only [simulate, OracleComp.bind'_eq_bind, pure_bind, hoa, bind_assoc, implies_true]
-  -- | failure => simp [simulate]
+  simp [simulate, simulateT_bind, StateT.run_bind]
 
 @[simp low]
 lemma simulate'_bind (s : σ) (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (simulate' so s (oa >>= ob) = do let z ← simulate so s oa; simulate' so z.2 (ob z.1)) := by
-  sorry --simp only [simulate', simulate_bind, map_bind]
+  simp [simulate', simulate]
 
 @[simp low]
 lemma simulate_query (s : σ) (q : OracleQuery spec α) :
     simulate so s q = so.impl q s := by
-  sorry --simp_rw [query_def, simulate, Prod.mk.eta, bind_pure]
+  simp [simulate', simulate, StateT.run]
 
 @[simp low]
 lemma simulate'_query (s : σ) (q : OracleQuery spec α) :
     simulate' so s q = fst <$> so.impl q s := by
-  sorry --rw [simulate', simulate_query]
+  simp [simulate', StateT.run]
 
 lemma simulate_query_bind (s : σ) (q : OracleQuery spec β)
     (oa : β → OracleComp spec α) : simulate so s (q >>= oa) =
@@ -154,13 +144,12 @@ lemma simulate'_query_bind (s : σ) (q : OracleQuery spec β)
 @[simp low]
 lemma simulate_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate so s (f <$> oa) = (map f id) <$> simulate so s oa := by
-  simp [map_eq_bind_pure_comp, Function.comp, Prod.map]
-  rfl
+  simp [simulate, map]; rfl
 
 @[simp low]
 lemma simulate'_map (s : σ) (oa : OracleComp spec α) (f : α → β) :
     simulate' so s (f <$> oa) = f <$> simulate' so s oa := by
-  sorry --simp [simulate', map_eq_bind_pure_comp, Function.comp, Prod.map]
+  simp [simulate']
 
 @[simp low]
 lemma simulate_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
@@ -172,7 +161,7 @@ lemma simulate_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α 
 lemma simulate'_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
     simulate' so s (og <*> oa) = simulate so s og >>= λ z ↦
       (z.1 <$> simulate' so z.2 oa) := by
-  sorry --simp [simulate', map_bind, map_eq_bind_pure_comp]
+  simp [simulate']; rfl
 
 end basic
 
@@ -200,9 +189,8 @@ lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ
 the first output of a simulation has support at most that of the original computation -/
 lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
     (simulate' so s oa).support ⊆ oa.support := by
-  sorry
-  -- rw [simulate', support_map, Set.image_subset_iff]
-  -- apply support_simulate_subset_preimage_support
+  rw [simulate', StateT.run', support_map, Set.image_subset_iff]
+  apply support_simulate_subset_preimage_support
 
 lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s : σ} {x : α}
     (s' : σ) (h : (x, s') ∈ (simulate so s oa).support) : x ∈ (simulate' so s oa).support := by
@@ -216,7 +204,7 @@ section stateIndep
 
 variable {σ : Type} (so : spec →[σ]ₛₒ spec)
 
-lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, fst <$> so.impl q s = q)
+lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q).run' s = q)
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa := by
   revert s
   induction oa using OracleComp.inductionOn with
@@ -226,17 +214,16 @@ lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, fst <$> so.impl
       intro s
       simp [hoa]
       rw [← h (spec.range i) (query i t) s]
-      simp only [bind_map_left]
+      simp only [bind_map_left, StateT.run']
 
 -- TODO: this for various oracles?
 class StateIndep (so : spec →[σ]ₛₒ spec) where
-    state_indep : ∀ α (q : OracleQuery spec α) s, fst <$> so.impl q s = q
+    state_indep : ∀ {α} (q : OracleQuery spec α) s, (so.impl q).run' s = q
 
 @[simp]
 lemma simulate'_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [h : StateIndep so]
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
-  simulate'_eq_self so (λ α (query i t) s ↦
-    by simp [h.state_indep _ (query i t)]) s oa
+  simulate'_eq_self so (λ _ (query i _) _ ↦ h.state_indep _ _) s oa
 
 @[simp]
 lemma fst_map_simulate_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [StateIndep so]
@@ -279,9 +266,9 @@ variable {σ : Type} [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ)
 adding back any state at the end of the computation. -/
 lemma simulate_eq_map_simulate'_of_subsingleton (oa : OracleComp spec α) (s s' : σ) :
     simulate so s oa = (·, s') <$> simulate' so s oa := by
-  simp only [simulate', map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
-  convert symm (bind_pure (simulate so s oa))
-  sorry
+  have : (λ x : α × σ ↦ (x.1, s')) = id :=
+    funext λ (x, s) ↦ Prod.eq_iff_fst_eq_snd_eq.2 ⟨rfl, Subsingleton.elim _ _⟩
+  simp [simulate', simulate, this]
 
 lemma simulate_eq_map_simulate' [Inhabited σ] (oa : OracleComp spec α) (s : σ) :
     simulate so s oa = (·, default) <$> simulate' so s oa :=

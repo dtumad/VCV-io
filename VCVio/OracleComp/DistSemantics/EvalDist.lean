@@ -49,11 +49,15 @@ noncomputable def evalDist {α : Type} (oa : OracleComp spec α) : OptionT PMF �
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := rfl
 
 @[simp]
-lemma evalDist_liftM [Nonempty α] (q : OracleQuery spec α) :
-    evalDist (q : OracleComp spec α) =
-      have : Fintype α := q.rangeFintype
-      OptionT.lift (PMF.uniformOfFintype α) := by
-  cases q; rw [evalDist, mapM_liftM]
+lemma evalDist_liftM [Nonempty α] [Fintype α] (q : OracleQuery spec α) :
+    evalDist (q : OracleComp spec α) = OptionT.lift (PMF.uniformOfFintype α) := by
+  cases q; rw [evalDist, mapM_query]
+  simp
+  refine congr_arg OptionT.lift (PMF.ext λ x ↦ ?_)
+  simp
+  refine congr_arg Finset.card ?_
+  ext x
+  simp
 
 @[simp]
 lemma evalDist_query (i : ι) (t : spec.domain i) :
@@ -733,8 +737,6 @@ lemma probOutput_liftM [Fintype α] (q : OracleQuery spec α) (u : α) :
   refine (tsum_eq_single u ?_).trans ?_
   · simp [not_imp_not]
   · simp only [↓reduceIte, inv_inj, Nat.cast_inj]
-    refine Finset.card_equiv (Equiv.refl α) ?_
-    simp
 
 lemma probOutput_query (u : spec.range i) :
     [= u | (query i t : OracleComp spec _)] = (Fintype.card (spec.range i) : ℝ≥0∞)⁻¹ := by

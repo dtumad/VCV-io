@@ -10,23 +10,25 @@ package VCVio where
     ⟨`relaxedAutoImplicit, false⟩
   ]
 
-require "leanprover-community" / "mathlib" @ git "v4.15.0"
+require "leanprover-community" / "mathlib" @ git "v4.16.0-rc2"
 
+/-- Main library. -/
 @[default_target] lean_lib VCVio
-
-/-- Seperate section of the project for things that should be ported. -/
-lean_lib ToMathlib
-
 /-- Example constructions of cryptographic primitives. -/
 @[default_target] lean_lib Examples
 
+/-- Seperate section of the project for things that should be ported. -/
+lean_lib ToMathlib
 /-- Access to external C++ implementations of crypto primitives. -/
 lean_lib LibSodium
+
+/-- Main function for testing -/
+lean_exe test where root := `Test
 
 -- /-- Runnable implementations of specific cryptographic algorithms.
 -- Set `precompileModules` in order to allow execution of external code. -/
 -- lean_lib Implementations where
---   precompileModules := true
+--    precompileModules := true
 
 -- Compiling extenal C++ files
 target libsodium.o pkg : System.FilePath := do
@@ -38,6 +40,3 @@ extern_lib libleanffi pkg := do
   let ffiO ← libsodium.o.fetch
   let name := nameToStaticLib "leanlibsodium"
   buildStaticLib (pkg.nativeLibDir / name) #[ffiO]
-
--- /-- Main function for testing -/
-lean_exe test where root := `Test
