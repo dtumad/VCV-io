@@ -121,10 +121,12 @@ lemma liftComp_def (oa : OracleComp spec α) :
 lemma liftComp_pure (x : α) : liftComp (pure x : OracleComp spec α) superSpec = pure x :=
   simulate'_pure _ () x
 
+@[simp]
 lemma liftComp_query (i : ι) (t : spec.domain i) :
     liftComp (query i t : OracleComp spec _) superSpec = h.monadLift (query i t) :=
   simulate'_query _ () _
 
+@[simp]
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     liftComp (oa >>= ob) superSpec =
       liftComp oa superSpec >>= λ x ↦ liftComp (ob x) superSpec := by
@@ -132,6 +134,16 @@ lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
 
 @[simp]
 lemma liftComp_failure : liftComp (failure : OracleComp spec α) superSpec = failure := rfl
+
+@[simp]
+lemma liftComp_map (oa : OracleComp spec α) (f : α → β) :
+    liftComp (f <$> oa) superSpec = f <$> liftComp oa superSpec := by
+  simp [liftComp]
+
+@[simp]
+lemma liftComp_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
+    liftComp (og <*> oa) superSpec = liftComp og superSpec <*> liftComp oa superSpec := by
+  simp [liftComp, seq_eq_bind]
 
 /-- Lifting a computation to a different set of oracles doesn't change the output distribution,
 since `evalDist` assumes uniformly random queries. -/
