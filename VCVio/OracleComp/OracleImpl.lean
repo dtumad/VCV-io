@@ -26,7 +26,7 @@ The types of primitives can extend this to ensure that any oracles used in a pro
 must have some canonical implementation. -/
 structure OracleImpl {ι : Type} (spec : OracleSpec ι) (σ : Type) where
   /-- Simulation oracle giving an implementation of the oracles in `spec`. -/
-  baseSimOracle : spec →[σ]ₛₒ unifSpec
+  baseSimOracle : SimOracle spec unifSpec σ
   init_state : σ
 
 namespace OracleImpl

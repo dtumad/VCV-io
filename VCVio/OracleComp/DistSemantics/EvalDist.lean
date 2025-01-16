@@ -521,11 +521,11 @@ lemma probEvent_eq_sum_finSupport_ite [spec.DecidableEq] [DecidablePred p] [Deci
 
 end sums
 
-lemma probOutput_congr {x y : α} {oa oa' : OracleComp spec α}
+lemma probOutput_congr {x y : α} {oa : OracleComp spec α} {oa' : OracleComp spec' α}
     (h1 : x = y) (h2 : evalDist oa = evalDist oa') : [= x | oa] = [= y | oa'] := by
   simp_rw [probOutput, h1, h2]
 
-lemma probEvent_congr' {p q : α → Prop} {oa oa' : OracleComp spec α}
+lemma probEvent_congr' {p q : α → Prop} {oa : OracleComp spec α} {oa' : OracleComp spec' α}
     (h1 : ∀ x, x ∈ oa.support → x ∈ oa'.support → (p x ↔ q x))
     (h2 : evalDist oa = evalDist oa') : [p | oa] = [q | oa'] := by
   have : DecidablePred q := Classical.decPred q

@@ -22,8 +22,6 @@ open OracleSpec Vector
 
 namespace OracleComp
 
-#check probFailure_bind_of_const
-
 open ENNReal
 
 @[simp]

@@ -83,12 +83,14 @@ end simulateT
 
 /-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
 answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
+@[reducible]
 def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) :
     (oa : OracleComp spec α) → OracleComp specₜ (α × σ) := λ oa ↦
   (simulateT so oa).run s
 
 /-- Version of `simulate` that tosses out the oracle state at the end.
 TODO: should this be an alias/notation? -/
+@[reducible]
 def simulate' (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) : OracleComp specₜ α :=
   (simulateT so oa).run' s
 
@@ -161,7 +163,7 @@ lemma simulate_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α 
 lemma simulate'_seq (s : σ) (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
     simulate' so s (og <*> oa) = simulate so s og >>= λ z ↦
       (z.1 <$> simulate' so z.2 oa) := by
-  simp [simulate']; rfl
+  simp [simulate']
 
 end basic
 
@@ -209,12 +211,14 @@ lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q).run
   revert s
   induction oa using OracleComp.inductionOn with
   | pure x => simp
-  | failure => simp
+  | failure => intro s; rw [simulate'_failure]
   | query_bind i t oa hoa =>
       intro s
+      simp at hoa
       simp [hoa]
       rw [← h (spec.range i) (query i t) s]
       simp only [bind_map_left, StateT.run']
+      rfl
 
 -- TODO: this for various oracles?
 class StateIndep (so : spec →[σ]ₛₒ spec) where
@@ -254,7 +258,7 @@ lemma evalDist_simulate'_eq_evalDist [spec.FiniteRange]
   | query_bind i t oa hoa => exact (λ s ↦ by
       simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp_def, hoa,
         evalDist_query, ← h i t s, evalDist_map, PMF.bind_map, hoa, bind_map_left])
-  | failure => simp
+  | failure => intro s; rw [simulate'_failure]
 
 end idem
 

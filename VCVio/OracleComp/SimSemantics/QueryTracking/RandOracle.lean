@@ -25,7 +25,7 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ i, SelectableT
 /-- Random oracles as a composition of a uniform oracle with a caching oracle.
 NOTE: we could take the result of `apply_eq` as the maindefinition and give this one as a lemma. -/
 def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [spec.DecidableEq]
-    [∀ i, SelectableType (spec.range i)] : spec →[QueryCache spec]ₛₒ unifSpec :=
+    [∀ i, SelectableType (spec.range i)] : SimOracle spec unifSpec (QueryCache spec) :=
   (unifOracle ∘ₛₒ cachingOracle).maskState (Equiv.prodPUnit (QueryCache spec))
 
 namespace randOracle

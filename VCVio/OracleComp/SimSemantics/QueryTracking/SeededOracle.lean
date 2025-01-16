@@ -151,9 +151,9 @@ end QuerySeed
 
 end OracleSpec
 
-def seededOracle [DecidableEq ι] : spec →[QuerySeed spec]ₛₒ spec where impl
-  | query i t => do match (← get) i with
-    | u :: us => set ((← get).update i us); return u
+def seededOracle [DecidableEq ι] : SimOracle spec spec (QuerySeed spec) where
+  impl | query i t => do match (← get) i with
+    | u :: us => modify (QuerySeed.update · i us); return u
     | [] => set (∅ : QuerySeed spec); query i t
 
 namespace seededOracle
