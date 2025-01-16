@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import Mathlib.Data.Finset.Card
-import Mathlib.Topology.Instances.ENNReal
 import Mathlib.Data.Vector.Defs
 import Mathlib.Probability.Distributions.Uniform
 

@@ -106,7 +106,7 @@ def IND_CPA_Exp [unifSpec ⊂ₒ spec]
   main := do
     let (pk, _) ← encAlg.keygen
     let (m₁, m₂) ← adv.run pk
-    let b : Bool ← coin
+    let b : Bool ←$ᵗ Bool
     let m := if b then m₁ else m₂
     let c ← encAlg.encrypt m pk
     let b' ← adv.distinguish pk (m₁, m₂) c

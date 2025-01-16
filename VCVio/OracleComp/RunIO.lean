@@ -24,36 +24,15 @@ open OracleSpec
 
 namespace OracleComp
 
-/-- The type of computation that `runIO` will produce. -/
-example : IO ℕ := do
-  let x ← IO.rand 2 10
-  let y ← IO.rand 100 200
-  return (x * y)
-
 /-- Represent an `OracleComp` via the `IO` monad, allowing actual execution.
-Note that `OracleComp` as currently defined doesn't allow error messaging. -/
-protected def runIO {α : Type} : ProbComp α → IO α
-  | pure' α x => return x
-  | queryBind' i _ α oa => do let u ← IO.rand 0 i; (oa u).runIO
-  | failure' _ => throw (IO.userError "Computation failed during execution")
+NOTE: `OracleComp` as currently defined doesn't allow specialized error messaging.
+Changing this would just require adding a `String` to the `failure` constructor -/
+protected def runIO {α : Type} (oa : ProbComp α) : IO α :=
+  oa.mapM (fail := throw (IO.userError "Computation failed during execution"))
+    (query_map := λ (query i _) ↦ IO.rand 0 i) -- Queries become random selection
 
-private def lawLargeNumsTest (trials : ℕ) : IO Unit := do
-  let xs ← (replicate $[0..4] trials).runIO
-  IO.println ("Num 0s: " ++ toString (xs.1.1.count 0))
-  IO.println ("Num 1s: " ++ toString (xs.1.1.count 1))
-  IO.println ("Num 2s: " ++ toString (xs.1.1.count 2))
-  IO.println ("Num 3s: " ++ toString (xs.1.1.count 3))
-  IO.println ("Num 4s: " ++ toString (xs.1.1.count 4))
-
--- private def testOTP {n : ℕ} (m : Vector Bool n) : IO Unit := do
---   IO.println ("Initial Message: " ++ toString m.toList)
---   let k ← ((oneTimePad n).exec <| (oneTimePad n).keygen ()).runIO
---   IO.println ("Key: " ++ toString k.toList)
---   let σ ← ((oneTimePad n).exec <| (oneTimePad n).encrypt m k).runIO
---   IO.println ("Ciphertext: " ++ toString σ.toList)
---   let m' ← ((oneTimePad n).exec <| (oneTimePad n).decrypt σ k).runIO
---   IO.println ("Final Message: " ++ toString m'.toList)
-
--- #eval testOTP (Vector.replicate 100 true)
+/-- Automatic lifting of probabalistic computations into `IO`. -/
+instance : MonadLift ProbComp IO where
+  monadLift := OracleComp.runIO
 
 end OracleComp

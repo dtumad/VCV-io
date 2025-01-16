@@ -41,11 +41,15 @@ protected lemma ext (seed₁ seed₂ : QuerySeed spec) (h : ∀ i, seed₁ i = s
 
 @[simp] instance : EmptyCollection (QuerySeed spec) := ⟨λ _ ↦ []⟩
 
+def update [DecidableEq ι] (seed : QuerySeed spec) (i : ι)
+    (xs : List (spec.range i)) : QuerySeed spec :=
+  Function.update seed i xs
+
 section addValues
 
 /-- Add a list of values to the query seed.-/
-def addValues [DecidableEq ι] {i : ι} (seed : QuerySeed spec)
-    (us : List (spec.range i)) : QuerySeed spec :=
+def addValues [DecidableEq ι] {i : ι}
+    (us : List (spec.range i)) (seed : QuerySeed spec) : QuerySeed spec :=
   Function.update seed i (seed i ++ us)
 
 variable [DecidableEq ι] {i : ι} (seed : QuerySeed spec) (us : List (spec.range i))
@@ -116,6 +120,15 @@ lemma eq_takeAtIndex_length_iff (seed seed' : QuerySeed spec) (i : ι) :
 
 end takeAtIndex
 
+-- def nextSeed [DecidableEq ι] {α : Type} :
+--     (q : OracleQuery spec α) → StateT (QuerySeed spec) (OracleComp spec) α
+--   | query i t => do
+--     let seed ← get
+--     return List.get?
+--     match (← get) i with
+--       | u :: us => return (u, Function.update seed i us)
+--       | [] => failure
+
 lemma eq_addValues_iff [DecidableEq ι] (seed seed' : QuerySeed spec)
     {i : ι} (xs : List (spec.range i)) :
     seed = seed'.addValues xs ↔ seed' = seed.takeAtIndex i (seed' i).length ∧
@@ -138,10 +151,10 @@ end QuerySeed
 
 end OracleSpec
 
-def seededOracle [DecidableEq ι] : spec →[QuerySeed spec]ₛₒ spec :=
-  λ i t seed ↦ match seed i with
-    | u :: us => return (u, Function.update seed i us)
-    | [] => (·, ∅) <$> query i t
+def seededOracle [DecidableEq ι] : SimOracle spec spec (QuerySeed spec) where
+  impl | query i t => do match (← get) i with
+    | u :: us => modify (QuerySeed.update · i us); return u
+    | [] => set (∅ : QuerySeed spec); query i t
 
 namespace seededOracle
 

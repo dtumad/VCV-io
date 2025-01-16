@@ -53,20 +53,21 @@ lemma isQueryBound_pure (a : α) (qb : ι → ℕ) :
 
 @[simp]
 lemma isQueryBound_query_iff (i : ι) (t : spec.domain i) (qb : ι → ℕ) :
-    IsQueryBound (query i t) qb ↔ qb i ≠ 0 := by
+    IsQueryBound (query i t : OracleComp spec _) qb ↔ qb i ≠ 0 := by
   simp [isQueryBound_def, Nat.lt_iff_add_one_le, zero_add, ← Nat.pos_iff_ne_zero]
-  refine ⟨λ h ↦ le_of_eq_of_le (symm <| Function.update_same i 1 0) (h i), λ h j ↦ ?_⟩
-  by_cases hij : j = i
-  · induction hij
-    simpa using h
-  · simp [Function.update_noteq hij]
+  sorry
+  -- refine ⟨λ h ↦ le_of_eq_of_le (symm <| Function.update_self i 1 0) (h i), λ h j ↦ ?_⟩
+  -- by_cases hij : j = i
+  -- · induction hij
+  --   simpa using h
+  -- · simp [Function.update_noteq hij]
 
 lemma isQueryBound_query (i : ι) (t : spec.domain i) {qb : ι → ℕ} (hqb : qb i ≠ 0) :
-    IsQueryBound (query i t) qb :=
+    IsQueryBound (query i t : OracleComp spec _) qb :=
   (isQueryBound_query_iff i t qb).2 hqb
 
 lemma update_isQueryBound_query (i : ι) (t : spec.domain i) (f : ι → ℕ) (n : ℕ) :
-    IsQueryBound (query i t) (Function.update f i (n + 1)) :=
+    IsQueryBound (query i t : OracleComp spec _) (Function.update f i (n + 1)) :=
   isQueryBound_query i t (by simp)
 
 lemma isQueryBound_bind {oa : OracleComp spec α} {ob : α → OracleComp spec β} {qb₁ qb₂ : ι → ℕ}
@@ -130,135 +131,147 @@ lemma isQueryBound_map_iff (oa : OracleComp spec α) (f : α → β) (qb : ι �
 
 section minimalQueryBound
 
-/-- The minimal query bound on a computation, assuming that at each step we count the execution
-path that results in the most possible queries, individually for each oracle index.
-Minimal in the sense that any other query bound will be point-wise smaller than this query bound.
-In general this count is not an actual possible result of simulating with `countingOracle`. -/
-def minimalQueryBound : {α : Type} → OracleComp spec α → (ι → ℕ)
-  | _, pure' _ _ => 0
-  | _, queryBind' i _ _ oa => λ j ↦ (if j = i then 1 else 0) +
-      (Finset.max' (Finset.univ.image <| λ u ↦ minimalQueryBound (oa u) j)
-        (Finset.image_nonempty.2 Finset.univ_nonempty))
-  | _, failure' _ => 0
+-- /-- The minimal query bound on a computation, assuming that at each step we count the execution
+-- path that results in the most possible queries, individually for each oracle index.
+-- Minimal in the sense that any other query bound will be point-wise smaller than this query bound.
+-- In general this count is not an actual possible result of simulating with `countingOracle`. -/
+-- def minimalQueryBound [spec.FiniteRange] [DecidableEq ι] [spec.DecidableEq]
+--   {α : Type} (oa : OracleComp spec α) : (ι → ℕ) := by
+--   induction oa using OracleComp.construct with
+--   | pure x => exact 0
+--   | query_bind i t oa r => {
+--     refine λ j ↦ (if j = i then 1 else 0) +
+--       (Finset.max' (Finset.univ.image <| λ u ↦ r u)
+--         (Finset.image_nonempty.2 Finset.univ_nonempty))
+--   }
+--   | failure => exact 0
 
-@[simp]
-lemma minimalQueryBound_pure (x : α) :
-    minimalQueryBound (pure x : OracleComp spec α) = 0 := rfl
+--   -- | _, pure' _ _ => 0
+--   -- | _, queryBind' i _ _ oa => λ j ↦ (if j = i then 1 else 0) +
+--   --     (Finset.max' (Finset.univ.image <| λ u ↦ minimalQueryBound (oa u) j)
+--   --       (Finset.image_nonempty.2 Finset.univ_nonempty))
+--   -- | _, failure' _ => 0
 
-@[simp]
-lemma minimalQueryBound_query_bind (i : ι) (t : spec.domain i)
-    (oa : spec.range i → OracleComp spec α) :
-    minimalQueryBound (query i t >>= oa) = λ j ↦ (if j = i then 1 else 0) +
-      (Finset.max' (Finset.univ.image <| λ u ↦ minimalQueryBound (oa u) j)
-        (Finset.image_nonempty.2 Finset.univ_nonempty)) := rfl
+-- @[simp]
+-- lemma minimalQueryBound_pure (x : α) :
+--     minimalQueryBound (pure x : OracleComp spec α) = 0 := rfl
 
-@[simp]
-lemma minimalQueryBound_query (i : ι) (t : spec.domain i) :
-    minimalQueryBound (query i t) = Function.update (0 : ι → ℕ) i 1 := by
-  rw [query_def, minimalQueryBound]
-  refine funext (λ j ↦ ?_)
-  by_cases hj : j = i
-  · induction hj
-    simp only [↓reduceIte, minimalQueryBound_pure, Pi.zero_apply, Function.update_same,
-      add_right_eq_self, ← Nat.le_zero, Finset.max'_le_iff]
-    simp only [Finset.mem_image, Finset.mem_univ, true_and, exists_const, nonpos_iff_eq_zero,
-      forall_eq']
-  · simp only [hj, ↓reduceIte, minimalQueryBound_pure, Pi.zero_apply, zero_add, ne_eq,
-    not_false_eq_true, Function.update_noteq, ← Nat.le_zero, Finset.max'_le_iff]
-    simp only [Finset.mem_image, Finset.mem_univ, true_and, exists_const, nonpos_iff_eq_zero,
-      forall_eq']
+-- @[simp]
+-- lemma minimalQueryBound_query_bind (i : ι) (t : spec.domain i)
+--     (oa : spec.range i → OracleComp spec α) :
+--     minimalQueryBound (query i t >>= oa) = λ j ↦ (if j = i then 1 else 0) +
+--       (Finset.max' (Finset.univ.image <| λ u ↦ minimalQueryBound (oa u) j)
+--         (Finset.image_nonempty.2 Finset.univ_nonempty)) := rfl
 
--- NOTE: pretty certain this isn't true in general
--- lemma minimalQueryBound_bind [hα : DecidableEq α] (oa : OracleComp spec α)
--- (ob : α → OracleComp spec β) :
---     minimalQueryBound (oa >>= ob) = minimalQueryBound oa +
---       (λ j ↦ Finset.max' (oa.finSupport.image (λ x ↦ minimalQueryBound (ob x) j))
---         <| by simp) := by
---   revert hα
+-- @[simp]
+-- lemma minimalQueryBound_query (i : ι) (t : spec.domain i) :
+--     minimalQueryBound (query i t) = Function.update (0 : ι → ℕ) i 1 := by
+--   rw [query_def, minimalQueryBound]
+--   refine funext (λ j ↦ ?_)
+--   by_cases hj : j = i
+--   · induction hj
+--     simp only [↓reduceIte, minimalQueryBound_pure, Pi.zero_apply, Function.update_same,
+--       add_right_eq_self, ← Nat.le_zero, Finset.max'_le_iff]
+--     simp only [Finset.mem_image, Finset.mem_univ, true_and, exists_const, nonpos_iff_eq_zero,
+--       forall_eq']
+--   · simp only [hj, ↓reduceIte, minimalQueryBound_pure, Pi.zero_apply, zero_add, ne_eq,
+--     not_false_eq_true, Function.update_noteq, ← Nat.le_zero, Finset.max'_le_iff]
+--     simp only [Finset.mem_image, Finset.mem_univ, true_and, exists_const, nonpos_iff_eq_zero,
+--       forall_eq']
+
+-- -- NOTE: pretty certain this isn't true in general
+-- -- lemma minimalQueryBound_bind [hα : DecidableEq α] (oa : OracleComp spec α)
+-- -- (ob : α → OracleComp spec β) :
+-- --     minimalQueryBound (oa >>= ob) = minimalQueryBound oa +
+-- --       (λ j ↦ Finset.max' (oa.finSupport.image (λ x ↦ minimalQueryBound (ob x) j))
+-- --         <| by simp) := by
+-- --   revert hα
+-- --   induction oa using OracleComp.inductionOn with
+-- --   | h_pure x => {
+-- --     simp
+-- --   }
+-- --   | h_queryBind i t oa hoa => {
+-- --     intro hα
+-- --     rw [bind_assoc]
+-- --     rw [minimalQueryBound_query_bind]
+-- --   simp only [hoa, Pi.add_apply, minimalQueryBound_query_bind,
+  --finSupport_bind, finSupport_query]
+-- --     refine funext (λ j ↦ ?_)
+-- --     by_cases hj : j = i
+-- --     · induction hj
+-- --       simp [add_assoc]
+-- --       sorry
+-- --     · simp [hj]
+-- --       sorry
+-- --   }
+
+-- lemma isQueryBound_minimalQueryBound (oa : OracleComp spec α) :
+--     IsQueryBound oa (minimalQueryBound oa) := by
 --   induction oa using OracleComp.inductionOn with
---   | h_pure x => {
---     simp
---   }
---   | h_queryBind i t oa hoa => {
---     intro hα
---     rw [bind_assoc]
---     rw [minimalQueryBound_query_bind]
---   simp only [hoa, Pi.add_apply, minimalQueryBound_query_bind, finSupport_bind, finSupport_query]
---     refine funext (λ j ↦ ?_)
---     by_cases hj : j = i
---     · induction hj
---       simp [add_assoc]
---       sorry
---     · simp [hj]
---       sorry
---   }
+--   | pure x => exact isQueryBound_pure x _
+--   | query_bind i t oa hoa =>
+--     · refine isQueryBound_bind (by simp) <| λ u _ ↦ isQueryBound_mono _ (hoa u)
+--         (λ j ↦ Finset.le_max' _ _ ?_)
+--       simp only [OracleComp.bind'_eq_bind, pure_bind, Finset.mem_image,
+    -- Finset.mem_univ, true_and,
+--         exists_apply_eq_apply]
+--   | failure => sorry
 
-lemma isQueryBound_minimalQueryBound (oa : OracleComp spec α) :
-    IsQueryBound oa (minimalQueryBound oa) := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => exact isQueryBound_pure x _
-  | query_bind i t oa hoa =>
-    · refine isQueryBound_bind (by simp) <| λ u _ ↦ isQueryBound_mono _ (hoa u)
-        (λ j ↦ Finset.le_max' _ _ ?_)
-      simp only [OracleComp.bind'_eq_bind, pure_bind, Finset.mem_image, Finset.mem_univ, true_and,
-        exists_apply_eq_apply]
-  | failure => sorry
+-- lemma le_minimalQueryBound_of_mem_support_simulate {oa : OracleComp spec α}
+--     {x : α} {qc : ι → ℕ} (h : (x, qc) ∈ (simulate countingOracle 0 oa).support) :
+--     qc ≤ minimalQueryBound oa := by
+--   refine isQueryBound_minimalQueryBound oa qc ?_
+--   rw [support_map]
+--   refine ⟨(x, qc), h, rfl⟩
 
-lemma le_minimalQueryBound_of_mem_support_simulate {oa : OracleComp spec α}
-    {x : α} {qc : ι → ℕ} (h : (x, qc) ∈ (simulate countingOracle 0 oa).support) :
-    qc ≤ minimalQueryBound oa := by
-  refine isQueryBound_minimalQueryBound oa qc ?_
-  rw [support_map]
-  refine ⟨(x, qc), h, rfl⟩
+-- -- /-- Slightly stronger than just being `Minimal` among all query bounds, as the space of
+-- -- query counts is not a total order usually. -/
+-- -- lemma minimalQueryBound_le_of_isQueryBound {oa : OracleComp spec α} {qc : ι → ℕ}
+-- --     (hqc : IsQueryBound oa qc) : minimalQueryBound oa ≤ qc := by
+-- --   induction oa using OracleComp.inductionOn with
+-- --   | h_pure x => exact zero_le qc
+-- --   | h_queryBind i t oa hoa => {
+-- --     simp
+-- --     rw [IsQueryBound] at hqc
+-- --     sorry
+-- --   }
 
--- /-- Slightly stronger than just being `Minimal` among all query bounds, as the space of
--- query counts is not a total order usually. -/
--- lemma minimalQueryBound_le_of_isQueryBound {oa : OracleComp spec α} {qc : ι → ℕ}
---     (hqc : IsQueryBound oa qc) : minimalQueryBound oa ≤ qc := by
---   induction oa using OracleComp.inductionOn with
---   | h_pure x => exact zero_le qc
---   | h_queryBind i t oa hoa => {
---     simp
---     rw [IsQueryBound] at hqc
---     sorry
---   }
+-- -- lemma minimalQueryBound_minimal (oa : OracleComp spec α) :
+-- --     Minimal (IsQueryBound oa) (minimalQueryBound oa) := by
+-- --   rw [minimal_iff]
 
--- lemma minimalQueryBound_minimal (oa : OracleComp spec α) :
---     Minimal (IsQueryBound oa) (minimalQueryBound oa) := by
---   rw [minimal_iff]
+-- --   refine ⟨isQueryBound_minimalQueryBound oa, ?_⟩
+-- --   intro qc hqc h
+-- --   refine le_antisymm ?_ h
+-- --   clear h
+-- --   induction oa using OracleComp.inductionOn with
+-- --   | h_pure x => {
+-- --     -- simp at h
+-- --     simp
+-- --   }
+-- --   | h_queryBind i t oa hoa => {
+-- --     have : qc i ≠ 0 := by sorry
+-- --     rw [minimalQueryBound_query_bind]
 
---   refine ⟨isQueryBound_minimalQueryBound oa, ?_⟩
---   intro qc hqc h
---   refine le_antisymm ?_ h
---   clear h
---   induction oa using OracleComp.inductionOn with
---   | h_pure x => {
---     -- simp at h
---     simp
---   }
---   | h_queryBind i t oa hoa => {
---     have : qc i ≠ 0 := by sorry
---     rw [minimalQueryBound_query_bind]
+-- --     intro j
 
---     intro j
-
---     by_cases hj : j = i
---     · induction hj
+-- --     by_cases hj : j = i
+-- --     · induction hj
 
 
 
---       sorry
+-- --       sorry
 
---     · simp [hj]
+-- --     · simp [hj]
 
---       sorry
---   }
+-- --       sorry
+-- --   }
 
 
 
 
-lemma exists_isQueryBound (oa : OracleComp spec α) : ∃ qc, IsQueryBound oa qc :=
-  ⟨minimalQueryBound oa, isQueryBound_minimalQueryBound oa⟩
+-- lemma exists_isQueryBound (oa : OracleComp spec α) : ∃ qc, IsQueryBound oa qc :=
+--   ⟨minimalQueryBound oa, isQueryBound_minimalQueryBound oa⟩
 
 end minimalQueryBound
 
