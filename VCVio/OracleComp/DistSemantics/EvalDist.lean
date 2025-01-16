@@ -52,12 +52,9 @@ lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x :
 lemma evalDist_liftM [Nonempty α] [Fintype α] (q : OracleQuery spec α) :
     evalDist (q : OracleComp spec α) = OptionT.lift (PMF.uniformOfFintype α) := by
   cases q; rw [evalDist, mapM_query]
-  simp
   refine congr_arg OptionT.lift (PMF.ext λ x ↦ ?_)
-  simp
-  refine congr_arg Finset.card ?_
-  ext x
-  simp
+  simp only [PMF.uniformOfFintype_apply, inv_inj, Nat.cast_inj]
+  refine congr_arg Finset.card (Finset.ext λ _ ↦ by simp)
 
 @[simp]
 lemma evalDist_query (i : ι) (t : spec.domain i) :
