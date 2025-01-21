@@ -14,36 +14,38 @@ This file gives a centralized location to add lemmas that belong better
 in general mathlib than in the project itself.
 -/
 
+universe u v w
+
 open List (Vector)
 open BigOperators ENNReal
 
-lemma Fintype.sum_inv_card (α : Type) [Fintype α] [Nonempty α] :
+lemma Fintype.sum_inv_card (α : Type*) [Fintype α] [Nonempty α] :
   Finset.sum Finset.univ (λ _ ↦ (Fintype.card α)⁻¹ : α → ℝ≥0∞) = 1 := by
   rw [Finset.sum_eq_card_nsmul (λ _ _ ↦ rfl), Finset.card_univ,
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
 
 @[simp] -- mathlib?
-lemma vector_eq_nil {α : Type} (xs : List.Vector α 0) : xs = Vector.nil :=
+lemma vector_eq_nil {α : Type*} (xs : List.Vector α 0) : xs = Vector.nil :=
   Vector.ext (IsEmpty.forall_iff.2 True.intro)
 
-lemma List.injective2_cons {α : Type} : Function.Injective2 (List.cons (α := α)) := by
+lemma List.injective2_cons {α : Type*} : Function.Injective2 (List.cons (α := α)) := by
   simp [Function.Injective2]
 
-lemma Vector.injective2_cons {α : Type} {n : ℕ} :
+lemma Vector.injective2_cons {α : Type*} {n : ℕ} :
     Function.Injective2 (Vector.cons : α → List.Vector α n → List.Vector α (n + 1)) := by
   simp [Function.Injective2, Vector.eq_cons_iff]
 
-lemma Prod.mk.injective2 {α β : Type} :
+lemma Prod.mk.injective2 {α β : Type*} :
     Function.Injective2 (Prod.mk : α → β → α × β) := by
   simp [Function.Injective2]
 
-lemma Function.injective2_swap_iff {α β γ : Type} (f : α → β → γ) :
+lemma Function.injective2_swap_iff {α β γ : Type*} (f : α → β → γ) :
     f.swap.Injective2 ↔ f.Injective2 :=
   ⟨λ h _ _ _ _ h' ↦ and_comm.1 (h h'), λ h _ _ _ _ h' ↦ and_comm.1 (h h')⟩
 
 
 /-- Summing `1` over list indices that satisfy a predicate is just `countP` applied to `p`. -/
-lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
+lemma List.countP_eq_sum_fin_ite {α : Type*} (xs : List α) (p : α → Bool) :
     (∑ i : Fin xs.length, if p xs[i] then 1 else 0) = xs.countP p := by
   induction xs with
   | nil => {
@@ -56,7 +58,7 @@ lemma List.countP_eq_sum_fin_ite {α : Type} (xs : List α) (p : α → Bool) :
     simp
   }
 
-lemma List.card_filter_getElem_eq {α : Type} [DecidableEq α]
+lemma List.card_filter_getElem_eq {α : Type*} [DecidableEq α]
     (xs : List α) (x : α) :
     (Finset.filter (λ i : Fin (xs.length) ↦ xs[i] = x) Finset.univ).card =
       xs.count x := by
@@ -67,7 +69,7 @@ lemma List.card_filter_getElem_eq {α : Type} [DecidableEq α]
 lemma Vector.getElem_eq_get {α n} (xs : List.Vector α n) (i : ℕ) (h : i < n) :
   xs[i]'h = xs.get ⟨i, h⟩ := rfl
 
-@[simp] lemma Finset.sum_boole' {ι β : Type} [AddCommMonoid β] (r : β)
+@[simp] lemma Finset.sum_boole' {ι β : Type*} [AddCommMonoid β] (r : β)
     (p) [DecidablePred p] (s : Finset ι) :
     (∑ x ∈ s, if p x then r else 0 : β) = (s.filter p).card • r :=
 calc (∑ x ∈ s, if p x then r else 0 : β) = (∑ x ∈ s, if p x then 1 else 0 : ℕ) • r :=
@@ -120,7 +122,7 @@ instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :
 
 open Classical
 
-lemma tsum_option {α β : Type} [AddCommMonoid α] [TopologicalSpace α]
+lemma tsum_option {α β : Type*} [AddCommMonoid α] [TopologicalSpace α]
     [ContinuousAdd α] [T2Space α]
     (f : Option β → α) (hf : Summable (Function.update f none 0)) :
     ∑' x : Option β, f x = f none + ∑' x : β, f (some x) := by
@@ -133,7 +135,6 @@ lemma tsum_option {α β : Type} [AddCommMonoid α] [TopologicalSpace α]
     cases x <;> simp
   · simp
 
-universe u v w
 
 @[simp]
 lemma List.foldlM_range {m : Type u → Type v} [Monad m] [LawfulMonad m]

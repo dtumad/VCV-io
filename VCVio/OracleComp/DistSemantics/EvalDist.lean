@@ -33,15 +33,17 @@ namespace OracleComp
 
 open Option ENNReal BigOperators
 
-variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β : Type}
-  [spec.FiniteRange] [spec'.FiniteRange]
+universe u u' v w
+
+variable {ι : Type u} {spec : OracleSpec ι} {ι' : Type v} {spec' : OracleSpec ι'}
+  {α β γ : Type w} [spec.FiniteRange] [spec'.FiniteRange]
 
 section evalDist
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 We use `OptionT PMF` rather than `PMF ∘ Option` as the generated monad instance is nicer. -/
-noncomputable def evalDist {α : Type} (oa : OracleComp spec α) : OptionT PMF α :=
+noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) : OptionT PMF α :=
   oa.mapM (fail := failure)
     (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
 

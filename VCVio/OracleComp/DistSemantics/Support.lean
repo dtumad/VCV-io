@@ -23,7 +23,9 @@ noncomputability due to the use of real numbers, and also makes defining `finSup
 
 namespace OracleComp
 
-variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
+universe u v w
+
+variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
 /-- The `support` of a computation `oa` is the set of all possible output values,
 assuming that all output values of the oracles are possible.
@@ -82,7 +84,7 @@ lemma support_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec 
   simp [support]
 
 @[simp]
-lemma finSupport_query_bind [spec.FiniteRange] [DecidableEq β] : {α : Type} → [Fintype α] →
+lemma finSupport_query_bind [spec.FiniteRange] [DecidableEq β] : {α : Type v} → [Fintype α] →
     (q : OracleQuery spec α) → (ob : α → OracleComp spec β) →
     ((q : OracleComp spec α) >>= ob).finSupport =
       Finset.univ.biUnion λ x ↦ (ob x).finSupport

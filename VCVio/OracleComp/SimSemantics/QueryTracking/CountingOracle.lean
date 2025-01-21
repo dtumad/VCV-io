@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.IsTracking
 
 /-!
 # Counting Queries Made by a Computation
@@ -16,7 +16,7 @@ Tracking individually is not necessary, but gives tighter security bounds in som
 It also allows for generating things like seed values for a computation more tightly.
 -/
 
-open OracleComp OracleSpec Function
+open OracleComp OracleSpec Function Prod
 
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
@@ -29,22 +29,28 @@ def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
 namespace countingOracle
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
+    (oa : OracleComp spec α) (qc : ι → ℕ)
 
 @[simp]
 protected lemma apply_eq (q : OracleQuery spec α) :
     countingOracle.impl q = match q with
-      | query i t => (do modify λ qc ↦ update qc i (qc i + 1); query i t) := rfl
+      | query i t => (do modify λ qc ↦ update qc i (qc i + 1); query i t) := by cases q; rfl
 
-instance : StateIndep (countingOracle (spec := spec)) where
+instance : SimOracle.IsTracking (countingOracle (spec := spec)) where
   state_indep | query _ _, _ => rfl
 
-protected lemma simulate'_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
-    simulate' countingOracle qc oa = oa :=
-  simulate'_eq_self_of_stateIndep countingOracle qc oa
+protected lemma run'_simulateT_eq_self : (simulateT countingOracle oa).run' qc = oa :=
+  SimOracle.IsTracking.run'_simulateT_eq_self countingOracle oa qc
 
-protected lemma fst_map_simulate_eq_self (oa : OracleComp spec α) (qc : ι → ℕ) :
-    Prod.fst <$> simulate countingOracle qc oa = oa :=
-  simulate'_eq_self_of_stateIndep countingOracle qc oa
+protected lemma fst_map_run_simulateT_eq_self :
+    fst <$> (simulateT countingOracle oa).run qc = oa :=
+  countingOracle.run'_simulateT_eq_self oa qc
+
+protected lemma simulate'_eq_self : simulate' countingOracle qc oa = oa :=
+  countingOracle.run'_simulateT_eq_self oa qc
+
+protected lemma fst_map_simulate_eq_self : Prod.fst <$> simulate countingOracle qc oa = oa :=
+  countingOracle.run'_simulateT_eq_self oa qc
 
 section support
 
@@ -58,6 +64,8 @@ lemma support_simulate (oa : OracleComp spec α) (qc : ι → ℕ) :
   | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply, id_eq,
       add_zero, implies_true]
   | query_bind i t oa hoa =>
+      refine λ qc ↦ ?_
+      -- simp
       sorry -- refine λ qc ↦ ?_
       -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,support_bind,support_map,
       --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
