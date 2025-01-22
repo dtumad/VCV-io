@@ -20,36 +20,37 @@ For example `idOracle` has no effect upon simulation, and we should apply that f
 
 open OracleSpec Prod
 
-variable {ι ιₜ : Type}
+universe u v w
+
+variable {ι : Type u} {ιₜ : Type v} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ}
+  {α β σ : Type w}
 
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
-structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type) where
-  impl : {α : Type} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
+structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type w) where
+  impl : {α : Type w} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
-variable {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ} {α β σ : Type}
-
-instance SimOracle.Inhabited [spec.FiniteRange] :
+instance SimOracle.Inhabited [∀ i, Inhabited (spec.range i)] :
   Inhabited (SimOracle spec specₜ σ) := ⟨{impl q := pure q.defaultOutput}⟩
 
 namespace OracleComp
 
 section simulateT
 
-def simulateT {α : Type} (so : SimOracle spec specₜ σ)
+def simulateT (so : SimOracle spec specₜ σ)
     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α :=
   oa.mapM (fail := failure) (query_map := so.impl)
 
-variable {α : Type} (so : SimOracle spec specₜ σ)
+variable (so : SimOracle spec specₜ σ)
 
 @[simp]
 lemma simulateT_pure (x : α) : simulateT so (pure x) = pure x := mapM_pure _ _ x
 
 @[simp]
-lemma simulateT_failure : simulateT so (failure : OracleComp spec α) = failure := rfl
+lemma simulateT_failure : simulateT so (failure : OracleComp spec α) = StateT.lift failure := rfl
 
 @[simp]
 lemma simulateT_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
@@ -84,22 +85,23 @@ end simulateT
 /-- `simulate so oa s` runs the computation `oa`, using the simulation oracle `so` to
 answer any queries to the oracle, starting the simulation oracle's state with `s`. -/
 @[reducible]
-def simulate {α : Type} (so : spec →[σ]ₛₒ specₜ) (s : σ) :
-    (oa : OracleComp spec α) → OracleComp specₜ (α × σ) := λ oa ↦
-  (simulateT so oa).run s
+def simulate (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) :
+    OracleComp specₜ (α × σ) := (simulateT so oa).run s
 
-/-- Version of `simulate` that tosses out the oracle state at the end.
-TODO: should this be an alias/notation? -/
+lemma simulate_def (so : SimOracle spec specₜ σ) (s : σ) (oa : OracleComp spec α) :
+    simulate so s oa = (simulateT so oa).run s := rfl
+
+/-- Version of `simulate` that tosses out the oracle state at the end. -/
 @[reducible]
-def simulate' (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) : OracleComp specₜ α :=
-  (simulateT so oa).run' s
+def simulate' (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) :
+    OracleComp specₜ α := (simulateT so oa).run' s
 
 lemma simulate'_def (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp spec α) :
-    simulate' so s oa = fst <$> simulate so s oa := rfl
+    simulate' so s oa = (simulateT so oa).run' s := rfl
 
 section basic
 
-variable {σ : Type} (so : spec →[σ]ₛₒ specₜ)
+variable {σ : Type w} (so : spec →[σ]ₛₒ specₜ)
 
 @[simp low]
 lemma simulate_pure (s : σ) (x : α) : simulate so s (pure x) = pure (x, s) := rfl
@@ -169,7 +171,7 @@ end basic
 
 section support
 
-variable {σ : Type} (so : spec →[σ]ₛₒ specₜ)
+variable {σ : Type w} (so : spec →[σ]ₛₒ specₜ)
 
 lemma support_simulate' (oa : OracleComp spec α) (s : σ) :
     (simulate' so s oa).support = fst <$> (simulate so s oa).support :=
@@ -202,54 +204,15 @@ lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s
 
 end support
 
-section stateIndep
-
-variable {σ : Type} (so : spec →[σ]ₛₒ spec)
-
-lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q).run' s = q)
-    (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa := by
-  revert s
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | failure => intro s; rw [simulate'_failure]
-  | query_bind i t oa hoa =>
-      intro s
-      simp at hoa
-      simp [hoa]
-      rw [← h (spec.range i) (query i t) s]
-      simp only [bind_map_left, StateT.run']
-      rfl
-
--- TODO: this for various oracles?
-class StateIndep (so : spec →[σ]ₛₒ spec) where
-    state_indep : ∀ {α} (q : OracleQuery spec α) s, (so.impl q).run' s = q
-
-@[simp]
-lemma simulate'_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [h : StateIndep so]
-    (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
-  simulate'_eq_self so (λ _ (query i _) _ ↦ h.state_indep _ _) s oa
-
-@[simp]
-lemma fst_map_simulate_eq_self_of_stateIndep (so : spec →[σ]ₛₒ spec) [StateIndep so]
-    (s : σ) (oa : OracleComp spec α) : fst <$> (simulate so s oa) = oa :=
-  simulate'_eq_self_of_stateIndep so s oa
-
-lemma mem_support_of_mem_support_simulate' {so : spec →[σ]ₛₒ spec} [h : StateIndep so]
-    {s : σ} {oa : OracleComp spec α} {x : α}
-    (h : x ∈ (simulate' so s oa).support) : x ∈ oa.support := by
-  rwa [simulate'_eq_self_of_stateIndep] at h
-
-end stateIndep
-
 section idem
 
-variable {σ : Type} (so : spec →[σ]ₛₒ spec)
+variable {σ : Type w} (so : spec →[σ]ₛₒ spec)
 
 /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this -/
 lemma evalDist_simulate'_eq_evalDist [spec.FiniteRange]
-    (h : ∀ i t s, evalDist (fst <$> so.impl (query i t) s) =
+    (h : ∀ i t s, (evalDist (fst <$> so.impl (query i t) s) : OptionT PMF (spec.range i)) =
       OptionT.lift (PMF.uniformOfFintype (spec.range i)))
     (s : σ) (oa : OracleComp spec α) : evalDist (simulate' so s oa) = evalDist oa := by
   revert s
@@ -264,7 +227,7 @@ end idem
 
 section subsingleton
 
-variable {σ : Type} [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ)
+variable {σ : Type w} [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ)
 
 /-- If the state type is `Subsingleton`, then we can represent simulation in terms of `simulate'`,
 adding back any state at the end of the computation. -/
