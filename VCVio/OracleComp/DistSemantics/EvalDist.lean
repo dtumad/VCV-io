@@ -528,7 +528,6 @@ lemma probOutput_congr {x y : α} {oa : OracleComp spec α} {oa' : OracleComp sp
 lemma probEvent_congr' {p q : α → Prop} {oa : OracleComp spec α} {oa' : OracleComp spec' α}
     (h1 : ∀ x, x ∈ oa.support → x ∈ oa'.support → (p x ↔ q x))
     (h2 : evalDist oa = evalDist oa') : [p | oa] = [q | oa'] := by
-  have : DecidablePred q := Classical.decPred q
   have h : ∀ x, x ∈ oa.support ↔ x ∈ oa'.support := mem_support_iff_of_evalDist_eq h2
   have h' : ∀ x, [= x | oa] = [= x | oa'] := λ x ↦ probOutput_congr rfl h2
   rw [probEvent_eq_tsum_indicator, probEvent_eq_tsum_indicator]
@@ -638,7 +637,7 @@ lemma probOutput_bind_eq_tsum_subtype (y : β) :
   · rw [Set.indicator_of_mem hx]
   · rw [Set.indicator_of_not_mem hx, probOutput_eq_zero _ _ hx, zero_mul]
 
-lemma probEvent_bind_eq_tsum_subtype (q : β → Prop) [DecidablePred q] :
+lemma probEvent_bind_eq_tsum_subtype (q : β → Prop) :
     [q | oa >>= ob] = ∑' x : oa.support, [= x | oa] * [q | ob x] := by
   rw [tsum_subtype _ (λ x ↦ [= x | oa] * [q | ob x]), probEvent_bind_eq_tsum]
   refine tsum_congr (λ x ↦ ?_)
@@ -654,7 +653,7 @@ lemma probFailure_bind_eq_sum_fintype [Fintype α] :
     [⊥ | oa >>= ob] = [⊥ | oa] + ∑ x : α, [= x | oa] * [⊥ | ob x] :=
   (probFailure_bind_eq_tsum oa ob).trans (congr_arg ([⊥ | oa] + ·) <| tsum_fintype _)
 
-lemma probEvent_bind_eq_sum_fintype [Fintype α] (q : β → Prop) [DecidablePred q] :
+lemma probEvent_bind_eq_sum_fintype [Fintype α] (q : β → Prop) :
     [q | oa >>= ob] = ∑ x : α, [= x | oa] * [q | ob x] :=
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_fintype _)
 
@@ -663,7 +662,7 @@ lemma probOutput_bind_eq_sum_finSupport [spec.DecidableEq] [DecidableEq α] (y :
   (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum' <| by simp)
 
 lemma probEvent_bind_eq_sum_finSupport [spec.DecidableEq] [DecidableEq α]
-    (q : β → Prop) [DecidablePred q] :
+    (q : β → Prop) :
     [q | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [q | ob x] :=
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_eq_sum' <| by simp)
 
@@ -797,7 +796,7 @@ lemma probOutput_failure (x : α) : [= x | (failure : OracleComp spec α)] = 0 :
 lemma probFailure_failure : [⊥ | (failure : OracleComp spec α)] = 1 := by simp [probFailure]
 
 @[simp]
-lemma probEvent_failure (p : α → Prop) [DecidablePred p] :
+lemma probEvent_failure (p : α → Prop) :
     [p | (failure : OracleComp spec α)] = 0 := by simp
 
 end failure
@@ -855,14 +854,14 @@ lemma probFailure_map : [⊥ | f <$> oa] = [⊥ | oa] := by
   cases x <;> simp
 
 @[simp]
-lemma probEvent_map (q : β → Prop) [DecidablePred q] : [q | f <$> oa] = [q ∘ f | oa] := by
+lemma probEvent_map (q : β → Prop) : [q | f <$> oa] = [q ∘ f | oa] := by
   simp only [probEvent, evalDist_map, PMF.toOuterMeasure_map_apply, Function.comp_apply]
   simp [PMF.monad_map_eq_map]
   refine congr_arg (oa.evalDist.toOuterMeasure) ?_
   simp only [Set.preimage, Set.mem_image, Set.mem_setOf_eq, Set.ext_iff]
   intro x
   cases x <;> simp
-lemma probEvent_comp (q : β → Prop) [DecidablePred q] : [q ∘ f | oa] = [q | f <$> oa] :=
+lemma probEvent_comp (q : β → Prop) : [q ∘ f | oa] = [q | f <$> oa] :=
   symm <| probEvent_map oa f q
 
 lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
@@ -884,7 +883,7 @@ lemma probOutput_eqRec (y : β) : [= y | h ▸ oa] = [= h ▸ y | oa] := by indu
 
 @[simp] lemma probFailure_eqRec : [⊥ | h ▸ oa] = [⊥ | oa] := by induction h; rfl
 
-lemma probEvent_eqRec (q : β → Prop) [DecidablePred q] :
+lemma probEvent_eqRec (q : β → Prop) :
     [q | h ▸ oa] = [λ x ↦ q (h ▸ x) | oa] := by induction h; rfl
 
 end eqRec
@@ -904,7 +903,7 @@ lemma probFailure_ite : [⊥ | if p then oa else oa'] =
   by_cases hp : p <;> simp [hp]
 
 @[simp]
-lemma probEvent_ite (q : α → Prop) [DecidablePred q] : [q | if p then oa else oa'] =
+lemma probEvent_ite (q : α → Prop) : [q | if p then oa else oa'] =
     if p then [q | oa] else [q | oa'] := by
   by_cases hp : p <;> simp [hp]
 
@@ -916,7 +915,7 @@ section coin
 lemma probOutput_coin (b : Bool) : [= b | coin] = 2⁻¹ := by
   simp only [coin, probOutput_liftM, Fintype.card_bool, Nat.cast_ofNat]
 
-lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) [DecidablePred p] :
+lemma probEvent_coin_eq_sum_subtype (p : Bool → Prop) :
     [p | coin] = ∑' _ : {x | p x}, 2⁻¹ := by
   simp only [probEvent_eq_tsum_subtype, Set.coe_setOf, Set.mem_setOf_eq, probOutput_coin]
 
