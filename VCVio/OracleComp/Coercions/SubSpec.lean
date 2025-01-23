@@ -20,7 +20,10 @@ where the non-inclusive subset symbol reflects that we avoid defining this insta
 
 open OracleSpec OracleComp BigOperators ENNReal
 
-variable {ι τ : Type} {spec : OracleSpec ι} {superSpec : OracleSpec τ} {α β γ : Type}
+universe u v w
+
+variable {ι : Type u} {τ : Type v}
+  {spec : OracleSpec ι} {superSpec : OracleSpec τ} {α β γ : Type w}
 
 namespace OracleSpec
 
@@ -110,21 +113,21 @@ section liftComp
 
 /-- Lift a computation from `spec` to `superSpec` using a `SubSpec` instance on queries. -/
 def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec] :
-    OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' ()
+    OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
 
 variable (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec]
 
 lemma liftComp_def (oa : OracleComp spec α) :
-    liftComp oa superSpec = simulate' ⟨liftM⟩ () oa := rfl
+    liftComp oa superSpec = simulate' ⟨liftM⟩ PUnit.unit oa := rfl
 
 @[simp]
 lemma liftComp_pure (x : α) : liftComp (pure x : OracleComp spec α) superSpec = pure x :=
-  simulate'_pure _ () x
+  simulate'_pure _ _ x
 
 @[simp]
 lemma liftComp_query (i : ι) (t : spec.domain i) :
     liftComp (query i t : OracleComp spec _) superSpec = h.monadLift (query i t) :=
-  simulate'_query _ () _
+  simulate'_query _ _ _
 
 @[simp]
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :

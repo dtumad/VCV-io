@@ -45,8 +45,10 @@ open OracleSpec OracleComp Sum
 
 namespace OracleSpec
 
-variable {ι₁ ι₂ ι₃ ι₄: Type} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
-  (spec₃ : OracleSpec ι₃) (spec₄ : OracleSpec ι₄) {α β γ : Type}
+universe u v w
+
+variable {ι₁ ι₂ ι₃ ι₄: Type*} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂)
+  (spec₃ : OracleSpec ι₃) (spec₄ : OracleSpec ι₄) {α β γ : Type u}
 
 section instances
 

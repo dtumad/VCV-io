@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Constructions
+import VCVio.OracleComp.Coercions.Append
 
 /-!
 # Append Operation for Simulation Oracles
@@ -24,7 +25,9 @@ namespace SimOracle
 
 section append
 
-variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
+universe u v w
+
+variable {ι₁ : Type u} {ι₂ : Type v} {ιₜ : Type w} {spec₁ : OracleSpec ι₁}
   {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type}
 
 /-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
@@ -50,6 +53,28 @@ lemma append_apply_inl (i : ι₁) (t : spec₁.domain i) :
 lemma append_apply_inr (i : ι₂) (t : spec₂.domain i) :
     (so ++ₛₒ so').impl (query (inr i) t) = λ (s₁, s₂) ↦ do
       let (u, s₂') ← so'.impl (query i t) s₂ return (u, s₁, s₂') := rfl
+
+instance {m : Type u → Type v} {m' : Type u → Type w}
+      [MonadLift m m'] {σ : Type u} :
+    MonadLiftT (StateT σ m) (StateT σ m') where
+  monadLift x s := liftM ((x.run) s)
+
+instance {ι₁ ι₂ ι₂' σ : Type*} {spec₁ : OracleSpec ι₁}
+    {spec₂ : OracleSpec ι₂} {spec₂' : OracleSpec ι₂'} :
+    Coe (SimOracle spec₁ spec₂ σ) (SimOracle spec₁ (spec₂ ++ₒ spec₂') σ) :=
+  ⟨λ so ↦ ⟨liftM ∘ so.impl⟩⟩
+
+instance {ι₁ ι₂ ι₂' σ : Type*} {spec₁ : OracleSpec ι₁}
+    {spec₂ : (OracleSpec ι₂)} {spec₂' : OracleSpec ι₂'} :
+    Coe (SimOracle spec₁ spec₂ σ) (SimOracle spec₁ (spec₂' ++ₒ spec₂) σ) :=
+  ⟨λ so ↦ ⟨liftM ∘ so.impl⟩⟩
+
+def append' {ι₁ ι₁' ι₂ ι₂' σ τ : Type}
+    {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
+    {specₜ₁ : OracleSpec ι₁'} {specₜ₂ : OracleSpec ι₂'}
+    (so : SimOracle spec₁ specₜ₁ σ) (so' : SimOracle spec₂ specₜ₂ τ) :
+    SimOracle (spec₁ ++ₒ spec₂) (specₜ₁ ++ₒ specₜ₂) (σ × τ) :=
+  so ++ₛₒ so'
 
 section subSpec
 
