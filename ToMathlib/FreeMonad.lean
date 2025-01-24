@@ -198,3 +198,20 @@ instance (m : Type u → Type v) [Monad m] [LawfulMonad m] : AlternativeMonad (O
   __ := OptionT.instMonad
 
 end OptionT
+
+namespace StateT
+
+variable {m : Type u → Type v} {m' : Type u → Type w}
+  {σ α β : Type u}
+
+instance [MonadLift m m'] : MonadLift (StateT σ m) (StateT σ m') where
+  monadLift x := λ s ↦ liftM ((x.run) s)
+
+@[simp]
+lemma liftM_eq  [MonadLift m m'] (x : StateT σ m α) :
+    (liftM x : StateT σ m' α) = λ s ↦ liftM (x.run s) := rfl
+
+lemma monad_pure_def [Monad m] (x : α) :
+    (pure x : StateT σ m α) = StateT.pure x := rfl
+
+end StateT

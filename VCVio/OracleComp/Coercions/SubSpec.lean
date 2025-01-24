@@ -112,7 +112,8 @@ namespace OracleComp
 section liftComp
 
 /-- Lift a computation from `spec` to `superSpec` using a `SubSpec` instance on queries. -/
-def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec] :
+def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ)
+      [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
     OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
 
 variable (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec]
@@ -187,21 +188,23 @@ lemma probEvent_liftComp [spec.FiniteRange] [superSpec.FiniteRange]
 
 end liftComp
 
-/-- Extend a lifting or -/
-instance [h : spec ⊂ₒ superSpec] [MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
+/-- Extend a lifting on `OracleQuery` to a lifting on `OracleComp`. -/
+instance [MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
     MonadLift (OracleComp spec) (OracleComp superSpec) where
   monadLift oa := liftComp oa superSpec
 
-variable [h : spec ⊂ₒ superSpec] [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
+variable [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
+@[simp]
 lemma liftM_eq_liftComp (oa : OracleComp spec α) :
-    (oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
+    (liftM oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
 
-/-- View a probabalistic computation as one with a larger set of oracles.
-We make this a special instance as it's often needed in situations where the
-type-class instance is not yet available (e.g. defining security experiments). -/
-instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
-    Coe (ProbComp α) (OracleComp spec α) where
-  coe oa := oa
+-- NOTE: Should be handled by other things now.
+-- /-- View a probabalistic computation as one with a larger set of oracles.
+-- We make this a special instance as it's often needed in situations where the
+-- type-class instance is not yet available (e.g. defining security experiments). -/
+-- instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
+--     Coe (ProbComp α) (OracleComp spec α) where
+--   coe oa := oa
 
 end OracleComp
