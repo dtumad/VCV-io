@@ -114,7 +114,7 @@ section liftComp
 /-- Lift a computation from `spec` to `superSpec` using a `SubSpec` instance on queries. -/
 def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ)
       [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
-    OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
+      OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
 
 variable (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec]
 
