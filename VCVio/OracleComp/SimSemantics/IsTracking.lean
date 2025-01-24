@@ -28,12 +28,11 @@ lemma run'_simulateT_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q
   | failure => simp
   | query_bind i t oa hoa =>
       intro s
-      simp [hoa, -StateT.run'_eq]
-      simp at hoa
-      simp [hoa]
-      rw [← h (spec.range i) (query i t) s]
-      simp only [bind_map_left, StateT.run']
-      rfl
+      specialize h (spec.range i) (query i t) s
+      simp only [StateT.run'_eq] at hoa
+      simp only [simulateT_bind, simulateT_query, StateT.run'_eq, StateT.run_bind,
+        Function.comp_apply, map_bind, hoa]
+      rw [← h, StateT.run', StateT.run, bind_map_left]
 
 lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q).run' s = q)
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
@@ -52,13 +51,18 @@ lemma run'_simulateT_eq_self (so : SimOracle spec spec σ) [IsTracking so]
   simulate'_eq_self so (λ _ (query i _) _ ↦ IsTracking.state_indep _ _) s oa
 
 @[simp]
-lemma fst_map_run_simulateT_eq_slef (so : SimOracle spec spec σ) [IsTracking so]
+lemma fst_map_run_simulateT_eq_self (so : SimOracle spec spec σ) [IsTracking so]
     (oa : OracleComp spec α) (s : σ) : Prod.fst <$> (simulateT so oa).run s = oa :=
   IsTracking.run'_simulateT_eq_self so oa s
 
 @[simp]
-lemma simulate'_eq_self (so : spec →[σ]ₛₒ spec) [IsTracking so]
+lemma simulate'_eq_self (so : SimOracle spec spec σ) [IsTracking so]
     (s : σ) (oa : OracleComp spec α) : simulate' so s oa = oa :=
+  IsTracking.run'_simulateT_eq_self so oa s
+
+@[simp]
+lemma fst_map_simulate_eq_self (so : SimOracle spec spec σ) [IsTracking so]
+    (s : σ) (oa : OracleComp spec α) : (Prod.fst <$> simulate so s oa : OracleComp spec α) = oa :=
   IsTracking.run'_simulateT_eq_self so oa s
 
 lemma mem_support_of_mem_support_simulate' {so : spec →[σ]ₛₒ spec} [IsTracking so]
