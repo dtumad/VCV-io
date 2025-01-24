@@ -12,6 +12,7 @@ import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
 import VCVio.OracleComp.Coercions.Append
 import VCVio.OracleComp.Coercions.HasUnifSelect
+import VCVio.OracleComp.Coercions.SimOracle
 import VCVio.OracleComp.Coercions.SubSpec
 import VCVio.OracleComp.Constructions.GenerateSeed
 import VCVio.OracleComp.Constructions.Replicate
