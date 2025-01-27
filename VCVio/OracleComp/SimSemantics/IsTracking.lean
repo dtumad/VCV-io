@@ -40,7 +40,7 @@ lemma simulate'_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q).run
 
 /-- Typeclass for simulation oracles that only perform some kind of tracking (e.g. logging).
 In this case `StateT.run'` will reduce a simulated computation to itself. -/
-class IsTracking (so : spec →[σ]ₛₒ spec) where
+class IsTracking (so : SimOracle spec spec σ) where
     state_indep : ∀ {α} (q : OracleQuery spec α) s, (so.impl q).run' s = q
 
 namespace IsTracking

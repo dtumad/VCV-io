@@ -23,17 +23,27 @@ variable {ι ι₁ ι₂ : Type}
 
 namespace SimOracle
 
-def liftSO [spec₁ ⊂ₒ spec₂] (so : SimOracle spec spec₁ σ) :
-    SimOracle spec spec₂ σ := ⟨liftM ∘ so.impl⟩
+/-- Given a lifting from oracles in `spec₁` to `spec₂`,
+and a `SimOracle` from `spec` to `spec₁`, get a simulation from `spec` to `spec₂`
+by lifting the result of simulation. -/
+def liftSO [spec₁ ⊂ₒ spec₂] (so : SimOracle spec spec₁ σ) : SimOracle spec spec₂ σ where
+  impl q := liftM (so.impl q)
 
 @[simp]
-lemma simulateT_liftSO_eq_liftM_simulateT [spec₁ ⊂ₒ spec₂] (so : SimOracle spec spec₁ σ)
-    (oa : OracleComp spec α) :
+lemma impl_liftSO (q : OracleQuery spec α) [spec₁ ⊂ₒ spec₂] (so : SimOracle spec spec₁ σ) :
+    (liftSO so : SimOracle spec spec₂ σ).impl q = liftM (so.impl q) := rfl
+
+@[simp]
+lemma simulateT_liftSO_eq_liftM_simulateT [spec₁ ⊂ₒ spec₂]
+    (so : SimOracle spec spec₁ σ) (oa : OracleComp spec α) :
     (simulateT (liftSO so) oa : StateT σ (OracleComp spec₂) α) =
       liftM (simulateT so oa) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp; rfl
-  | query_bind i t oa h => sorry
+  | query_bind i t oa h =>
+      simp at h
+      simp [Function.comp_def, h]
+      rfl
   | failure => simp; rfl
 
 example {ι₁ ι₁' ι₂ ι₂' σ τ : Type}

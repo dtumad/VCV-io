@@ -63,6 +63,6 @@ lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
       modifyGet λ log ↦ (u, log.logQuery t u)) := rfl
 
 instance : (loggingOracle (spec := spec)).IsTracking where
-  state_indep | query i t, s => by simp
+  state_indep | query _ _, _ => rfl
 
 end loggingOracle

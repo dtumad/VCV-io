@@ -24,42 +24,6 @@ namespace OracleComp
 
 open ENNReal
 
-@[simp]
-lemma probFailure_list_mapM_loop {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
-    -- [Nonempty β]
-    (xs : List α) (f : α → OracleComp spec β) (ys : List β) :
-    [⊥ | List.mapM.loop f xs ys] = 1 - (xs.map (1 - [⊥ | f ·])).prod := by
-  revert ys
-  induction xs with
-  | nil => {
-    simp [List.mapM.loop]
-  }
-  | cons x xs h => {
-    -- simp []
-    intros ys
-    rw [List.mapM.loop]
-    simp only [List.map_cons, List.prod_cons]
-    rw [probFailure_bind_eq_sub_mul (1 - (List.map (fun x ↦ 1 - [⊥|f x]) xs).prod)]
-    · congr
-      refine ENNReal.sub_sub_cancel one_ne_top ?_
-      refine le_of_le_of_eq ?_ (one_pow (List.map (fun x ↦ 1 - [⊥|f x]) xs).length)
-      apply List.prod_le_pow_card _ _ _
-      simp
-    · simp [h]
-  }
-
-@[simp]
-lemma probFailure_list_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
-    (xs : List α) (f : α → OracleComp spec β) :
-    [⊥ | xs.mapM f] = 1 - (xs.map (1 - [⊥ | f ·])).prod := by
-  rw [mapM, probFailure_list_mapM_loop]
-
-@[simp]
-lemma probOutput_list_mapM {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
-    (xs : List α) (f : α → OracleComp spec β) (ys : List β) :
-    [= ys | xs.mapM f] = if ys.length = xs.length then
-      (List.zipWith (λ x y ↦ [= y | f x]) xs ys).prod else 0 := by
-  sorry
 
 /-- Run the computation `oa` repeatedly `n` times to get a vector of `n` results. -/
 def replicate {ι : Type} {spec : OracleSpec ι} {α : Type}
