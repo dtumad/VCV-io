@@ -38,9 +38,9 @@ open OracleSpec
 /-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
 use for querying that oracle, implemented as a dependent pair.
 Implemented as a functor with the oracle output type as the constructor result. -/
-inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v,v} ι) :
-    Type v → Type (max u (v + 1))
-  | query (i : ι) : (t : spec.domain i) → OracleQuery spec (spec.range i)
+inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v,w} ι) :
+    Type w → Type (max u v)
+  | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
 
 namespace OracleQuery
 
@@ -103,12 +103,12 @@ In practive computations in `OracleComp spec α` have have one of three forms:
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
 * `failure` which terminates the computation early
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-def OracleComp {ι : Type u} (spec : OracleSpec.{u,v,v} ι) :
-    Type v → Type (max (max u (v + 1)) (v + 1)) :=
-  OptionT (FreeMonad (OracleQuery spec))
+def OracleComp {ι : Type u} (spec : OracleSpec.{u,v,w} ι) :
+    Type v → Type (max u v (w + 1)) :=
+  OptionT (FreeMonad (OracleQuery.{u,v,w} spec))
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/
-abbrev ProbComp := OracleComp unifSpec
+abbrev ProbComp : Type → Type 1 := OracleComp unifSpec
 
 namespace OracleComp
 

@@ -26,22 +26,36 @@ namespace SimOracle
 /-- Given a lifting from oracles in `spec₁` to `spec₂`,
 and a `SimOracle` from `spec` to `spec₁`, get a simulation from `spec` to `spec₂`
 by lifting the result of simulation. -/
-def liftSO [spec₁ ⊂ₒ spec₂] (so : SimOracle spec spec₁ σ) : SimOracle spec spec₂ σ where
+@[reducible]
+def liftSO [MonadLift (OracleQuery spec₁) (OracleQuery spec₂)]
+    (so : SimOracle spec spec₁ σ) : SimOracle spec spec₂ σ where
   impl q := liftM (so.impl q)
 
+/-- Automatically lift a simulation oracle given a lift on the output oracle sets.
+`simp` reduces this back down to `liftSO`. -/
+instance [MonadLift (OracleQuery spec₁) (OracleQuery spec₂)] :
+    Coe (SimOracle spec spec₁ σ) (SimOracle spec spec₂ σ) where
+  coe := liftSO
+
+variable [MonadLift (OracleQuery spec₁) (OracleQuery spec₂)]
+
 @[simp]
-lemma impl_liftSO (q : OracleQuery spec α) [spec₁ ⊂ₒ spec₂] (so : SimOracle spec spec₁ σ) :
+lemma coe_eq_liftSO
+    (so : SimOracle spec spec₁ σ) : (↑so : SimOracle spec spec₂ σ) = so.liftSO := rfl
+
+@[simp]
+lemma impl_liftSO (q : OracleQuery spec α) (so : SimOracle spec spec₁ σ) :
     (liftSO so : SimOracle spec spec₂ σ).impl q = liftM (so.impl q) := rfl
 
 @[simp]
-lemma simulateT_liftSO_eq_liftM_simulateT [spec₁ ⊂ₒ spec₂]
+lemma simulateT_liftSO_eq_liftM_simulateT
     (so : SimOracle spec spec₁ σ) (oa : OracleComp spec α) :
     (simulateT (liftSO so) oa : StateT σ (OracleComp spec₂) α) =
       liftM (simulateT so oa) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp; rfl
   | query_bind i t oa h =>
-      simp at h
+      simp only [StateT.liftM_eq, liftM_eq_liftComp] at h
       simp [Function.comp_def, h]
       rfl
   | failure => simp; rfl

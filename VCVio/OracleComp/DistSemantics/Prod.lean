@@ -16,9 +16,11 @@ TODO: Variables
 
 open OracleSpec ENNReal BigOperators Prod
 
+universe u v w
+
 namespace OracleComp
 
-variable {ι : Type} {spec : OracleSpec ι} {α β γ δ : Type}
+variable {ι : Type u} {spec : OracleSpec ι} {α β γ δ : Type v}
 
 lemma probOutput_prod_mk_eq_probEvent [spec.FiniteRange] [DecidableEq α] [DecidableEq β]
     (oa : OracleComp spec (α × β)) (x : α) (y : β) :
@@ -35,27 +37,29 @@ lemma snd_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β
     snd <$> map f g <$> oa = (g ∘ Prod.snd) <$> oa := by
   simp [Functor.map_map]; rfl
 
-section seq_map_mk
+section seq_map_mk -- TODO: bind versions of these lemmas
 
-variable (oa : OracleComp spec α) (ob : OracleComp spec β)
-    (x : α) (y : β)
-
-@[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul [spec.FiniteRange] :
-    [= (x, y) | (·, ·) <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
-  probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
+variable [spec.FiniteRange] (oa : OracleComp spec α) (ob : OracleComp spec β)
+    (x : α) (y : β) (p : α → Prop) (q : β → Prop)
 
 @[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul' [spec.FiniteRange] :
-    [= (x, y) | (λ x y ↦ (y, x)) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
-  (probOutput_seq_map_swap oa ob (·, ·) (x, y)).trans
-    (probOutput_seq_map_prod_mk_eq_mul oa ob x y)
 
-@[simp]
-lemma probOutput_seq_map_prod_mk_eq_mul'' [spec.FiniteRange] :
+lemma probOutput_seq_map_prod_mk_eq_mul :
     [= (x, y) | Prod.mk <$> oa <*> ob] = [= x | oa] * [= y | ob] :=
   probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2 x y
 
+lemma probOutput_seq_map_prod_mk_eq_mul' :
+    [= (x, y) | (λ x y ↦ (y, x) : β → α → α × β) <$> ob <*> oa] = [= x | oa] * [= y | ob] :=
+  by rw [probOutput_seq_map_swap, probOutput_seq_map_prod_mk_eq_mul]
+
+@[simp]
+lemma probEvent_seq_map_prod_mk_eq_mul :
+    [λ z ↦ p z.1 ∧ q z.2 | Prod.mk <$> oa <*> ob] = [p | oa] * [q | ob] :=
+  probEvent_seq_map_eq_mul Prod.mk oa ob _ p q (λ _ _ _ _ ↦ Iff.rfl)
+
+lemma probEvent_seq_map_prod_mk_eq_mul' :
+    [λ z ↦ p z.1 ∧ q z.2 | (λ x y ↦ (y, x) : β → α → α × β) <$> ob <*> oa] = [p | oa] * [q | ob] :=
+  by rw [probEvent_seq_map_swap, probEvent_seq_map_prod_mk_eq_mul]
 
 end seq_map_mk
 

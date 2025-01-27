@@ -17,82 +17,71 @@ returning the result as a list of length `n`.
 Note that while the executions are independent, they may no longer be after calling `simulate`.
 -/
 
+open OracleSpec
 
-open OracleSpec Vector
+universe u v w
 
 namespace OracleComp
 
-open ENNReal
-
-
 /-- Run the computation `oa` repeatedly `n` times to get a vector of `n` results. -/
-def replicate {ι : Type} {spec : OracleSpec ι} {α : Type}
-    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) := do
-  (List.replicate n ()).mapM (λ () ↦ oa)
+def replicate {ι : Type u} {spec : OracleSpec ι} {α : Type v}
+    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) :=
+  (List.replicate n PUnit.unit).mapM (λ _ : PUnit.{v + 1} ↦ oa)
 
-def replicateTR {ι : Type} {spec : OracleSpec ι} {α : Type}
-    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) := do
+def replicateTR {ι : Type u} {spec : OracleSpec ι} {α : Type v}
+    (n : ℕ) (oa : OracleComp spec α) : OracleComp spec (List α) :=
   (List.replicateTR n ()).mapM (λ () ↦ oa)
 
-variable {ι : Type} {spec : OracleSpec ι} {α β : Type} (oa : OracleComp spec α)
+variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
+  (oa : OracleComp spec α) (n : ℕ)
 
 @[simp]
-lemma replicate_zero (oa : OracleComp spec α) :
-    replicate 0 oa = return [] := rfl
+lemma replicate_zero : replicate 0 oa = return [] := rfl
 
 @[simp]
-lemma replicate_succ (oa : OracleComp spec α) (n : ℕ) :
-    replicate (n + 1) oa = List.cons <$> oa <*> replicate n oa := by
+lemma replicateTR_zero : replicate 0 oa = return [] := rfl
+
+@[simp]
+lemma replicate_succ : replicate (n + 1) oa = List.cons <$> oa <*> replicate n oa := by
   rw [replicate, List.replicate_succ, List.mapM_cons, seq_eq_bind, bind_map_left]; rfl
 
 @[simp]
-lemma replicate_pure (x : α) (n : ℕ) :
+lemma replicate_pure (x : α) :
     (pure x : OracleComp spec α).replicate n = pure (List.replicate n x) := by
   induction n with
   | zero => rfl
   | succ n hn => simp [hn, List.replicate]
 
 @[simp]
-lemma probFailure_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) :
+lemma probFailure_replicate [spec.FiniteRange] :
     [⊥ | oa.replicate n] = 1 - (1 - [⊥ | oa]) ^ n := by
   rw [replicate, probFailure_list_mapM, List.map_replicate, List.prod_replicate]
 
 /-- The probability of getting a vector from `replicate` is the product of the chances of
 getting each of the individual elements. -/
 @[simp]
-lemma probOutput_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) (xs : List α) :
+lemma probOutput_replicate [spec.FiniteRange] (xs : List α) :
     [= xs | oa.replicate n] = if xs.length = n then (xs.map ([= · | oa])).prod else 0 := by
   rw [replicate, probOutput_list_mapM, List.length_replicate]
   split_ifs with hxs
   · exact congr_arg List.prod <| List.ext_getElem (by simp [hxs]) (by simp)
   · rfl
 
-lemma probEvent_of_probEvent_cons [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ)
-    (p : List α → Prop) (hp : p [])
-    (q : α → Prop) (hq : ∀ x xs, p (x :: xs) ↔ q x ∧ p xs) :
+lemma probEvent_replicate_of_probEvent_cons [spec.FiniteRange]
+    (p : List α → Prop) (hp : p []) (q : α → Prop) (hq : ∀ x xs, p (x :: xs) ↔ q x ∧ p xs) :
     [p | oa.replicate n] = [q | oa] ^ n := by
   induction n with
-  | zero => {
-    simpa using hp
-  }
-  | succ n hn => {
-    simp [pow_succ, ← hn]
-
-    sorry
-  }
+  | zero => simpa using hp
+  | succ n hn =>
+      simp_rw [replicate_succ, probEvent_seq_map_eq_probEvent, hq, pow_succ, ← hn,
+        probEvent_seq_map_prod_mk_eq_mul, mul_comm [q | oa]]
 
 @[simp]
 lemma probEvent_all_replicate [spec.FiniteRange] (oa : OracleComp spec α) (n : ℕ) (p : α → Bool) :
     [λ xs ↦ List.all xs p | oa.replicate n] = [λ x ↦ p x | oa] ^ n := by
-  induction n with
-  | zero => {
-    simp
-  }
-  | succ n hn => {
-    simp [pow_succ, ← hn]
-
-    sorry
-  }
+  apply probEvent_replicate_of_probEvent_cons
+  · rfl
+  · simp only [List.all_cons, Bool.and_eq_true, List.all_eq_true, implies_true]
 
 lemma support_eq_setOf_probOutput_eq_zero [spec.FiniteRange] (oa : OracleComp spec α) :
     oa.support = {x | [= x | oa] ≠ 0} := by

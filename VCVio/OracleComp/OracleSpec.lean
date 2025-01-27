@@ -24,7 +24,7 @@ universe u u' v w
 /-- A structure to represents a specification of oracles available to a computation.
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
 Represented as a map from indices `i` to the domain and codomain of the corresponding oracle. -/
-def OracleSpec (ι : Type u) : Type (max (max u (v + 1)) (w + 1)) :=
+def OracleSpec (ι : Type u) : Type (max u (v + 1) (w + 1)) :=
   (i : ι) → Type v × Type w
 
 namespace OracleSpec

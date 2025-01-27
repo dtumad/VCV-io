@@ -41,7 +41,7 @@ infix : 50 " ⊂ₒ " => SubSpec
 
 namespace SubSpec
 
-variable [h : spec ⊂ₒ superSpec]
+variable [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
 -- TODO: this may be a good simp lemma for normalization in general?
 -- Guessing the rhs is almost always easier to prove things about
@@ -116,7 +116,7 @@ def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ)
       [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
       OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
 
-variable (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec]
+variable (superSpec : OracleSpec τ) [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
 lemma liftComp_def (oa : OracleComp spec α) :
     liftComp oa superSpec = simulate' ⟨liftM⟩ PUnit.unit oa := rfl
