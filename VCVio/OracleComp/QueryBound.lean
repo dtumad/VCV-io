@@ -78,8 +78,9 @@ lemma isQueryBound_bind {oa : OracleComp spec α} {ob : α → OracleComp spec �
   obtain ⟨x, count₁, h₁, y, h⟩ := h
   have hc := countingOracle.le_of_mem_support_simulate h
   specialize h1 count₁ (mem_support_map h₁ snd)
-  specialize h2 x (mem_support_of_mem_support_simulate' <| mem_support_map h₁ fst)
-    (count - count₁) (countingOracle.sub_mem_support_snd_map_simulate <| mem_support_map h snd)
+  specialize h2 x (SimOracle.IsTracking.mem_support_of_mem_support_simulate' <|
+      mem_support_map h₁ fst) (count - count₁)
+      (countingOracle.sub_mem_support_snd_map_simulate <| mem_support_map h snd)
   refine le_of_eq_of_le (funext (λ i ↦ Nat.add_sub_of_le (hc i))).symm (add_le_add h1 h2)
 
 /-- Version of `isQueryBound_bind` that allows the second query bound to vary based on the

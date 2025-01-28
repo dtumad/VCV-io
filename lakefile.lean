@@ -1,14 +1,29 @@
 import Lake
 open Lake DSL
 
+abbrev vcvLinters : Array LeanOption := #[
+  -- ⟨`linter.docPrime, true⟩,
+  ⟨`linter.hashCommand, true⟩,
+  ⟨`linter.oldObtain, true,⟩,
+  ⟨`linter.refine, true⟩,
+  ⟨`linter.style.cdot, true⟩,
+  ⟨`linter.style.dollarSyntax, true⟩,
+  -- ⟨`linter.style.lambdaSyntax, true⟩,
+  ⟨`linter.style.longLine, true⟩,
+  ⟨`linter.style.longFile, .ofNat 1500⟩,
+  ⟨`linter.style.missingEnd, true⟩,
+  ⟨`linter.style.setOption, true⟩
+]
+
 package VCVio where
   -- Settings applied to both builds and interactive editing
   leanOptions := #[
     ⟨`pp.unicode.fun, true⟩, -- pretty-prints `fun a ↦ b`
     ⟨`pp.proofs.withType, false⟩,
     ⟨`autoImplicit, false⟩,
-    ⟨`relaxedAutoImplicit, false⟩
-  ]
+    ⟨`relaxedAutoImplicit, false⟩]
+    ++ vcvLinters.map fun s ↦
+      { s with name := `weak ++ s.name }
 
 require "leanprover-community" / "mathlib" @ git "v4.16.0-rc2"
 

@@ -18,11 +18,11 @@ returning only the value `f x y`.
 
 open Mathlib OracleSpec ENNReal BigOperators
 
+universe u v w
+
 namespace OracleComp
 
-variable {ι : Type} {spec : OracleSpec ι} {α β γ : Type}
-
-section basic
+variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type v}
 
 variable (oa : OracleComp spec α) (og : OracleComp spec (α → β))
 
@@ -68,7 +68,7 @@ lemma probFailure_seq [spec.FiniteRange] :
       rw [ENNReal.div_self hoa probFailure_ne_top]
       exact probFailure_le_one
 
-lemma probEvent_seq_eq_tsum [spec.FiniteRange] (p : β → Prop) [DecidablePred p] :
+lemma probEvent_seq_eq_tsum [spec.FiniteRange] (p : β → Prop) :
     [p | og <*> oa] = ∑' (g : α → β), [= g | og] * [p ∘ g | oa] := by
   simp only [seq_eq_bind, probEvent_bind_eq_tsum, probEvent_map]
 
@@ -77,8 +77,6 @@ lemma probEvent_seq_eq_tsum_ite [spec.FiniteRange] (p : β → Prop) [DecidableP
       if p (g x) then [= g | og] * [= x | oa] else 0 := by
   simp_rw [probEvent_seq_eq_tsum, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left,
     Function.comp_apply, mul_ite, mul_zero]
-
-end basic
 
 -- lemma evalDist_seq_congr_ext {oa oa' : OracleComp spec α} {og og' : OracleComp spec (α → β)}
 --     (h1 : evalDist oa = evalDist oa')
@@ -138,7 +136,7 @@ lemma probOutput_seq_map_eq_tsum_ite [spec.FiniteRange] [DecidableEq γ]
 --   prob_event_return, mul_ite, mul_one, mul_zero]
 
 lemma probEvent_seq_map_eq_probEvent_comp_uncurry [spec.FiniteRange]
-    (p : γ → Prop) [DecidablePred p] : [p | f <$> oa <*> ob] =
+    (p : γ → Prop) : [p | f <$> oa <*> ob] =
       [p ∘ f.uncurry | Prod.mk <$> oa <*> ob] := by
   rw [probEvent_comp]
   refine probEvent_congr' ?_ (congr_arg evalDist ?_)
@@ -148,7 +146,7 @@ lemma probEvent_seq_map_eq_probEvent_comp_uncurry [spec.FiniteRange]
     rfl
 
 
-lemma probEvent_seq_map_eq_probEvent [spec.FiniteRange] (p : γ → Prop) [DecidablePred p] :
+lemma probEvent_seq_map_eq_probEvent [spec.FiniteRange] (p : γ → Prop) :
     [p | f <$> oa <*> ob] = [λ z ↦ p (f z.1 z.2) | Prod.mk <$> oa <*> ob] :=
   probEvent_seq_map_eq_probEvent_comp_uncurry oa ob f p
 
@@ -168,7 +166,7 @@ lemma evalDist_seq_map_swap [spec.FiniteRange] :
   evalDist_ext_probEvent (probOutput_seq_map_swap oa ob f)
 
 @[simp]
-lemma probEvent_seq_map_swap [spec.FiniteRange] (p : γ → Prop) [DecidablePred p] :
+lemma probEvent_seq_map_swap [spec.FiniteRange] (p : γ → Prop) :
     [p | Function.swap f <$> ob <*> oa] = [p | f <$> oa <*> ob] :=
   probEvent_congr (λ _ ↦ Iff.rfl) (evalDist_seq_map_swap oa ob f)
 
@@ -228,17 +226,21 @@ lemma probOutput_seq_map_eq_mul [spec.FiniteRange] (x : α) (y : β) (z : γ)
 /-- If the results of the computations `oa` and `ob` are combined with some function `f`,
 and `p` is an event such that outputs of `f` are in `p` iff the individual components
 lie in some other events `q1` and `q2`, then the probability of the event `p` is the
-product of the probabilites holding individually. -/
-lemma probEvent_seq_map_eq_mul [spec.FiniteRange]
+product of the probabilites holding individually.
+NOTE: universe levels of `α`, `β`, `γ` -/
+lemma probEvent_seq_map_eq_mul {ι : Type u} {spec : OracleSpec ι}
+    {α β γ : Type v} (f : α → β → γ) [spec.FiniteRange]
+    (oa : OracleComp spec α) (ob : OracleComp spec β)
     (p : γ → Prop) (q1 : α → Prop) (q2 : β → Prop)
-    [DecidablePred p] [DecidablePred q1] [DecidablePred q2]
     (h : ∀ x ∈ oa.support, ∀ y ∈ ob.support, p (f x y) ↔ q1 x ∧ q2 y) :
     [p | f <$> oa <*> ob] = [q1 | oa] * [q2 | ob] := by
+  have : DecidablePred q1 := Classical.decPred q1
+  have : DecidablePred q2 := Classical.decPred q2
   rw [probEvent_seq_map_eq_probEvent]
-  calc [λ (x, y) ↦ p (f x y) | (·, ·) <$> oa <*> ob] =
-      [λ (x, y) ↦ q1 x ∧ q2 y | (·, ·) <$> oa <*> ob] :=
+  calc [λ z : α × β ↦ p (f z.1 z.2) | Prod.mk <$> oa <*> ob] =
+      [λ z ↦ q1 z.1 ∧ q2 z.2 | Prod.mk <$> oa <*> ob] :=
         probEvent_ext <| by simpa using λ x y hx hy ↦ h x hx y hy
-    _ = ∑' (x : α) (y : β), if q1 x ∧ q2 y then [= (x, y) | (·, ·) <$> oa <*> ob] else 0 := by
+    _ = ∑' (x : α) (y : β), if q1 x ∧ q2 y then [= (x, y) | Prod.mk <$> oa <*> ob] else 0 := by
       rw [probEvent_eq_tsum_ite, ENNReal.tsum_prod']
     _ = ∑' (x : α) (y : β), if q1 x ∧ q2 y then [= x | oa] * [= y | ob] else 0 := by
       simp_rw [probOutput_seq_map_eq_mul_of_injective2 oa ob Prod.mk Prod.mk.injective2]

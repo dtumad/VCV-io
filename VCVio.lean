@@ -12,6 +12,7 @@ import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
 import VCVio.OracleComp.Coercions.Append
 import VCVio.OracleComp.Coercions.HasUnifSelect
+import VCVio.OracleComp.Coercions.SimOracle
 import VCVio.OracleComp.Coercions.SubSpec
 import VCVio.OracleComp.Constructions.GenerateSeed
 import VCVio.OracleComp.Constructions.Replicate
@@ -31,6 +32,7 @@ import VCVio.OracleComp.QueryBound
 import VCVio.OracleComp.RunIO
 import VCVio.OracleComp.SimSemantics.Append
 import VCVio.OracleComp.SimSemantics.Constructions
+import VCVio.OracleComp.SimSemantics.IsTracking
 import VCVio.OracleComp.SimSemantics.ParallelAppend
 import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle

@@ -106,6 +106,7 @@ lemma simulate_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : 
 lemma simulate'_maskState (so : spec →[σ]ₛₒ specₜ) (e : σ ≃ τ) (s : τ) (oa : OracleComp spec α) :
     simulate' (so.maskState e) s oa = simulate' so (e.symm s) (oa) := by
   simp only [simulate'_def, simulate_maskState, fst_map_prod_map, CompTriple.comp_eq]
+  sorry
 
 end maskState
 

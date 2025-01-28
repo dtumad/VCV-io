@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Constructions
+import VCVio.OracleComp.Coercions.Append
 
 /-!
 # Append Operation for Simulation Oracles
@@ -24,7 +25,9 @@ namespace SimOracle
 
 section append
 
-variable {ι₁ ι₂ ιₜ : Type} {spec₁ : OracleSpec ι₁}
+universe u v w
+
+variable {ι₁ : Type u} {ι₂ : Type v} {ιₜ : Type w} {spec₁ : OracleSpec ι₁}
   {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type}
 
 /-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,

@@ -18,6 +18,8 @@ Probably even a lot of the uniform constructions themselves (like `uniformOfList
 
 open OracleSpec BigOperators ENNReal
 
+universe u v w
+
 namespace OracleComp
 
 section uniformSelect
@@ -26,7 +28,7 @@ section uniformSelect
 The container type is given by `cont` with the resulting type given by `β`.
 NOTE: This current implementation doesn't impose any "correctness" conditions,
 it purely exists to provide the notation, could revisit that in the future. -/
-class HasUniformSelect (cont : Type) (β : outParam Type) where
+class HasUniformSelect (cont : Type u) (β : outParam (Type)) where
   uniformSelect : cont → ProbComp β
 
 /-- Given a selectable object, we can get a random element by indexing into the element vector. -/
@@ -61,14 +63,21 @@ lemma uniformSelectList_cons (x : α) (xs : List α) :
     ($ x :: xs : ProbComp α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
 
 @[simp]
+lemma test {m : Type u → Type v} [Monad m]
+    {α : Type u} (x : m α) : (OptionT.lift x).run = x := rfl
+
+@[simp]
 lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) =
     match xs with
     | [] => PMF.pure none
     | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map (some (x :: xs)[·]) :=
   match xs with
   | [] => rfl
-  | x :: xs => by simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map,
-      evalDist_uniformFin, PMF.map_comp, Option.map_comp_some, Nat.succ_eq_add_one]; sorry
+  | x :: xs => by
+    apply OptionT.ext
+    simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map, evalDist_liftM,
+      OptionT.run_map, test, PMF.monad_pure_eq_pure, PMF.monad_bind_eq_bind, Nat.succ_eq_add_one]
+    simp [OptionT.run, PMF.monad_map_eq_map, PMF.map, Function.comp_def]
 
 @[simp]
 lemma support_uniformSelectList (xs : List α) :
@@ -115,7 +124,8 @@ end uniformSelectList
 
 section uniformSelectVector
 
-/-- Select a random element from a vector by indexing into it with a uniform value. -/
+/-- Select a random element from a vector by indexing into it with a uniform value.
+TODO: different types of vectors in mathlib now -/
 instance hasUniformSelectVector (α : Type) (n : ℕ) :
     HasUniformSelect (Vector α (n + 1)) α where
   uniformSelect := λ xs ↦ $ xs.toList
@@ -222,25 +232,25 @@ lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     evalDist ($ s) = if hs : s.Nonempty then
       OptionT.lift (PMF.uniformOfFinset s hs) else failure := by
   refine PMF.ext λ x ↦ ?_
-  sorry
-  -- cases x with
-  -- | none => sorry
-  -- | some x => refine (probOutput_uniformSelectFinset s x).trans ?_
-  -- by_cases hs : s.Nonempty
-  -- · simp [hs]
-  --   refine PMF.ext λ x ↦ ?_
-
-  --   cases x with
-  --   | none => simp [hs]
-  --   | some x =>
-  --       rw [evalDist_apply_some, probOutput_uniformSelectFinset]
-  --       refine symm ((tsum_eq_single x ?_).trans (by simp))
-  --       simp only [ne_eq, @eq_comm _ _ x, PMF.uniformOfFinset_apply, Function.comp_apply,
-  --         PMF.pure_apply, Option.some.injEq, mul_ite, mul_one, mul_zero, ite_eq_right_iff,
-  --         ENNReal.inv_eq_zero, natCast_ne_top, imp_false]
-  --       tauto
-  -- · rw [Finset.nonempty_iff_ne_empty, not_ne_iff] at hs
-  --   simp [uniformSelectFinset_def, hs]
+  by_cases hs : s.Nonempty
+  · cases x with
+    | none =>
+        refine (probFailure_uniformSelectFinset _).trans ?_
+        simp [hs, OptionT.lift, OptionT.mk]
+    | some x =>
+        simp only [hs, ↓reduceDIte]
+        refine (probOutput_uniformSelectFinset _ _).trans ?_
+        simp only [OptionT.lift, OptionT.mk, PMF.monad_pure_eq_pure, PMF.monad_bind_eq_bind,
+          PMF.bind_apply, PMF.uniformOfFinset_apply, PMF.pure_apply, Option.some.injEq, mul_ite,
+          mul_one, mul_zero]
+        refine symm <| (tsum_eq_single x ?_).trans ?_
+        · simp only [ne_eq, @eq_comm _ x, ite_eq_right_iff, ENNReal.inv_eq_zero,
+            natCast_ne_top, imp_false]
+          intros
+          tauto
+        · simp only [↓reduceIte, ite_eq_ite]
+  · simp only [Finset.not_nonempty_iff_eq_empty] at hs
+    simp [hs, uniformSelectFinset_def]
 
 end uniformSelectFinset
 
@@ -282,16 +292,16 @@ lemma probFailure_uniformOfFintype : [⊥ | $ᵗ α] = 0 :=
 
 @[simp]
 lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
-    evalDist ($ᵗ α) = OptionT.lift (PMF.uniformOfFintype α) :=
-  sorry
-  -- PMF.ext λ x ↦ match x with
-  -- | none => by simp [evalDist_apply_none, PMF.monad_map_eq_map]
-  -- | some x => by
-  --     simp only [evalDist_apply_some, probOutput_uniformOfFintype, PMF.map_apply,
-  --       Option.some.injEq, PMF.uniformOfFintype_apply]
-  --     refine symm ((tsum_eq_single x ?_).trans ?_)
-  --     · simp [@eq_comm _ x]
-  --     · simp
+    evalDist ($ᵗ α) = OptionT.lift (PMF.uniformOfFintype α) := by
+  refine OptionT.ext ?_
+  simp
+  refine PMF.ext λ x ↦ match x with
+  | none => by simp
+  | some x => by
+      simp [evalDist_apply_some]
+      refine symm ((tsum_eq_single x ?_).trans ?_)
+      · simp [@eq_comm _ x]
+      · simp
 
 @[simp]
 lemma support_uniformOfFintype [Fintype α] : ($ᵗ α).support = Set.univ := by

@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.IsTracking
 
 /-!
 # Logging Queries Made by a Computation
@@ -61,5 +61,8 @@ lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
     match q with | query i t => (do
       let u ← query i t
       modifyGet λ log ↦ (u, log.logQuery t u)) := rfl
+
+instance : (loggingOracle (spec := spec)).IsTracking where
+  state_indep | query _ _, _ => rfl
 
 end loggingOracle

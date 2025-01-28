@@ -33,15 +33,17 @@ namespace OracleComp
 
 open Option ENNReal BigOperators
 
-variable {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'} {α β : Type}
-  [spec.FiniteRange] [spec'.FiniteRange]
+universe u u' v w
+
+variable {ι : Type u} {spec : OracleSpec ι} {ι' : Type v} {spec' : OracleSpec ι'}
+  {α β γ : Type w} [spec.FiniteRange] [spec'.FiniteRange]
 
 section evalDist
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 We use `OptionT PMF` rather than `PMF ∘ Option` as the generated monad instance is nicer. -/
-noncomputable def evalDist {α : Type} (oa : OracleComp spec α) : OptionT PMF α :=
+noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) : OptionT PMF α :=
   oa.mapM (fail := failure)
     (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
 
@@ -682,9 +684,8 @@ lemma probFailure_bind_of_const [Nonempty α] (r : ℝ≥0∞) (h : ∀ x, [⊥ 
     refine mul_le_of_le_div (le_of_le_of_eq probFailure_le_one ?_)
     refine symm (ENNReal.div_self hr this)
 
-lemma probFailure_bind_eq_sub_mul {ι : Type} {spec : OracleSpec ι} [spec.FiniteRange] {α β : Type}
-    {oa : OracleComp spec α} {ob : α → OracleComp spec β} (r : ℝ≥0∞)
-    (h : ∀ x, [⊥ | ob x] = r) :
+lemma probFailure_bind_eq_sub_mul {oa : OracleComp spec α} {ob : α → OracleComp spec β}
+    (r : ℝ≥0∞) (h : ∀ x, [⊥ | ob x] = r) :
     [⊥ | oa >>= ob] = 1 - (1 - [⊥ | oa]) * (1 - r) := by
   rw [probFailure_bind_eq_tsum]
   rw [← tsum_probOutput_eq_sub]

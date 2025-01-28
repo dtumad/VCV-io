@@ -20,7 +20,10 @@ where the non-inclusive subset symbol reflects that we avoid defining this insta
 
 open OracleSpec OracleComp BigOperators ENNReal
 
-variable {ι τ : Type} {spec : OracleSpec ι} {superSpec : OracleSpec τ} {α β γ : Type}
+universe u v w
+
+variable {ι : Type u} {τ : Type v}
+  {spec : OracleSpec ι} {superSpec : OracleSpec τ} {α β γ : Type w}
 
 namespace OracleSpec
 
@@ -38,7 +41,7 @@ infix : 50 " ⊂ₒ " => SubSpec
 
 namespace SubSpec
 
-variable [h : spec ⊂ₒ superSpec]
+variable [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
 -- TODO: this may be a good simp lemma for normalization in general?
 -- Guessing the rhs is almost always easier to prove things about
@@ -109,22 +112,25 @@ namespace OracleComp
 section liftComp
 
 /-- Lift a computation from `spec` to `superSpec` using a `SubSpec` instance on queries. -/
-def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec] :
-    OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' ()
+def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ)
+      [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
+      OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
 
-variable (superSpec : OracleSpec τ) [h : spec ⊂ₒ superSpec]
+variable (superSpec : OracleSpec τ) [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
 lemma liftComp_def (oa : OracleComp spec α) :
-    liftComp oa superSpec = simulate' ⟨liftM⟩ () oa := rfl
+    liftComp oa superSpec = simulate' ⟨liftM⟩ PUnit.unit oa := rfl
 
 @[simp]
 lemma liftComp_pure (x : α) : liftComp (pure x : OracleComp spec α) superSpec = pure x :=
-  simulate'_pure _ () x
+  simulate'_pure _ _ x
 
+@[simp]
 lemma liftComp_query (i : ι) (t : spec.domain i) :
     liftComp (query i t : OracleComp spec _) superSpec = h.monadLift (query i t) :=
-  simulate'_query _ () _
+  simulate'_query _ _ _
 
+@[simp]
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     liftComp (oa >>= ob) superSpec =
       liftComp oa superSpec >>= λ x ↦ liftComp (ob x) superSpec := by
@@ -132,6 +138,16 @@ lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
 
 @[simp]
 lemma liftComp_failure : liftComp (failure : OracleComp spec α) superSpec = failure := rfl
+
+@[simp]
+lemma liftComp_map (oa : OracleComp spec α) (f : α → β) :
+    liftComp (f <$> oa) superSpec = f <$> liftComp oa superSpec := by
+  simp [liftComp]
+
+@[simp]
+lemma liftComp_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
+    liftComp (og <*> oa) superSpec = liftComp og superSpec <*> liftComp oa superSpec := by
+  simp [liftComp, seq_eq_bind]
 
 /-- Lifting a computation to a different set of oracles doesn't change the output distribution,
 since `evalDist` assumes uniformly random queries. -/
@@ -172,21 +188,23 @@ lemma probEvent_liftComp [spec.FiniteRange] [superSpec.FiniteRange]
 
 end liftComp
 
-/-- Extend a lifting or -/
-instance [h : spec ⊂ₒ superSpec] [MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
+/-- Extend a lifting on `OracleQuery` to a lifting on `OracleComp`. -/
+instance [MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
     MonadLift (OracleComp spec) (OracleComp superSpec) where
   monadLift oa := liftComp oa superSpec
 
-variable [h : spec ⊂ₒ superSpec] [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
+variable [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
+@[simp]
 lemma liftM_eq_liftComp (oa : OracleComp spec α) :
-    (oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
+    (liftM oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
 
-/-- View a probabalistic computation as one with a larger set of oracles.
-We make this a special instance as it's often needed in situations where the
-type-class instance is not yet available (e.g. defining security experiments). -/
-instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
-    Coe (ProbComp α) (OracleComp spec α) where
-  coe oa := oa
+-- NOTE: Should be handled by other things now.
+-- /-- View a probabalistic computation as one with a larger set of oracles.
+-- We make this a special instance as it's often needed in situations where the
+-- type-class instance is not yet available (e.g. defining security experiments). -/
+-- instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
+--     Coe (ProbComp α) (OracleComp spec α) where
+--   coe oa := oa
 
 end OracleComp
