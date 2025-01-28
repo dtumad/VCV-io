@@ -18,39 +18,47 @@ It also allows for generating things like seed values for a computation more tig
 
 open OracleComp OracleSpec Function Prod
 
+universe u v w
+
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
-def countingOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} :
-    SimOracle spec spec (ι → ℕ) where
-  impl | query i t => do
-    modify λ qc ↦ update qc i (qc i + 1)
-    query i t
+def countingOracle {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
+    SimOracle spec spec (ι → ℕ) where impl
+  | q => do
+    modify λ qc ↦ update qc q.index (qc q.index + 1)
+    q
 
 namespace countingOracle
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
+variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
     (oa : OracleComp spec α) (qc : ι → ℕ)
 
 @[simp]
 protected lemma apply_eq (q : OracleQuery spec α) :
-    countingOracle.impl q = match q with
-      | query i t => (do modify λ qc ↦ update qc i (qc i + 1); query i t) := by cases q; rfl
+    countingOracle.impl q = (do modify λ qc ↦ update qc q.index (qc q.index + 1); q) := rfl
 
+/-- `countingOracle` has no effect on the behavior of the computation itself. -/
 instance : SimOracle.IsTracking (countingOracle (spec := spec)) where
   state_indep | query _ _, _ => rfl
 
-protected lemma run'_simulateT_eq_self : (simulateT countingOracle oa).run' qc = oa :=
-  SimOracle.IsTracking.run'_simulateT_eq_self countingOracle oa qc
-
-protected lemma fst_map_run_simulateT_eq_self :
-    fst <$> (simulateT countingOracle oa).run qc = oa :=
-  countingOracle.run'_simulateT_eq_self oa qc
-
-protected lemma simulate'_eq_self : simulate' countingOracle qc oa = oa :=
-  countingOracle.run'_simulateT_eq_self oa qc
-
-protected lemma fst_map_simulate_eq_self : Prod.fst <$> simulate countingOracle qc oa = oa :=
-  countingOracle.run'_simulateT_eq_self oa qc
+lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι → ℕ) :
+    (simulateT countingOracle oa).run qc =
+      map id (qc + ·) <$> (simulateT countingOracle oa).run 0 := by
+  revert qc
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | query_bind i t oa h =>
+      intro qc
+      simp [h _ (update qc i (qc i + 1)), h _ (update 0 i 1)]
+      refine funext λ y ↦ congr_arg (· <$> _) (funext λ x ↦ ?_)
+      simp only [eq_iff_fst_eq_snd_eq, map_fst, id_eq, map_snd, true_and]
+      cases x
+      ext j
+      by_cases hj : j = i
+      · induction hj
+        simp [add_assoc]
+      · simp [hj]
+  | failure => simp
 
 section support
 
@@ -111,8 +119,9 @@ lemma le_of_mem_support_simulate {oa : OracleComp spec α} {qc : ι → ℕ} {z 
 
 section snd_map
 
-lemma mem_support_snd_map_simulate_iff (oa : OracleComp spec α) (qc qc' : ι → ℕ) :
-    qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support ↔
+lemma mem_support_snd_map_simulate_iff {α ι : Type u} [DecidableEq ι] {spec : OracleSpec ι}
+    (oa : OracleComp spec α) (qc qc' : ι → ℕ) :
+    qc' ∈ (@snd α _ <$> simulate countingOracle qc oa).support ↔
       ∃ qc'', ∃ x, (x, qc'') ∈ (simulate countingOracle 0 oa).support ∧ qc + qc'' = qc' := by
   simp only [support_map, Set.mem_image, Prod.exists, exists_eq_right]
   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
@@ -126,8 +135,8 @@ lemma mem_support_snd_map_simulate_iff (oa : OracleComp spec α) (qc qc' : ι �
     refine ⟨qc'', h, hqc''⟩
 
 lemma mem_support_snd_map_simulate_iff_of_le (oa : OracleComp spec α) {qc qc' : ι → ℕ}
-    (hqc : qc ≤ qc') : qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support ↔
-      qc' - qc ∈ (Prod.snd <$> simulate countingOracle 0 oa).support := by
+    (hqc : qc ≤ qc') : qc' ∈ (@snd α _ <$> simulate countingOracle qc oa).support ↔
+      qc' - qc ∈ (@snd α _ <$> simulate countingOracle 0 oa).support := by
   simp only [mem_support_snd_map_simulate_iff, zero_add]
   refine exists_congr (λ qc'' ↦ exists_congr (λ x ↦ ?_))
   refine and_congr_right' ⟨λ h ↦ funext (λ x ↦ ?_), λ h ↦ funext (λ x ↦ ?_)⟩
@@ -135,14 +144,14 @@ lemma mem_support_snd_map_simulate_iff_of_le (oa : OracleComp spec α) {qc qc' :
   · simp [h, Nat.add_sub_cancel' (hqc x)]
 
 lemma le_of_mem_support_snd_map_simulate {oa : OracleComp spec α} {qc qc' : ι → ℕ}
-    (h : qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support) : qc ≤ qc' := by
+    (h : qc' ∈ (@snd α _ <$> simulate countingOracle qc oa).support) : qc ≤ qc' := by
   simp only [support_map, Set.mem_image, Prod.exists, exists_eq_right] at h
   obtain ⟨y, hy⟩ := h
   exact le_of_mem_support_simulate hy
 
 lemma sub_mem_support_snd_map_simulate {oa : OracleComp spec α} {qc qc' : ι → ℕ}
-    (h : qc' ∈ (Prod.snd <$> simulate countingOracle qc oa).support) :
-    qc' - qc ∈ (Prod.snd <$> simulate countingOracle 0 oa).support := by
+    (h : qc' ∈ (@snd α _ <$> simulate countingOracle qc oa).support) :
+    qc' - qc ∈ (@snd α _ <$> simulate countingOracle 0 oa).support := by
   rwa [mem_support_snd_map_simulate_iff_of_le] at h
   convert le_of_mem_support_snd_map_simulate h
 
@@ -270,9 +279,10 @@ lemma mem_support_simulate_queryBind_iff (i : ι) (t : spec.domain i)
 
 lemma exists_mem_support_of_mem_support {oa : OracleComp spec α} {x : α} (hx : x ∈ oa.support)
     (qc : ι → ℕ) : ∃ qc', (x, qc') ∈ (simulate countingOracle qc oa).support := by
-  rw [← countingOracle.simulate'_eq_self oa qc, support_simulate'] at hx
-  simp at hx
-  exact hx
+  rw [← SimOracle.IsTracking.run'_simulateT_eq_self countingOracle oa] at hx
+  sorry; sorry
+  -- simp at hx
+  -- exact hx
 
 end support
 
