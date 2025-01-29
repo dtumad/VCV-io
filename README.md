@@ -23,7 +23,7 @@ Asymptotic reasoning is also supported, but tooling and automation for this is c
 
 The `VCVio` directory provides all of the foundations and framework definitions / APIs. `Examples` contains example constructions of standard cryptographic algorithms.
 
-See [here](https://github.com/dtumad/lean-crypto-formalization), for an outdated version of the library in Lean 3.
+See [here](https://github.com/dtumad/lean-crypto-formalization) for an outdated version of the library in Lean 3.
 
 <!-- # Framework Overview
 
