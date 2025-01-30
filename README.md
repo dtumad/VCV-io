@@ -1,9 +1,6 @@
 # Formally Verified Cryptography Proofs in Lean 4
 
-This is an ongoing port of the work found [here](https://github.com/dtumad/lean-crypto-formalization), from Lean 3 to Lean 4.
-All of the basic theory is present here, but some specific proofs and APIs are still actively being moved. 
-
-The library aims to provide a foundational framework in Lean for reasoning about cryptographic protocols in the computational model. The core part of the framework provides:
+This library aims to provide a foundational framework in Lean for reasoning about cryptographic protocols in the computational model. The core part of the framework provides:
 
 * A monadic syntax for representing computations with oracle access (`OracleComp`), with probabilistic computations as a special case of having uniform selection oracles
 * A denotational semantics (`evalDist`) for assigning probability distributions to probabilistic computations, and tools for reasoning about the probabilities of particular outputs or events (`probOutput`/`probEvent`)
@@ -25,6 +22,8 @@ It allows for fully foundational proofs of things like forking/rewinding adversa
 Asymptotic reasoning is also supported, but tooling and automation for this is currently limited.
 
 The `VCVio` directory provides all of the foundations and framework definitions / APIs. `Examples` contains example constructions of standard cryptographic algorithms.
+
+See [here](https://github.com/dtumad/lean-crypto-formalization) for an outdated version of the library in Lean 3.
 
 <!-- # Framework Overview
 
