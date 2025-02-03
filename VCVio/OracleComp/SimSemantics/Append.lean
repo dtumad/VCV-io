@@ -84,12 +84,12 @@ section lift
 -- NOTE: not sure these are a very natural abstraction to be using.
 def liftRight {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
     {σ : Type} (so : spec →[σ]ₛₒ spec') : spec' ++ₒ spec →[σ]ₛₒ spec' :=
-  (idOracle ++ₛₒ so).maskState (Equiv.punitProd σ)
+  (idOracle ++ₛₒ so).equivState (Equiv.punitProd σ)
 
 def liftLeft {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
     {σ : Type} (so : spec →[σ]ₛₒ spec') :
     spec ++ₒ spec' →[σ]ₛₒ spec' :=
-  (so ++ₛₒ idOracle).maskState (Equiv.prodPUnit σ)
+  (so ++ₛₒ idOracle).equivState (Equiv.prodPUnit σ)
 
 end lift
 

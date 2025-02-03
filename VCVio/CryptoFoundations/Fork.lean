@@ -59,8 +59,8 @@ def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
   let seed₁ := sharedSeed.addValue i u₁
   let seed₂ := sharedSeed.addValue i u₂
   -- Execute the program with the two slightly different seeds
-  let (x₁, (log₁, _)) ← simulate (seededOracle ∘ₛₒ loggingOracle) (∅, seed₁) oa
-  let (x₂, (log₂, _)) ← simulate (seededOracle ∘ₛₒ loggingOracle) (∅, seed₂) oa
+  let (x₁, (log₁, _)) ← simulate (seededOracle ∘ₛ loggingOracle) (∅, seed₁) oa
+  let (x₂, (log₂, _)) ← simulate (seededOracle ∘ₛ loggingOracle) (∅, seed₂) oa
   -- Check that `cf` chooses to fork at `s` in both cases
   guard (cf x₁ log₁ = some s ∧ cf x₂ log₂ = some s)
   return (x₁, x₂, s)

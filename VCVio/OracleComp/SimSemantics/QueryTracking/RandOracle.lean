@@ -26,7 +26,7 @@ variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ i, SelectableT
 NOTE: we could take the result of `apply_eq` as the maindefinition and give this one as a lemma. -/
 def randOracle {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [spec.DecidableEq]
     [∀ i, SelectableType (spec.range i)] : SimOracle spec unifSpec (QueryCache spec) :=
-  (unifOracle ∘ₛₒ cachingOracle).maskState (Equiv.prodPUnit (QueryCache spec))
+  (unifOracle ∘ₛ cachingOracle).equivState (Equiv.prodPUnit (QueryCache spec))
 
 namespace randOracle
 
@@ -35,7 +35,7 @@ namespace randOracle
 -- @[simp]
 -- lemma apply_eq (q : OracleQuery spec α) (cache : QueryCache spec) :
 --     randOracle.impl q cache = cache.lookup_or_else i t ($ᵗ spec.range i) := by
---   simp only [randOracle, SimOracle.maskState_apply, Equiv.prodPUnit_symm_apply,
+--   simp only [randOracle, SimOracle.equivState_apply, Equiv.prodPUnit_symm_apply,
 --     SimOracle.compose_apply, cachingOracle.apply_eq, QueryCache.lookup_or_else, Functor.map_map,
 --     Function.comp, Prod.map_apply, id_eq, Equiv.prodPUnit_apply, Prod.mk.eta]
 --   sorry

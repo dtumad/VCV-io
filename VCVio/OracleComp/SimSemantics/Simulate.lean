@@ -28,6 +28,7 @@ variable {ι : Type u} {ιₜ : Type v} {spec : OracleSpec ι} {specₜ : Oracle
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
+@[ext]
 structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type w) where
   impl : {α : Type w} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
 
@@ -35,6 +36,10 @@ notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
 instance SimOracle.Inhabited [∀ i, Inhabited (spec.range i)] :
   Inhabited (SimOracle spec specₜ σ) := ⟨{impl q := pure q.defaultOutput}⟩
+
+lemma SimOracle.ext' {so so' : SimOracle spec specₜ σ}
+    (h : ∀ {α} (q : OracleQuery spec α), so.impl q = so'.impl q) : so = so' :=
+  SimOracle.ext (funext λ _ ↦ funext λ q ↦ h q)
 
 namespace OracleComp
 

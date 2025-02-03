@@ -149,10 +149,11 @@ end FreeMonad
 
 section AlternativeMonad
 
+-- TODO: maybe shouldn't actually extend both base types
 class AlternativeMonad (m : Type u → Type v) extends Monad m, Alternative m where
   failure_bind {α β : Type u} (g : α → m β) : failure >>= g = failure
 
-variable (m : Type u → Type v) [AlternativeMonad m] {α β : Type u}
+variable {m : Type u → Type v} [AlternativeMonad m] {α β : Type u}
 
 @[simp] lemma failure_bind (g : α → m β) : (failure : m α) >>= g = failure :=
   AlternativeMonad.failure_bind g
@@ -178,13 +179,11 @@ lemma PMF.monad_bind_eq_bind (p : PMF α) (q : α → PMF β) :
 
 end PMF
 
-section OptionT
+namespace OptionT
 
 @[simp]
-lemma OptionT.run_failure {α : Type u} {m : Type u → Type v} [Monad m] :
+lemma run_failure {α : Type u} {m : Type u → Type v} [Monad m] :
     (failure : OptionT m α).run = pure none := rfl
-
-example : Alternative Option := by exact instAlternativeOption
 
 instance : AlternativeMonad Option where
   failure_bind _ := rfl
@@ -197,6 +196,9 @@ instance (m : Type u → Type v) [Monad m] [LawfulMonad m] : AlternativeMonad (O
   __ := OptionT.instAlternative
   __ := OptionT.instMonad
 
+lemma liftM_def {m : Type u → Type v} [Monad m] {α : Type u}
+    (x : m α) : (x : OptionT m α) = OptionT.lift x := rfl
+
 end OptionT
 
 namespace StateT
@@ -204,15 +206,26 @@ namespace StateT
 variable {m : Type u → Type v} {m' : Type u → Type w}
   {σ α β : Type u}
 
+section lift_lift
+
 instance [MonadLift m m'] : MonadLift (StateT σ m) (StateT σ m') where
   monadLift x := λ s ↦ liftM ((x.run) s)
 
 @[simp]
-lemma liftM_eq  [MonadLift m m'] (x : StateT σ m α) :
+lemma liftM_of_liftM_eq [MonadLift m m'] (x : StateT σ m α) :
     (liftM x : StateT σ m' α) = λ s ↦ liftM (x.run s) := rfl
 
+end lift_lift
+
+lemma liftM_def [Monad m] (x : m α) : (x : StateT σ m α) = StateT.lift x := rfl
+
+-- TODO: should this be simp?
 lemma monad_pure_def [Monad m] (x : α) :
     (pure x : StateT σ m α) = StateT.pure x := rfl
+
+@[simp]
+lemma mk_eq_pure [Monad m] (x : α) :
+  StateT.mk (λ s ↦ pure (x, s)) = (pure x : StateT σ m α) := rfl
 
 end StateT
 

@@ -21,6 +21,8 @@ We avoid using `(evalDist oa).support` as the definition of the support, as this
 noncomputability due to the use of real numbers, and also makes defining `finSupport` harder.
 -/
 
+open OracleSpec
+
 namespace OracleComp
 
 universe u v w
@@ -44,7 +46,8 @@ def finSupport [∀ i, Fintype (spec.range i)] [DecidableEq α]
     (oa : OracleComp spec α) : Finset α := by
   induction oa using OracleComp.construct with
   | pure x => exact {x}
-  | query_bind q _ f => match q with | query i t => exact Finset.univ.biUnion f
+  -- Extra pattern match on `q` to infer fintype instance.
+  | query_bind q _ f => match q with | query _ _ => exact Finset.univ.biUnion f
   | failure => exact ∅
 
 section basic

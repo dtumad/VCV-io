@@ -261,9 +261,10 @@ with a computation `selectElem` that selects uniformly at random from the type.
 This generally requires choosing some "canonical" ordering for the type,
 so we include this to get a computable version of selection.
 We also require that each element has the same probability of being chosen from by `selectElem`,
-see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fintype instance. -/
+see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fintype instance.
+NOTE: universe polymorphism of `β` is hard. -/
 class SelectableType (β : Type) where
-  selectElem : ProbComp β
+  selectElem : OracleComp unifSpec β
   probOutput_selectElem_eq (x y : β) : [= x | selectElem] = [= y | selectElem]
   probFailure_selectElem : [⊥ | selectElem] = 0
 

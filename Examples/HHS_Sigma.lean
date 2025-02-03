@@ -93,6 +93,6 @@ end commits
 --     let bs' : Vector Bool n ← query (inr ()) (xs, m)
 --     return (bs' = bs)
 --   -- Treat the second oracle as a random oracle
---   baseSimOracle := SimOracle.maskState
+--   baseSimOracle := SimOracle.equivState
 --     (idOracle ++ₛₒ randOracle) (Equiv.punitProd _)
 --   init_state := ∅

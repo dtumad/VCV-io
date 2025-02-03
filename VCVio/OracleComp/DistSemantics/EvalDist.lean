@@ -29,11 +29,11 @@ We give many simp lemmas involving `tsum` a lower priority, as otherwise the sim
 always choose them over versions involving `sum` (as they require `DecidableEq` or `Fintype`)
 -/
 
+open OracleSpec Option ENNReal BigOperators
+
+universe u v w
+
 namespace OracleComp
-
-open Option ENNReal BigOperators
-
-universe u u' v w
 
 variable {ι : Type u} {spec : OracleSpec ι} {ι' : Type v} {spec' : OracleSpec ι'}
   {α β γ : Type w} [spec.FiniteRange] [spec'.FiniteRange]
@@ -43,9 +43,10 @@ section evalDist
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 We use `OptionT PMF` rather than `PMF ∘ Option` as the generated monad instance is nicer. -/
-noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) : OptionT PMF α :=
-  oa.mapM (fail := failure)
-    (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
+noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) :
+    OptionT PMF α := oa.mapM
+  (fail := failure)
+  (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
 
 @[simp]
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := rfl
@@ -69,8 +70,7 @@ lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := rf
 
 @[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by
-  apply mapM_bind'
+    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := mapM_bind' _ _ _
 
 lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
     evalDist ((query i t : OracleComp spec _) >>= ou) =
@@ -79,9 +79,7 @@ lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → Or
 
 @[simp]
 lemma evalDist_map (oa : OracleComp spec α) (f : α → β) :
-    evalDist (f <$> oa) = f <$> (evalDist oa) := by
-  simp only [map_eq_bind_pure_comp, evalDist_bind]
-  rfl
+    evalDist (f <$> oa) = f <$> (evalDist oa) := mapM_map' _ _ _
 
 @[simp]
 lemma evalDist_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
