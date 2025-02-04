@@ -20,17 +20,24 @@ For example `idOracle` has no effect upon simulation, and we should apply that f
 
 open OracleSpec Prod
 
-universe u v w
+universe u u' v v' w w' z
 
-variable {ι : Type u} {ιₜ : Type v} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ}
-  {α β σ : Type w}
+variable {ι ιₜ : Type*} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ}
+  {α β σ : Type u}
+
+-- T is e.g. `StateT`, `OptionT`, `WriterT`
+structure SimOracle' {ι : Type u} {ιₜ : Type u'}
+    (spec : OracleSpec.{u,v} ι) (specₜ : OracleSpec.{u',v'} ιₜ)
+    (T : (Type w' → Type (max u' (v' + 1) w')) → Type v → Type w) where
+  impl {α : Type v} (q : OracleQuery spec α) :
+    T (OracleComp.{u',v',w'} specₜ) α
 
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
 @[ext]
-structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type w) where
-  impl : {α : Type w} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
+structure SimOracle (spec : OracleSpec ι) (specₜ : OracleSpec ιₜ) (σ : Type u) where
+  impl : {α : Type u} → OracleQuery spec α → StateT σ (OracleComp specₜ) α
 
 notation : 55 spec " →[" σ "]ₛₒ " specₜ => SimOracle spec specₜ σ
 
@@ -44,6 +51,31 @@ lemma SimOracle.ext' {so so' : SimOracle spec specₜ σ}
 namespace OracleComp
 
 section simulateT
+
+section new
+
+variable {ι : Type u} {ιₜ : Type u'}
+  {spec : OracleSpec.{u,v} ι} {specₜ : OracleSpec.{u',v'} ιₜ}
+  {T : (Type w' → Type (max u' (v' + 1) w')) → Type v → Type w}
+  [Monad (T (OracleComp specₜ))] [Alternative (T (OracleComp specₜ))]
+
+def simulateT' (so : SimOracle' spec specₜ T) {α : Type v}
+    (oa : OracleComp spec α) : T (OracleComp specₜ) α :=
+  oa.mapM (fail := failure) (query_map := so.impl)
+
+-- def evalDist' [spec.FiniteRange] (oa : OracleComp spec α) :
+--   OptionT PMF α :=
+--   simulateT' _ oa
+
+
+-- def OptionT.liftMap {m : Type u → Type v} {n : Type u → Type w}
+--     (f : {α : Type u} → m α → n α) (x : OptionT m α) : OptionT n α :=
+--   match x.run with
+--   | none => _
+--   | some x => _
+
+
+end new
 
 def simulateT (so : SimOracle spec specₜ σ)
     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α :=
@@ -106,7 +138,7 @@ lemma simulate'_def (so : spec →[σ]ₛₒ specₜ) (s : σ) (oa : OracleComp 
 
 section basic
 
-variable {σ : Type w} (so : spec →[σ]ₛₒ specₜ)
+variable {σ : Type u} (so : spec →[σ]ₛₒ specₜ)
 
 @[simp low]
 lemma simulate_pure (s : σ) (x : α) : simulate so s (pure x) = pure (x, s) := rfl
@@ -176,7 +208,7 @@ end basic
 
 section support
 
-variable {σ : Type w} (so : spec →[σ]ₛₒ specₜ)
+variable {σ : Type u} (so : spec →[σ]ₛₒ specₜ)
 
 lemma support_simulate' (oa : OracleComp spec α) (s : σ) :
     (simulate' so s oa).support = fst <$> (simulate so s oa).support :=
@@ -211,7 +243,7 @@ end support
 
 section idem
 
-variable {σ : Type w} (so : spec →[σ]ₛₒ spec)
+variable {σ : Type u} (so : spec →[σ]ₛₒ spec)
 
 /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
 Then `simulate' so` doesn't change the output distribution.
@@ -233,7 +265,7 @@ end idem
 
 section subsingleton
 
-variable {σ : Type w} [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ)
+variable {σ : Type u} [Subsingleton σ] (so : spec →[σ]ₛₒ specₜ)
 
 /-- If the state type is `Subsingleton`, then we can represent simulation in terms of `simulate'`,
 adding back any state at the end of the computation. -/

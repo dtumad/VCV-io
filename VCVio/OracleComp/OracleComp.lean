@@ -31,15 +31,15 @@ We later introduce a set of type coercions that mitigate this for most common ca
 such as calling a computation with `spec` as part of a computation with `spec ++ spec'`.
 -/
 
-universe u v w
+universe u v w z
 
 namespace OracleSpec
 
 /-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
 use for querying that oracle, implemented as a dependent pair.
 Implemented as a functor with the oracle output type as the constructor result. -/
-inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v,w} ι) :
-    Type w → Type (max u v)
+inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) :
+    Type v → Type (max u v)
   | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
 
 namespace OracleQuery
@@ -106,12 +106,12 @@ In practive computations in `OracleComp spec α` have have one of three forms:
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
 * `failure` which terminates the computation early
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-def OracleComp {ι : Type u} (spec : OracleSpec.{u,v,w} ι) :
-    Type v → Type (max u v (w + 1)) :=
-  OptionT (FreeMonad (OracleQuery.{u,v,w} spec))
+def OracleComp {ι : Type u} (spec : OracleSpec.{u,v} ι) :
+    Type w → Type (max u (v + 1) w) :=
+  OptionT (FreeMonad (OracleQuery.{u,v} spec))
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/
-abbrev ProbComp : Type v → Type (max v 1) := OracleComp unifSpec.{v}
+abbrev ProbComp : Type z → Type (max z 1) := OracleComp unifSpec
 
 namespace OracleComp
 

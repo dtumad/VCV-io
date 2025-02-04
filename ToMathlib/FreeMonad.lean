@@ -166,6 +166,28 @@ variable {m : Type u → Type v} [AlternativeMonad m] {α β : Type u}
 
 end AlternativeMonad
 
+-- section LawfulAlternative
+
+-- class LawfulAlternative (m : Type u → Type v) [h : Monad m] [h' : Alternative m] where
+--   failure_bind {α β : Type u} (g : α → m β) : failure >>= g = failure
+--   aligned : h.toApplicative = h'.toApplicative
+
+-- variable {m : Type u → Type v} [Alternative m] [Monad m]
+--    [LawfulAlternative m] {α β : Type u}
+
+-- @[simp] lemma failure_bind (g : α → m β) : (failure : m α) >>= g = failure :=
+--   LawfulAlternative.failure_bind g
+
+-- @[simp] lemma map_failure [LawfulMonad m] (g : α → β) : g <$> (failure : m α) = failure := by
+
+--   rw [map_eq_bind_pure_comp, failure_bind]
+
+-- @[simp] lemma failure_seq [LawfulMonad m] (ob : m α) : (failure : m (α → β)) <*> ob = failure := by
+--   rw [seq_eq_bind_map, failure_bind]
+
+
+-- end LawfulAlternative
+
 section PMF
 
 variable {α β : Type u}

@@ -24,8 +24,8 @@ universe u u' v w
 /-- A structure to represents a specification of oracles available to a computation.
 The available oracles are all indexed by some (potentially infinite) indexing set `ι`.
 Represented as a map from indices `i` to the domain and codomain of the corresponding oracle. -/
-def OracleSpec (ι : Type u) : Type (max u (v + 1) (w + 1)) :=
-  (i : ι) → Type v × Type w
+def OracleSpec (ι : Type u) : Type (max u (v + 1)) :=
+  (i : ι) → Type v × Type v
 
 namespace OracleSpec
 
@@ -118,39 +118,44 @@ instance : FiniteRange []ₒ where
 /-- `T →ₒ U` represents a single oracle, with domain `T` and range `U`.
 Uses the singleton type `PUnit` as the indexing set. -/
 @[inline, reducible]
-def singletonSpec (T : Type v) (U : Type w) : OracleSpec PUnit :=
+def singletonSpec (T U : Type v) : OracleSpec.{u,v} PUnit :=
   λ _ ↦ (T, U)
 
 infixl : 25 " →ₒ " => singletonSpec
 
-instance {T : Type v} {U : Type w} [DecidableEq T] [DecidableEq U] : (T →ₒ U).DecidableEq where
+instance {T U : Type v} [DecidableEq T] [DecidableEq U] : (T →ₒ U).DecidableEq where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
 
-instance {T : Type v} {U : Type w} [Inhabited U] [Fintype U] : (T →ₒ U).FiniteRange where
+instance {T U : Type v} [Inhabited U] [Fintype U] : (T →ₒ U).FiniteRange where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance
 
 /-- A coin flipping oracle produces a random `Bool` with no meaningful input. -/
-@[inline, reducible] def coinSpec : OracleSpec Unit := PUnit.{u + 1} →ₒ Bool
+@[inline, reducible] def coinSpec : OracleSpec.{0,0} Unit := Unit →ₒ Bool
 
-instance : coinSpec.{u}.DecidableEq where
+instance : coinSpec.DecidableEq where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
 
-instance : coinSpec.{u}.FiniteRange where
+instance : coinSpec.FiniteRange where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance
 
+-- Nicer than uniform selection but worse computability.
+-- Could just throw errors running if no selectable type exists.
+def unifSpec' : OracleSpec.{u+1,u} (Type u) :=
+  λ α : Type u ↦ (PUnit, α)
+
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
 By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.-/
-@[inline, reducible] def unifSpec : OracleSpec ℕ :=
-  λ n ↦ (PUnit.{u + 1}, Fin (n + 1))
+@[inline, reducible] def unifSpec : OracleSpec.{0,0} ℕ :=
+  λ n ↦ (Unit, Fin (n + 1))
 
-instance : unifSpec.{u}.DecidableEq where
+instance : unifSpec.DecidableEq where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
 
-instance : unifSpec.{u}.FiniteRange where
+instance : unifSpec.FiniteRange where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance
