@@ -494,4 +494,8 @@ Returns `none` if the default path would lead to failure. -/
 def defaultResult [spec.FiniteRange] (oa : OracleComp spec α) : Option α :=
   oa.mapM (fail := none) (query_map := λ _ ↦ default)
 
+@[simp] -- TODO: move
+lemma StateT_lift_failure {σ : Type v} :
+    (StateT.lift (failure : OracleComp spec α) : StateT σ (OracleComp spec) α) = failure := rfl
+
 end OracleComp

@@ -64,6 +64,7 @@ section basic
 @[simp] lemma finSupport_failure [spec.FiniteRange] [DecidableEq α] :
   (failure : OracleComp spec α).finSupport = ∅ := rfl
 
+-- TODO: naming conventions, `support_query` should just be this.
 @[simp] lemma support_liftM (q : OracleQuery spec α) :
     (q : OracleComp spec α).support = Set.univ := by
   simpa [support] using Set.iUnion_of_singleton α
@@ -246,6 +247,14 @@ end nonempty
   simp [mem_finSupport_iff_mem_support]
   induction h -- We can't do this earlier without running into trouble with `DecidableEq`
   exact Iff.symm (mem_finSupport_iff_mem_support oa x)
+
+lemma mem_support_eqRec_iff (oa : OracleComp spec α) (h : α = β) (y : β) :
+    y ∈ (h ▸ oa).support ↔ h.symm ▸ y ∈ oa.support := by
+  induction h; rfl
+-- lemma mem_finSupport_eqRec_iff [spec.DecidableEq] [spec.FiniteRange]
+--     [hα : DecidableEq α] [hβ : DecidableEq β] (oa : OracleComp spec α) (h : α = β) (y : β) :
+--     y ∈ (h ▸ oa).finSupport ↔ h.symm ▸ y ∈ oa.finSupport := by
+--   induction h; rfl
 
 @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
     (f <$> oa).support = f '' oa.support := by

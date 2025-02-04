@@ -56,11 +56,11 @@ lemma simulateT_liftSO_eq_liftM_simulateT
     (simulateT (liftSO so : SimOracle spec spec₂ σ) oa) =
       liftM (simulateT so oa) := by
   induction oa using OracleComp.inductionOn with
-  | pure x => simp; rfl
+  | pure x => simp
   | query_bind i t oa h =>
       simp only [StateT.liftM_of_liftM_eq, liftM_eq_liftComp] at h
+      refine StateT.ext fun x => ?_
       simp [Function.comp_def, h]
-      rfl
   | failure => simp; rfl
 
 example {ι₁ ι₁' ι₂ ι₂' σ τ : Type}

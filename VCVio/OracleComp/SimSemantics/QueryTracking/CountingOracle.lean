@@ -24,9 +24,7 @@ universe u v w
 function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
     SimOracle spec spec (ι → ℕ) where impl
-  | q => do
-    modify λ qc ↦ update qc q.index (qc q.index + 1)
-    q
+  | q => do modify fun qc => update qc q.index (qc q.index + 1); q
 
 namespace countingOracle
 
@@ -58,7 +56,7 @@ lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι →
       · induction hj
         simp [add_assoc]
       · simp [hj]
-  | failure => simp
+  | failure => simp [StateT.monad_failure_def]
 
 section support
 

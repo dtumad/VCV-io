@@ -132,22 +132,22 @@ lemma simulate'_bind (s : σ) (oa : OracleComp spec α) (ob : α → OracleComp 
 
 @[simp low]
 lemma simulate_query (s : σ) (q : OracleQuery spec α) :
-    simulate so s q = so.impl q s := by
-  simp [simulate', simulate, StateT.run]
+    simulate so s q = (so.impl q).run s := by
+  simp [simulate', simulate]
 
 @[simp low]
 lemma simulate'_query (s : σ) (q : OracleQuery spec α) :
-    simulate' so s q = fst <$> so.impl q s := by
-  simp [simulate', StateT.run]
+    simulate' so s q = (so.impl q).run' s := by
+  simp [simulate']
 
 lemma simulate_query_bind (s : σ) (q : OracleQuery spec β)
     (oa : β → OracleComp spec α) : simulate so s (q >>= oa) =
-    (do let (u, s') ← so.impl q s; simulate so s' (oa u)) := by
+    (do let (u, s') ← (so.impl q).run s; simulate so s' (oa u)) := by
   rw [simulate_bind, simulate_query]
 
 lemma simulate'_query_bind (s : σ) (q : OracleQuery spec β)
     (oa : β → OracleComp spec α) : simulate' so s (q >>= oa) =
-    (do let (u, s') ← so.impl q s; simulate' so s' (oa u)) := by
+    (do let (u, s') ← (so.impl q).run s; simulate' so s' (oa u)) := by
   rw [simulate'_bind, simulate_query]
 
 @[simp low]
@@ -217,13 +217,14 @@ variable {σ : Type w} (so : spec →[σ]ₛₒ spec)
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this -/
 lemma evalDist_simulate'_eq_evalDist [spec.FiniteRange]
-    (h : ∀ i t s, (evalDist (fst <$> so.impl (query i t) s) : OptionT PMF (spec.range i)) =
+    (h : ∀ i t s, (evalDist ((so.impl (query i t)).run' s)) =
       OptionT.lift (PMF.uniformOfFintype (spec.range i)))
     (s : σ) (oa : OracleComp spec α) : evalDist (simulate' so s oa) = evalDist oa := by
   revert s
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | query_bind i t oa hoa => exact (λ s ↦ by
+      simp only [StateT.run'_eq] at h
       simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp_def, hoa,
         evalDist_query, ← h i t s, evalDist_map, PMF.bind_map, hoa, bind_map_left])
   | failure => intro s; rw [simulate'_failure]

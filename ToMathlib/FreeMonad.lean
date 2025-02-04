@@ -206,16 +206,12 @@ namespace StateT
 variable {m : Type u → Type v} {m' : Type u → Type w}
   {σ α β : Type u}
 
-section lift_lift
-
 instance [MonadLift m m'] : MonadLift (StateT σ m) (StateT σ m') where
-  monadLift x := λ s ↦ liftM ((x.run) s)
+  monadLift x := StateT.mk fun s => liftM ((x.run) s)
 
 @[simp]
 lemma liftM_of_liftM_eq [MonadLift m m'] (x : StateT σ m α) :
-    (liftM x : StateT σ m' α) = λ s ↦ liftM (x.run s) := rfl
-
-end lift_lift
+    (liftM x : StateT σ m' α) = StateT.mk fun s => liftM (x.run s) := rfl
 
 lemma liftM_def [Monad m] (x : m α) : (x : StateT σ m α) = StateT.lift x := rfl
 
@@ -223,9 +219,22 @@ lemma liftM_def [Monad m] (x : m α) : (x : StateT σ m α) = StateT.lift x := r
 lemma monad_pure_def [Monad m] (x : α) :
     (pure x : StateT σ m α) = StateT.pure x := rfl
 
+lemma monad_failure_def [Monad m] [Alternative m] :
+    (failure : StateT σ m α) = StateT.failure := rfl
+
+@[simp]
+lemma run_failure [Monad m] [Alternative m] (s : σ) :
+    (StateT.failure : StateT σ m α).run s = failure := rfl
+
 @[simp]
 lemma mk_eq_pure [Monad m] (x : α) :
   StateT.mk (λ s ↦ pure (x, s)) = (pure x : StateT σ m α) := rfl
+
+@[simp]
+lemma lift_failure [AlternativeMonad m] :
+    (StateT.lift (failure : m α) : StateT σ m α) = failure := by
+  refine StateT.ext fun s ↦ ?_
+  simp [StateT.failure, monad_failure_def]
 
 end StateT
 

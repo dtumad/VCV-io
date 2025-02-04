@@ -31,6 +31,7 @@ lemma probOutput_bitVec_toFin_map {n : ℕ} (oa : OracleComp spec (BitVec n))
 /-- Choose a random bit-vector by converting a random number in number between `0` and `2 ^ n`-/
 instance (n : ℕ) : SelectableType (BitVec n) where
   selectElem := ofFin <$> ($ᵗ Fin (2 ^ n))
+  mem_support_selectElem x := by simp
   probOutput_selectElem_eq x y := by simp only [probOutput_bitVec_ofFin_map,
     probOutput_uniformOfFintype, Fintype.card_fin, Nat.cast_pow, Nat.cast_ofNat]
   probFailure_selectElem := by simp

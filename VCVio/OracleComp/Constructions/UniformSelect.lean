@@ -265,6 +265,7 @@ see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fin
 NOTE: universe polymorphism of `β` is hard. -/
 class SelectableType (β : Type) where
   selectElem : OracleComp unifSpec β
+  mem_support_selectElem (x : β) : x ∈ selectElem.support
   probOutput_selectElem_eq (x y : β) : [= x | selectElem] = [= y | selectElem]
   probFailure_selectElem : [⊥ | selectElem] = 0
 
@@ -305,11 +306,9 @@ lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
       · simp
 
 @[simp]
-lemma support_uniformOfFintype [Fintype α] : ($ᵗ α).support = Set.univ := by
+lemma support_uniformOfFintype : ($ᵗ α).support = Set.univ := by
   simp only [Set.ext_iff, Set.mem_univ, iff_true]
-  intro x
-  rw [mem_support_iff_probOutput_ne_zero, probOutput_uniformOfFintype]
-  simp
+  apply SelectableType.mem_support_selectElem
 
 @[simp]
 lemma finSupport_uniformOfFintype [Fintype α] [DecidableEq α] :
@@ -326,11 +325,13 @@ section instances
 
 instance (α : Type) [Unique α] : SelectableType α where
   selectElem := return default
+  mem_support_selectElem x := Unique.eq_default x ▸ rfl
   probOutput_selectElem_eq x y := by rw [Unique.eq_default x, Unique.eq_default y]
   probFailure_selectElem := probFailure_pure default
 
 instance : SelectableType Bool where
   selectElem := $ [false, true]
+  mem_support_selectElem x := by simp
   probOutput_selectElem_eq x y := by simp
   probFailure_selectElem := by simp
 
@@ -338,19 +339,22 @@ instance : SelectableType Bool where
 instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
     [SelectableType α] [SelectableType β] : SelectableType (α × β) where
   selectElem := (·, ·) <$> ($ᵗ α) <*> ($ᵗ β)
-  probOutput_selectElem_eq:= by simp only [Prod.forall, probOutput_seq_map_prod_mk_eq_mul,
+  mem_support_selectElem x := by simp
+  probOutput_selectElem_eq := by simp only [Prod.forall, probOutput_seq_map_prod_mk_eq_mul,
     probOutput_uniformOfFintype, forall_const, implies_true]
   probFailure_selectElem := by simp [probFailure_seq]
 
 /-- Nonempty `Fin` types can be selected from, using implicit casting of `Fin (n - 1 + 1)`. -/
 instance (n : ℕ) : SelectableType (Fin (n + 1)) where
   selectElem := $[0..n]
+  mem_support_selectElem := by simp
   probOutput_selectElem_eq x y := by simp only [probOutput_uniformFin, implies_true]
   probFailure_selectElem := by simp
 
-/-- Version of `Fin` selection using the `NeZero` typeclass, avoiding the need for `n + 1` form. -/
+/-- Version of `Fin` selection using the `NeZero` typeclass, avoiding the need for `n + 1`. -/
 instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
   selectElem := congr_arg Fin (Nat.succ_pred (NeZero.ne n)).symm ▸ $ᵗ (Fin (n - 1 + 1))
+  mem_support_selectElem x := by rw [mem_support_eqRec_iff]; simp
   probOutput_selectElem_eq x y := by simp [probOutput_eqRec]
   probFailure_selectElem := by simp
 

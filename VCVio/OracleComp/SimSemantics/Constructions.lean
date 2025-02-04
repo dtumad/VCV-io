@@ -79,7 +79,9 @@ lemma simulate_compose (oa : OracleComp spec₁ α) (s : σ × τ) :
   revert s
   induction oa using OracleComp.inductionOn with
   | pure x => simp
-  | query_bind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
+  | query_bind i t oa hoa =>
+      simp [hoa, map_eq_bind_pure_comp]
+      sorry
   | failure => simp
 
 /-- Composition of simulatation oracles is exactly composition of simulation calls. -/
@@ -95,7 +97,8 @@ section equivState
 
 /-- Substitute an equivalent type for the state of a simulation oracle, by using the equivalence
 to move back and forth between the states as needed.
-This can be useful when operations such like `simOracle.append` add on a state of type `Unit`.-/
+This can be useful when operations such like `simOracle.append` add on a state of type `Unit`.
+TODO: this should really exist on the `StateT` level probably. -/
 def equivState (so : SimOracle spec specₜ σ) (e : σ ≃ τ) :
     SimOracle spec specₜ τ where
   impl q s := map id e <$> so.impl q (e.symm s)
@@ -109,39 +112,44 @@ lemma equivState_apply (q : OracleQuery spec α) :
 /-- Masking a `Subsingleton` state has no effect, since the new state elements look the same. -/
 @[simp]
 lemma equivState_subsingleton [Subsingleton σ] (e : σ ≃ σ) :
-    SimOracle.equivState so e = so := by
-  refine SimOracle.ext' ?_
-  simp [Equiv.Perm.coe_subsingleton e, Equiv.Perm.coe_subsingleton e.symm]
+    so.equivState e = so :=
+  SimOracle.ext' λ _ ↦ by simp [Equiv.Perm.coe_subsingleton e, Equiv.Perm.coe_subsingleton e.symm]
 
-lemma simulateT_equivState (oa : OracleComp spec α) :
-    simulateT (so.equivState e) oa =
-      StateT.mk λ s ↦ map id e <$> (simulateT so oa).run (e.symm s) := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => {
-    simp
-  }
-  | query_bind i t oa hoa => {
-    sorry
-  }
-  | failure => {
-    simp
-    sorry
-  }
+@[simp]
+lemma equivState_equivState : (so.equivState e).equivState e.symm = so :=
+  SimOracle.ext' λ q ↦ by simp [Prod.map]
+
+-- lemma simulateT_equivState (oa : OracleComp spec α) :
+--     simulateT (so.equivState e) oa =
+--       StateT.mk λ s ↦ map id e <$> (simulateT so oa).run (e.symm s) := by
+--   induction oa using OracleComp.inductionOn with
+--   | pure x => {
+--     simp
+--   }
+--   | query_bind i t oa hoa => {
+--     sorry
+--   }
+--   | failure => {
+--     rfl
+--   }
 
 @[simp]
 lemma simulate_equivState (s : τ) (oa : OracleComp spec α) :
     simulate (so.equivState e) s oa = map id e <$> simulate so (e.symm s) oa := by
   revert s; induction oa using OracleComp.inductionOn with
   | pure x => simp
-  | query_bind i t oa hoa => simp [hoa, map_eq_bind_pure_comp]
+  | query_bind i t oa hoa =>
+      intro s
+      simp [hoa, map_eq_bind_pure_comp, StateT.run]
+
+      sorry
   | failure => simp
 
 /-- Masking the state doesn't affect the main output of a simulation. -/
 @[simp]
 lemma simulate'_equivState (s : τ) (oa : OracleComp spec α) :
     simulate' (so.equivState e) s oa = simulate' so (e.symm s) (oa) := by
-  simp only [simulate'_def, simulate_equivState, fst_map_prod_map, CompTriple.comp_eq]
-  sorry
+  simp only [StateT.run'_eq, simulate_equivState, Functor.map_map, map_fst, id_eq]
 
 end equivState
 
@@ -231,15 +239,16 @@ lemma evalDist_simulate' [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit)
 
 @[simp]
 lemma evalDist_simulate [spec.FiniteRange] (oa : OracleComp spec α) (u : Unit) :
-    evalDist (simulate unifOracle u oa) = (evalDist oa).map (Option.map (·, ())) := by
+    evalDist (simulate unifOracle u oa) = ((·, ())) <$> (evalDist oa) := by
   rw [simulate_eq_map_simulate', evalDist_map, evalDist_simulate' oa u]
-  simp [Subsingleton.elim _ (), map_eq_bind_pure_comp, PMF.map]
-  sorry
 
 @[simp]
 lemma support_simulate (oa : OracleComp spec α) (u : Unit) :
     (simulate unifOracle u oa).support = {z | z.1 ∈ oa.support} := by
-  sorry
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp [Set.ext_iff]
+  | query_bind i t oa hoa => simp [hoa, Set.ext_iff]
+  | failure => simp
 
 @[simp]
 lemma support_simulate' (oa : OracleComp spec α) (u : Unit) :
