@@ -32,6 +32,10 @@ structure SimOracle' {ι : Type u} {ιₜ : Type u'}
   impl {α : Type v} (q : OracleQuery spec α) :
     T (OracleComp.{u',v',w'} specₜ) α
 
+structure QueryImpl {ι : Type u} (spec : OracleSpec.{u,v} ι)
+    (m : Type v → Type w) where
+  impl {α : Type v} (q : OracleQuery spec α) : m α
+
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulate` gives a method for applying a simulation oracle to a specific computation. -/
@@ -63,19 +67,28 @@ def simulateT' (so : SimOracle' spec specₜ T) {α : Type v}
     (oa : OracleComp spec α) : T (OracleComp specₜ) α :=
   oa.mapM (fail := failure) (query_map := so.impl)
 
--- def evalDist' [spec.FiniteRange] (oa : OracleComp spec α) :
---   OptionT PMF α :=
---   simulateT' _ oa
-
-
--- def OptionT.liftMap {m : Type u → Type v} {n : Type u → Type w}
---     (f : {α : Type u} → m α → n α) (x : OptionT m α) : OptionT n α :=
---   match x.run with
---   | none => _
---   | some x => _
-
-
 end new
+
+section new'
+
+variable {ι : Type u} {spec : OracleSpec.{u,v} ι}
+    {m : Type v → Type w} {α : Type v}
+    [Alternative m] [Monad m]
+
+def simulateQ (so : QueryImpl spec m) (oa : OracleComp spec α) : m α :=
+  oa.mapM (fail := failure) (query_map := so.impl)
+
+noncomputable def evalDist' [spec.FiniteRange] :
+    (oa : OracleComp spec α) → OptionT PMF α :=
+  simulateQ ⟨fun (query i _) => OptionT.lift (PMF.uniformOfFintype (spec.range i))⟩
+
+end new'
+
+instance (ι : Type u) {spec : OracleSpec ι} (ω : Type u)
+    [EmptyCollection ω] [Append ω] :
+    Alternative (WriterT ω (OracleComp spec)) where
+  failure {α} := liftM (failure : OracleComp spec α)
+  orElse x y := x.run <|> (y ()).run
 
 def simulateT (so : SimOracle spec specₜ σ)
     (oa : OracleComp spec α) : StateT σ (OracleComp specₜ) α :=

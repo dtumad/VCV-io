@@ -27,8 +27,15 @@ section append
 
 universe u v w
 
-variable {ι₁ : Type u} {ι₂ : Type v} {ιₜ : Type w} {spec₁ : OracleSpec ι₁}
-  {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type}
+variable {ι₁ ι₂ ιₜ : Type*} {spec₁ : OracleSpec ι₁}
+  {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type u}
+
+def append'' (m₁ m₂ n : Type u → Type v)
+    [MonadLift m₁ n] [MonadLift m₂ n]
+    (so : QueryImpl spec₁ m₁) (so' : QueryImpl spec₂ m₂) :
+    QueryImpl (spec₁ ++ₒ spec₂) n where impl
+  | query (inl i) t => so.impl (query i t)
+  | query (inr i) t => so'.impl (query i t)
 
 /-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
 with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,

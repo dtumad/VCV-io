@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.IsTracking
+import VCVio.OracleComp.RunIO
 
 /-!
 # Counting Queries Made by a Computation
@@ -19,6 +20,22 @@ It also allows for generating things like seed values for a computation more tig
 open OracleComp OracleSpec Function Prod
 
 universe u v w
+
+-- Track a list of oracle indexes for each query
+def countingOracle' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
+    SimOracle' spec spec (WriterT (List ι)) where
+  impl | query i t => do tell [i]; query i t
+
+def countingOracle'' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
+    QueryImpl spec (WriterT (List ι) (OracleComp spec)) where
+  impl | query i t => do tell [i]; query i t
+
+-- Outputs [3,1,4,1,5] as the state
+#eval! OracleComp.runIO (simulateT' countingOracle' (do
+    $[0..3]; $[0..1]; $[0..4]; $[0..1]; $[0..5]; return ())).run
+
+-- def countingOracle'' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
+--     QueryImpl spec (WriterT ℕ (OracleComp spec))
 
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/

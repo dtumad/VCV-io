@@ -4,11 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.IsTracking
+import VCVio.OracleComp.RunIO
 
 /-!
 # Logging Queries Made by a Computation
 
 -/
+
+universe u v w
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β : Type}
 
@@ -19,7 +22,15 @@ parameterized by the set of oracles available. -/
 def QueryLog (spec : OracleSpec ι) : Type :=
   (i : ι) → List (spec.domain i × spec.range i)
 
+-- Better repr but maybe not better in general
+def QueryLog' (spec : OracleSpec ι) : Type :=
+  List (Σ i : ι, spec.domain i × spec.range i)
+
 instance : EmptyCollection (QueryLog spec) := ⟨λ _ ↦ []⟩
+instance : Append (QueryLog spec) := ⟨λ log log' i ↦ (log i) ++ (log' i)⟩
+
+instance : EmptyCollection (QueryLog' spec) := ⟨[]⟩
+instance : Append (QueryLog' spec) := ⟨List.append⟩
 
 namespace QueryLog
 
@@ -33,6 +44,9 @@ def logQuery (log : QueryLog spec) {i : ι}
 
 end logQuery
 
+def singleton {i : ι} (t : spec.domain i) (u : spec.range i) : QueryLog' spec :=
+  [⟨i, (t, u)⟩]
+
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
 def wasQueried [spec.DecidableEq] (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
@@ -45,6 +59,23 @@ end QueryLog
 end OracleSpec
 
 open OracleComp OracleSpec
+
+def loggingOracle' : SimOracle' spec spec (WriterT (QueryLog' spec)) where
+  impl | query i t => do
+    let u ← query i t
+    tell (QueryLog.singleton t u)
+    return u
+
+def logingOracle'' : QueryImpl spec (WriterT (QueryLog' spec) (OracleComp spec)) where
+  impl | query i t => do
+    let u ← query i t
+    tell (QueryLog.singleton t u)
+    return u
+
+-- `(22, [⟨20, ((), 8)⟩, ⟨20, ((), 14)⟩])`
+-- `(9, [⟨20, ((), 6)⟩, ⟨20, ((), 3)⟩])`
+#eval OracleComp.runIO (simulateT' loggingOracle' (do
+    (Nat.add) <$> $[0..20] <*> $[0..20])).run
 
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
