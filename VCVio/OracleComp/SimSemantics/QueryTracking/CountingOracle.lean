@@ -21,14 +21,21 @@ open OracleComp OracleSpec Function Prod
 
 universe u v w
 
+-- instance : Monoid (Multiplicative Nat) := inferInstance
+instance (ι : Type u) {spec : OracleSpec ι} (ω : Type u)
+    [Monoid ω] :
+    Alternative (WriterT ω (OracleComp spec)) where
+  failure {α} := liftM (failure : OracleComp spec α)
+  orElse x y := x.run <|> (y ()).run
+
 -- Track a list of oracle indexes for each query
 def countingOracle' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
-    SimOracle' spec spec (WriterT (List ι)) where
-  impl | query i t => do tell [i]; query i t
+    SimOracle' spec spec (WriterT (Multiplicative Nat)) where
+  impl | query i t => do tell (.ofAdd 1); query i t
 
 def countingOracle'' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
-    QueryImpl spec (WriterT (List ι) (OracleComp spec)) where
-  impl | query i t => do tell [i]; query i t
+    QueryImpl spec (WriterT (Multiplicative Nat) (OracleComp spec)) where
+  impl | query i t => do tell (.ofAdd 1); query i t
 
 -- Outputs [3,1,4,1,5] as the state
 #eval! OracleComp.runIO (simulateT' countingOracle' (do
