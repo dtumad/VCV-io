@@ -110,36 +110,51 @@ instance {σ : Type u} {m : Type u → Type v} [LawfulMonadStateOf σ m] :
   get_set := LawfulMonadStateOf.get_set
   set_get := LawfulMonadStateOf.set_get
 
-section StateT
+namespace StateT
 
 variable {σ : Type u} {m : Type u → Type v} [Monad m] [LawfulMonad m]
 
--- TODO: state these lemmas for `StateT` specifically, then use them here
+@[simp]
+theorem modifyGet_eq_monadState {α : Type u} (f : σ → α × σ) :
+    StateT.modifyGet (m := m) f = (do let (a, s) := f (← StateT.get); StateT.set s; pure a) := by
+  unfold StateT.modifyGet StateT.get StateT.set StateT.instMonad StateT.bind StateT.pure
+  simp only [bind_pure_comp, map_pure]
+
+@[simp]
+theorem get_get {α : Type u} {a : σ → σ → StateT σ m α} :
+    (do let s₁ ← StateT.get; let s₂ ← StateT.get; a s₁ s₂) = (do let s ← StateT.get; a s s) := by
+  unfold StateT.get StateT.instMonad StateT.bind
+  simp only [pure_bind]
+
+@[simp]
+theorem set_set {s₁ s₂ : σ} : (do StateT.set s₁; StateT.set s₂) = StateT.set (m := m) s₂ := by
+  unfold StateT.set StateT.instMonad StateT.bind
+  simp only [bind_pure_comp, map_pure]
+
+@[simp]
+theorem get_set {s : σ} : (do StateT.set (m := m) s; StateT.get) = (do StateT.set s; pure s) := by
+  unfold StateT.get StateT.instMonad StateT.bind StateT.set StateT.pure
+  simp only [bind_pure_comp, map_pure]
+
+@[simp]
+theorem set_get : (do let s ← @StateT.get σ m _; StateT.set s) = pure ⟨⟩ := by
+  unfold StateT.get StateT.instMonad StateT.bind StateT.set StateT.pure
+  simp only [bind_pure_comp, map_pure]
+
 instance : LawfulMonadStateOf σ (StateT σ m) where
   modifyGet_eq f := by
-    simp only [MonadStateOf.modifyGet, MonadStateOf.get, MonadStateOf.set, pure]
-    unfold StateT.modifyGet StateT.get StateT.set StateT.pure StateT.instMonad StateT.bind
-    funext s
-    simp only [bind_pure_comp, map_pure]
+    simp only [MonadStateOf.modifyGet, modifyGet_eq_monadState, pure, MonadStateOf.get, set]
   get_get := by
     intro α a
-    simp only [MonadStateOf.get]
-    unfold StateT.get StateT.instMonad StateT.bind
-    simp only [pure_bind]
+    simp only [MonadStateOf.get, get_get]
   set_set := by
     intro s₁ s₂
-    simp only [set]
-    unfold StateT.set StateT.instMonad StateT.bind
-    simp only [bind_pure_comp, map_pure]
+    simp only [set, set_set]
   get_set := by
     intro s
-    simp only [MonadStateOf.get, set, pure]
-    unfold StateT.get StateT.instMonad StateT.bind StateT.set StateT.pure
-    simp only [bind_pure_comp, map_pure]
+    simp only [set, MonadStateOf.get, get_set, pure]
   set_get := by
-    simp only [MonadStateOf.get, set, pure]
-    unfold StateT.set StateT.instMonad StateT.bind StateT.get StateT.pure
-    simp only [bind_pure_comp, map_pure]
+    simp only [MonadStateOf.get, set, set_get, pure]
 
 instance : LawfulMonadState σ (StateT σ m) := inferInstance
 
