@@ -132,25 +132,25 @@ instance {T : Type v} {U : Type w} [Inhabited U] [Fintype U] : (T →ₒ U).Fini
   range_fintype' := inferInstance
 
 /-- A coin flipping oracle produces a random `Bool` with no meaningful input. -/
-@[inline, reducible] def coinSpec : OracleSpec Unit := Unit →ₒ Bool
+@[inline, reducible] def coinSpec : OracleSpec Unit := PUnit.{u + 1} →ₒ Bool
 
-instance : coinSpec.DecidableEq where
+instance : coinSpec.{u}.DecidableEq where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
 
-instance : coinSpec.FiniteRange where
+instance : coinSpec.{u}.FiniteRange where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance
 
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
 By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.-/
 @[inline, reducible] def unifSpec : OracleSpec ℕ :=
-  λ n ↦ (Unit, Fin (n + 1))
+  λ n ↦ (PUnit.{u + 1}, Fin (n + 1))
 
-instance : unifSpec.DecidableEq where
+instance : unifSpec.{u}.DecidableEq where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
 
-instance : unifSpec.FiniteRange where
+instance : unifSpec.{u}.FiniteRange where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance

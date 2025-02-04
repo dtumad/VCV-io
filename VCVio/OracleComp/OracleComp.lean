@@ -33,7 +33,7 @@ such as calling a computation with `spec` as part of a computation with `spec ++
 
 universe u v w
 
-open OracleSpec
+namespace OracleSpec
 
 /-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
 use for querying that oracle, implemented as a dependent pair.
@@ -43,8 +43,6 @@ inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v,w} ι) :
   | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
 
 namespace OracleQuery
-
-section Defs
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
@@ -89,9 +87,14 @@ instance [hι : DecidableEq ι] [hd : ∀ i, DecidableEq (spec.domain i)] {α : 
         exact hd i t _
     | isFalse h => isFalse λ h' ↦ h (congr_arg index h')
 
-end Defs
-
 end OracleQuery
+
+-- Put `query` in the main `OracleSpec` namespace
+export OracleQuery (query)
+
+end OracleSpec
+
+open OracleSpec
 
 /-- `OracleComp spec α` represents computations with oracle access to oracles in `spec`,
 where the final return value has type `α`.
@@ -108,13 +111,11 @@ def OracleComp {ι : Type u} (spec : OracleSpec.{u,v,w} ι) :
   OptionT (FreeMonad (OracleQuery.{u,v,w} spec))
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/
-abbrev ProbComp : Type → Type 1 := OracleComp unifSpec
+abbrev ProbComp : Type v → Type (max v 1) := OracleComp unifSpec.{v}
 
 namespace OracleComp
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
-
-export OracleQuery (query)
 
 instance : AlternativeMonad (OracleComp spec) where
   failure_bind _ := rfl
@@ -163,12 +164,12 @@ protected lemma bind_congr' {oa oa' : OracleComp spec α} {ob ob' : α → Oracl
 
 /-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline] def coin : OracleComp coinSpec Bool :=
-  @query _ coinSpec () ()
+  coinSpec.query () ()
 
 /-- `$[0..n]` is the computation choosing a random value in the given range, inclusively.
 By making this range inclusive we avoid the case of choosing from the empty range. -/
 @[reducible, inline] def uniformFin (n : ℕ) : ProbComp (Fin (n + 1)) :=
-  @query _ unifSpec n ()
+  unifSpec.query n ()
 
 notation "$[0.." n "]" => uniformFin n
 
@@ -371,11 +372,8 @@ lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
     (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (oa >>= ob).mapM failure qm =
-      oa.mapM failure qm >>= λ x ↦ (ob x).mapM failure qm := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind i t oa h => simp [h]
-  | failure => simp
+      oa.mapM failure qm >>= λ x ↦ (ob x).mapM failure qm :=
+  mapM_bind _ _ _ _ failure_bind
 
 lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
     (hfail : ∀ f : α → β, f <$> fail = fail) :
@@ -384,6 +382,13 @@ lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
   | pure x => simp
   | query_bind i t oa h => simp [h]
   | failure => simp [hfail]
+
+@[simp]
+lemma mapM_map' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
+    (qm : {α : Type v} → OracleQuery spec α → m α)
+    (oa : OracleComp spec α) (f : α → β) :
+    (f <$> oa).mapM failure qm = f <$> oa.mapM failure qm := by
+  refine mapM_map _ _ _ _ map_failure
 
 lemma mapM_seq [LawfulMonad m] (og : OracleComp spec (α → β)) (oa : OracleComp spec α)
     (hfail : ∀ f : (α → β) → m β, fail >>= f = fail)
@@ -488,5 +493,9 @@ by assuming each query returns the `default` value given by the `Inhabited` inst
 Returns `none` if the default path would lead to failure. -/
 def defaultResult [spec.FiniteRange] (oa : OracleComp spec α) : Option α :=
   oa.mapM (fail := none) (query_map := λ _ ↦ default)
+
+@[simp] -- TODO: move
+lemma StateT_lift_failure {σ : Type v} :
+    (StateT.lift (failure : OracleComp spec α) : StateT σ (OracleComp spec) α) = failure := rfl
 
 end OracleComp

@@ -17,6 +17,8 @@ to make this kind of approach usable in practice.
 More adaptation would also be needed to handle dependent types
 -/
 
+open OracleSpec
+
 namespace OracleComp
 
 /-- Predicate for capturing polynomial complexity of an `OracleComp`.

@@ -25,7 +25,7 @@ lemma run'_simulateT_eq_self (h : ∀ α (q : OracleQuery spec α) s, (so.impl q
   revert s
   induction oa using OracleComp.inductionOn with
   | pure x => simp
-  | failure => simp
+  | failure => simp [StateT.monad_failure_def]
   | query_bind i t oa hoa =>
       intro s
       specialize h (spec.range i) (query i t) s
