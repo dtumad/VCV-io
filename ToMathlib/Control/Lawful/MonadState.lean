@@ -1,40 +1,41 @@
 /-
-Copyright (c) 2024 Devon Tuma. All rights reserved.
+Copyright (c) 2025 Quang Dao. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Devon Tuma
+Authors: Quang Dao
 -/
 import Mathlib.Control.Monad.Basic
 import Init.Control.State
 
 /-!
-# Lawful MonadState
+# Lawful version of `MonadState`
 
-This file defines the `LawfulMonadState` class, which adds laws to the `MonadState` class.
+This file defines the `LawfulMonadState(Of)` class, which adds laws to the `MonadState(Of)` class.
 
 TODO: what about `LawfulMonad{Control/Reader/Writer/Option}`?
 -/
 
 universe u v
 
-class LawfulMonadStateOf (σ : outParam (Type u)) (m : Type u → Type v) extends
-    Monad m, MonadStateOf σ m : Type (max (u+1) v) where
+class LawfulMonadStateOf (σ : outParam (Type u)) (m : Type u → Type v) [Monad m] [MonadStateOf σ m]
+    : Type (max (u+1) v) where
 
   /-- `modifyGet f` is equivalent to `do let (a, s) := f (← get); set s; pure a` -/
   modifyGet_eq : {α : Type u} → (f : σ → α × σ) →
-    modifyGet f = do let (a, s) := f (← get); set s; pure a
+    MonadStateOf.modifyGet (m := m) f = do let (a, s) := f (← MonadStateOf.get); set s; pure a
 
   /-- `get` twice doesn't change the state -/
   get_get : {α : Type u} → {a : σ → σ → m α} →
-    (do let s₁ ← get; let s₂ ← get; a s₁ s₂) = (do let s ← get; a s s)
+    (do let s₁ ← MonadStateOf.get; let s₂ ← MonadStateOf.get; a s₁ s₂)
+      = do let s ← MonadStateOf.get; a s s
 
   /-- `set` twice has the same effect as the second `set` -/
-  set_set : {s₁ s₂ : σ} → (do set s₁; set s₂) = set s₂
+  set_set : {s₁ s₂ : σ} → (do set s₁; set s₂) = set (m := m) s₂
 
   /-- Getting the state after setting it returns the `set` value -/
-  get_set : {s : σ} → (do set s; get) = (do set s; pure s)
+  get_set : {s : σ} → (do set (m := m) s; MonadStateOf.get) = do set s; pure s
 
   /-- Setting the state to the value just gotten is redundant -/
-  set_get : (do let s ← get; set s) = pure ⟨⟩
+  set_get : (do let s ← MonadStateOf.get (m := m); set (σ := σ) s) = pure ⟨⟩
 
 -- Should this be simp?
 attribute [simp] LawfulMonadStateOf.modifyGet_eq
@@ -52,7 +53,7 @@ theorem getThe_eq [MonadStateOf σ m] : getThe σ (m := m) = MonadStateOf.get :=
 theorem modifyGetThe_eq [MonadStateOf σ m] {α : Type u} (f : σ → α × σ) :
     modifyGetThe σ (m := m) f = MonadStateOf.modifyGet f := rfl
 
-variable [LawfulMonadStateOf σ m] [LawfulMonad m]
+variable [Monad m] [LawfulMonad m] [MonadStateOf σ m] [LawfulMonadStateOf σ m]
 
 -- Should this be simp?
 @[simp]
@@ -62,8 +63,8 @@ theorem modifyThe_eq (f : σ → σ) :
 
 end LawfulMonadStateOf
 
-class LawfulMonadState (σ : outParam (Type u)) (m : Type u → Type v) extends
-    Monad m, MonadState σ m : Type (max (u+1) v) where
+class LawfulMonadState (σ : outParam (Type u)) (m : Type u → Type v) [Monad m]
+    extends MonadState σ m : Type (max (u+1) v) where
 
   /-- `modifyGet f` is equivalent to `do let (a, s) := f (← get); set s; pure a` -/
   modifyGet_eq : {α : Type u} → (f : σ → α × σ) →
@@ -87,7 +88,7 @@ attribute [simp] LawfulMonadState.modifyGet_eq LawfulMonadState.get_get
 
 namespace LawfulMonadState
 
-variable {σ : Type u} {m : Type u → Type v} [LawfulMonadState σ m] [LawfulMonad m]
+variable {σ : Type u} {m : Type u → Type v} [Monad m] [LawfulMonad m] [LawfulMonadState σ m]
 
 @[simp]
 theorem modify_eq (f : σ → σ) :
@@ -102,8 +103,8 @@ theorem getModify_eq (f : σ → σ) :
 
 end LawfulMonadState
 
-instance {σ : Type u} {m : Type u → Type v} [LawfulMonadStateOf σ m] :
-    LawfulMonadState σ m where
+instance {σ : Type u} {m : Type u → Type v} [Monad m] [LawfulMonad m] [MonadStateOf σ m]
+    [LawfulMonadStateOf σ m] : LawfulMonadState σ m where
   modifyGet_eq f := LawfulMonadStateOf.modifyGet_eq f
   get_get := LawfulMonadStateOf.get_get
   set_set := LawfulMonadStateOf.set_set
