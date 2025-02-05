@@ -61,28 +61,69 @@ section new
 variable {ι : Type u} {ιₜ : Type u'}
   {spec : OracleSpec.{u,v} ι} {specₜ : OracleSpec.{u',v'} ιₜ}
   {T : (Type w' → Type (max u' (v' + 1) w')) → Type v → Type w}
-  [Monad (T (OracleComp specₜ))] [Alternative (T (OracleComp specₜ))]
+  [Monad (T (OracleComp specₜ))] [Failure (T (OracleComp specₜ))]
 
 def simulateT' (so : SimOracle' spec specₜ T) {α : Type v}
     (oa : OracleComp spec α) : T (OracleComp specₜ) α :=
-  oa.mapM (fail := failure) (query_map := so.impl)
+  oa.mapM (fail := Failure.fail) (query_map := so.impl)
 
 end new
 
 section new'
 
 variable {ι : Type u} {spec : OracleSpec.{u,v} ι}
-    {m : Type v → Type w} {α : Type v}
-    [Alternative m] [Monad m]
+    {m : Type v → Type w} {α β : Type v}
 
-def simulateQ (so : QueryImpl spec m) (oa : OracleComp spec α) : m α :=
-  oa.mapM (fail := failure) (query_map := so.impl)
+/-- Canonical lifting of a function `OracleQuery spec α → m α`
+to a new function `OracleComp spec α` by preserving `bind`, `pure`, and `failure`. -/
+def simulateQ [Monad m] [Failure m] (so : QueryImpl spec m) :
+    (oa : OracleComp spec α) → m α :=
+  OptionT.mapM (FreeMonad.mapM so.impl)
+
+variable [Monad m] [Failure m] (so : QueryImpl spec m)
+
+@[simp]
+lemma simulateQ_pure (x : α) : simulateQ so (pure x) = pure x :=
+  sorry
+-- sorry --mapM_pure _ _ x
+
+@[simp]
+lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = Failure.fail := sorry
+
+@[simp]
+lemma simulateQ_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
+    (simulateQ so ((q : OracleComp spec α) >>= ob)) = so.impl q >>= simulateQ so ∘ ob := sorry --rfl
+
+@[simp]
+lemma simulateQ_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    simulateQ so (oa >>= ob) = simulateQ so oa >>= (simulateQ so ∘ ob) :=
+  sorry --mapM_bind' _ oa ob
+
+@[simp]
+lemma simulateQ_query [LawfulMonad m] (q : OracleQuery spec α) :
+    simulateQ so q = so.impl q :=
+  sorry --mapM_query _ _ q
+
+@[simp]
+lemma simulateQ_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β) :
+    simulateQ so (f <$> oa) = f <$> simulateQ so oa :=
+  sorry --mapM_map _ _ oa f map_failure
+
+@[simp]
+lemma simulateQ_seq [LawfulMonad m] (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
+    simulateQ so (og <*> oa) = simulateQ so og <*> simulateQ so oa :=
+  sorry --mapM_seq _ _ og oa failure_bind map_failure
+
+@[simp]
+lemma simulateQ_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
+    simulateQ so (ite p oa oa') = ite p (simulateQ so oa) (simulateQ so oa') := by
+  split_ifs <;> rfl
+
+end new'
 
 noncomputable def evalDist' [spec.FiniteRange] :
     (oa : OracleComp spec α) → OptionT PMF α :=
-  simulateQ ⟨fun (query i _) => OptionT.lift (PMF.uniformOfFintype (spec.range i))⟩
-
-end new'
+  simulateQ ⟨fun (query i _) => PMF.uniformOfFintype (spec.range i)⟩
 
 instance (ι : Type u) {spec : OracleSpec ι} (ω : Type u)
     [EmptyCollection ω] [Append ω] :

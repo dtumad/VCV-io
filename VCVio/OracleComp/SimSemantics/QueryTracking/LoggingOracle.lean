@@ -44,9 +44,6 @@ def logQuery (log : QueryLog spec) {i : ι}
 
 end logQuery
 
-def singleton {i : ι} (t : spec.domain i) (u : spec.range i) : QueryLog' spec :=
-  [⟨i, (t, u)⟩]
-
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
 def wasQueried [spec.DecidableEq] (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
@@ -63,13 +60,13 @@ open OracleComp OracleSpec
 def loggingOracle' : SimOracle' spec spec (WriterT (QueryLog' spec)) where
   impl | query i t => do
     let u ← query i t
-    tell (QueryLog.singleton t u)
+    tell [⟨i, (t, u)⟩]
     return u
 
 def logingOracle'' : QueryImpl spec (WriterT (QueryLog' spec) (OracleComp spec)) where
   impl | query i t => do
     let u ← query i t
-    tell (QueryLog.singleton t u)
+    tell [⟨i, (t, u)⟩]
     return u
 
 -- `(22, [⟨20, ((), 8)⟩, ⟨20, ((), 14)⟩])`

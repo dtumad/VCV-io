@@ -44,8 +44,7 @@ section evalDist
 getting a given output assuming all oracles responded uniformly at random.
 We use `OptionT PMF` rather than `PMF ∘ Option` as the generated monad instance is nicer. -/
 noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) :
-    OptionT PMF α := oa.mapM
-  (fail := failure)
+    OptionT PMF α := oa.mapM (fail := failure)
   (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
 
 @[simp]
@@ -67,6 +66,9 @@ lemma evalDist_query (i : ι) (t : spec.domain i) :
 
 @[simp]
 lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := rfl
+
+@[simp]
+lemma evalDist_fail : evalDist (Failure.fail : OracleComp spec α) = failure := rfl
 
 @[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :

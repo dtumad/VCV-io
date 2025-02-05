@@ -117,14 +117,11 @@ namespace OracleComp
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
-instance : AlternativeMonad (OracleComp spec) where
-  failure_bind _ := rfl
-  __ := OptionT.instMonad
-  __ := OptionT.instAlternative
+instance : Monad (OracleComp spec) := OptionT.instMonad
+instance : Alternative (OracleComp spec) := inferInstanceAs (Alternative (OptionT _))
 
--- instance : Monad (OracleComp spec) := OptionT.instMonad
 instance : LawfulMonad (OracleComp spec) := instLawfulMonadOptionT_mathlib _
--- instance : Alternative (OracleComp spec) := OptionT.instAlternative
+instance : LawfulFailure (OracleComp spec) := inferInstanceAs (LawfulFailure (OptionT _))
 
 instance : Inhabited (OracleComp spec α) := ⟨failure⟩
 
@@ -289,12 +286,18 @@ def isFailure {α : Type v} : OracleComp spec α → Bool
 @[simp] lemma isFailure_query_bind : isFailure ((q : OracleComp spec β) >>= oa) = false := rfl
 @[simp] lemma isFailure_failure : isFailure (failure : OracleComp spec α) = true := rfl
 
-@[simp] lemma pure_ne_query : pure y ≠ (q : OracleComp spec β) := by
+@[simp]
+lemma pure_eq_query_iff_false : pure y = (q : OracleComp spec β) ↔ False := by
   simp only [pure_def, OptionT.pure, OptionT.mk, FreeMonad.monad_pure_def, OracleComp.liftM_def,
     OptionT.lift, FreeMonad.monad_bind_def, FreeMonad.bind_lift, ne_eq, reduceCtorEq,
     not_false_eq_true]
-@[simp] lemma query_ne_pure : (q : OracleComp spec β) ≠ pure y :=
-  Ne.symm (pure_ne_query y q)
+
+@[simp]
+lemma query_eq_pure_iff_false : (q : OracleComp spec β) = pure y ↔ False := by
+  rw [eq_comm, pure_eq_query_iff_false]
+
+lemma pure_ne_query : pure y ≠ (q : OracleComp spec β) := by simp
+lemma query_ne_pure : (q : OracleComp spec β) ≠ pure y := by simp
 
 @[simp] lemma pure_ne_query_bind : pure x ≠ (q : OracleComp spec β) >>= oa := by
   simp [pure_def, query_bind_eq_roll, OptionT.pure, OptionT.mk]
@@ -367,13 +370,13 @@ lemma mapM_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleCom
   | query_bind i t oa h => simp [h]
   | failure => simp [hfail]
 
-@[simp] -- NOTE this has better automation but seems that its harder later
-lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
+@[simp]
+lemma mapM_bind' [Failure m] [LawfulMonad m] [LawfulFailure m]
     (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    (oa >>= ob).mapM failure qm =
-      oa.mapM failure qm >>= λ x ↦ (ob x).mapM failure qm :=
-  mapM_bind _ _ _ _ failure_bind
+    (oa >>= ob).mapM Failure.fail qm =
+      oa.mapM Failure.fail qm >>= λ x ↦ (ob x).mapM Failure.fail qm :=
+  mapM_bind _ _ _ _ fail_bind
 
 lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
     (hfail : ∀ f : α → β, f <$> fail = fail) :
@@ -384,11 +387,14 @@ lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
   | failure => simp [hfail]
 
 @[simp]
-lemma mapM_map' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
+lemma mapM_map' [Failure m] [LawfulMonad m] [LawfulFailure m]
     (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (f : α → β) :
-    (f <$> oa).mapM failure qm = f <$> oa.mapM failure qm := by
-  refine mapM_map _ _ _ _ map_failure
+    (f <$> oa).mapM Failure.fail qm = f <$> oa.mapM Failure.fail qm := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | query_bind i t oa h => simp [h]
+  | failure => simp
 
 lemma mapM_seq [LawfulMonad m] (og : OracleComp spec (α → β)) (oa : OracleComp spec α)
     (hfail : ∀ f : (α → β) → m β, fail >>= f = fail)
