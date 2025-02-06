@@ -30,12 +30,14 @@ namespace QueryLog
 
 instance : EmptyCollection (QueryLog spec) := ⟨λ _ ↦ []⟩
 instance : Append (QueryLog spec) := ⟨λ log log' i ↦ (log i) ++ (log' i)⟩
-instance : Monoid (QueryLog spec) where
-  mul := instAppend.append
-  one := instEmptyCollection.emptyCollection
-  mul_assoc := fun a b c => by sorry
-  one_mul := sorry
-  mul_one := sorry
+-- NOTE: I think the `append` version of `WriterT` might be better than the `Monoid` one here?
+--       Should try and see how proofs look in practice first.
+-- instance : Monoid (QueryLog spec) where
+--   mul := instAppend.append
+--   one := instEmptyCollection.emptyCollection
+--   mul_assoc := fun a b c => by sorry
+--   one_mul := sorry
+--   mul_one := sorry
 
 end QueryLog
 
@@ -54,12 +56,9 @@ def logQuery (log : QueryLog spec) {i : ι}
 
 end logQuery
 
-<<<<<<< HEAD
-=======
 def singleton {i : ι} (t : spec.domain i) (u : spec.range i) : QueryLog spec :=
   Function.update (λ _ ↦ []) i [(t, u)]
 
->>>>>>> b303f1afae041e1f4ea286e93b65f860eb52a798
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
 def wasQueried [spec.DecidableEq] (log : QueryLog spec) (i : ι) (t : spec.domain i) : Bool :=
@@ -76,7 +75,7 @@ end OracleSpec
 
 open OracleComp OracleSpec
 
-def loggingOracleNew : SimOracle' spec spec (WriterT (QueryLog spec)) where
+def loggingOracleNew : SimOracle' spec spec (WriterT (QueryLog' spec)) where
   impl | query i t => do
     let u ← query i t
     tell [⟨i, (t, u)⟩]
@@ -91,11 +90,7 @@ def loggingOracle' : SimOracle' spec spec (WriterT (QueryLog' spec)) where
 def logingOracle'' : QueryImpl spec (WriterT (QueryLog' spec) (OracleComp spec)) where
   impl | query i t => do
     let u ← query i t
-<<<<<<< HEAD
-    tell [⟨i, (t, u)⟩]
-=======
     tell (QueryLog'.singleton t u)
->>>>>>> b303f1afae041e1f4ea286e93b65f860eb52a798
     return u
 
 -- `(22, [⟨20, ((), 8)⟩, ⟨20, ((), 14)⟩])`
