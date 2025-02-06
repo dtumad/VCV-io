@@ -17,7 +17,7 @@ TODO: what about `LawfulMonad{Control/Reader/Writer/Option}`?
 universe u v
 
 class LawfulMonadStateOf (σ : outParam (Type u)) (m : Type u → Type v) [Monad m] [MonadStateOf σ m]
-    : Type (max (u+1) v) where
+    : Prop where
 
   /-- `modifyGet f` is equivalent to `do let (a, s) := f (← get); set s; pure a` -/
   modifyGet_eq : {α : Type u} → (f : σ → α × σ) →
