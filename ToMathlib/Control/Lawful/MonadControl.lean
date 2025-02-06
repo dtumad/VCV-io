@@ -17,7 +17,7 @@ These laws ensure that control operations behave consistently and preserve monad
 universe u v w
 
 class LawfulMonadControl (m : semiOutParam (Type u → Type v)) (n : Type u → Type w)
-    [Monad m] [Monad n] [MonadControl m n] : Type (max (u + 1) v w) where
+    [Monad m] [Monad n] [MonadControl m n] : Prop where
 
   /-- Lifting a pure computation should be pure -/
   liftWith_pure {α : Type u} (a : α) :
@@ -33,7 +33,7 @@ class LawfulMonadControl (m : semiOutParam (Type u → Type v)) (n : Type u → 
     MonadControl.liftWith (m := m) (fun run => run t) >>= MonadControl.restoreM ∘ pure = t
 
 class LawfulMonadControlT (m : Type u → Type v) (n : Type u → Type w)
-    [Monad m] [Monad n] [MonadControlT m n] : Type (max (u + 1) v w) where
+    [Monad m] [Monad n] [MonadControlT m n] : Prop where
 
   /-- Lifting a pure computation should be pure -/
   liftWith_pure {α : Type u} (a : α) :

@@ -3,8 +3,6 @@ Copyright (c) 2025 Quang Dao. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
-import Mathlib.Control.Monad.Basic
-import Init.Control.State
 
 /-!
 # Lawful version of `MonadFunctor`
@@ -53,3 +51,5 @@ instance {m n o} [Monad m] [Monad n] [Monad o] [MonadFunctor n o] [MonadFunctorT
 instance lawfulMonadFunctorRefl {m} [Monad m] : LawfulMonadFunctorT m m where
   monadMap_id := by intro α; simp only [monadFunctorRefl]
   monadMap_comp := by intro α f g; simp only [monadFunctorRefl]
+
+instance {m n} [MonadFunctor m n] : MonadFunctorT m n := inferInstance

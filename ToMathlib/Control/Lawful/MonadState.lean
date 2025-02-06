@@ -3,18 +3,15 @@ Copyright (c) 2025 Quang Dao. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
-import Mathlib.Control.Monad.Basic
-import Init.Control.State
+import ToMathlib.Control.Lawful.MonadLift
 
 /-!
 # Lawful version of `MonadState`
 
 This file defines the `LawfulMonadState(Of)` class, which adds laws to the `MonadState(Of)` class.
-
-TODO: what about `LawfulMonad{Control/Reader/Writer/Option}`?
 -/
 
-universe u v
+universe u v w
 
 class LawfulMonadStateOf (σ : outParam (Type u)) (m : Type u → Type v) [Monad m] [MonadStateOf σ m]
     : Prop where
@@ -115,29 +112,24 @@ namespace StateT
 
 variable {σ : Type u} {m : Type u → Type v} [Monad m] [LawfulMonad m]
 
-@[simp]
 theorem modifyGet_eq_monadState {α : Type u} (f : σ → α × σ) :
     StateT.modifyGet (m := m) f = (do let (a, s) := f (← StateT.get); StateT.set s; pure a) := by
   unfold StateT.modifyGet StateT.get StateT.set StateT.instMonad StateT.bind StateT.pure
   simp only [bind_pure_comp, map_pure]
 
-@[simp]
 theorem get_get {α : Type u} {a : σ → σ → StateT σ m α} :
     (do let s₁ ← StateT.get; let s₂ ← StateT.get; a s₁ s₂) = (do let s ← StateT.get; a s s) := by
   unfold StateT.get StateT.instMonad StateT.bind
   simp only [pure_bind]
 
-@[simp]
 theorem set_set {s₁ s₂ : σ} : (do StateT.set s₁; StateT.set s₂) = StateT.set (m := m) s₂ := by
   unfold StateT.set StateT.instMonad StateT.bind
   simp only [bind_pure_comp, map_pure]
 
-@[simp]
 theorem get_set {s : σ} : (do StateT.set (m := m) s; StateT.get) = (do StateT.set s; pure s) := by
   unfold StateT.get StateT.instMonad StateT.bind StateT.set StateT.pure
   simp only [bind_pure_comp, map_pure]
 
-@[simp]
 theorem set_get : (do let s ← @StateT.get σ m _; StateT.set s) = pure ⟨⟩ := by
   unfold StateT.get StateT.instMonad StateT.bind StateT.set StateT.pure
   simp only [bind_pure_comp, map_pure]
@@ -158,5 +150,19 @@ instance : LawfulMonadStateOf σ (StateT σ m) where
     simp only [MonadStateOf.get, set, set_get, pure]
 
 instance : LawfulMonadState σ (StateT σ m) := inferInstance
+
+-- TODO: finish proof
+instance {n : Type u → Type w} [Monad m] [Monad n] [MonadLift m n] [MonadStateOf σ m]
+    [LawfulMonad m] [LawfulMonad n] [LawfulMonadLift m n] [LawfulMonadStateOf σ m] :
+      LawfulMonadStateOf σ n where
+  modifyGet_eq f := by
+    simp only [MonadStateOf.modifyGet, LawfulMonadState.modifyGet_eq, bind_pure_comp,
+      MonadStateOf.get, liftM, set]
+    sorry
+
+  get_get := sorry
+  set_set := sorry
+  get_set := sorry
+  set_get := sorry
 
 end StateT

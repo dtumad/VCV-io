@@ -9,6 +9,10 @@ import Mathlib.CategoryTheory.Monad.Basic
 /-!
 # Relative monad
 
+This file defines the `RelativeMonad` type class, both as a category-theoretic object and a
+programming object. This is needed to experiment with formalizing the paper
+[The next 700 relational program logics](https://dl.acm.org/doi/pdf/10.1145/3371072).
+
 -/
 
 namespace CategoryTheory
