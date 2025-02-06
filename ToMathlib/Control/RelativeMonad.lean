@@ -1,6 +1,6 @@
 /-
 Copyright (c) 2025 Quang Dao. All rights reserved.
-Relativeeased under Apache 2.0 license as described in the file LICENSE.
+Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 import Mathlib.Control.Monad.Basic

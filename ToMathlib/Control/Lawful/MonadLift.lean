@@ -26,13 +26,13 @@ class LawfulMonadLift (m : semiOutParam (Type u → Type v)) (n : Type u → Typ
 
   /-- Lifting preserves `pure` -/
   monadLift_pure : {α : Type u} → {a : α} →
-    @MonadLift.monadLift m n _ _ (pure a) = pure (f := n) a
+    @MonadLift.monadLift m n _ _ (pure a) = pure a
 
   /-- Lifting preserves `bind` -/
   monadLift_bind {α β : Type u} (ma : m α) (f : α → m β) :
     MonadLift.monadLift ma >>= (MonadLift.monadLift ∘ f) = MonadLift.monadLift (n := n) (ma >>= f)
 
-attribute [simp] LawfulMonadLift.monadLift_pure LawfulMonadLift.monadLift_bind
+-- attribute [simp] LawfulMonadLift.monadLift_pure LawfulMonadLift.monadLift_bind
 
 class LawfulMonadLiftT (m : Type u → Type v) (n : Type u → Type w) [Monad m] [Monad n]
     [MonadLiftT m n] : Prop where

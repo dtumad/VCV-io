@@ -38,9 +38,9 @@ class LawfulMonadStateOf (σ : outParam (Type u)) (m : Type u → Type v) [Monad
   set_get : (do let s ← MonadStateOf.get (m := m); set (σ := σ) s) = pure ⟨⟩
 
 -- Should this be simp?
-attribute [simp] LawfulMonadStateOf.modifyGet_eq
-  LawfulMonadStateOf.get_get LawfulMonadStateOf.set_set
-  LawfulMonadStateOf.get_set LawfulMonadStateOf.set_get
+-- attribute [simp] LawfulMonadStateOf.modifyGet_eq
+--   LawfulMonadStateOf.get_get LawfulMonadStateOf.set_set
+--   LawfulMonadStateOf.get_set LawfulMonadStateOf.set_get
 
 namespace LawfulMonadStateOf
 
