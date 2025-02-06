@@ -15,17 +15,6 @@ variable {ι : Type} {spec : OracleSpec ι} {α β : Type}
 
 variable {ι₁ ι₂ : Type} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
-theorem oracleComp_prod (oa : OracleComp spec (α × β)) :
-    Prod.mk <$> (Prod.fst <$> oa) <*> (Prod.snd <$> oa) = oa := by
-  simp [seq_map_assoc, seq_eq_bind_map]
-  simp [Function.comp_def]
-  sorry
-
-@[ext]
-theorem prod_ext {oa oa' : OracleComp spec (α × β)} (h1 : Prod.fst <$> oa = Prod.fst <$> oa')
-    (h2 : Prod.snd <$> oa = Prod.snd <$> oa') : oa = oa' := by
-  rw [← oracleComp_prod oa, ← oracleComp_prod oa', h1, h2]
-
 namespace OracleSpec
 
 /-- Log of oracle queries represented by lists of input output pairs,
@@ -49,13 +38,13 @@ theorem ext (log₁ log₂ : QueryLog spec) (h : ∀ i, log₁ i = log₂ i) : l
 @[simp]
 theorem emptyCollection_eq : (∅ : QueryLog spec) = λ _ ↦ [] := rfl
 
-variable [DecidableEq ι] [DecidableEq ι₁] [DecidableEq ι₂]
+-- variable [DecidableEq ι₁] [DecidableEq ι₂]
 
 section logQuery
 
 /-- Update a query log by adding a new element to the appropriate list.
 Note that this requires decidable equality on the indexing set. -/
-def logQuery (log : QueryLog spec) {i : ι}
+def logQuery [DecidableEq ι] (log : QueryLog spec) {i : ι}
     (t : spec.domain i) (u : spec.range i) : QueryLog spec :=
   Function.update log i ((t, u) :: log i)
 
@@ -68,13 +57,10 @@ def wasQueried [spec.DecidableEq] (log : QueryLog spec) (i : ι) (t : spec.domai
   | Option.some _ => true
   | Option.none => false
 
--- Note: `List.eraseDup(s)` should be the right function (remove all but the first occurrence),
--- while `dedup` removes all but the last occurrence. However there's not as many supporting lemmas
--- for `eraseDup` right now.
-def append [spec.DecidableEq] (log₁ : QueryLog spec) (log₂ : QueryLog spec) : QueryLog spec :=
-  λ i ↦ (log₁ i ++ log₂ i).dedup
-
-section Append
+/-- Append two logs. Since the queries are pre-pended, the second log is added to the front of the
+  first. -/
+def append (log₁ : QueryLog spec) (log₂ : QueryLog spec) : QueryLog spec :=
+  λ i ↦ log₂ i ++ log₁ i
 
 def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
   λ i ↦ log (.inl i)
@@ -89,12 +75,20 @@ def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂)
 instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inl⟩
 instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inr⟩
 
-theorem append_empty [spec.DecidableEq] (log : QueryLog spec) (h : ∀ i, (log i).Nodup) :
-    log.append ∅ = log := by
-  ext i : 1
-  simp [append, List.dedup_eq_self, h]
+@[simp]
+theorem append_apply (log₁ : QueryLog spec) (log₂ : QueryLog spec) (i : ι) :
+  (log₁.append log₂) i = log₂ i ++ log₁ i := rfl
 
-end Append
+@[simp]
+theorem append_empty (log : QueryLog spec) : log.append ∅ = log := by ext; simp [append]
+
+@[simp]
+theorem empty_append (log : QueryLog spec) : (∅ : QueryLog spec).append log = log := by
+  ext; simp [append]
+
+theorem append_assoc (log₁ : QueryLog spec) (log₂ : QueryLog spec) (log₃ : QueryLog spec) :
+    (log₁.append log₂).append log₃ = log₁.append (log₂.append log₃) := by
+  ext; simp [append]
 
 end QueryLog
 
@@ -120,9 +114,6 @@ lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
       let u ← query i t
       modifyGet λ log ↦ (u, log.logQuery t u)) := rfl
 
--- May need `SatisfiesM` machinery since the `QueryLog` is inside `OracleComp`
--- lemma nodup_logQuery (oa : OracleComp spec α) : ∀ i, (simulate loggingOracle ∅ oa).Nodup := by
-
 instance : (loggingOracle (spec := spec)).IsTracking where
   state_indep | query _ _, _ => rfl
 
@@ -132,12 +123,9 @@ theorem simulate_eq_append_simulate_empty [spec.DecidableEq] (oa : OracleComp sp
         let ⟨a, log_oa⟩ ← simulate loggingOracle ∅ oa
         return (a, log.append log_oa) := by
   induction oa using OracleComp.induction with
-  | pure a => simp [simulate_pure]; ext : 1; simp [QueryLog.append]; sorry
+  | pure a => simp [simulate_pure]; ext : 1; simp [QueryLog.append]
   | query_bind i t oa ih => simp [simulate_bind, ih]; sorry
   | failure => simp
-
--- TODO: add lemmas about behavior of `loggingOracle`
-#check List.eraseDups
 
 variable [spec₁.DecidableEq] [spec₂.DecidableEq]
 
