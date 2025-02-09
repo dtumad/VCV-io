@@ -16,23 +16,21 @@ Taken from [Zulip thread](https://leanprover.zulipchat.com/#narrow/channel/27067
 
 universe u v w
 
-/--
-A function for lifting a computation from an inner `Monad` to an outer `Monad`.
-Like Haskell's [`MonadTrans`], this is a functorial version of `MonadLift`.
-
-  [`MonadTrans`]: https://hackage.haskell.org/package/transformers-0.5.5.0/docs/Control-Monad-Trans-Class.html
--/
+/-- -/
 class MonadTransformer (t : (Type u → Type v) → Type u → Type w) where
-  mapMonad (m) [Monad m] : Monad (t m)
-  transform (m) [Monad m] : MonadLift m (t m)
+  [mapMonad (m) [Monad m] : Monad (t m)]
+  [transform (m) [Monad m] : MonadLift m (t m)]
 
-variable {t : (Type u → Type v) → Type u → Type w} {m : Type u → Type v} {α β ρ ε σ : Type u}
+variable {t : (Type u → Type v) → Type u → Type w} {m : Type u → Type v} {n : Type u → Type v}
+  {α β ρ ε σ : Type u}
 
 instance [MonadTransformer t] [Monad m] : Monad (t m) := MonadTransformer.mapMonad m
 
 @[always_inline, inline, simp]
 abbrev MonadTransformer.liftOf [MonadTransformer t] (m) [Monad m] : m α → t m α :=
   (transform m).monadLift
+
+export MonadTransformer (liftOf)
 
 @[always_inline, inline, simp]
 abbrev MonadTransformer.lift [MonadTransformer t] {m} [Monad m] : m α → t m α :=
@@ -63,32 +61,33 @@ liftOf m x >>= liftOf m ∘ f = liftOf m (x >>= f)
 ```
 -/
 class LawfulMonadTransformer (t) [MonadTransformer t] : Prop where
-  monad_functor {m} [Monad m] [LawfulMonad m] : LawfulMonad (t m)
-  lift_pure {m} [Monad m] [LawfulMonad m] {α} (x : α) :
-    ‹MonadTransformer t›.liftOf m (pure x) = pure x
-  lift_bind {m} [Monad m] [LawfulMonad m] {α β} (x : m α) (f : α → m β) :
-    ‹MonadTransformer t›.lift x >>= MonadTransformer.lift ∘ f = MonadTransformer.lift (x >>= f)
+  [monad_functor {m} [Monad m] [LawfulMonad m] : LawfulMonad (t m)]
+  liftOf_pure {m} [Monad m] [LawfulMonad m] {α} (x : α) : liftOf m (pure x) = (pure x : t m α)
+  liftOf_bind {m} [Monad m] [LawfulMonad m] {α β} (x : m α) (f : α → m β) :
+    liftOf m x >>= liftOf m ∘ f = liftOf (t := t) m (x >>= f)
+
+export LawfulMonadTransformer (liftOf_pure liftOf_bind)
 
 section
 attribute [local simp] MonadLift.monadLift Bind.bind
 
 instance : LawfulMonadTransformer (ReaderT ρ) where
   monad_functor := inferInstance
-  lift_pure _ := rfl
-  lift_bind _ _ := rfl
+  liftOf_pure _ := rfl
+  liftOf_bind _ _ := rfl
 
 instance : LawfulMonadTransformer (ExceptT ε) where
   monad_functor := inferInstance
-  lift_pure _ := map_pure _ _
-  lift_bind _ _ := by
+  liftOf_pure _ := map_pure _ _
+  liftOf_bind _ _ := by
     dsimp [ExceptT.lift]
     rw [map_bind]
     exact bind_map_left _ _ _
 
 instance : LawfulMonadTransformer (StateT σ) where
   monad_functor := inferInstance
-  lift_pure _ := funext fun _ => pure_bind _ _
-  lift_bind _ _ := by
+  liftOf_pure _ := funext fun _ => pure_bind _ _
+  liftOf_bind _ _ := by
     funext
     dsimp [StateT.lift, StateT.bind]
     rw [bind_pure_comp, bind_map_left]
@@ -99,8 +98,8 @@ instance : LawfulMonadTransformer (StateT σ) where
 
 instance : LawfulMonadTransformer OptionT where
   monad_functor := inferInstance
-  lift_pure _ := pure_bind _ _
-  lift_bind _ _ := by
+  liftOf_pure _ := pure_bind _ _
+  liftOf_bind _ _ := by
     dsimp [OptionT.lift, OptionT.bind, OptionT.mk]
     rw [bind_pure_comp, bind_map_left]
     rw [bind_pure_comp, map_bind]
@@ -110,27 +109,13 @@ instance : LawfulMonadTransformer OptionT where
 
 end
 
--- /--
--- The `MonadLift` typeclass only contains the operations of a monad lift.
--- `LawfulMonadLift` further asserts that these operations satisfy the laws of a monad lift:
--- ```
--- monadLift (pure x) = pure x
--- monadLift x >>= monadLift ∘ f = monadLift (x >>= f)
--- ```
--- -/
--- class LawfulMonadLift (m : Type u → Type v) (n : Type u → Type w) [Monad m] [Monad n]
---     [MonadLift m n] : Prop where
---   lift_pure (x : α) : ‹MonadLift m n›.monadLift (pure x) = pure x
---   lift_bind (x : m α) (f : α → m β)
---     : ‹MonadLift m n›.monadLift x >>= monadLift ∘ f = monadLift (x >>= f)
-
 namespace MonadTransformer
 
 instance [MonadTransformer t] [Monad m] : MonadLift m (t m) := MonadTransformer.transform m
 
 instance [MonadTransformer t] [Monad m] [LawfulMonad m] [LawfulMonadTransformer t]
     : LawfulMonadLift m (t m) where
-  monadLift_pure := LawfulMonadTransformer.lift_pure
-  monadLift_bind := LawfulMonadTransformer.lift_bind
+  monadLift_pure := LawfulMonadTransformer.liftOf_pure
+  monadLift_bind := LawfulMonadTransformer.liftOf_bind
 
 end MonadTransformer

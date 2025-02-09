@@ -8,6 +8,7 @@ import Mathlib.Data.Finset.Card
 import Mathlib.Control.Lawful
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import Mathlib.Data.Fintype.Card
+import ToMathlib.Control.MonadAlgebra
 
 /-!
 # Free Monad of a Functor
@@ -249,3 +250,16 @@ lemma list_mapM_loop_eq {m : Type u → Type v} [Monad m] [LawfulMonad m]
       simp only [List.mapM.loop, map_bind]
       refine congr_arg (f x >>= ·) (funext λ x ↦ ?_)
       simp [h (x :: ys), h [x]]
+
+namespace FreeMonad
+
+-- instance instMonadAlgebra {f} {pre : {α : Type v} → f α → α} : MonadAlgebra (FreeMonad f) where
+--   monadAlg
+--   | FreeMonad.pure x => x
+--   | FreeMonad.roll x r => @instMonadAlgebra.monadAlg _ (r (pre x))
+
+-- def prePostFree {f} {α β} (pre : α → Prop) (post : α × β → Prop) : FreeMonad f Prop → Prop
+--   | FreeMonad.pure x => x
+--   | FreeMonad.roll x r => ∃ inp, pre inp ∧ ∀ out, post (inp, out) → prePostFree pre post (r out)
+
+end FreeMonad

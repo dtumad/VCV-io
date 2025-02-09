@@ -10,8 +10,7 @@ import Mathlib.CategoryTheory.Monad.Basic
 # Relative monad
 
 This file defines the `RelativeMonad` type class, both as a category-theoretic object and a
-programming object. This is needed to experiment with formalizing the paper
-[The next 700 relational program logics](https://dl.acm.org/doi/pdf/10.1145/3371072).
+programming object.
 
 -/
 
@@ -244,3 +243,17 @@ instance [RelativeFunctor Id f] [LawfulRelativeFunctor Id f] : LawfulFunctor f w
 --   comp_map := @comp_mapᵣ Id m _ _
 
 end Lawful
+
+class MonadIsomorphism (m : Type u → Type v) (n : Type u → Type v) where
+  toLift : MonadLiftT m n
+  invLift : MonadLiftT n m
+  monadLift_left_inv {α : Type u} :
+    Function.LeftInverse (toLift.monadLift (α := α)) (invLift.monadLift (α := α))
+  monadLift_right_inv {α : Type u} :
+    Function.RightInverse (toLift.monadLift (α := α)) (invLift.monadLift (α := α))
+
+-- class RelativeMonadMorphism
+
+-- class RelativeMonadIsomorphism
+
+-- def RelativeMonad.prod
