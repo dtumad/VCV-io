@@ -99,23 +99,22 @@ export LawfulDijkstraMonadLift (dMorphism_dPure dMorphism_dBind)
 
 attribute [simp] dMorphism_dPure dMorphism_dBind
 
-section MonadRelation
+namespace DijkstraMonad
 
 /-! ## Constructing Dijkstra monads from monad relations and vice versa -/
 
 variable {m : Type u → Type v} {n : Type u → Type w}
 
-instance [Monad m] [Monad n] [MonadRelation m n] [LawfulMonadRelation m n] :
-    DijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
-  dPure x := ⟨pure x, pure_rel x⟩
-  dBind x f := ⟨x.1 >>= (fun a => (f a).1), bind_rel x.2 (fun a => (f a).2)⟩
+instance instOfMonadRelation {m n} [Monad m] [Monad n] [MonadRelation m n]
+    [LawfulMonadRelation m n] : DijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
+  dPure x := ⟨pure x, monadRel_pure x⟩
+  dBind x f := ⟨x.1 >>= (fun a => (f a).1), monadRel_bind x.2 (fun a => (f a).2)⟩
 
-instance [Monad m] [OrderedMonad n] [MonadRelation m n] [LawfulMonad m] [LawfulMonad n]
-    [LawfulMonadRelation m n] : OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
-  dWeaken x h := ⟨x.1, sorry⟩
-  dWeaken_refl x := by simp
-  dWeaken_trans x h1 h2 := by simp
-  dWeaken_dBind x g ha hf := by sorry
+open MonadRelation in
+instance instOfMonadMorphism {m n} [Monad m] [Monad n] [h : MonadLiftT m n]
+    [h' : LawfulMonadLiftT m n] :
+      DijkstraMonad n (fun na => { ma : m _ // monadLift ma = na }) :=
+  @instOfMonadRelation m n _ _ (@instOfMonadLiftT m n h) (@instOfLawfulMonadLiftT m n _ _ h h')
 
 instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
     [LawfulMonadRelation m n] :
@@ -125,17 +124,54 @@ instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
   dBind_assoc x f g := by sorry
 
 /-- A Dijkstra monad `d` on a monad `w` can be seen as a monad on the dependent pair `(w, d)`. -/
-instance {w d} [Monad w] [DijkstraMonad w d] : Monad (fun α => (w : w α) × d w) where
+instance instMonadSigma {w d} [Monad w] [DijkstraMonad w d] : Monad (fun α => (w : w α) × d w) where
   pure x := ⟨pure x, dPure x⟩
   bind x f := ⟨x.1 >>= (fun a => (f a).1), x.2 >>=ᵈ (fun a => (f a).2)⟩
 
 /-- A lawful Dijkstra monad `d` on a lawful monad `w` can be seen as a lawful monad on the dependent
   pair `(w, d)`. -/
-instance {w d} [Monad w] [DijkstraMonad w d] [LawfulMonad w] [LawfulDijkstraMonad w d] :
+instance {w d} [Monad w] [DijkstraMonad w d] [h : LawfulMonad w] [LawfulDijkstraMonad w d] :
     LawfulMonad (fun α => (w : w α) × d w) :=
-  LawfulMonad.mk' _ (fun x => by sorry) (fun x f=> by sorry) (fun x f g => by sorry)
+  LawfulMonad.mk' _
+    (by
+      intro α ⟨x, y⟩; simp [instMonadSigma]
+      constructor
+      · show x >>= (fun a => pure a) = x; simp only [bind_pure]
+      · rw (occs := .pos [2]) [← dBind_dPure y]
+        symm; exact eqRec_heq (bind_pure x) (y >>=ᵈ dPure))
+    (by
+      intro α β x f; simp [instMonadSigma]; congr
+      · simp only [pure_bind]
+      · rw [← dPure_dBind x (fun a => (f a).2)]
+        exact HEq.symm (eqRec_heq _ _))
+    (fun x f g => by
+      simp [instMonadSigma]
+      rw [← dBind_assoc x.2 _ _]
+      exact HEq.symm (eqRec_heq _ _))
 
-end MonadRelation
+instance {w d} [Monad w] [DijkstraMonad w d] : MonadLiftT (fun α => (w : w α) × d w) w where
+  monadLift x := x.1
+
+open MonadRelation in
+instance {w d} [Monad w] [DijkstraMonad w d] : MonadRelation (fun α => (w : w α) × d w) w :=
+  instOfMonadLiftT
+
+-- TODO: state that this forms an adjunction
+
+/-! The ordered setting -/
+
+def quotientDijkstraMonadOfOrderedMonadRelation {m n} [Monad m] [OrderedMonad n]
+    [MonadRelation m n] [LawfulMonad m] [LawfulMonad n] [MonadRelation.IsUpperClosed m n] :
+    {α : Type u} → n α → Type _ := sorry
+
+instance [Monad m] [OrderedMonad n] [MonadRelation m n] [LawfulMonad m] [LawfulMonad n]
+    [LawfulMonadRelation m n] : OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
+  dWeaken x h := ⟨x.1, by simp_all [monadRel]; sorry⟩
+  dWeaken_refl x := by simp
+  dWeaken_trans x h1 h2 := by simp
+  dWeaken_dBind x g ha hf := by simp; sorry
+
+end DijkstraMonad
 
 /-! ## The Free Dijkstra Monad -/
 

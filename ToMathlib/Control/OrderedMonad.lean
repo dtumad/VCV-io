@@ -171,11 +171,10 @@ def instDiscreteMonadLift {m n} [Monad m] [h : OrderedMonad n] [MonadLift m n] :
 
 end MonadLift
 
-section MonadRelation
+namespace MonadRelation
 
-open MonadRelation in
-class MonadIdeal (m : Type u → Type v) (n : Type u → Type w) [Monad m] [OrderedMonad n] extends
-    MonadRelation m n where
+class IsUpperClosed (m : Type u → Type v) (n : Type u → Type w) [Monad m] [OrderedMonad n]
+    [MonadRelation m n] where
   monadRel_upper_closed {α} {ma : m α} {na na' : n α} (hr : ma ∼ₘ na) (hn : na ≤ₘ na') : ma ∼ₘ na'
 
 instance {m n} [Monad m] [OrderedMonad n] [MonadLiftT m n] : MonadRelation m n where
@@ -183,8 +182,8 @@ instance {m n} [Monad m] [OrderedMonad n] [MonadLiftT m n] : MonadRelation m n w
 
 instance {m n} [Monad m] [OrderedMonad n] [MonadLiftT m n] [LawfulMonad m] [LawfulMonad n]
     [LawfulMonadLiftT m n] : LawfulMonadRelation m n where
-  pure_rel := by simp [monadRel]
-  bind_rel ha hb := by
+  monadRel_pure := by simp [monadRel]
+  monadRel_bind ha hb := by
     simp_all only [monadRel, ge_iff_le]
     rename_i ma mb na nb
     rw [← monadLift_bind]

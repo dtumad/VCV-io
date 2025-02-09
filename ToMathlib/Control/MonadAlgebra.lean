@@ -8,7 +8,7 @@ Authors: Quang Dao
 
 universe u v
 
-class MonadAlgebra (m : Type u → Type v) [Monad m] where
+class MonadAlgebra (m : Type u → Type v) where
   monadAlg {α : Type u} : m α → α
 
 export MonadAlgebra (monadAlg)
