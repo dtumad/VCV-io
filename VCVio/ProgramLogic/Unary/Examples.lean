@@ -96,3 +96,10 @@ instance {α} : AssertAssume (MonoContProp α) where
 -- instance : OrderedMonad (ReaderT σ (Cont Prop)) where
 --   le := inferInstance
 --   bind_mono := sorry
+
+def effectObserve (m : Type u → Type v) (α : Type u) := m α → (m α → Prop) → Prop
+
+/-!
+Hoare triple will have the form `{P} prog {Q}`, where `P Q : m α → Prop` and `prog : m α`, defined as `P prog → effectObserve prog Q`.
+
+-/

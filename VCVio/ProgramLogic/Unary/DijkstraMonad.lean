@@ -7,7 +7,7 @@ import Mathlib.Control.Monad.Basic
 import Mathlib.Control.Monad.Cont
 import Mathlib.CategoryTheory.Monad.Basic
 import ToMathlib.Control
-import ToMathlib.FreeMonad
+import ToMathlib.Control.FreeMonad
 
 /-!
 # Dijkstra monad
@@ -110,7 +110,7 @@ instance [Monad m] [Monad n] [MonadRelation m n] [LawfulMonadRelation m n] :
   dPure x := ⟨pure x, pure_rel x⟩
   dBind x f := ⟨x.1 >>= (fun a => (f a).1), bind_rel x.2 (fun a => (f a).2)⟩
 
-instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
+instance [Monad m] [OrderedMonad n] [MonadRelation m n] [LawfulMonad m] [LawfulMonad n]
     [LawfulMonadRelation m n] : OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
   dWeaken x h := ⟨x.1, sorry⟩
   dWeaken_refl x := by simp
@@ -123,6 +123,17 @@ instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
   dPure_dBind x f := by sorry
   dBind_dPure x := by sorry
   dBind_assoc x f g := by sorry
+
+/-- A Dijkstra monad `d` on a monad `w` can be seen as a monad on the dependent pair `(w, d)`. -/
+instance {w d} [Monad w] [DijkstraMonad w d] : Monad (fun α => (w : w α) × d w) where
+  pure x := ⟨pure x, dPure x⟩
+  bind x f := ⟨x.1 >>= (fun a => (f a).1), x.2 >>=ᵈ (fun a => (f a).2)⟩
+
+/-- A lawful Dijkstra monad `d` on a lawful monad `w` can be seen as a lawful monad on the dependent
+  pair `(w, d)`. -/
+instance {w d} [Monad w] [DijkstraMonad w d] [LawfulMonad w] [LawfulDijkstraMonad w d] :
+    LawfulMonad (fun α => (w : w α) × d w) :=
+  LawfulMonad.mk' _ (fun x => by sorry) (fun x f=> by sorry) (fun x f g => by sorry)
 
 end MonadRelation
 
