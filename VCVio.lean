@@ -41,5 +41,5 @@ import VCVio.OracleComp.SimSemantics.QueryTracking.RandOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.SeededOracle
 import VCVio.OracleComp.SimSemantics.Simulate
 import VCVio.OracleComp.SimSemantics.UntilSwap
-import VCVio.ProgramLogic.Unary.DijkstraMonad
 import VCVio.ProgramLogic.Relational.Basic
+import VCVio.ProgramLogic.Unary.DijkstraMonad

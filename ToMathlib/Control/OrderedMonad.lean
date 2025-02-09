@@ -83,16 +83,21 @@ namespace OrderedMonad
 macro_rules | `($x ≤ₘ $y)  => `(binrel% OrderedMonad.monadLE $x $y)
 macro_rules | `($x <ₘ $y)  => `(binrel% OrderedMonad.monadLT $x $y)
 
+namespace Discrete
+
 /-- Any monad can be given the discrete preorder, where `a ≤ b` if and only if `a = b`.
 
-Note that this is the default instance for `OrderedMonad` on any monad. -/
-instance instDiscreteMonad {m} [Monad m] : OrderedMonad m where
+This is put into the `Discrete` scope in order to avoid conflicts with other instances. This
+instance should only be used as a last resort. -/
+scoped instance (priority := low) instDiscreteMonad (m) [Monad m] : OrderedMonad m where
   monadOrder := {
     le := (. = .)
     le_refl _ := rfl
     le_trans _ _ _ _ _ := by simp_all
   }
   bind_mono h hf := by simp_all; rename_i f f'; have : f = f' := funext hf; simp [this]
+
+end Discrete
 
 end OrderedMonad
 
@@ -152,10 +157,15 @@ instance {m} [OrderedMonad m] : OrderedMonadLiftT m m where
 --     [OrderedMonadLiftT m n] : OrderedMonadLiftT m o where
 --   monadLift_mono h := by simp
 
-open OrderedMonad in
-/-- Given the (default) discrete preorder on the beginning monad `m`, we can have a preorder on the
-    monad lifts from `m` to `n`. -/
-instance instDiscreteMonadLift {m n} [Monad m] [OrderedMonad n] [MonadLift m n] :
+open OrderedMonad Discrete in
+/--
+Given the (default) discrete preorder on the beginning monad `m`, we can have a preorder on the
+monad lifts from `m` to `n`.
+
+This is stated as a definition and not an instance, since oftentimes we want to have another
+instance on the monad lift.
+-/
+def instDiscreteMonadLift {m n} [Monad m] [h : OrderedMonad n] [MonadLift m n] :
     OrderedMonadLift m n where
   monadLift_mono h := by rename_i a b; have : a = b := h; simp only [this, le_refl]
 
@@ -198,6 +208,9 @@ class AssertAssume (α : Type u) [Preorder α] where
   assume_weaken : ∀ p x, x ≤ assume p x
   assert_assume_iff : ∀ p x y, assert p x ≤ y ↔ x ≤ assume p y
 
+class Monad.AssertAssume (m : Type u → Type v) [∀ α, Preorder (m α)] where
+  assert_assume {α} : _root_.AssertAssume (m α)
+
 section KanExtension
 variable {w : Type u → Type v} [Monad w] [OrderedMonad w]
 
@@ -208,52 +221,3 @@ def rightKanExtension {α β : Type u} (f : w β) (p : w α) :=
   { ext : β → w α // f >>= ext ≤ₘ p ∧ (∀ w', f >>= w' ≤ₘ p → ∀ a, w' a ≤ₘ ext a) }
 
 end KanExtension
-
-section Examples
-
-def WPure : Type u → Type u := fun α => {m : Cont Prop α // ∀ p p', (∀ a, p a → p' a) → m p → m p'}
-
-#print WPure
-
-noncomputable instance : Monad WPure where
-  pure := fun a => ⟨pure a, fun p p' h => by aesop⟩
-  bind := fun a f => ⟨a.1 >>= (fun a => (f a).1), fun p p' h => by simp_all [bind]; sorry⟩
-
-#print instMonadWPure
-
-noncomputable instance : LawfulMonad WPure := sorry
-
--- `W^Pure` in the paper
-noncomputable instance : OrderedMonad WPure where
-  monadOrder := {
-    le := fun x y ↦ ∀ p, x.1 p → y.1 p
-    le_refl := fun a => by simp
-    le_trans := fun a b c h1 h2 => by simp_all
-    lt_iff_le_not_le := sorry
-  }
-  bind_mono ha hf := by sorry
-    -- apply ha
-    -- have : ∀ i, f i p → f' i p := fun i => hf i p
-    -- have : (fun i => f i p) = (fun i => f' i p) := by funext i; sorry
-    -- revert h
-    -- have : ∀ i, f i p = f' i p := by
-    --   intro i
-    --   simp_all [hf i p]
-    -- simp [h, this]
-
--- `W^St` in the paper
-noncomputable instance {σ : Type u} : OrderedMonad (StateT σ (Cont Prop)) where
-  monadOrder := {
-    le := fun x y ↦ ∀ p s, x p s → y p s
-    lt := fun x y ↦ monadOrder.le x y ∧ ¬ monadOrder.le y x
-    le_refl := sorry
-    le_trans := sorry
-    lt_iff_le_not_le := by sorry
-  }
-  bind_mono := sorry
-
--- instance : OrderedMonad (ReaderT σ (Cont Prop)) where
---   le := inferInstance
---   bind_mono := sorry
-
-end Examples
