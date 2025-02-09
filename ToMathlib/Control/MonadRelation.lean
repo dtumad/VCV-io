@@ -5,10 +5,14 @@ Authors: Quang Dao
 -/
 
 import ToMathlib.Control.Lawful.MonadLift
+import Batteries.Tactic.Alias
 
 /-! # Monad relations -/
 
 universe u v w v₁ w₁ v₂ w₂
+
+abbrev MonadMorphism := MonadLiftT
+abbrev LawfulMonadMorphism := LawfulMonadLiftT
 
 class MonadRelation (m : Type u → Type v) (n : Type u → Type w) where
   monadRel {α : Type u} : m α → n α → Prop

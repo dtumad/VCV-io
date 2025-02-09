@@ -21,7 +21,8 @@ class MonadTransformer (t : (Type u → Type v) → Type u → Type w) where
   [mapMonad (m) [Monad m] : Monad (t m)]
   [transform (m) [Monad m] : MonadLift m (t m)]
 
-variable {t : (Type u → Type v) → Type u → Type w} {m : Type u → Type v} {α β ρ ε σ : Type u}
+variable {t : (Type u → Type v) → Type u → Type w} {m : Type u → Type v} {n : Type u → Type v}
+  {α β ρ ε σ : Type u}
 
 instance [MonadTransformer t] [Monad m] : Monad (t m) := MonadTransformer.mapMonad m
 

@@ -82,6 +82,35 @@ instance {α} : AssertAssume (MonoContProp α) where
     fun h => by simp_all; sorry,
     fun h => by simp_all; sorry⟩
 
+/-- The quotient of the state monad, where the preorder on `σ → Prop` is given pointwise, induced by
+  the preorder `(p ≤ q) ↔ (p → q)` on `Prop`. -/
+def MonoStateContProp (σ : Type u) := MonoCont (σ → Prop)
+
+example {σ} : StateT σ (MonoContProp) = fun α => σ → MonoContProp (α × σ) := rfl
+
+-- theorem MonoStateContProp_def {σ} :
+--   MonoStateContProp σ = fun α =>
+--     {m : α → (σ → Prop) → (σ → Prop) // ∀ p p' : α → (σ → Prop), (∀ s, p s → p' s) → m p ≤ m p'} := rfl
+
+-- TODO: is there a better way to get this to be definitionally equal to `((α × σ) → Prop) → σ → Prop`?
+
+/-! ## Dijkstra monad for free via monad transformers -/
+
+-- /-- The canonical lifting of `Id` into `MonoContProp` -/
+-- instance : MonadLift Id MonoContProp := inferInstance
+
+-- /-- The canonical lifting of `Id` into `MonoContProp` is lawful -/
+-- instance : LawfulMonadLift Id MonoContProp where
+--   monadLift_pure := fun x => by simp only [monadLift, MonadLift.monadLift, pure]
+--   monadLift_bind := fun x f => by simp only [monadLift, MonadLift.monadLift, bind]
+
+-- instance {t} [MonadTransformer t] : MonadLift (t Id) (t MonoContProp) where
+--   monadLift := fun x => MonadTransformer.liftOf MonoContProp _
+
+-- instance [MonadTrans t] [LawfulMonad t] : LawfulMonadLift (t Id) (t MonoContProp) where
+--   monadLift_pure := fun x => by simp only [monadLift, MonadLift.monadLift, pure]
+--   monadLift_bind := fun x f => by simp only [monadLift, MonadLift.monadLift, bind]
+
 -- -- `W^St` in the paper
 -- noncomputable instance {σ : Type u} : OrderedMonad (StateT σ (Cont Prop)) where
 --   monadOrder := {

@@ -207,3 +207,18 @@ instance [Monad m] [LawfulMonad m] : LawfulMonadLift m (ExceptCpsT ε m) where
     simp only [bind_assoc]
 
 end ExceptCpsT
+
+namespace Id
+
+variable {m : Type u → Type v}
+
+/-- The `pure` operation of a monad `m` can be seen as a lifting operation from `Id` to `m`. -/
+instance [Pure m] : MonadLift Id m where
+  monadLift := pure
+
+/-- The lifting from `Id` to a lawful monad `m` induced by `pure` is lawful. -/
+instance [Monad m] [LawfulMonad m] : LawfulMonadLift Id m where
+  monadLift_pure := fun a => by simp [MonadLift.monadLift, pure]
+  monadLift_bind := fun x f => by simp [MonadLift.monadLift, bind]
+
+end Id
