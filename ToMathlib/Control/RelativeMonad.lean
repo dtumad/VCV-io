@@ -243,3 +243,17 @@ instance [RelativeFunctor Id f] [LawfulRelativeFunctor Id f] : LawfulFunctor f w
 --   comp_map := @comp_mapᵣ Id m _ _
 
 end Lawful
+
+class MonadIsomorphism (m : Type u → Type v) (n : Type u → Type v) where
+  toLift : MonadLiftT m n
+  invLift : MonadLiftT n m
+  monadLift_left_inv {α : Type u} :
+    Function.LeftInverse (toLift.monadLift (α := α)) (invLift.monadLift (α := α))
+  monadLift_right_inv {α : Type u} :
+    Function.RightInverse (toLift.monadLift (α := α)) (invLift.monadLift (α := α))
+
+-- class RelativeMonadMorphism
+
+-- class RelativeMonadIsomorphism
+
+-- def RelativeMonad.prod
