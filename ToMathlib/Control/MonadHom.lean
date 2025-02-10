@@ -22,7 +22,7 @@ structure MonadHom (m : Type u → Type v) [Pure m] [Bind m]
   toFun {α : Type u} : m α → n α
   toFun_pure' {α : Type u} (x : α) : toFun (pure x) = (pure x : n α)
   toFun_bind' {α β : Type u} (x : m α) (y : α → m β) :
-    toFun (x >>= y) = toFun x >>= toFun ∘ y
+    toFun (x >>= y) = toFun x >>= (fun a => toFun (y a))
 
 infixr:25 " →ᵐ " => MonadHom
 
@@ -63,8 +63,8 @@ section ofLift
 def ofLift (m : Type u → Type v) (n : Type u → Type v) [Monad m] [Monad n]
     [MonadLift m n] [LawfulMonadLift m n] : m →ᵐ n where
   toFun := liftM
-  toFun_pure' x := liftM_pure x
-  toFun_bind' x y := symm (liftM_bind x y)
+  toFun_pure' := liftM_pure
+  toFun_bind' := liftM_bind
 
 @[simp]
 lemma mmap_ofLift (m : Type u → Type v) (n : Type u → Type v) [Monad m] [Monad n]
