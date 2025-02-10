@@ -114,21 +114,20 @@ section liftComp
 /-- Lift a computation from `spec` to `superSpec` using a `SubSpec` instance on queries. -/
 def liftComp (oa : OracleComp spec α) (superSpec : OracleSpec τ)
       [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
-      OracleComp superSpec α := (simulateT ⟨liftM⟩ oa).run' PUnit.unit
+      OracleComp superSpec α := simulateQ ⟨liftM⟩ oa
 
 variable (superSpec : OracleSpec τ) [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
 lemma liftComp_def (oa : OracleComp spec α) :
-    liftComp oa superSpec = simulate' ⟨liftM⟩ PUnit.unit oa := rfl
+    liftComp oa superSpec = simulateQ (m := OracleComp superSpec) ⟨liftM⟩ oa := rfl
 
 @[simp]
-lemma liftComp_pure (x : α) : liftComp (pure x : OracleComp spec α) superSpec = pure x :=
-  simulate'_pure _ _ x
+lemma liftComp_pure (x : α) : liftComp (pure x : OracleComp spec α) superSpec = pure x := rfl
 
 @[simp]
-lemma liftComp_query (i : ι) (t : spec.domain i) :
-    liftComp (query i t : OracleComp spec _) superSpec = h.monadLift (query i t) :=
-  simulate'_query _ _ _
+lemma liftComp_query (q : OracleQuery spec α) :
+    liftComp (q : OracleComp spec _) superSpec = liftM q :=
+  by simp [liftComp_def]
 
 @[simp]
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
@@ -157,7 +156,7 @@ lemma evalDist_liftComp [spec.FiniteRange] [superSpec.FiniteRange]
   induction oa using OracleComp.inductionOn with
   | pure x => simp [liftComp_pure]
   | query_bind i t oa hoa =>
-      simp only [liftComp, simulateT_bind, simulateT_query, StateT.run'_eq, StateT.run_bind,
+      simp only [liftComp, simulateQ_bind, simulateQ_query, StateT.run'_eq, StateT.run_bind,
         StateT.run_monadLift, SubSpec.liftM_query_eq_liftM_liftM, bind_pure_comp,
         Function.comp_apply, bind_map_left, map_bind, evalDist_bind, OracleComp.evalDist_liftM]
       refine congr_arg (_ >>= ·) (funext λ u ↦ ?_)

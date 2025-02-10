@@ -33,7 +33,6 @@ import VCVio.OracleComp.RunIO
 import VCVio.OracleComp.SimSemantics.Append
 import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.SimSemantics.IsTracking
-import VCVio.OracleComp.SimSemantics.ParallelAppend
 import VCVio.OracleComp.SimSemantics.QueryTracking.CachingOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle
 import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle

@@ -41,7 +41,7 @@ This ordering is chosen to both give a generally applicable instance tree,
 and avoid an infinite typeclass search whether or not an instance exists.
 -/
 
-open OracleSpec OracleComp Sum
+open Sum
 
 namespace OracleSpec
 
@@ -56,17 +56,41 @@ section instances
 instance subSpec_append_left : spec₁ ⊂ₒ (spec₁ ++ₒ spec₂) where
   monadLift | query i t => query (inl i) t
 
+@[simp]
+lemma liftM_append_left_eq (q : OracleQuery spec₁ α) :
+    (liftM q : OracleQuery (spec₁ ++ₒ spec₂) α) =
+      match q with | query i t => query (inl i) t := rfl
+
 /-- Add additional oracles to the left side of the exiting ones-/
 instance subSpec_append_right : spec₂ ⊂ₒ (spec₁ ++ₒ spec₂) where
   monadLift | query i t => query (inr i) t
 
+@[simp]
+lemma liftM_append_right_eq (q : OracleQuery spec₂ α) :
+    (liftM q : OracleQuery (spec₁ ++ₒ spec₂) α) =
+      match q with | query i t => query (inr i) t := rfl
+
 instance subSpec_left_append_left_append_of_subSpec [h : spec₁ ⊂ₒ spec₃] :
     spec₁ ++ₒ spec₂ ⊂ₒ spec₃ ++ₒ spec₂ where
-  monadLift | query (inl i) t => h.monadLift (query i t) | query (inr i) t => query (inr i) t
+  monadLift
+    | query (inl i) t => liftM (query i t)
+    | query (inr i) t => query (inr i) t
+
+@[simp]
+lemma liftM_left_append_left_append_eq [h : spec₁ ⊂ₒ spec₃]
+    (q : OracleQuery (spec₁ ++ₒ spec₂) α) : (liftM q : OracleQuery (spec₃ ++ₒ spec₂) α) =
+    match q with | query (inl i) t => liftM (query i t) | query (inr i) t => query (inr i) t := rfl
 
 instance subSpec_right_append_right_append_of_subSpec [h : spec₂ ⊂ₒ spec₃] :
     spec₁ ++ₒ spec₂ ⊂ₒ spec₁ ++ₒ spec₃ where
-  monadLift | query (inl i) t => query (inl i) t | query (inr i) t => h.monadLift (query i t)
+  monadLift
+    | query (inl i) t => query (inl i) t
+    | query (inr i) t => liftM (query i t)
+
+@[simp]
+lemma liftM_right_append_right_append_eq [h : spec₂ ⊂ₒ spec₃]
+    (q : OracleQuery (spec₁ ++ₒ spec₂) α) : (liftM q : OracleQuery (spec₁ ++ₒ spec₃) α) =
+    match q with | query (inl i) t => liftM (query i t) | query (inr i) t => query (inr i) t := rfl
 
 instance subSpec_assoc : spec₁ ++ₒ (spec₂ ++ₒ spec₃) ⊂ₒ spec₁ ++ₒ spec₂ ++ₒ spec₃ where
   monadLift

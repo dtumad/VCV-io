@@ -265,7 +265,7 @@ see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fin
 NOTE: universe polymorphism of `β` is hard. -/
 class SelectableType (β : Type) where
   selectElem : OracleComp unifSpec β
-  mem_support_selectElem (x : β) : x ∈ selectElem.support
+  mem_support_selectElem (x : β) : x ∈ (OracleComp.support (spec := unifSpec) (α := β) selectElem : Set β)
   probOutput_selectElem_eq (x y : β) : [= x | selectElem] = [= y | selectElem]
   probFailure_selectElem : [⊥ | selectElem] = 0
 

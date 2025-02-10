@@ -3,6 +3,7 @@ Copyright (c) 2025 Quang Dao. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
+import Mathlib.Control.Monad.Basic
 
 /-!
 # Lawful version of `MonadLift`
@@ -16,7 +17,7 @@ universe u v w
   asserts that lifting commutes with `pure` and `bind`:
 ```
 monadLift (pure a) = pure a
-monadLift ma >>= monadLift ∘ f = monadLift (ma >>= f)
+monadLift (ma >>= f) = monadLift ma >>= monadLift ∘ f
 ```
 -/
 class LawfulMonadLift (m : semiOutParam (Type u → Type v)) (n : Type u → Type w)
@@ -25,13 +26,13 @@ class LawfulMonadLift (m : semiOutParam (Type u → Type v)) (n : Type u → Typ
   monadLift_pure {α : Type u} (a : α) : inst.monadLift (pure a) = pure a
   /-- Lifting preserves `bind` -/
   monadLift_bind {α β : Type u} (ma : m α) (f : α → m β) :
-    inst.monadLift ma >>= (fun x => inst.monadLift (f x)) = inst.monadLift (ma >>= f)
+    inst.monadLift (ma >>= f) = inst.monadLift ma >>= (fun x => inst.monadLift (f x))
 
 /-- The `MonadLiftT` typeclass only contains the transitive lifting operation.
   `LawfulMonadLiftT` further asserts that lifting commutes with `pure` and `bind`:
 ```
 monadLift (pure a) = pure a
-monadLift ma >>= monadLift ∘ f = monadLift (ma >>= f)
+monadLift (ma >>= f) = monadLift ma >>= monadLift ∘ f
 ```
 -/
 class LawfulMonadLiftT (m : Type u → Type v) (n : Type u → Type w) [Monad m] [Monad n]
@@ -40,15 +41,34 @@ class LawfulMonadLiftT (m : Type u → Type v) (n : Type u → Type w) [Monad m]
   monadLift_pure {α : Type u} (a : α) : inst.monadLift (pure a) = pure a
   /-- Lifting preserves `bind` -/
   monadLift_bind {α β : Type u} (ma : m α) (f : α → m β) :
-    monadLift ma >>= (fun x => monadLift (f x)) = inst.monadLift (ma >>= f)
+    inst.monadLift (ma >>= f) = monadLift ma >>= (fun x => monadLift (f x))
 
 export LawfulMonadLiftT (monadLift_pure monadLift_bind)
 
-variable {m : Type u → Type v} {n : Type u → Type w} {α β σ ρ ε ω}
+variable {m : Type u → Type v} {n : Type u → Type w} {α β σ ρ ε ω : Type u}
 
 section Lemmas
 
 variable [Monad m] [Monad n] [MonadLiftT m n] [LawfulMonadLiftT m n]
+
+theorem monadLift_map [LawfulMonad m] [LawfulMonad n] (f : α → β) (ma : m α) :
+    monadLift (f <$> ma) = f <$> (monadLift ma : n α) := by
+  rw [← bind_pure_comp, ← bind_pure_comp, monadLift_bind]
+  simp only [bind_pure_comp, monadLift_pure]
+
+theorem monadLift_seq [LawfulMonad m] [LawfulMonad n] (mf : m (α → β)) (ma : m α) :
+    monadLift (mf <*> ma) = monadLift mf <*> (monadLift ma : n α) := by
+  simp only [seq_eq_bind, monadLift_map, monadLift_bind]
+
+theorem monadLift_seqLeft [LawfulMonad m] [LawfulMonad n] (x : m α) (y : m β) :
+    monadLift (x <* y) = (monadLift x : n α) <* (monadLift y : n β) := by
+  simp only [seqLeft_eq, monadLift_map, monadLift_seq]
+
+theorem monadLift_seqRight [LawfulMonad m] [LawfulMonad n] (x : m α) (y : m β) :
+    monadLift (x *> y) = (monadLift x : n α) *> (monadLift y : n β) := by
+  simp only [seqRight_eq, monadLift_map, monadLift_seq]
+
+/-! We duplicate the theorems for `monadLift` to `liftM` since `rw` matches on syntax only. -/
 
 @[simp]
 theorem liftM_pure (a : α) : liftM (pure a : m α) = pure (f := n) a :=
@@ -56,29 +76,28 @@ theorem liftM_pure (a : α) : liftM (pure a : m α) = pure (f := n) a :=
 
 @[simp]
 theorem liftM_bind (ma : m α) (f : α → m β) :
-    liftM ma >>= (fun a => liftM (f a)) = liftM (n := n) (ma >>= f) :=
+    liftM (n := n) (ma >>= f) = liftM ma >>= (fun a => liftM (f a)) :=
   monadLift_bind _ _
 
 @[simp]
 theorem liftM_map [LawfulMonad m] [LawfulMonad n] (f : α → β) (ma : m α) :
-    f <$> (liftM ma : n α) = liftM (f <$> ma) := by
-  rw [← bind_pure_comp, ← bind_pure_comp, ← liftM_bind]
-  simp only [bind_pure_comp, liftM_pure]
+    liftM (f <$> ma) = f <$> (liftM ma : n α) :=
+  monadLift_map _ _
 
 @[simp]
 theorem liftM_seq [LawfulMonad m] [LawfulMonad n] (mf : m (α → β)) (ma : m α) :
-    liftM mf <*> (liftM ma : n α) = liftM (mf <*> ma) := by
-  simp only [seq_eq_bind, liftM_map, liftM_bind]
+    liftM (mf <*> ma) = liftM mf <*> (liftM ma : n α) :=
+  monadLift_seq _ _
 
 @[simp]
 theorem liftM_seqLeft [LawfulMonad m] [LawfulMonad n] (x : m α) (y : m β) :
-    (liftM x : n α) <* (liftM y : n β) = liftM (x <* y) := by
-  simp only [seqLeft_eq, liftM_map, liftM_seq]
+    liftM (x <* y) = (liftM x : n α) <* (liftM y : n β) :=
+  monadLift_seqLeft _ _
 
 @[simp]
 theorem liftM_seqRight [LawfulMonad m] [LawfulMonad n] (x : m α) (y : m β) :
-    (liftM x : n α) *> (liftM y : n β) = liftM (x *> y) := by
-  simp only [seqRight_eq, liftM_map, liftM_seq]
+    liftM (x *> y) = (liftM x : n α) *> (liftM y : n β) :=
+  monadLift_seqRight _ _
 
 instance (m n o) [Monad m] [Monad n] [Monad o] [MonadLift n o] [MonadLiftT m n]
     [LawfulMonadLift n o] [LawfulMonadLiftT m n] : LawfulMonadLiftT m o where
@@ -127,13 +146,11 @@ namespace OptionT
 
 variable [Monad m] [LawfulMonad m]
 
-@[simp]
 theorem lift_pure (a : α) : OptionT.lift (pure a : m α) = pure a := by
   simp only [OptionT.lift, OptionT.mk, bind_pure_comp, map_pure, pure, OptionT.pure]
 
-@[simp]
 theorem lift_bind (ma : m α) (f : α → m β) :
-    OptionT.lift ma >>= (fun a => OptionT.lift (f a)) = OptionT.lift (ma >>= f) := by
+    OptionT.lift (ma >>= f) = OptionT.lift ma >>= (fun a => OptionT.lift (f a)) := by
   simp only [instMonad, OptionT.bind, OptionT.mk, OptionT.lift, bind_pure_comp, bind_map_left,
     map_bind]
 
@@ -147,9 +164,8 @@ namespace ExceptT
 
 variable [Monad m] [LawfulMonad m]
 
-@[simp]
 theorem lift_bind (ma : m α) (f : α → m β) :
-    ExceptT.lift ma >>= (fun a => ExceptT.lift (f a)) = ExceptT.lift (ε := ε) (ma >>= f) := by
+    ExceptT.lift (ε := ε) (ma >>= f) =ExceptT.lift ma >>= (fun a => ExceptT.lift (f a)) := by
   simp only [instMonad, ExceptT.bind, mk, ExceptT.lift, bind_map_left, ExceptT.bindCont, map_bind]
 
 instance : LawfulMonadLift m (ExceptT ε m) where
@@ -168,7 +184,7 @@ end ExceptT
 
 namespace StateRefT'
 
-instance {m} [Monad m] : LawfulMonadLift m (StateRefT' ω σ m) where
+instance {ω σ m} [Monad m] : LawfulMonadLift m (StateRefT' ω σ m) where
   monadLift_pure _ := by
     simp only [MonadLift.monadLift, pure]
     unfold StateRefT'.lift ReaderT.pure
@@ -198,7 +214,7 @@ namespace ExceptCpsT
 
 instance [Monad m] [LawfulMonad m] : LawfulMonadLift m (ExceptCpsT ε m) where
   monadLift_pure _ := by
-    simp [MonadLift.monadLift, pure]
+    simp only [MonadLift.monadLift, pure]
     unfold ExceptCpsT.lift
     simp only [pure_bind]
   monadLift_bind _ _ := by

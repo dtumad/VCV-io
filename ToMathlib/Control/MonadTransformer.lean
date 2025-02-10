@@ -57,16 +57,19 @@ The `MonadTransformer` typeclass only contains the operations of a monad transfo
 `LawfulMonadTransformer` also asserts these operations satisfy the laws of a monad transformer:
 ```
 liftOf m (pure x) = pure x
-liftOf m x >>= liftOf m ∘ f = liftOf m (x >>= f)
+liftOf m (x >>= f) = liftOf m x >>= liftOf m ∘ f
 ```
 -/
 class LawfulMonadTransformer (t) [MonadTransformer t] : Prop where
   [monad_functor {m} [Monad m] [LawfulMonad m] : LawfulMonad (t m)]
-  liftOf_pure {m} [Monad m] [LawfulMonad m] {α} (x : α) : liftOf m (pure x) = (pure x : t m α)
+  liftOf_pure {m} [Monad m] [LawfulMonad m] {α} (x : α) :
+    liftOf m (pure x) = (pure x : t m α)
   liftOf_bind {m} [Monad m] [LawfulMonad m] {α β} (x : m α) (f : α → m β) :
-    liftOf m x >>= liftOf m ∘ f = liftOf (t := t) m (x >>= f)
+    liftOf (t := t) m (x >>= f) = liftOf m x >>= (fun a => liftOf m (f a))
 
 export LawfulMonadTransformer (liftOf_pure liftOf_bind)
+
+attribute [simp] liftOf_pure liftOf_bind
 
 section
 attribute [local simp] MonadLift.monadLift Bind.bind
@@ -80,8 +83,9 @@ instance : LawfulMonadTransformer (ExceptT ε) where
   monad_functor := inferInstance
   liftOf_pure _ := map_pure _ _
   liftOf_bind _ _ := by
-    dsimp [ExceptT.lift]
+    dsimp [ExceptT.lift, ExceptT.mk, ExceptT.bind]
     rw [map_bind]
+    symm
     exact bind_map_left _ _ _
 
 instance : LawfulMonadTransformer (StateT σ) where
@@ -90,6 +94,7 @@ instance : LawfulMonadTransformer (StateT σ) where
   liftOf_bind _ _ := by
     funext
     dsimp [StateT.lift, StateT.bind]
+    symm
     rw [bind_pure_comp, bind_map_left]
     rw [bind_pure_comp, map_bind]
     congr
@@ -101,6 +106,7 @@ instance : LawfulMonadTransformer OptionT where
   liftOf_pure _ := pure_bind _ _
   liftOf_bind _ _ := by
     dsimp [OptionT.lift, OptionT.bind, OptionT.mk]
+    symm
     rw [bind_pure_comp, bind_map_left]
     rw [bind_pure_comp, map_bind]
     congr

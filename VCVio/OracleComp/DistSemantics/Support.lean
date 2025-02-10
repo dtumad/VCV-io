@@ -58,11 +58,15 @@ section basic
 @[simp] lemma finSupport_pure (x : α) [spec.FiniteRange] [DecidableEq α] :
   (pure x : OracleComp spec α).finSupport = {x} := rfl
 
-@[simp] lemma support_failure :
-  (failure : OracleComp spec α).support = ∅ := rfl
+@[simp] lemma support_fail : (Failure.fail : OracleComp spec α).support = ∅ := rfl
+
+@[simp] lemma finSupport_fail [spec.FiniteRange] [DecidableEq α] :
+    (Failure.fail : OracleComp spec α).finSupport = ∅ := rfl
+
+@[simp] lemma support_failure : (failure : OracleComp spec α).support = ∅ := rfl
 
 @[simp] lemma finSupport_failure [spec.FiniteRange] [DecidableEq α] :
-  (failure : OracleComp spec α).finSupport = ∅ := rfl
+    (failure : OracleComp spec α).finSupport = ∅ := rfl
 
 -- TODO: naming conventions, `support_query` should just be this.
 @[simp] lemma support_liftM (q : OracleQuery spec α) :
@@ -263,6 +267,11 @@ lemma mem_support_eqRec_iff (oa : OracleComp spec α) (h : α = β) (y : β) :
     [DecidableEq α] [DecidableEq β] (oa : OracleComp spec α) (f : α → β) :
     (f <$> oa).finSupport = oa.finSupport.image f := by
   simp [finSupport_eq_iff_support_eq_coe]
+
+lemma mem_support_map {oa : OracleComp spec α} {x : α}
+    (hx : x ∈ oa.support) (f : α → β) : f x ∈ (f <$> oa).support := by
+  simp only [support_map, Set.mem_image]
+  refine ⟨x, hx, rfl⟩
 
 @[simp] lemma support_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
     (if p then oa else oa').support = if p then oa.support else oa'.support :=

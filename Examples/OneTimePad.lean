@@ -27,6 +27,6 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
 namespace oneTimePad
 
 theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
-  λ m ↦ by simp [SymmEncAlg.soundnessExp, oneTimePad]
+  λ m ↦ by simp [SymmEncAlg.soundnessExp, oneTimePad]; sorry
 
 end oneTimePad

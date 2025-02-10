@@ -14,6 +14,9 @@ The type `σ` is the state used in the implementation (e.g. a random oracle's ca
 
 We implement this a structure so that the types of protocols can extend it,
 allowing the main definition to be oracle agnostic.
+
+TODO!: re-evaluate this in context of the simulate changes
+  Should maybe be using `MonadControl` or something for the reduction
 -/
 
 open OracleSpec OracleComp
@@ -26,7 +29,7 @@ The types of primitives can extend this to ensure that any oracles used in a pro
 must have some canonical implementation. -/
 structure OracleImpl {ι : Type} (spec : OracleSpec ι) (σ : Type) where
   /-- Simulation oracle giving an implementation of the oracles in `spec`. -/
-  baseSimOracle : SimOracle spec unifSpec σ
+  baseSimOracle : QueryImpl spec (StateT σ (OracleComp unifSpec))
   init_state : σ
 
 namespace OracleImpl
@@ -46,13 +49,13 @@ abbrev exec (impl : OracleImpl spec σ)
   simulate impl.baseSimOracle impl.init_state oa
 
 /-- Impliment an empty set of oracles by eliminating on the empty index to any queries. -/
-@[simps] def emptyImpl : OracleImpl []ₒ Unit where
-  baseSimOracle := unifOracle
+@[simps] def emptyImpl [∀ i, SelectableType (spec.range i)] : OracleImpl []ₒ Unit where
+  baseSimOracle := ⟨liftM⟩ ∘ₛ unifOracle
   init_state := ()
 
 /-- Implement `unifSpec` as `unifSpec` by identity. -/
 @[simps] def defaultImpl : OracleImpl unifSpec Unit where
-  baseSimOracle := idOracle
+  baseSimOracle := ⟨liftM⟩ ∘ₛ idOracle
   init_state := ()
 
 end OracleImpl
