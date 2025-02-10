@@ -48,7 +48,7 @@ lemma probOutput_seq_eq_tsum_ite [spec.FiniteRange] [DecidableEq β] (y : β) :
 
 lemma probOutput_seq_eq_sum_finSupport_ite [spec.FiniteRange] [spec.DecidableEq]
     [DecidableEq α] [DecidableEq (α → β)] [DecidableEq β]
-    (y : β) : [= y | og <*> oa] = ∑ g in og.finSupport, ∑ x in oa.finSupport,
+    (y : β) : [= y | og <*> oa] = ∑ g ∈ og.finSupport, ∑ x ∈ oa.finSupport,
       if y = g x then [= g | og] * [= x | oa] else 0 := by
   simp [seq_eq_bind, probOutput_bind_eq_sum_finSupport,
     probOutput_map_eq_sum_finSupport_ite, Finset.mul_sum]

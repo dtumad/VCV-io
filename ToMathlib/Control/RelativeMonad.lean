@@ -103,14 +103,16 @@ export RelativeFunctor (mapᵣ mapConstᵣ)
 -- macro_rules | `($x <*ᵣ $y)  => `(RelativeSeqLeft.seqLeftᵣ $x fun _ : Unit => $y)
 -- macro_rules | `($x *>ᵣ $y)  => `(RelativeSeqRight.seqRightᵣ $x fun _ : Unit => $y)
 
--- class RelativeApplicative (r : Type u → Type w) (m : Type u → Type v) [Seq r] [SeqLeft r] [SeqRight r] extends
+-- class RelativeApplicative (r : Type u → Type w) (m : Type u → Type v)
+--     [Seq r] [SeqLeft r] [SeqRight r] extends
 --     RelativeFunctor r m, RelativePure r m, Seq m, SeqLeft m, SeqRight m where
 --   map f x := Seq.seq (pureᵣ x) (fun _ => f)
 --   seqLeft x y := Seq.seq (mapᵣ (fun y => ·) x) y
 --   seqRight x y := Seq.seq (mapᵣ (fun y => y *> ·) x) y
 
 /-- Type class for the relative monad -/
-class RelativeMonad (r : Type u → Type w) (m : Type u → Type v) extends RelativePure r m, RelativeBind r m, RelativeFunctor r m where
+class RelativeMonad (r : Type u → Type w) (m : Type u → Type v)
+    extends RelativePure r m, RelativeBind r m, RelativeFunctor r m where
   mapᵣ f x := bindᵣ x (pureᵣ ∘ f)
 
 -- Cannot make this an instance due to synthesization order
@@ -208,11 +210,13 @@ theorem map_congrᵣ [RelativeFunctor r m] {x : m α} {f g : r α → r β} (h :
 --     mf <*> x = mf >>=ᵣ fun f => f <$>ᵣ x := by
 --   rw [← bind_mapᵣ]
 
--- theorem seqRight_eq_bind [Monad m] [LawfulMonad m] (x : m α) (y : m β) : x *> y = x >>= fun _ => y := by
+-- theorem seqRight_eq_bind [Monad m] [LawfulMonad m] (x : m α) (y : m β) :
+--   x *> y = x >>= fun _ => y := by
 --   rw [seqRight_eq]
 --   simp only [map_eq_pure_bind, const, seq_eq_bind_map, bind_assoc, pure_bind, id_eq, bind_pure]
 
--- theorem seqLeft_eq_bind [Monad m] [LawfulMonad m] (x : m α) (y : m β) : x <* y = x >>= fun a => y >>= fun _ => pure a := by
+-- theorem seqLeft_eq_bind [Monad m] [LawfulMonad m] (x : m α) (y : m β) :
+--     x <* y = x >>= fun a => y >>= fun _ => pure a := by
 --   rw [seqLeft_eq]
 --   simp only [map_eq_pure_bind, seq_eq_bind_map, bind_assoc, pure_bind, const_apply]
 

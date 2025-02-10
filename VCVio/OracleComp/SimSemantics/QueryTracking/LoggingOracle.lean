@@ -141,11 +141,6 @@ def logingOracle'' : QueryImpl spec (WriterT (QueryLog' spec) (OracleComp spec))
     tell (QueryLog'.singleton t u)
     return u
 
--- `(22, [⟨20, ((), 8)⟩, ⟨20, ((), 14)⟩])`
--- `(9, [⟨20, ((), 6)⟩, ⟨20, ((), 3)⟩])`
-#eval OracleComp.runIO (simulateT' loggingOracle' (do
-    (Nat.add) <$> $[0..20] <*> $[0..20])).run
-
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
 which list to update when queries come in. -/
@@ -196,3 +191,8 @@ theorem inr_eq (oa : OracleComp spec₂ α) (log : QueryLog (spec₁ ++ₒ spec�
   sorry
 
 end loggingOracle
+
+-- -- `(22, [⟨20, ((), 8)⟩, ⟨20, ((), 14)⟩])`
+-- -- `(9, [⟨20, ((), 6)⟩, ⟨20, ((), 3)⟩])`
+-- #eval OracleComp.runIO (simulateT' loggingOracle' (do
+--     (Nat.add) <$> $[0..20] <*> $[0..20])).run

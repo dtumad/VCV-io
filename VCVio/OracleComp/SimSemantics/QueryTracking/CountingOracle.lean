@@ -37,10 +37,6 @@ def countingOracle'' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
     QueryImpl spec (WriterT (Multiplicative Nat) (OracleComp spec)) where
   impl | query i t => do tell (.ofAdd 1); query i t
 
--- Outputs [3,1,4,1,5] as the state
-#eval! OracleComp.runIO (simulateT' countingOracle' (do
-    $[0..3]; $[0..1]; $[0..4]; $[0..1]; $[0..5]; return ())).run
-
 -- def countingOracle'' {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
 --     QueryImpl spec (WriterT ℕ (OracleComp spec))
 

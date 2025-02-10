@@ -111,7 +111,8 @@ lemma impl_compose (q : OracleQuery spec₁ α) : (so' ∘ₛ so).impl q = λ (s
 --     -- simp only [simulateT_pure, StateT.run_pure, OptionT.run_pure, FreeMonad.monad_pure_def]
 --     rfl
 --     -- simp only [simulateT_pure, StateT.run_pure, OptionT.run_pure,
---     --   map_eq_bind_pure_comp, StateT.ext_iff, StateT.run_mk, pure_eq_bind_iff, Function.comp_apply,
+--     --   map_eq_bind_pure_comp, StateT.ext_iff, StateT.run_mk, pure_eq_bind_iff,
+      -- Function.comp_apply,
 --     --   pure_inj, Prod.mk.injEq, Prod.exists, Prod.forall]
 --   }
 --   | query_bind i t oa hoa => {

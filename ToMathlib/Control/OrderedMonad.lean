@@ -91,7 +91,7 @@ This is put into the `Discrete` scope in order to avoid conflicts with other ins
 instance should only be used as a last resort. -/
 scoped instance (priority := low) instDiscreteMonad (m) [Monad m] : OrderedMonad m where
   monadOrder := {
-    le := (. = .)
+    le := (· = ·)
     le_refl _ := rfl
     le_trans _ _ _ _ _ := by simp_all
   }
@@ -137,8 +137,8 @@ class OrderedMonadLift (m : semiOutParam (Type u → Type v)) (n : Type u → Ty
     [OrderedMonad m] [OrderedMonad n] extends MonadLift m n where
   monadLift_mono {α} : Monotone (@monadLift α)
 
-class OrderedMonadLiftT (m : Type u → Type v) (n : Type u → Type w) [OrderedMonad m] [OrderedMonad n]
-    extends MonadLiftT m n where
+class OrderedMonadLiftT (m : Type u → Type v) (n : Type u → Type w)
+    [OrderedMonad m] [OrderedMonad n] extends MonadLiftT m n where
   monadLift_mono {α} : Monotone (@monadLift α)
 
 export OrderedMonadLiftT (monadLift_mono)
@@ -195,7 +195,8 @@ instance {m n} [Monad m] [OrderedMonad n] [MonadLiftT m n] [LawfulMonad m] [Lawf
 
 end MonadRelation
 
-class OrderedMonadTransformer (t : (Type u → Type v) → Type u → Type w) extends MonadTransformer t where
+class OrderedMonadTransformer (t : (Type u → Type v) → Type u → Type w)
+    extends MonadTransformer t where
   mapOrderedMonad {m} [OrderedMonad m] : OrderedMonad (t m)
   liftOf_mono {m n} [OrderedMonad m] [OrderedMonad n] [OrderedMonadLiftT m n] :
     OrderedMonadLiftT (t m) (t n)

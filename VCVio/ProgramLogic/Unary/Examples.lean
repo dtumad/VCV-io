@@ -82,17 +82,19 @@ instance {α} : AssertAssume (MonoContProp α) where
     fun h => by simp_all; sorry,
     fun h => by simp_all; sorry⟩
 
-/-- The quotient of the state monad, where the preorder on `σ → Prop` is given pointwise, induced by
-  the preorder `(p ≤ q) ↔ (p → q)` on `Prop`. -/
+/-- The quotient of the state monad, where the preorder on `σ → Prop` is given pointwise,
+induced by the preorder `(p ≤ q) ↔ (p → q)` on `Prop`. -/
 def MonoStateContProp (σ : Type u) := MonoCont (σ → Prop)
 
 example {σ} : StateT σ (MonoContProp) = fun α => σ → MonoContProp (α × σ) := rfl
 
 -- theorem MonoStateContProp_def {σ} :
 --   MonoStateContProp σ = fun α =>
---     {m : α → (σ → Prop) → (σ → Prop) // ∀ p p' : α → (σ → Prop), (∀ s, p s → p' s) → m p ≤ m p'} := rfl
+--     {m : α → (σ → Prop) → (σ → Prop) // ∀ p p' :
+--     α → (σ → Prop), (∀ s, p s → p' s) → m p ≤ m p'} := rfl
 
--- TODO: is there a better way to get this to be definitionally equal to `((α × σ) → Prop) → σ → Prop`?
+-- TODO: is there a better way to get this to be definitionally equal to
+--    `((α × σ) → Prop) → σ → Prop`?
 
 /-! ## Dijkstra monad for free via monad transformers -/
 
@@ -129,6 +131,6 @@ example {σ} : StateT σ (MonoContProp) = fun α => σ → MonoContProp (α × �
 def effectObserve (m : Type u → Type v) (α : Type u) := m α → (m α → Prop) → Prop
 
 /-!
-Hoare triple will have the form `{P} prog {Q}`, where `P Q : m α → Prop` and `prog : m α`, defined as `P prog → effectObserve prog Q`.
-
+Hoare triple will have the form `{P} prog {Q}`, where `P Q : m α → Prop` and `prog : m α`,
+defined as `P prog → effectObserve prog Q`.
 -/

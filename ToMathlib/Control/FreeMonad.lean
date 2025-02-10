@@ -182,25 +182,6 @@ end mapM
 
 end FreeMonad
 
--- section AlternativeMonad
-
--- -- TODO: maybe shouldn't actually extend both base types
--- class AlternativeMonad (m : Type u → Type v) extends Monad m, Alternative m where
---   failure_bind {α β : Type u} (g : α → m β) : failure >>= g = failure
-
--- variable {m : Type u → Type v} [AlternativeMonad m] {α β : Type u}
-
--- @[simp] lemma failure_bind (g : α → m β) : (failure : m α) >>= g = failure :=
---   AlternativeMonad.failure_bind g
-
--- @[simp] lemma map_failure [LawfulMonad m] (g : α → β) : g <$> (failure : m α) = failure := by
---   rw [map_eq_bind_pure_comp, failure_bind]
-
--- @[simp] lemma failure_seq [LawfulMonad m] (ob : m α) : (failure : m (α → β)) <*> ob = failure := by
---   rw [seq_eq_bind_map, failure_bind]
-
--- end AlternativeMonad
-
 section LawfulFailure
 
 -- Stripped down version of `Alternative` to avoid diamonds.
