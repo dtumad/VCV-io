@@ -59,8 +59,8 @@ def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
   let seed₁ := sharedSeed.addValue i u₁
   let seed₂ := sharedSeed.addValue i u₂
   -- Execute the program with the two slightly different seeds
-  let (x₁, (log₁, _)) ← simulate (seededOracle ∘ₛ loggingOracle) (∅, seed₁) oa
-  let (x₂, (log₂, _)) ← simulate (seededOracle ∘ₛ loggingOracle) (∅, seed₂) oa
+  let (x₁, log₁) ← (simulateQ loggingOracle <| (simulateQ seededOracle oa).run' seed₁).run
+  let (x₂, log₂) ← (simulateQ loggingOracle <| (simulateQ seededOracle oa).run' seed₂).run
   -- Check that `cf` chooses to fork at `s` in both cases
   guard (cf x₁ log₁ = some s ∧ cf x₂ log₂ = some s)
   return (x₁, x₂, s)
@@ -73,7 +73,7 @@ variable [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
 succeeding in producing a result. By the filtering in the final `ite` this bounds the
 chance of getting a result with the desired forking semantics. -/
 theorem probFailure_fork_le [spec.FiniteRange] :
-    let acc := [λ (x, log) ↦ (cf x log).isSome | simulate loggingOracle ∅ oa]
+    let acc := [λ (x, log) ↦ (cf x log).isSome | (simulateQ loggingOracle oa).run]
     let q : ℝ≥0∞ := qb i
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
     [⊥ | fork oa qb js i cf] ≤ 1 / h + (acc / q) ^ 2 := by
@@ -97,15 +97,15 @@ framed in terms of `loggingOracle` instead of `seededOracle`.
 Weaker than the full characterization of the `support` of fork,
 but often more useful in practice -/
 theorem exists_log_of_mem_support_fork (x₁ x₂ : α) (s : Fin (qb i + 1))
-    (hcf : ∀ x log, (cf x log).isSome → ↑s < (log i).length)
+    (hcf : ∀ x log, (cf x log).isSome → ↑s < log.countQ i)
     (h : (x₁, x₂, s) ∈ ((fork oa qb js i cf)).support) :
     ∃ log₁ : QueryLog spec, ∃ log₂ : QueryLog spec,
       ∃ h₁ : cf x₁ log₁ = some s, ∃ h₂ : cf x₂ log₂ = some s,
-      let hcf₁ : ↑s < (log₁ i).length := hcf x₁ log₁ (h₁ ▸ isSome_some)
-      let hcf₂ : ↑s < (log₂ i).length := hcf x₂ log₂ (h₂ ▸ isSome_some)
-      ((log₁ i)[s]'hcf₁).1 = ((log₂ i)[s]'hcf₂).1 ∧
-      ((log₁ i)[s]'hcf₁).2 ≠ ((log₂ i)[s]'hcf₂).2 ∧
-      (x₁, log₁) ∈ (simulate loggingOracle log₁ oa).support ∧
-      (x₂, log₂) ∈ (simulate loggingOracle log₂ oa).support := sorry -- TODO: proof after guard ch
+      let hcf₁ : ↑s < log₁.countQ i := hcf x₁ log₁ (h₁ ▸ isSome_some)
+      let hcf₂ : ↑s < log₂.countQ i := hcf x₂ log₂ (h₂ ▸ isSome_some)
+      ((log₁.getQ i)[s]'hcf₁).1 = ((log₂.getQ i)[s]'hcf₂).1 ∧
+      ((log₁.getQ i)[s]'hcf₁).2 ≠ ((log₂.getQ i)[s]'hcf₂).2 ∧
+      (x₁, log₁) ∈ (simulateQ loggingOracle oa).run.support ∧
+      (x₂, log₂) ∈ (simulateQ loggingOracle oa).run.support := sorry -- TODO: proof after guard ch
 
 end OracleComp

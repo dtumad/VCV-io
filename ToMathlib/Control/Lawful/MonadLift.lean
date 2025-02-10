@@ -3,6 +3,7 @@ Copyright (c) 2025 Quang Dao. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
+import Mathlib.Control.Monad.Basic
 
 /-!
 # Lawful version of `MonadLift`
@@ -44,7 +45,7 @@ class LawfulMonadLiftT (m : Type u → Type v) (n : Type u → Type w) [Monad m]
 
 export LawfulMonadLiftT (monadLift_pure monadLift_bind)
 
-variable {m : Type u → Type v} {n : Type u → Type w} {α β σ ρ ε ω}
+variable {m : Type u → Type v} {n : Type u → Type w} {α β σ ρ ε ω : Type u}
 
 section Lemmas
 
@@ -127,11 +128,9 @@ namespace OptionT
 
 variable [Monad m] [LawfulMonad m]
 
-@[simp]
 theorem lift_pure (a : α) : OptionT.lift (pure a : m α) = pure a := by
   simp only [OptionT.lift, OptionT.mk, bind_pure_comp, map_pure, pure, OptionT.pure]
 
-@[simp]
 theorem lift_bind (ma : m α) (f : α → m β) :
     OptionT.lift ma >>= (fun a => OptionT.lift (f a)) = OptionT.lift (ma >>= f) := by
   simp only [instMonad, OptionT.bind, OptionT.mk, OptionT.lift, bind_pure_comp, bind_map_left,
@@ -147,7 +146,6 @@ namespace ExceptT
 
 variable [Monad m] [LawfulMonad m]
 
-@[simp]
 theorem lift_bind (ma : m α) (f : α → m β) :
     ExceptT.lift ma >>= (fun a => ExceptT.lift (f a)) = ExceptT.lift (ε := ε) (ma >>= f) := by
   simp only [instMonad, ExceptT.bind, mk, ExceptT.lift, bind_map_left, ExceptT.bindCont, map_bind]
@@ -168,7 +166,7 @@ end ExceptT
 
 namespace StateRefT'
 
-instance {m} [Monad m] : LawfulMonadLift m (StateRefT' ω σ m) where
+instance {ω σ m} [Monad m] : LawfulMonadLift m (StateRefT' ω σ m) where
   monadLift_pure _ := by
     simp only [MonadLift.monadLift, pure]
     unfold StateRefT'.lift ReaderT.pure

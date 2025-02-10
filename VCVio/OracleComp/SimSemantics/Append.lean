@@ -17,87 +17,64 @@ This operation is also compatible with the `SubSpec` instances involving `Oracle
 For example if `oa : OracleComp spec₁ α` is coerced to `↑oa : OracleComp (spec₁ ++ spec₂) α`,
 then we have `simulate' (so ++ₛₒ so') ↑oa s = simulate' so oa s.1`, as the additional
 oracles from the coercion will never actually be called.
+
+TODO: simp lemmas are not always applied properly, seemingly due to the free `n` variable.
 -/
 
 open OracleSpec OracleComp Prod Sum
 
-namespace SimOracle
-
-section append
-
 universe u v w
 
-variable {ι₁ ι₂ ιₜ : Type*} {spec₁ : OracleSpec ι₁}
-  {spec₂ : OracleSpec ι₂} {specₜ : OracleSpec ιₜ} {σ τ α β : Type u}
+namespace SimOracle
 
-def append'' (m₁ m₂ n : Type u → Type v)
-    [MonadLift m₁ n] [MonadLift m₂ n]
+variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁}
+  {spec₂ : OracleSpec ι₂} {α β γ : Type u}
+
+/-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
+with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
+answering queries to either oracle set with queries to the corresponding simulation oracle.
+NOTE: `n` can't be inferred from the explicit parameters, the use case needs to give context -/
+def append {m₁ m₂ n : Type u → Type v} [MonadLiftT m₁ n] [MonadLiftT m₂ n]
     (so : QueryImpl spec₁ m₁) (so' : QueryImpl spec₂ m₂) :
     QueryImpl (spec₁ ++ₒ spec₂) n where impl
   | query (inl i) t => so.impl (query i t)
   | query (inr i) t => so'.impl (query i t)
 
-/-- Given simulation oracles `so` and `so'` with source oracles `spec₁` and `spec₂` respectively,
-with the same target oracles `specₜ`, construct a new simulation oracle from `specₜ`,
-answering queries to either oracle set with queries to the corresponding simulation oracle. -/
-def append (so : SimOracle spec₁ specₜ σ) (so' : SimOracle spec₂ specₜ τ) :
-    SimOracle (spec₁ ++ₒ spec₂) specₜ (σ × τ) where impl
-  | query (inl i) t => λ (s₁, s₂) ↦ do
-      let (u, s₁') ← so.impl (query i t) s₁ return (u, s₁', s₂)
-  | query (inr i) t => λ (s₁, s₂) ↦ do
-      let (u, s₂') ← so'.impl (query i t) s₂ return (u, s₁, s₂')
-
 infixl : 65 " ++ₛₒ " => append
 
-variable (so : SimOracle spec₁ specₜ σ) (so' : SimOracle spec₂ specₜ τ)
+variable {m₁ m₂ n : Type u → Type v} [MonadLift m₁ n] [MonadLift m₂ n]
+    (so : QueryImpl spec₁ m₁) (so' : QueryImpl spec₂ m₂)
 
 @[simp]
 lemma append_apply_inl (i : ι₁) (t : spec₁.domain i) :
-    (so ++ₛₒ so').impl (query (inl i) t) = λ (s₁, s₂) ↦ do
-      let (u, s₁') ← so.impl (query i t) s₁ return (u, s₁', s₂) := rfl
+    (so ++ₛₒ so' : QueryImpl _ n).impl (query (inl i) t) = so.impl (query i t) := rfl
 
 @[simp]
 lemma append_apply_inr (i : ι₂) (t : spec₂.domain i) :
-    (so ++ₛₒ so').impl (query (inr i) t) = λ (s₁, s₂) ↦ do
-      let (u, s₂') ← so'.impl (query i t) s₂ return (u, s₁, s₂') := rfl
+    (so ++ₛₒ so' : QueryImpl _ n).impl (query (inr i) t) = so'.impl (query i t) := rfl
 
-section subSpec
+variable [Monad n] [Failure n] [LawfulMonad n] [LawfulFailure n]
 
--- @[simp]
--- lemma simulate_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
---     (oa : OracleComp spec₁ α) (s : σ × τ) :
---     simulate (so ++ₛₒ so') s ↑oa = (λ (x, s') ↦ (x, (s', s.2))) <$> simulate so s.1 oa := by
---   revert s; induction oa using OracleComp.inductionOn with
---   | h_pure x => simp
---   | h_queryBind i t oa hoa =>
---       simp only [subSpec_append_left_toFun] at hoa
---       simp [hoa, map_bind]
+@[simp]
+lemma simulate_coe_append_left [Monad m₁] [Failure m₁] [LawfulMonad m₁] [LawfulFailure m₁]
+    [LawfulMonadLift m₁ n] (oa : OracleComp spec₁ α) :
+    simulateQ (so ++ₛₒ so') ↑oa = (liftM (simulateQ so oa) : n α) := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | query_bind i t oa hoa =>
+      simp at hoa
+      simp [hoa, append_apply_inl so so']
+  | failure => simp; sorry
 
--- @[simp]
--- lemma simulate'_coe_append_left (so : spec₁ →[σ]ₛₒ specₜ) (so' : spec₂ →[τ]ₛₒ specₜ)
---     (oa : OracleComp spec₁ α) (s : σ × τ) :
---     simulate' (so ++ₛₒ so') s ↑oa = simulate' so s.1 oa := by
---   rw [simulate'_def (so ++ₛₒ so'), simulate_coe_append_left, Functor.map_map,
---     Function.comp, simulate'_def]
-
--- port: remaining lemmas here
-
-end subSpec
-
-end append
-
-section lift
-
--- NOTE: not sure these are a very natural abstraction to be using.
-def liftRight {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
-    {σ : Type} (so : spec →[σ]ₛₒ spec') : spec' ++ₒ spec →[σ]ₛₒ spec' :=
-  (idOracle ++ₛₒ so).equivState (Equiv.punitProd σ)
-
-def liftLeft {ι ι' : Type} {spec : OracleSpec ι} {spec' : OracleSpec ι'}
-    {σ : Type} (so : spec →[σ]ₛₒ spec') :
-    spec ++ₒ spec' →[σ]ₛₒ spec' :=
-  (so ++ₛₒ idOracle).equivState (Equiv.prodPUnit σ)
-
-end lift
+@[simp]
+lemma simulate_coe_append_right [Monad m₂] [Failure m₂] [LawfulMonad m₂] [LawfulFailure m₂]
+    [LawfulMonadLift m₂ n] (oa : OracleComp spec₂ α) :
+    simulateQ (so ++ₛₒ so') ↑oa = (liftM (simulateQ so' oa) : n α) := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | query_bind i t oa hoa =>
+      simp at hoa
+      simp [hoa, append_apply_inr so so']
+  | failure => simp; sorry
 
 end SimOracle

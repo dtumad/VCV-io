@@ -15,24 +15,24 @@ further respond uniformly to queries.
 
 open OracleComp OracleSpec
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β : Type}
+universe u v w
+
+variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β : Type u}
 
 namespace OracleSpec
 
 /-- Type to represent a cache of queries to oracles in `spec`.
 Defined to be a function from (indexed) inputs to an optional output. -/
-def QueryCache (spec : OracleSpec ι) : Type :=
+def QueryCache (spec : OracleSpec ι) : Type u :=
   (i : ι) → spec.domain i → Option (spec.range i)
 
 namespace QueryCache
-
-variable (cache : QueryCache spec)
 
 instance : EmptyCollection (QueryCache spec) := ⟨λ _ _ ↦ none⟩
 
 section cacheQuery
 
-variable [spec.DecidableEq]
+variable [spec.DecidableEq] (cache : QueryCache spec)
 
 /-- Add a index + input pair to the cache by updating the function -/
 def cacheQuery (i : ι) (t : spec.domain i) (u : spec.range i) :
@@ -51,46 +51,21 @@ lemma cacheQuery_eq_ite_ite (i : ι) (t : spec.domain i) (u : spec.range i) :
 
 end cacheQuery
 
-section lookup_or_query
-
-variable {ι' : Type} {spec' : OracleSpec ι'} [spec.DecidableEq]
-
-/-- Lookup a value in the cache, querying a fresh value if no value is cached.
-Returns both the value and updated cache. -/
-def lookup_or_else (cache : QueryCache spec) (i : ι) (t : spec.domain i)
-    (oq : OracleComp spec' (spec.range i)) :
-    OracleComp spec' (spec.range i × QueryCache spec) :=
-  match cache i t with
-  | Option.some u => return (u, cache)
-  | Option.none => do let u ← oq; return (u, cache.cacheQuery i t u)
-
-@[simp]
-lemma lookup_or_else_empty (i : ι) (t : spec.domain i) (oq : OracleComp spec' (spec.range i)) :
-    lookup_or_else ∅ i t oq = do let u ← oq; return (u, cacheQuery ∅ i t u) := rfl
-
-end lookup_or_query
+def queryFresh [spec.DecidableEq] (i : ι) (t : spec.domain i) :
+    StateT spec.QueryCache (OracleComp spec) (spec.range i) := do
+  let u ← query i t
+  modifyGet fun cache => (u, cache.cacheQuery i t u)
 
 end QueryCache
 
 end OracleSpec
 
-def cachingOracle' [spec.DecidableEq] :
-    SimOracle' spec spec (StateT (QueryCache spec)) where
-  impl | query i t => do match (← get) i t with
-    | Option.some u => return u
-    | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)
-
-def cachingOracle'' [spec.DecidableEq] :
-    QueryImpl spec (StateT (QueryCache spec) (OracleComp spec)) where
-  impl | query i t => do match (← get) i t with
-    | Option.some u => return u
-    | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)
-
 /-- Oracle for caching queries to the oracles in `spec`, querying fresh values if needed. -/
-def cachingOracle [spec.DecidableEq] : SimOracle spec spec (QueryCache spec) where
+def cachingOracle [spec.DecidableEq] :
+    QueryImpl spec (StateT spec.QueryCache (OracleComp spec)) where
   impl | query i t => do match (← get) i t with
     | Option.some u => return u
-    | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)
+    | Option.none => QueryCache.queryFresh i t
 
 namespace cachingOracle
 
@@ -99,8 +74,8 @@ variable [spec.DecidableEq]
 @[simp]
 lemma apply_eq (q : OracleQuery spec α) : cachingOracle.impl q =
     match q with | query i t => (do match (← get) i t with
-    | Option.some u => return u
-    | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)) :=
+      | Option.some u => return u
+      | Option.none => QueryCache.queryFresh i t) :=
   rfl
 
 end cachingOracle

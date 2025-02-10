@@ -29,22 +29,22 @@ namespace SimOracle
 variable {ι₁ ι₂ ι : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
     {spec : OracleSpec ι} {σ₁ σ₂ : Type u} {α β γ : Type v}
 
-/-- Given two simulation oracles `so` and `so'` with the same target `spec : OracleSpec ι`,
-construct a simulation oracle that uses `so` for queries to the first and then starts using `so'`
-after the first query to the second. Defined to fail if it recieves queries to the first
-after recieving queries to the first.
+-- /-- Given two simulation oracles `so` and `so'` with the same target `spec : OracleSpec ι`,
+-- construct a simulation oracle that uses `so` for queries to the first and then starts using `so'`
+-- after the first query to the second. Defined to fail if it recieves queries to the first
+-- after recieving queries to the first.
 
-The function `f` is used to move to the second state type after the swap.
-NOTE: `f` could eventually be an `OracleComp spec σ₂`, but no clear use case,
-maybe if this where a two way thing then it could be used for failures. -/
-def untilSwap (so : SimOracle spec₁ spec σ₁) (so' : SimOracle spec₂ spec σ₂)
-    (f : σ₁ → σ₂) : SimOracle (spec₁ ++ₒ spec₂) spec (σ₁ ⊕ σ₂) where impl
-  | query (inl i) t, inl s => map id inl <$> so.impl (query i t) s
-  | query (inr i) t, inl s => map id inr <$> so'.impl (query i t) (f s)
-  | query (inr i) t, inr s => map id inr <$> so'.impl (query i t) s
-  | query (inl _) _, inr _ => failure -- swapped back to first from second
+-- The function `f` is used to move to the second state type after the swap.
+-- NOTE: `f` could eventually be an `OracleComp spec σ₂`, but no clear use case,
+-- maybe if this where a two way thing then it could be used for failures. -/
+-- def untilSwap (so : SimOracle spec₁ spec σ₁) (so' : SimOracle spec₂ spec σ₂)
+--     (f : σ₁ → σ₂) : SimOracle (spec₁ ++ₒ spec₂) spec (σ₁ ⊕ σ₂) where impl
+--   | query (inl i) t, inl s => map id inl <$> so.impl (query i t) s
+--   | query (inr i) t, inl s => map id inr <$> so'.impl (query i t) (f s)
+--   | query (inr i) t, inr s => map id inr <$> so'.impl (query i t) s
+--   | query (inl _) _, inr _ => failure -- swapped back to first from second
 
-variable (so : SimOracle spec₁ spec σ₁) (so' : SimOracle spec₂ spec σ₂) (f : σ₁ → σ₂)
+-- variable (so : SimOracle spec₁ spec σ₁) (so' : SimOracle spec₂ spec σ₂) (f : σ₁ → σ₂)
 
 -- /-- Simulating a computation using only `spec₁` bound to a computation using only `spec₂`
 -- (using the natural `OracleSpec.append` coercions) with `SimOracle.untilSwap so so' f`

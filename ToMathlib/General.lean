@@ -135,6 +135,13 @@ lemma tsum_option {α β : Type*} [AddCommMonoid α] [TopologicalSpace α]
     cases x <;> simp
   · simp
 
+@[simp]
+lemma PMF.monad_pure_eq_pure {α : Type u} (x : α) :
+    (Pure.pure x : PMF α) = PMF.pure x := rfl
+
+@[simp]
+lemma PMF.monad_bind_eq_bind {α β : Type u}
+      (p : PMF α) (q : α → PMF β) : p >>= q = p.bind q := rfl
 
 @[simp]
 lemma List.foldlM_range {m : Type u → Type v} [Monad m] [LawfulMonad m]
@@ -149,3 +156,15 @@ lemma List.foldlM_range {m : Type u → Type v} [Monad m] [LawfulMonad m]
       simp only [List.finRange_succ, List.foldlM_cons, Fin.foldlM_succ]
       refine congr_arg (_ >>= ·) (funext λ x ↦ ?_)
       rw [← hn, List.foldlM_map]
+
+lemma list_mapM_loop_eq {m : Type u → Type v} [Monad m] [LawfulMonad m]
+    {α β : Type u} (xs : List α) (f : α → m β) (ys : List β) :
+    List.mapM.loop f xs ys = (ys.reverse ++ ·) <$> List.mapM.loop f xs [] := by
+  revert ys
+  induction xs with
+  | nil => simp [List.mapM.loop]
+  | cons x xs h =>
+      intro ys
+      simp only [List.mapM.loop, map_bind]
+      refine congr_arg (f x >>= ·) (funext λ x ↦ ?_)
+      simp [h (x :: ys), h [x]]

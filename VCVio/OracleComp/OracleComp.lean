@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import ToMathlib.Control.FreeMonad
+import ToMathlib.Control.OptionT
 import VCVio.OracleComp.OracleSpec
 
 /-!
@@ -498,7 +499,7 @@ protected instance instDecidableEq [spec.FiniteRange] [hd : ∀ i, DecidableEq (
 by assuming each query returns the `default` value given by the `Inhabited` instance.
 Returns `none` if the default path would lead to failure. -/
 def defaultResult [spec.FiniteRange] (oa : OracleComp spec α) : Option α :=
-  oa.mapM (fail := none) (query_map := λ _ ↦ default)
+  oa.mapM (fail := none) (query_map := some ∘ OracleQuery.defaultOutput)
 
 @[simp] -- TODO: move
 lemma StateT_lift_failure {σ : Type v} :

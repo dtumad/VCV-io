@@ -54,7 +54,8 @@ section unforgeable
 variable [DecidableEq ι] [Inhabited S] [Fintype S] [DecidableEq S] [DecidableEq M]
 
 def signingOracle (sigAlg : SignatureAlg spec σ M PK SK S)
-    (pk : PK) (sk : SK) : SimOracle (M →ₒ S) spec (QueryLog (M →ₒ S)) where
+    (pk : PK) (sk : SK) : QueryImpl (M →ₒ S)
+    (StateT (QueryLog (M →ₒ S)) (OracleComp spec)) where
   impl | query () m => do
     let σ ← sigAlg.sign pk sk m
     modifyGet λ log ↦ (σ, log.logQuery m σ)
@@ -66,8 +67,9 @@ def unforgeableExp {sigAlg : SignatureAlg spec σ M PK SK S}
     (adv : unforgeableAdv sigAlg) : SecExp spec σ where
   main := do
     let (pk, sk) ← sigAlg.keygen
-    let adv_so := (sigAlg.signingOracle pk sk).liftRight
-    let ((m, σ), log) ← simulate adv_so ∅ (adv.run pk)
+    let adv_so : QueryImpl (spec ++ₒ (M →ₒ S)) (StateT (M →ₒ S).QueryLog _) :=
+      idOracle (spec := spec) ++ₛₒ sigAlg.signingOracle pk sk
+    let ((m, σ), log) ← (simulateQ adv_so (adv.run pk)).run []
     let b ← sigAlg.verify pk m σ
     guard (!(log.wasQueried () m) && b)
   __ := sigAlg

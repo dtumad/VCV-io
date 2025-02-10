@@ -151,24 +151,11 @@ end QuerySeed
 
 end OracleSpec
 
--- `ReaderT` might not make sense here, `adapt` is basically used as `StateT.modify`.
-def seededOracle' [DecidableEq ι] :
-    SimOracle' spec spec (ReaderT (QuerySeed spec)) where
-  impl | query i t => do match (← read) i with
-    | u :: us => ReaderT.adapt (QuerySeed.update · i us) (return u)
-    | [] => query i t -- Don't actually drop rest of the seed this way
-
-def seededOracle'' [DecidableEq ι] :
-    QueryImpl spec (ReaderT (QuerySeed spec) (OracleComp spec)) where
-  impl | query i t => do match (← read) i with
-    | u :: us => ReaderT.adapt (QuerySeed.update · i us) (return u)
+def seededOracle [DecidableEq ι] :
+    QueryImpl spec (StateT (QuerySeed spec) (OracleComp spec)) where
+  impl | query i t => do match (← get) i with
+    | u :: us => modifyGet fun seed => (u, seed.update i us)
     | [] => query i t
-
-def seededOracle [DecidableEq ι] : SimOracle spec spec (QuerySeed spec) where
-  impl | query i t => do
-    match (← get) i with
-    | u :: us => modify (QuerySeed.update · i us); return u
-    | [] => set (∅ : QuerySeed spec); query i t
 
 namespace seededOracle
 
