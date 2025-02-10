@@ -508,17 +508,17 @@ lemma probEvent_eq_sum_fintype_ite [DecidablePred p] [Fintype α] :
   (probEvent_eq_tsum_ite oa p).trans (tsum_fintype _)
 
 lemma probEvent_eq_sum_filter_univ [DecidablePred p] [Fintype α] :
-    [p | oa] = ∑ x in Finset.univ.filter p, [= x | oa] := by
+    [p | oa] = ∑ x ∈ Finset.univ.filter p, [= x | oa] := by
   rw [probEvent_eq_sum_fintype_ite, Finset.sum_filter]
 
 lemma probEvent_eq_sum_filter_finSupport [spec.DecidableEq] [DecidablePred p] [DecidableEq α] :
-    [p | oa] = ∑ x in oa.finSupport.filter p, [= x | oa] :=
+    [p | oa] = ∑ x ∈ oa.finSupport.filter p, [= x | oa] :=
   (probEvent_eq_tsum_ite oa p).trans <|
     (tsum_eq_sum' <| by simp; tauto).trans
       (Finset.sum_congr rfl <| λ x hx ↦ if_pos (Finset.mem_filter.1 hx).2)
 
 lemma probEvent_eq_sum_finSupport_ite [spec.DecidableEq] [DecidablePred p] [DecidableEq α] :
-    [p | oa] = ∑ x in oa.finSupport, if p x then [= x | oa] else 0 := by
+    [p | oa] = ∑ x ∈ oa.finSupport, if p x then [= x | oa] else 0 := by
   rw [probEvent_eq_sum_filter_finSupport, Finset.sum_filter]
 
 end sums
@@ -660,12 +660,12 @@ lemma probEvent_bind_eq_sum_fintype [Fintype α] (q : β → Prop) :
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_fintype _)
 
 lemma probOutput_bind_eq_sum_finSupport [spec.DecidableEq] [DecidableEq α] (y : β) :
-    [= y | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [= y | ob x] :=
+    [= y | oa >>= ob] = ∑ x ∈ oa.finSupport, [= x | oa] * [= y | ob x] :=
   (probOutput_bind_eq_tsum oa ob y).trans (tsum_eq_sum' <| by simp)
 
 lemma probEvent_bind_eq_sum_finSupport [spec.DecidableEq] [DecidableEq α]
     (q : β → Prop) :
-    [q | oa >>= ob] = ∑ x in oa.finSupport, [= x | oa] * [q | ob x] :=
+    [q | oa >>= ob] = ∑ x ∈ oa.finSupport, [= x | oa] * [q | ob x] :=
   (probEvent_bind_eq_tsum oa ob q).trans (tsum_eq_sum' <| by simp)
 
 lemma probOutput_bind_of_const (y : β) (r : ℝ≥0∞) (h : ∀ x, [= y | ob x] = r) :
@@ -838,14 +838,14 @@ lemma probOutput_map_eq_sum_fintype_ite [Fintype α] [DecidableEq β] (y : β) :
     by simp only [Finset.coe_univ, Set.subset_univ])
 
 lemma probOutput_map_eq_sum_finSupport_ite [spec.DecidableEq] [DecidableEq α] [DecidableEq β]
-    (y : β) : [= y | f <$> oa] = ∑ x in oa.finSupport, if y = f x then [= x | oa] else 0 :=
+    (y : β) : [= y | f <$> oa] = ∑ x ∈ oa.finSupport, if y = f x then [= x | oa] else 0 :=
   (probOutput_map_eq_tsum_ite oa f y).trans (tsum_eq_sum' <|
     by simp only [coe_finSupport, Function.support_subset_iff, ne_eq, ite_eq_right_iff,
       probOutput_eq_zero_iff', mem_finSupport_iff_mem_support, Classical.not_imp, not_not, and_imp,
       imp_self, implies_true])
 
 lemma probOutput_map_eq_sum_filter_finSupport [spec.DecidableEq] [DecidableEq α] [DecidableEq β]
-    (y : β) : [= y | f <$> oa] = ∑ x in oa.finSupport.filter (y = f ·), [= x | oa] := by
+    (y : β) : [= y | f <$> oa] = ∑ x ∈ oa.finSupport.filter (y = f ·), [= x | oa] := by
   rw [Finset.sum_filter, probOutput_map_eq_sum_finSupport_ite]
 
 @[simp]

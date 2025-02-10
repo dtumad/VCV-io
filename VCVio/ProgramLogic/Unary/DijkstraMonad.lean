@@ -51,8 +51,8 @@ export LawfulDijkstraMonad (dPure_dBind dBind_dPure dBind_assoc)
 
 attribute [simp] dPure_dBind dBind_dPure dBind_assoc
 
-class OrderedDijkstraMonad (w : Type u → Type v) (d : {α : Type u} → w α → Type z) [OrderedMonad w]
-    extends DijkstraMonad w d where
+class OrderedDijkstraMonad (w : Type u → Type v) (d : {α : Type u} → w α → Type z)
+    [OrderedMonad w] extends DijkstraMonad w d where
   dWeaken {α} {wa wa' : w α} : d wa → (wa ≤ₘ wa') → d wa'
   dWeaken_refl {α} {wa : w α} (x : d wa) : dWeaken x (le_refl _) = x
   dWeaken_trans {α} {wa wa' wa'' : w α} (x : d wa) (h1 : wa ≤ₘ wa') (h2 : wa' ≤ₘ wa'') :
@@ -67,8 +67,8 @@ attribute [simp] dWeaken_refl dWeaken_trans dWeaken_dBind
 
 namespace DijkstraMonad
 
-def dDite {w d} [Monad w] [DijkstraMonad w d] {α} (c : Prop) [h : Decidable c]
-    {t : c → w α} {e : ¬c → w α} : ((c' : c) → d (t c')) → ((c' : ¬c) → d (e c')) → d (dite c t e) :=
+def dDite {w d} [Monad w] [DijkstraMonad w d] {α} (c : Prop) [h : Decidable c] {t : c → w α}
+    {e : ¬c → w α} : ((c' : c) → d (t c')) → ((c' : ¬c) → d (e c')) → d (dite c t e) :=
   fun dt de => Decidable.casesOn h (fun h => de h) (fun h => dt h)
 
 def dIte {w d} [Monad w] [DijkstraMonad w d] {α} (c : Prop) [Decidable c] {t e : w α} :
@@ -124,12 +124,13 @@ instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
   dBind_assoc x f g := by sorry
 
 /-- A Dijkstra monad `d` on a monad `w` can be seen as a monad on the dependent pair `(w, d)`. -/
-instance instMonadSigma {w d} [Monad w] [DijkstraMonad w d] : Monad (fun α => (w : w α) × d w) where
+instance instMonadSigma {w d} [Monad w] [DijkstraMonad w d] :
+    Monad (fun α => (w : w α) × d w) where
   pure x := ⟨pure x, dPure x⟩
   bind x f := ⟨x.1 >>= (fun a => (f a).1), x.2 >>=ᵈ (fun a => (f a).2)⟩
 
-/-- A lawful Dijkstra monad `d` on a lawful monad `w` can be seen as a lawful monad on the dependent
-  pair `(w, d)`. -/
+/-- A lawful Dijkstra monad `d` on a lawful monad `w` can be seen
+  as a lawful monad on the dependent pair `(w, d)`. -/
 instance {w d} [Monad w] [DijkstraMonad w d] [h : LawfulMonad w] [LawfulDijkstraMonad w d] :
     LawfulMonad (fun α => (w : w α) × d w) :=
   LawfulMonad.mk' _
@@ -164,8 +165,9 @@ def quotientDijkstraMonadOfOrderedMonadRelation {m n} [Monad m] [OrderedMonad n]
     [MonadRelation m n] [LawfulMonad m] [LawfulMonad n] [MonadRelation.IsUpperClosed m n] :
     {α : Type u} → n α → Type _ := sorry
 
-instance [Monad m] [OrderedMonad n] [MonadRelation m n] [LawfulMonad m] [LawfulMonad n]
-    [LawfulMonadRelation m n] : OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
+instance [Monad m] [OrderedMonad n] [MonadRelation m n]
+    [LawfulMonad m] [LawfulMonad n] [LawfulMonadRelation m n] :
+    OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
   dWeaken x h := ⟨x.1, by simp_all [monadRel]; sorry⟩
   dWeaken_refl x := by simp
   dWeaken_trans x h1 h2 := by simp

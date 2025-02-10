@@ -54,7 +54,7 @@ instance : MonadTransformer OptionT where
 
 /--
 The `MonadTransformer` typeclass only contains the operations of a monad transformer.
-`LawfulMonadTransformer` further asserts that these operations satisfy the laws of a monad transformer:
+`LawfulMonadTransformer` also asserts these operations satisfy the laws of a monad transformer:
 ```
 liftOf m (pure x) = pure x
 liftOf m x >>= liftOf m ∘ f = liftOf m (x >>= f)
