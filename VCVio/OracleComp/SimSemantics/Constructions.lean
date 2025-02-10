@@ -15,7 +15,7 @@ This file defines a number of basic simulation oracles, as well as operations to
 
 open OracleSpec OracleComp Prod Sum
 
-universe u v w
+universe u₁ u₂ uₜ v₁ v₂ vₜ u u' v v' w w' w₁ w₂ wₜ
 
 variable {ι ι₁ ι₂ ιₜ : Type*} {spec : OracleSpec ι}
   {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
@@ -24,6 +24,62 @@ variable {ι ι₁ ι₂ ιₜ : Type*} {spec : OracleSpec ι}
 namespace SimOracle
 
 section compose
+
+-- If `m` can be used to map between monads
+class CompatibleTransform (m : (Type u → Type v) → Type u → Type w)
+  (m' : (Type u → Type v) → Type u → Type v) where
+  mapUnder {n n' : Type u → Type v} [Monad n']
+    {α : Type u} (f : {α : Type u} → n α → m n' α)
+    (x : m' n α) : m (m' n') α
+
+instance : CompatibleTransform (StateT τ) (StateT σ) where
+  mapUnder f x := StateT.mk fun s => StateT.mk fun t =>
+    (fun ((x, t), s) => ((x, s), t)) <$> (f (x t)).run s
+
+-- This version is really not very nice
+def compose' {ι₁ : Type u₁} {ι₂ : Type u₂} {ιₜ : Type u₂}
+    {spec₁ : OracleSpec.{u₁,v} ι₁} {spec₂ : OracleSpec.{u₂,v} ι₂}
+    {specₜ : OracleSpec.{u₂,v} ιₜ}
+
+    {T : (Type v → Type (max u₂ (v + 1) v)) → Type v → Type w}
+    [Alternative (T (OracleComp specₜ))]
+    [Monad (T (OracleComp specₜ))]
+
+    {U : (Type v → Type (max u₂ (v + 1))) → Type v → Type (max u₂ (v + 1))}
+    [Alternative (U (OracleComp spec₂))]
+    [Monad (U (OracleComp spec₂))]
+
+    [Alternative ((T ∘ U) (OracleComp spec₂))]
+    [Monad ((T ∘ U) (OracleComp spec₂))]
+    [h : CompatibleTransform T U]
+
+    (so' : SimOracle' spec₂ specₜ T)
+    (so : SimOracle' spec₁ spec₂ U) :
+    SimOracle' spec₁ specₜ (T ∘ U) where
+    impl q := h.mapUnder (m := T) (m' := U)
+      (n := OracleComp spec₂) (n' := OracleComp specₜ)
+      (λ {α} ↦ simulateT' (α := α) so') (so.impl q)
+
+infixl : 65 "∘ₛ'" => SimOracle.compose'
+
+-- Class for monad transformers that allow lifting functions on base monads.
+class MonadTransform (m : (Type u → Type v) → Type u → Type w) where
+    mapUnder {n n' : Type u → Type v} [Monad n'] {α : Type u}
+      (f : {α : Type u} → n α → n' α) (x : m n α) : m n' α
+
+-- Unwrap the result, apply the map, rewrap
+instance : MonadTransform OptionT where
+  mapUnder f x := OptionT.mk (f x.run)
+
+-- Get the state, apply the map, return the state
+instance : MonadTransform (StateT σ) where
+  mapUnder f x := StateT.mk fun s => f (x.run s)
+
+def composeState'' (so' : QueryImpl spec₂ (StateT τ (OracleComp specₜ)))
+    (so : QueryImpl spec₁ (StateT σ (OracleComp spec₂))) :
+    QueryImpl spec₁ (StateT σ (StateT τ (OracleComp specₜ))) where
+  impl q := StateT.mk fun s =>
+    StateT.mk (simulateQ so' ((so.impl q).run s)).run
 
 /-- Given a simulation oracle `so` from `spec₁` to `spec₂` and a simulation oracle `so'` from
 `spec₂` to a final target set of oracles `specₜ`, construct a new simulation oracle
@@ -95,6 +151,14 @@ end compose
 
 section equivState
 
+def equivState' (so : SimOracle' spec specₜ (StateT σ)) (e : σ ≃ τ) :
+    SimOracle' spec specₜ (StateT τ) where
+  impl q s := map id e <$> so.impl q (e.symm s)
+
+def equivState'' (so : QueryImpl spec (StateT σ (OracleComp specₜ))) (e : σ ≃ τ) :
+    QueryImpl spec (StateT τ (OracleComp specₜ)) where
+  impl q s := map id e <$> so.impl q (e.symm s)
+
 /-- Substitute an equivalent type for the state of a simulation oracle, by using the equivalence
 to move back and forth between the states as needed.
 This can be useful when operations such like `simOracle.append` add on a state of type `Unit`.
@@ -155,6 +219,15 @@ end equivState
 
 end SimOracle
 
+-- This isn't really good naming anymore with the changes
+def statelessOracle' (f : {α : Type u} → OracleQuery spec α → OracleComp specₜ α) :
+    SimOracle' spec specₜ id where
+  impl q := f q
+
+def statelessOracle'' (f : {α : Type u} → OracleQuery spec α → OracleComp specₜ α) :
+    QueryImpl spec (OracleComp specₜ) where
+  impl q := f q
+
 /-- Given a indexed computation that computes an oracle output from an oracle input,
 construct a simulation oracle that responds to the queries with that computation.
 
@@ -172,6 +245,12 @@ variable (f : {α : Type u} → OracleQuery spec α → OracleComp specₜ α)
 lemma apply_eq (q : OracleQuery spec α) : (statelessOracle f).impl q = f q := rfl
 
 end statelessOracle
+
+def idOracle'' : QueryImpl spec (OracleComp spec) :=
+  statelessOracle'' OracleComp.lift
+
+def idOracle' : SimOracle' spec spec id :=
+  statelessOracle' OracleComp.lift
 
 /-- Simulate a computation using the original oracles by "replacing" queries with queries.
 This operates as an actual identity for `simulate'`, in that we get an exact equality
@@ -209,6 +288,10 @@ lemma simulate_eq (u : PUnit) (oa : OracleComp spec α) :
   rw [simulate_eq_map_simulate', simulate'_eq]
 
 end idOracle
+
+def unifOracle'' [∀ i, SelectableType (spec.range i)] :
+    QueryImpl spec (OracleComp unifSpec) :=
+  statelessOracle'' fun (query i _) => $ᵗ spec.range i
 
 /-- Simulation oracle for replacing queries with uniform random selection, using `unifSpec`.
 The resulting computation is still identical under `evalDist`.

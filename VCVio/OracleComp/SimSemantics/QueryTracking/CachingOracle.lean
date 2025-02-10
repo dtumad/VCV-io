@@ -74,6 +74,18 @@ end QueryCache
 
 end OracleSpec
 
+def cachingOracle' [spec.DecidableEq] :
+    SimOracle' spec spec (StateT (QueryCache spec)) where
+  impl | query i t => do match (← get) i t with
+    | Option.some u => return u
+    | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)
+
+def cachingOracle'' [spec.DecidableEq] :
+    QueryImpl spec (StateT (QueryCache spec) (OracleComp spec)) where
+  impl | query i t => do match (← get) i t with
+    | Option.some u => return u
+    | Option.none => let u ← query i t; modifyGet λ cache ↦ (u, cache.cacheQuery i t u)
+
 /-- Oracle for caching queries to the oracles in `spec`, querying fresh values if needed. -/
 def cachingOracle [spec.DecidableEq] : SimOracle spec spec (QueryCache spec) where
   impl | query i t => do match (← get) i t with

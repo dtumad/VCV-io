@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.IsTracking
+import VCVio.OracleComp.RunIO
 import VCVio.OracleComp.Coercions.SimOracle
 
 /-!
@@ -22,7 +23,27 @@ parameterized by the set of oracles available. -/
 def QueryLog (spec : OracleSpec ι) : Type :=
   (i : ι) → List (spec.domain i × spec.range i)
 
+-- Better repr but maybe not better in general
+def QueryLog' (spec : OracleSpec ι) : Type :=
+  List (Σ i : ι, spec.domain i × spec.range i)
+
+namespace QueryLog
+
 instance : EmptyCollection (QueryLog spec) := ⟨λ _ ↦ []⟩
+instance : Append (QueryLog spec) := ⟨λ log log' i ↦ (log i) ++ (log' i)⟩
+-- NOTE: I think the `append` version of `WriterT` might be better than the `Monoid` one here?
+--       Should try and see how proofs look in practice first.
+-- instance : Monoid (QueryLog spec) where
+--   mul := instAppend.append
+--   one := instEmptyCollection.emptyCollection
+--   mul_assoc := fun a b c => by sorry
+--   one_mul := sorry
+--   mul_one := sorry
+
+end QueryLog
+
+instance : EmptyCollection (QueryLog' spec) := ⟨[]⟩
+instance : Append (QueryLog' spec) := ⟨List.append⟩
 
 -- instance [spec.DecidableEq] : DecidableEq (QueryLog spec) where
 --   decide x y := by sorry
@@ -49,6 +70,9 @@ def logQuery [DecidableEq ι] (log : QueryLog spec) {i : ι}
   Function.update log i ((t, u) :: log i)
 
 end logQuery
+
+def singleton [DecidableEq ι] {i : ι} (t : spec.domain i) (u : spec.range i) : QueryLog spec :=
+  Function.update (λ _ ↦ []) i [(t, u)]
 
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
@@ -92,21 +116,47 @@ theorem append_assoc (log₁ : QueryLog spec) (log₂ : QueryLog spec) (log₃ :
 
 end QueryLog
 
+def QueryLog'.singleton {i : ι} (t : spec.domain i) (u : spec.range i) : QueryLog' spec :=
+  [⟨i, (t, u)⟩]
+
 end OracleSpec
 
 open OracleComp OracleSpec
 
-variable [DecidableEq ι] [DecidableEq ι₁] [DecidableEq ι₂]
+def loggingOracleNew : SimOracle' spec spec (WriterT (QueryLog' spec)) where
+  impl | query i t => do
+    let u ← query i t
+    tell [⟨i, (t, u)⟩]
+    return u
+
+def loggingOracle' : SimOracle' spec spec (WriterT (QueryLog' spec)) where
+  impl | query i t => do
+    let u ← query i t
+    tell (QueryLog'.singleton t u)
+    return u
+
+def logingOracle'' : QueryImpl spec (WriterT (QueryLog' spec) (OracleComp spec)) where
+  impl | query i t => do
+    let u ← query i t
+    tell (QueryLog'.singleton t u)
+    return u
+
+-- `(22, [⟨20, ((), 8)⟩, ⟨20, ((), 14)⟩])`
+-- `(9, [⟨20, ((), 6)⟩, ⟨20, ((), 3)⟩])`
+#eval OracleComp.runIO (simulateT' loggingOracle' (do
+    (Nat.add) <$> $[0..20] <*> $[0..20])).run
 
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
 which list to update when queries come in. -/
-def loggingOracle : SimOracle spec spec (QueryLog spec) where
+def loggingOracle [DecidableEq ι] : SimOracle spec spec (QueryLog spec) where
   impl | query i t => do
     let u ← query i t
     modifyGet λ log ↦ (u, log.logQuery t u)
 
 namespace loggingOracle
+
+variable [DecidableEq ι]
 
 @[simp]
 lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
@@ -128,6 +178,7 @@ theorem simulate_eq_append_simulate_empty [spec.DecidableEq] (oa : OracleComp sp
   | failure => simp
 
 variable [spec₁.DecidableEq] [spec₂.DecidableEq]
+  [DecidableEq ι₁] [DecidableEq ι₂]
 
 -- Should this be `simp`?
 theorem inl_eq (oa : OracleComp spec₁ α) (log : QueryLog (spec₁ ++ₒ spec₂)) :
