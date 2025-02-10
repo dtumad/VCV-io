@@ -1,3 +1,4 @@
+import Examples.FB_Franking.FB_Franking
 import Examples.HHS_Elgamal
 import Examples.HHS_Sigma
 import Examples.HHS_Signature
