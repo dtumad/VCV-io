@@ -182,14 +182,10 @@ instance {m n} [Monad m] [OrderedMonad n] [MonadLiftT m n] : MonadRelation m n w
 
 instance {m n} [Monad m] [OrderedMonad n] [MonadLiftT m n] [LawfulMonad m] [LawfulMonad n]
     [LawfulMonadLiftT m n] : LawfulMonadRelation m n where
-  monadRel_pure := by simp [monadRel]
+  monadRel_pure := by
+    simp only [monadRel, liftM_pure, ge_iff_le, le_refl, implies_true]
   monadRel_bind ha hb := by
-    simp_all only [monadRel, ge_iff_le]
-    rename_i ma mb na nb
-    rw [← monadLift_bind]
-    calc
-      _ ≤ na >>= (fun x => monadLift (mb x)) := bind_mono ha (by simp)
-      _ ≤ na >>= nb := bind_mono (le_of_eq rfl) hb
+    simp_all only [monadRel, ge_iff_le, liftM_bind, implies_true, bind_mono]
 
 -- TODO: monad morphism also defines a monad ideal
 

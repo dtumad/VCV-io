@@ -47,7 +47,7 @@ instance instOfMonadLiftT {m n} [MonadLiftT m n] : MonadRelation m n where
 instance instOfLawfulMonadLiftT {m n} [Monad m] [Monad n] [MonadLiftT m n] [LawfulMonadLiftT m n] :
     LawfulMonadRelation m n where
   monadRel_pure _ := by simp only [monadRel, liftM_pure]
-  monadRel_bind _ _ := by simp_all only [monadRel, ← liftM_bind]
+  monadRel_bind _ _ := by simp_all only [monadRel, liftM_bind]
 
 end MonadRelation
 
