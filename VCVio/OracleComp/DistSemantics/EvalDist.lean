@@ -971,4 +971,30 @@ example : [⊥ | do
   rw [this]
   ring_nf
 
+section hoare
+
+variable {ι : Type u} {spec : OracleSpec ι} [spec.FiniteRange] {α β γ δ : Type v}
+
+/-- If pre-condition `P` holds fox `x` then `comp x` satisfies
+post-contdition `Q` with probability at least `r`-/
+def HoareTriple (P : α → Prop) (comp : α → OracleComp spec β)
+    (Q : β → Prop) (r : ℝ≥0∞) : Prop :=
+  ∀ x : α, P x → r ≤ [Q | comp x]
+
+notation "⦃" P "⦄ " comp " ⦃" Q "⦄ " r => HoareTriple P comp Q r
+
+def HoareTriple.bind {P : α → Prop} {comp₁ : α → OracleComp spec β}
+    {Q : β → Prop} {comp₂ : α → β → OracleComp spec γ} {R : γ → Prop} {r r' : ℝ≥0∞}
+    (h1 : ⦃P⦄ comp₁ ⦃Q⦄ r) (h2 : ∀ x, ⦃Q⦄ comp₂ x ⦃R⦄ r') :
+        ⦃P⦄ fun x => comp₁ x >>= comp₂ x ⦃R⦄ (r * r') := by
+  refine fun x hx => (mul_le_mul_right' (h1 x hx) r').trans ?_
+  rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_indicator, ← ENNReal.tsum_mul_right]
+  refine ENNReal.tsum_le_tsum fun y => ?_
+  rw [← Set.indicator_mul_const]
+  refine Set.indicator_apply_le' ?_ ?_
+  · exact fun hy => mul_le_mul_left' (h2 x y hy) [=y|comp₁ x]
+  · simp only [zero_le, implies_true]
+
+end hoare
+
 end OracleComp

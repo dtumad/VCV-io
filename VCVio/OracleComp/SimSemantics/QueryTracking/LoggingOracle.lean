@@ -111,6 +111,9 @@ def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
 
 namespace loggingOracle
 
+-- #eval! (OracleComp.simulateQ loggingOracle
+--   (for i in List.range 50 do let _ ← $[0..i])).run
+
 variable {ι : Type u} {spec : OracleSpec.{u,v} ι} [DecidableEq ι]
   {α : Type v}
 
@@ -153,6 +156,3 @@ variable {ι : Type u} {spec : OracleSpec.{u,v} ι} [DecidableEq ι]
 --   sorry
 
 end loggingOracle
-
-#eval! (OracleComp.simulateQ loggingOracle
-  (for i in List.range 50 do let _ ← $[0..i])).run
