@@ -82,11 +82,11 @@ variable {m : Type u → Type v} {n : Type u → Type w}
 
 /-- Type-class for `LawfulMonadLift`s that also preserve the failure operation. -/
 class LawfulFailureLift (m : Type u → Type v) (n : Type u → Type w) [Monad m] [Monad n] [Failure m]
-    [Failure n] [MonadLift m n] extends LawfulMonadLift m n where
+    [Failure n] [MonadLiftT m n] extends LawfulMonadLiftT m n where
   monadLift_fail : {α : Type u} → monadLift (Failure.fail : m α) = (Failure.fail : n α)
 
 @[simp]
-lemma liftM_fail [MonadLift m n] [LawfulFailureLift m n] {α : Type u} :
+lemma liftM_fail [MonadLiftT m n] [LawfulFailureLift m n] {α : Type u} :
     liftM (Failure.fail : m α) = (Failure.fail : n α) :=
   LawfulFailureLift.monadLift_fail
 

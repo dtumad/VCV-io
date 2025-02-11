@@ -11,9 +11,6 @@ import Batteries.Tactic.Alias
 
 universe u v w v₁ w₁ v₂ w₂
 
-abbrev MonadMorphism := MonadLiftT
-abbrev LawfulMonadMorphism := LawfulMonadLiftT
-
 class MonadRelation (m : Type u → Type v) (n : Type u → Type w) where
   monadRel {α : Type u} : m α → n α → Prop
 
@@ -51,16 +48,17 @@ instance instOfLawfulMonadLiftT {m n} [Monad m] [Monad n] [MonadLiftT m n] [Lawf
 
 end MonadRelation
 
-class MonadRelationMorphism (m₁ : Type u → Type v₁) (n₁ : Type u → Type w₁)
+class MonadRelationHom (m₁ : Type u → Type v₁) (n₁ : Type u → Type w₁)
     (m₂ : Type u → Type v₂) (n₂ : Type u → Type w₂) where
-  morphismFst {α : Type u} : m₁ α → m₂ α
-  morphismSnd {α : Type u} : n₁ α → n₂ α
+  monadRelHomFst {α : Type u} : m₁ α → m₂ α
+  monadRelHomSnd {α : Type u} : n₁ α → n₂ α
 
-export MonadRelationMorphism (morphismFst morphismSnd)
+export MonadRelationHom (monadRelHomFst monadRelHomSnd)
 
-class LawfulMonadRelationMorphism (m₁ : Type u → Type v₁) (n₁ : Type u → Type w₁)
+open MonadRelation in
+class LawfulMonadRelationHom (m₁ : Type u → Type v₁) (n₁ : Type u → Type w₁)
     (m₂ : Type u → Type v₂) (n₂ : Type u → Type w₂)
     [MonadRelation m₁ n₁] [MonadRelation m₂ n₂]
-    [MonadRelationMorphism m₁ n₁ m₂ n₂] where
-  monadRel_morphism {α : Type u} {ma : m₁ α} {na : n₁ α} :
-    monadRel ma na → monadRel (morphismFst n₁ n₂ ma : m₂ α) (morphismSnd m₁ m₂ na : n₂ α)
+    [MonadRelationHom m₁ n₁ m₂ n₂] where
+  monadRel_hom {α : Type u} {ma : m₁ α} {na : n₁ α} (h : ma ∼ₘ na) :
+    (monadRelHomFst n₁ n₂ ma : m₂ α) ∼ₘ (monadRelHomSnd m₁ m₂ na : n₂ α)
