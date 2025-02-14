@@ -10,6 +10,10 @@ We show that the general definition of an enriched category over a monoidal cate
 an order-enriched category when the monoidal category is the category of preorders.
 -/
 
+universe w v u u₁ u₂
+
+namespace Preord
+
 /-- The category of preorders is monoidal. -/
 instance : MonoidalCategory (Preord) where
   tensorObj X Y := Bundled.of (X × Y)
@@ -18,7 +22,6 @@ instance : MonoidalCategory (Preord) where
   whiskerRight f Y := ⟨fun y => (f.1 y.1, y.2),
       (by simp [Monotone, Bundled.of]; intro _ _ _ _ h h'; exact ⟨f.2 h, h'⟩)⟩
   tensorUnit := Bundled.of PUnit
-  -- /-- The associator isomorphism `(X ⊗ Y) ⊗ Z ≃ X ⊗ (Y ⊗ Z)` -/
   associator X Y Z := {
     hom := ⟨fun ⟨⟨x, y⟩, z⟩ => ⟨x, ⟨y, z⟩⟩, by
       simp only [Monotone, Bundled.of, Prod.mk_le_mk, Prod.forall, and_imp]
@@ -28,10 +31,10 @@ instance : MonoidalCategory (Preord) where
       intro _ _ _ _ _ _ h1 h2 h3; exact ⟨⟨h1, h2⟩, h3⟩⟩ }
   leftUnitor X := {
     hom := ⟨Prod.snd, (by simp [Monotone, Bundled.of])⟩
-    inv := ⟨fun x => ((), x), by simp [Monotone, Bundled.of]⟩ }
+    inv := ⟨fun x => (PUnit.unit, x), by simp [Monotone, Bundled.of]⟩ }
   rightUnitor X := {
     hom := ⟨Prod.fst, (by simp [Monotone, Bundled.of])⟩
-    inv := ⟨fun x => (x, ()), by simp [Monotone, Bundled.of]⟩ }
+    inv := ⟨fun x => (x, PUnit.unit), by simp [Monotone, Bundled.of]⟩ }
   tensorHom_def f g := rfl
   tensor_id _ _ := rfl
   tensor_comp f₁ f₂ g₁ g₂ := rfl
@@ -42,3 +45,99 @@ instance : MonoidalCategory (Preord) where
   rightUnitor_naturality f := rfl
   pentagon _ _ _ _ := rfl
   triangle _ _ := rfl
+
+end Preord
+
+namespace CategoryTheory
+
+open MonoidalCategory
+
+namespace EnrichedCategory
+
+variable (V : Type v) [Category.{w} V] [MonoidalCategory V]
+
+variable {c : Type u → Type v} [Category.{w} (Bundled c)] [MonoidalCategory (Bundled c)]
+
+variable (C : Type u₁) (D : Type u₂) [𝒞 : EnrichedCategory V C] [𝒟 : EnrichedCategory V D]
+
+@[simps]
+instance instProduct : EnrichedCategory V (C × D) where
+  Hom X Y := (𝒞.Hom X.1 Y.1) ⊗ (𝒟.Hom X.2 Y.2)
+  id X := (λ_ _).inv ≫ ((𝒞.id X.1) ⊗ (𝒟.id X.2))
+  comp X Y Z := by stop simpa using (𝒞.comp X.1 Y.1 Z.1) ⊗ (𝒟.comp X.2 Y.2 Z.2)
+  -- (α_ _ _ _).inv ≫ (
+  -- id_comp X Y := by
+  --   ext ⟨⟨x, y⟩, z⟩
+  --   simp [id_comp]
+
+-- structure RelativeMonad (J : C ⥤ D) where
+--   /-- The monadic mapping on objects. -/
+--   T : C → D
+--   /-- The unit for the relative monad. -/
+--   η : ∀ {X}, J.obj X ⟶ T X
+--   /-- The multiplication for the monad. -/
+--   μ : ∀ {X Y}, ((J.obj X) ⟶ (T Y)) → ((T X) ⟶ (T Y))
+--   /-- `μ` applied to `η` is identity. -/
+--   left_unit : ∀ {X}, μ η = 𝟙 (T X) := by aesop_cat
+--   /-- `η` composed with `μ` is identity. -/
+--   right_unit : ∀ {X Y}, ∀ f : (J.obj X) ⟶ (T Y), η ≫ (μ f) = f := by aesop_cat
+--   /-- `μ` is associative. -/
+--   assoc : ∀ {X Y Z}, ∀ f : (J.obj X) ⟶ (T Y), ∀ g : (J.obj Y) ⟶ (T Z),
+--     μ (f ≫ μ g) = (μ f) ≫ (μ g) := by aesop_cat
+
+variable (C : Type u₁) (D : Type u₂)
+  [𝒞 : EnrichedCategory (Bundled c) C] [𝒟 : EnrichedCategory (Bundled c) D]
+
+variable (J : EnrichedFunctor (Bundled c) C D)
+
+structure RelativeMonad where
+  T : C → D
+  η : {A : C} → (J.obj A ⟶[ Bundled c ] T A)
+  μ : {A B : C} → (J.obj A ⟶[ Bundled c ] T B) ⟶ (T A ⟶[ Bundled c ] T B)
+  -- assoc : (α_ _ _ _).inv ≫ J.map (μ ⊗ 𝟭 _) ≫ μ = J.map (𝟭 _ ⊗ μ) ≫ μ
+  -- left_unit : (λ_ _).inv ≫ J.map (𝟭 _ ⊗ η) ≫ μ = η
+  -- right_unit : (ρ_ _).inv ≫ J.map (η ⊗ 𝟭 _) ≫ μ = η
+
+namespace RelativeMonad
+
+@[simps]
+def inducedFunctor (M : RelativeMonad C D J) : EnrichedFunctor (Bundled c) C D where
+  obj A := M.T A
+  map f := sorry
+
+-- def prod
+
+-- def ofNatIso
+
+-- def precompose
+
+-- def postcompose
+
+-- def lift (F : EnrichedFunctor C D) (φ : J₂ ≅ (J₁ ⋙ F)) (M : RelativeMonad C D₂ J₂) : RelativeMonad C D₁ J₁ where
+
+end RelativeMonad
+
+-- (lax) morphism between relative monads in enriched categories
+structure RelativeMonadHom (M N : RelativeMonad C D J) where
+  -- f : M.inducedFunctor J ⟶ N.inducedFunctor J
+
+class RelativeMonadHom.IsStrict (M N : RelativeMonad C D J) (F : RelativeMonadHom C D J M N) where
+
+
+end EnrichedCategory
+
+/-- Categories enriched over the monoidal category of preorders are preorder-enriched categories. -/
+abbrev PreordEnrichedCategory (C : Type u) := EnrichedCategory Preord C
+
+#check Category.assoc
+
+namespace PreordEnrichedCategory
+
+variable {C : Type u} [PreordEnrichedCategory C]
+
+
+end PreordEnrichedCategory
+
+-- TODO: simplify the enriched category definition to see the order-enriched category structure.
+
+end CategoryTheory

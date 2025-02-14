@@ -64,34 +64,20 @@ def wasQueried [DecidableEq ι] [spec.DecidableEq] (log : QueryLog spec)
 
 variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
--- def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
---   log.map sorry
+def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
+  log.filterMap (fun ⟨i, t, u⟩ ↦ match i with | .inl i => some (⟨i, t, u⟩) | .inr _ => none)
 
--- def snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
---   sorry --λ i ↦ log (.inr i)
+def snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
+  log.filterMap (fun ⟨i, t, u⟩ ↦ match i with | .inl _ => none | .inr i => some (⟨i, t, u⟩))
 
--- def inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂)
---   | .inl i => log i | .inr _ => []
--- def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂)
---   | .inl _ => [] | .inr i => log i
+def inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂) :=
+  log.map (fun ⟨i, t, u⟩ ↦ ⟨.inl i, t, u⟩)
 
--- instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inl⟩
--- instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inr⟩
+def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂) :=
+  log.map (fun ⟨i, t, u⟩ ↦ ⟨.inr i, t, u⟩)
 
--- @[simp]
--- theorem append_apply (log₁ : QueryLog spec) (log₂ : QueryLog spec) (i : ι) :
---   (log₁.append log₂) i = log₂ i ++ log₁ i := rfl
-
--- @[simp]
--- theorem append_empty (log : QueryLog spec) : log.append ∅ = log := by ext; simp [append]
-
--- @[simp]
--- theorem empty_append (log : QueryLog spec) : (∅ : QueryLog spec).append log = log := by
---   ext; simp [append]
-
--- theorem append_assoc (log₁ : QueryLog spec) (log₂ : QueryLog spec) (log₃ : QueryLog spec) :
---     (log₁.append log₂).append log₃ = log₁.append (log₂.append log₃) := by
---   ext; simp [append]
+instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inl⟩
+instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inr⟩
 
 end QueryLog
 
@@ -111,15 +97,15 @@ def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
 
 namespace loggingOracle
 
-variable {ι : Type u} {spec : OracleSpec.{u,v} ι} [DecidableEq ι]
-  {α : Type v}
+variable {ι} {spec : OracleSpec ι} {α}
 
--- @[simp]
--- lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
---     match q with | query i t => do
---       let u ← query i t
---       tell (QueryLog.singleton t u)
---       return u := rfl
+@[simp]
+lemma apply_eq (q : OracleQuery spec α) :
+  loggingOracle.impl q = match q with | query i t => do
+    let u ← query i t
+    tell (QueryLog.singleton t u)
+    return u :=
+  rfl
 
 -- instance : (loggingOracle (spec := spec)).IsTracking where
 --   state_indep | query _ _, _ => rfl

@@ -150,9 +150,6 @@ end RelativeMonadHom
 
 end CategoryTheory
 
-#check ModuleCat
-
-
 
 /-! ## Old stuff below.
 
@@ -273,8 +270,6 @@ variable {α β γ : Type u}
     (h : j α → j β) (g : j β → j γ) (x : f α) :
       g <$>ᵣ h <$>ᵣ x = (fun a => g (h a)) <$>ᵣ x :=
   (comp_mapᵣ _ _ _).symm
-
-#check bind_map
 
 class LawfulRelativeMonad (j : Type u → Type w) (m : Type u → Type v)
     [RelativeMonad j m] extends LawfulRelativeFunctor j m where

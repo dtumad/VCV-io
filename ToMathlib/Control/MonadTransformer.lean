@@ -117,6 +117,11 @@ end
 
 namespace MonadTransformer
 
+/-- A monad transformer is covariant if it lifts monad morphisms to monad morphisms. -/
+class IsCovariant (t : (Type u → Type v) → Type u → Type w) [MonadTransformer t] where
+  functorMap {m n : Type u → Type v} [MonadLiftT m n] :
+    MonadLiftT (t m) (t n)
+
 instance [MonadTransformer t] [Monad m] : MonadLift m (t m) := MonadTransformer.transform m
 
 instance [MonadTransformer t] [Monad m] [LawfulMonad m] [LawfulMonadTransformer t]
