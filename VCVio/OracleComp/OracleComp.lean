@@ -145,6 +145,10 @@ protected lemma liftM_def (q : OracleQuery spec α) :
     (q : OracleComp spec α) = OptionT.lift (FreeMonad.lift q) := rfl
 alias lift_query_def := OracleComp.liftM_def
 
+--@[simp] -- Usually this is a better simp pathway but occasionally bad
+lemma liftM_query_eq_liftM_liftM {m : Type v → Type z} [MonadLift (OracleComp spec) m] {α : Type v}
+    (q : OracleQuery spec α) : (liftM q : m α) = liftM (liftM q : OracleComp spec α) := rfl
+
 lemma query_bind_eq_roll (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
     (q : OracleComp spec α) >>= ob = OptionT.mk (FreeMonad.roll q ob) := rfl
 
@@ -287,42 +291,6 @@ def isFailure {α : Type v} : OracleComp spec α → Bool
 @[simp] lemma isFailure_query_bind : isFailure ((q : OracleComp spec β) >>= oa) = false := rfl
 @[simp] lemma isFailure_failure : isFailure (failure : OracleComp spec α) = true := rfl
 
-@[simp]
-lemma pure_eq_query_iff_false : pure y = (q : OracleComp spec β) ↔ False := by
-  simp only [pure_def, OptionT.pure, OptionT.mk, FreeMonad.monad_pure_def, OracleComp.liftM_def,
-    OptionT.lift, FreeMonad.monad_bind_def, FreeMonad.bind_lift, ne_eq, reduceCtorEq,
-    not_false_eq_true]
-
-@[simp]
-lemma query_eq_pure_iff_false : (q : OracleComp spec β) = pure y ↔ False := by
-  rw [eq_comm, pure_eq_query_iff_false]
-
-lemma pure_ne_query : pure y ≠ (q : OracleComp spec β) := by simp
-lemma query_ne_pure : (q : OracleComp spec β) ≠ pure y := by simp
-
-@[simp] lemma pure_ne_query_bind : pure x ≠ (q : OracleComp spec β) >>= oa := by
-  simp [pure_def, query_bind_eq_roll, OptionT.pure, OptionT.mk]
-@[simp] lemma query_bind_ne_pure : (q : OracleComp spec β) >>= oa ≠ pure x :=
-  Ne.symm (pure_ne_query_bind x q oa)
-
-@[simp] lemma pure_ne_failure : (pure x : OracleComp spec α) ≠ failure := by
-  simp [pure_def, failure_def, OptionT.pure, OptionT.fail, OptionT.mk]
-  rw [FreeMonad.pure.injEq]
-  exact Option.some_ne_none x
-@[simp] lemma failure_ne_pure : failure ≠ (pure x : OracleComp spec α) :=
-  Ne.symm (pure_ne_failure x)
-
-@[simp] lemma failure_ne_query_bind : failure ≠ (q : OracleComp spec β) >>= oa := by
-  simp [failure_def, query_bind_eq_roll, OptionT.fail, OptionT.mk]
-@[simp] lemma query_bind_ne_failure : (q : OracleComp spec β) >>= oa ≠ failure :=
-  Ne.symm (failure_ne_query_bind q oa)
-
-@[simp] lemma query_ne_failure : (q : OracleComp spec β) ≠ failure := by
-  rw [← bind_pure (q : OracleComp spec β)]
-  exact query_bind_ne_failure q pure
-@[simp] lemma failure_ne_query : failure ≠ (q : OracleComp spec β) :=
-  Ne.symm (query_ne_failure q)
-
 lemma exists_eq_of_isPure {oa : OracleComp spec α} (h : isPure oa) : ∃ x, oa = pure x := by
   induction oa using OracleComp.inductionOn with
   | pure => apply exists_apply_eq_apply' | query_bind => simp at h | failure => simp at h
@@ -331,6 +299,24 @@ lemma eq_failure_of_isFailure {oa : OracleComp spec α} (h : isFailure oa) : oa 
   induction oa using OracleComp.inductionOn with
   | pure => simp at h | query_bind => simp at h | failure => rfl
 
+@[simp] lemma pure_ne_query : pure y ≠ (q : OracleComp spec β) := nofun
+@[simp] lemma query_ne_pure : (q : OracleComp spec β) ≠ pure y := nofun
+
+@[simp] lemma pure_ne_query_bind : pure x ≠ (q : OracleComp spec β) >>= oa := nofun
+@[simp] lemma query_bind_ne_pure : (q : OracleComp spec β) >>= oa ≠ pure x := nofun
+
+@[simp] lemma pure_ne_failure : (pure x : OracleComp spec α) ≠ failure := nofun
+@[simp] lemma failure_ne_pure : failure ≠ (pure x : OracleComp spec α) := nofun
+
+@[simp] lemma failure_ne_query_bind : failure ≠ (q : OracleComp spec β) >>= oa := nofun
+@[simp] lemma query_bind_ne_failure : (q : OracleComp spec β) >>= oa ≠ failure := nofun
+
+@[simp] lemma query_ne_failure : (q : OracleComp spec β) ≠ failure := nofun
+@[simp] lemma failure_ne_query : failure ≠ (q : OracleComp spec β) := nofun
+
+lemma pure_eq_query_iff_false : pure y = (q : OracleComp spec β) ↔ False := by simp
+lemma query_eq_pure_iff_false : (q : OracleComp spec β) = pure y ↔ False := by simp
+
 end noConfusion
 
 section mapM
@@ -338,7 +324,8 @@ section mapM
 /-- Implement all queries in a computation using some other monad `m`,
 preserving the pure and bind operations, giving a computation in the new monad.
 The function `qm` specifies how to replace the queries in the computation,
-and `fail` is used whenever `failure` is encountered. -/
+and `fail` is used whenever `failure` is encountered.
+If the final output type has an `Alternative` instance then `simulate` is usually preffered. -/
 protected def mapM {m : Type v → Type w} [Monad m]
     (fail : {α : Type v} → m α)
     (query_map : {α : Type v} → OracleQuery spec α → m α)
@@ -411,6 +398,12 @@ lemma mapM_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
   split_ifs <;> rfl
 
 end mapM
+
+/-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
+by assuming each query returns the `default` value given by the `Inhabited` instance.
+Returns `none` if the default path would lead to failure. -/
+def defaultResult [spec.FiniteRange] (oa : OracleComp spec α) : Option α :=
+  oa.mapM (fail := none) (query_map := some ∘ OracleQuery.defaultOutput)
 
 /-- Total number of queries in a computation across all possible execution paths.
 Can be a helpful alternative to `sizeOf` when proving recursive calls terminate. -/
@@ -493,16 +486,5 @@ protected instance instDecidableEq [spec.FiniteRange] [hd : ∀ i, DecidableEq (
         match FreeMonad.roll.inj h' with
         | ⟨h1, h2, _⟩ => @congr_heq _ _ ι OracleQuery.index OracleQuery.index
             (query i t) (query i' t') (h1 ▸ HEq.rfl) h2
-
-
-/-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
-by assuming each query returns the `default` value given by the `Inhabited` instance.
-Returns `none` if the default path would lead to failure. -/
-def defaultResult [spec.FiniteRange] (oa : OracleComp spec α) : Option α :=
-  oa.mapM (fail := none) (query_map := some ∘ OracleQuery.defaultOutput)
-
-@[simp] -- TODO: move
-lemma StateT_lift_failure {σ : Type v} :
-    (StateT.lift (failure : OracleComp spec α) : StateT σ (OracleComp spec) α) = failure := rfl
 
 end OracleComp

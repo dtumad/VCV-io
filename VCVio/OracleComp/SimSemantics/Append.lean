@@ -57,24 +57,24 @@ variable [Monad n] [Failure n] [LawfulMonad n] [LawfulFailure n]
 
 @[simp]
 lemma simulate_coe_append_left [Monad m₁] [Failure m₁] [LawfulMonad m₁] [LawfulFailure m₁]
-    [LawfulMonadLift m₁ n] (oa : OracleComp spec₁ α) :
-    simulateQ (so ++ₛₒ so') ↑oa = (liftM (simulateQ so oa) : n α) := by
+    [LawfulMonadLift m₁ n] [LawfulFailureLift m₁ n] (oa : OracleComp spec₁ α) :
+    simulateQ (so ++ₛₒ so') (liftM oa) = (liftM (simulateQ so oa) : n α) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | query_bind i t oa hoa =>
       simp at hoa
       simp [hoa, append_apply_inl so so']
-  | failure => simp; sorry
+  | failure => simp
 
 @[simp]
 lemma simulate_coe_append_right [Monad m₂] [Failure m₂] [LawfulMonad m₂] [LawfulFailure m₂]
-    [LawfulMonadLift m₂ n] (oa : OracleComp spec₂ α) :
-    simulateQ (so ++ₛₒ so') ↑oa = (liftM (simulateQ so' oa) : n α) := by
+    [LawfulMonadLift m₂ n] [LawfulFailureLift m₂ n] (oa : OracleComp spec₂ α) :
+    simulateQ (so ++ₛₒ so') (liftM oa) = (liftM (simulateQ so' oa) : n α) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | query_bind i t oa hoa =>
       simp at hoa
       simp [hoa, append_apply_inr so so']
-  | failure => simp; sorry
+  | failure => simp
 
 end SimOracle

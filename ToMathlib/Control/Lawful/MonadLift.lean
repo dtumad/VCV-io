@@ -13,6 +13,11 @@ This file defines the `LawfulMonadLift(T)` class, which adds laws to the `MonadL
 
 universe u v w
 
+-- TODO: Probably too general to be a simp lemma
+lemma liftM_eq_liftM_liftM {m m' n : Type u → Type*}
+    [MonadLift m m'] [MonadLift m' n] {α : Type u} (x : m α) :
+    (liftM x : n α) = liftM (liftM x : m' α) := rfl
+
 /-- The `MonadLift` typeclass only contains the lifting operation. `LawfulMonadLift` further
   asserts that lifting commutes with `pure` and `bind`:
 ```

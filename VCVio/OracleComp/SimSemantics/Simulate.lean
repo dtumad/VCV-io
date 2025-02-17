@@ -30,15 +30,14 @@ variable {ι ιₜ : Type*} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ}
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulateQ` gives a method for applying a simulation oracle to a specific computation. -/
 @[ext]
-structure QueryImpl (spec : OracleSpec ι) (m : Type u → Type v) where
+structure QueryImpl {ι : Type w} (spec : OracleSpec ι) (m : Type u → Type v) where
   impl {α : Type u} (q : OracleQuery spec α) : m α
 
-instance QueryImpl.Inhabited {ι : Type u} (spec : OracleSpec.{u,v} ι) (m : Type v → Type w)
-    [∀ i, Inhabited (spec.range i)] [Pure m] :
+instance QueryImpl.Inhabited [∀ i, Inhabited (spec.range i)] [Pure m] :
   Inhabited (QueryImpl spec m) := ⟨{impl q := pure q.defaultOutput}⟩
 
-lemma QueryImpl.ext' {ι : Type u} {spec : OracleSpec ι} {m : Type v → Type w}
-    {so so' : QueryImpl spec m} (h : ∀ {α} (q : OracleQuery spec α), so.impl q = so'.impl q) :
+lemma QueryImpl.ext' {so so' : QueryImpl spec m}
+    (h : ∀ {α} (q : OracleQuery spec α), so.impl q = so'.impl q) :
     so = so' := QueryImpl.ext (funext λ _ ↦ funext λ q ↦ h q)
 
 namespace OracleComp

@@ -239,6 +239,7 @@ lemma sum_probOutput_eq_one [Fintype α] (oa : OracleComp spec α) (h : [⊥ | o
 
 section support
 
+-- TODO: maybe these should be implicit for some lemmas
 variable (oa : OracleComp spec α) (x : α) (p q : α → Prop)
 
 /-- An output has non-zero probability iff it is in the `support` of the computation. -/
@@ -304,6 +305,11 @@ lemma zero_eq_probOutput_iff' [spec.DecidableEq] [DecidableEq α] :
     0 = [= x | oa] ↔ x ∉ oa.finSupport := by
   rw [eq_comm, probOutput_eq_zero_iff']
 alias ⟨_, zero_eq_probOutput'⟩ := zero_eq_probOutput_iff'
+
+lemma probOutput_ne_zero (h : x ∈ oa.support) : [= x | oa] ≠ 0 := by simp [h]
+
+lemma probOutput_ne_zero' [DecidableEq α] (h : x ∈ oa.finSupport) : [= x | oa] ≠ 0 :=
+  probOutput_ne_zero oa x (mem_support_of_mem_finSupport oa h)
 
 @[simp low]
 lemma probEvent_eq_zero_iff : [p | oa] = 0 ↔ ∀ x ∈ oa.support, ¬ p x := by
@@ -712,6 +718,24 @@ lemma probFailure_bind_eq_sub_mul {oa : OracleComp spec α} {ob : α → OracleC
 
 end bind
 
+section mul_le_probEvent_bind
+
+lemma mul_le_probEvent_bind {oa : OracleComp spec α} {ob : α → OracleComp spec β}
+    {p : α → Prop} {q : β → Prop} {r r' : ℝ≥0∞}
+    (h : r ≤ [p | oa]) (h' : ∀ x ∈ oa.support, p x → r' ≤ [q | ob x]) :
+    r * r' ≤ [q | oa >>= ob] := by
+  rw [probEvent_bind_eq_tsum]
+  refine (mul_le_mul_right' h r').trans ?_
+  rw [probEvent_eq_tsum_indicator, ← ENNReal.tsum_mul_right]
+  refine ENNReal.tsum_le_tsum fun x => ?_
+  rw [← Set.indicator_mul_const]
+  by_cases hx : x ∈ oa.support
+  · refine Set.indicator_apply_le' (fun h => ?_) (fun _ => zero_le')
+    exact (ENNReal.mul_le_mul_left (probOutput_ne_zero _ _ hx) probOutput_ne_top).mpr (h' x hx h)
+  · simp [probOutput_eq_zero _ _ hx]
+
+end mul_le_probEvent_bind
+
 section bind_const
 
 variable (oa : OracleComp spec α) (ob : OracleComp spec β)
@@ -970,5 +994,30 @@ example : [⊥ | do
   ring_nf
   rw [this]
   ring_nf
+
+section hoare
+
+variable {ι : Type u} {spec : OracleSpec ι} [spec.FiniteRange] {α β γ δ : Type v}
+/-- If pre-condition `P` holds fox `x` then `comp x` satisfies
+post-contdition `Q` with probability at least `r`-/
+def HoareTriple (P : α → Prop) (comp : α → OracleComp spec β)
+    (Q : β → Prop) (r : ℝ≥0∞) : Prop :=
+  ∀ x : α, P x → r ≤ [Q | comp x]
+
+notation "⦃" P "⦄ " comp " ⦃" Q "⦄ " r => HoareTriple P comp Q r
+
+def HoareTriple.bind {P : α → Prop} {comp₁ : α → OracleComp spec β}
+    {Q : β → Prop} {comp₂ : α → β → OracleComp spec γ} {R : γ → Prop} {r r' : ℝ≥0∞}
+    (h1 : ⦃P⦄ comp₁ ⦃Q⦄ r) (h2 : ∀ x, ⦃Q⦄ comp₂ x ⦃R⦄ r') :
+        ⦃P⦄ fun x => comp₁ x >>= comp₂ x ⦃R⦄ (r * r') := by
+  refine fun x hx => (mul_le_mul_right' (h1 x hx) r').trans ?_
+  rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_indicator, ← ENNReal.tsum_mul_right]
+  refine ENNReal.tsum_le_tsum fun y => ?_
+  rw [← Set.indicator_mul_const]
+  refine Set.indicator_apply_le' ?_ ?_
+  · exact fun hy => mul_le_mul_left' (h2 x y hy) [=y|comp₁ x]
+  · simp only [zero_le, implies_true]
+
+end hoare
 
 end OracleComp

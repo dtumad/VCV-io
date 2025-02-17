@@ -25,19 +25,22 @@ instance [MonadLift m m'] : MonadLift (StateT σ m) (StateT σ m') where
 lemma liftM_of_liftM_eq [MonadLift m m'] (x : StateT σ m α) :
     (liftM x : StateT σ m' α) = StateT.mk fun s => liftM (x.run s) := rfl
 
-lemma liftM_def [Monad m] (x : m α) : (x : StateT σ m α) = StateT.lift x := rfl
+lemma liftM_def [Monad m] (x : m α) : (liftM x : StateT σ m α) = StateT.lift x := rfl
 
 -- TODO: should this be simp?
 lemma monad_pure_def [Monad m] (x : α) :
     (pure x : StateT σ m α) = StateT.pure x := rfl
+
+lemma monad_bind_def [Monad m] (x : StateT σ m α) (f : α → StateT σ m β) :
+    x >>= f = StateT.bind x f := rfl
 
 @[simp]
 lemma monad_failure_eq [Monad m] [Alternative m] :
     (failure : StateT σ m α) = StateT.failure := rfl
 
 @[simp]
-lemma fail_eq [Monad m] [Alternative m] :
-    (Failure.fail : StateT σ m α) = StateT.failure := rfl
+lemma fail_eq [Monad m] [Failure m] :
+    (Failure.fail : StateT σ m α) = fun s => (do let x ← Failure.fail; pure (x, s)) := rfl
 
 @[simp]
 lemma run_failure [Monad m] [Alternative m] (s : σ) :
@@ -54,8 +57,7 @@ lemma lift_failure [Alternative m] [Monad m] [LawfulFailure m] :
 
 instance {m : Type u → Type v} {σ : Type u} [Failure m] [Monad m] [LawfulFailure m] :
     LawfulFailure (StateT σ m) where
-  fail_bind' x := StateT.ext fun x => by
-    simp [run]
-    sorry
+  fail_bind' f := StateT.ext fun s => by
+    simp [run_bind, StateT.run, monad_bind_def, StateT.bind]
 
 end StateT

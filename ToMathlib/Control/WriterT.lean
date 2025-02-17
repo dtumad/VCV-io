@@ -14,17 +14,42 @@ universe u v w
 
 namespace WriterT
 
-variable {m : Type u → Type v} [Monad m] {ω : Type u} [Monoid ω]
+variable {m : Type u → Type v} [Monad m] {ω : Type u} {α β γ : Type u}
 
-lemma liftM_def {α : Type u} (x : m α) :
+@[simp]
+lemma run_mk {ω : Type u} [LawfulMonad m] (x : m (α × ω)) :
+  (WriterT.mk x).run = x := rfl
+
+@[simp]
+lemma run_tell (w : ω) : (tell w : WriterT ω m PUnit).run = pure (⟨⟩, w) := rfl
+
+variable [Monoid ω]
+
+@[simp]
+lemma run_liftM (x : m α) : (liftM x : WriterT ω m α).run = (·, 1) <$> x := rfl
+
+lemma liftM_def (x : m α) :
     (liftM x : WriterT ω m α) = WriterT.mk ((·, 1) <$> x) := rfl
 
-lemma monadLift_def {α : Type u} (x : m α) :
+lemma monadLift_def (x : m α) :
     (MonadLift.monadLift x : WriterT ω m α) = WriterT.mk ((·, 1) <$> x) := rfl
 
-lemma bind_def {α β : Type u} (x : WriterT ω m α) (f : α → WriterT ω m β) :
+lemma bind_def (x : WriterT ω m α) (f : α → WriterT ω m β) :
     x >>= f = WriterT.mk (x.run >>= fun (a, w₁) ↦
-      (fun (b, w₂) ↦ (b, w₁ * w₂)) <$> (f a)) := rfl
+      (Prod.map id (w₁ * ·)) <$> (f a)) := rfl
+
+@[simp]
+lemma run_pure [LawfulMonad m] (x : α) :
+    (pure x : WriterT ω m α).run = pure (x, 1) := rfl
+
+@[simp]
+lemma run_bind [LawfulMonad m] (x : WriterT ω m α) (f : α → WriterT ω m β) :
+    (x >>= f).run = x.run >>= fun (a, w₁) => Prod.map id (w₁ * ·) <$> (f a).run := rfl
+
+@[simp]
+lemma run_fail [Failure m] [LawfulMonad m] [LawfulFailure m] :
+    (Failure.fail : WriterT ω m α).run = Failure.fail := by
+  simp [failureOfLift_eq_lift_fail, WriterT.liftM_def]
 
 /-- The naturally induced `Failure` on `WriterT` is lawful. -/
 instance [Monad m] [LawfulMonad m] [Failure m] [LawfulFailure m] :
