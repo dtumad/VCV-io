@@ -14,6 +14,8 @@ universe u v w
 
 namespace WriterT
 
+section basic
+
 variable {m : Type u → Type v} [Monad m] {ω : Type u} {α β γ : Type u}
 
 @[simp]
@@ -46,6 +48,8 @@ lemma run_pure [LawfulMonad m] (x : α) :
 lemma run_bind [LawfulMonad m] (x : WriterT ω m α) (f : α → WriterT ω m β) :
     (x >>= f).run = x.run >>= fun (a, w₁) => Prod.map id (w₁ * ·) <$> (f a).run := rfl
 
+end basic
+
 -- @[simp]
 -- lemma run_fail [AlternativeMonad m] [LawfulAlternative m] :
 --     (failure : WriterT ω m α).run = Failure.fail := by
@@ -59,10 +63,33 @@ lemma run_bind [LawfulMonad m] (x : WriterT ω m α) (f : α → WriterT ω m β
 --     simp [monadLift_def, map_eq_bind_pure_comp, WriterT.mk, bind_assoc,
 --       failureOfLift_eq_lift_fail, liftM_def]
 
-instance [LawfulMonad m] : LawfulMonadLift m (WriterT ω m) where
+section fail
+
+variable {m : Type u → Type v} [AlternativeMonad m] {ω : Type u} {α β γ : Type u}
+
+@[always_inline, inline]
+protected def orElse {α : Type u} (x₁ : WriterT ω m α)
+    (x₂ : Unit → WriterT ω m α) : WriterT ω m α :=
+  WriterT.mk (x₁.run <|> (x₂ ()).run)
+
+@[always_inline, inline]
+protected def failure {α : Type u} : WriterT ω m α := WriterT.mk failure
+
+instance [Monoid ω] : AlternativeMonad (WriterT ω m) where
+  failure := WriterT.failure
+  orElse  := WriterT.orElse
+
+@[simp]
+lemma run_failure [Monoid ω] {α : Type u} : (failure : WriterT ω m α).run = failure := rfl
+
+instance [Monoid ω] [LawfulAlternative m] : LawfulAlternative (WriterT ω m) := sorry
+
+instance [Monoid ω] [LawfulMonad m] : LawfulMonadLift m (WriterT ω m) where
   monadLift_pure x := map_pure (·, 1) x
   monadLift_bind {α β} x y := by
     show WriterT.mk _ = WriterT.mk _
     simp [monadLift_def, map_eq_bind_pure_comp, WriterT.mk, bind_assoc]
+
+end fail
 
 end WriterT
