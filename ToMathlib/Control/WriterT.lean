@@ -46,18 +46,18 @@ lemma run_pure [LawfulMonad m] (x : α) :
 lemma run_bind [LawfulMonad m] (x : WriterT ω m α) (f : α → WriterT ω m β) :
     (x >>= f).run = x.run >>= fun (a, w₁) => Prod.map id (w₁ * ·) <$> (f a).run := rfl
 
-@[simp]
-lemma run_fail [Failure m] [LawfulMonad m] [LawfulFailure m] :
-    (Failure.fail : WriterT ω m α).run = Failure.fail := by
-  simp [failureOfLift_eq_lift_fail, WriterT.liftM_def]
+-- @[simp]
+-- lemma run_fail [AlternativeMonad m] [LawfulAlternative m] :
+--     (failure : WriterT ω m α).run = Failure.fail := by
+--   simp [failureOfLift_eq_lift_fail, WriterT.liftM_def]
 
-/-- The naturally induced `Failure` on `WriterT` is lawful. -/
-instance [Monad m] [LawfulMonad m] [Failure m] [LawfulFailure m] :
-    LawfulFailure (WriterT ω m) where
-  fail_bind' {α β} f := by
-    show WriterT.mk _ = WriterT.mk _
-    simp [monadLift_def, map_eq_bind_pure_comp, WriterT.mk, bind_assoc,
-      failureOfLift_eq_lift_fail, liftM_def]
+-- /-- The naturally induced `Failure` on `WriterT` is lawful. -/
+-- instance [Monad m] [LawfulMonad m] [Failure m] [LawfulFailure m] :
+--     LawfulFailure (WriterT ω m) where
+--   fail_bind' {α β} f := by
+--     show WriterT.mk _ = WriterT.mk _
+--     simp [monadLift_def, map_eq_bind_pure_comp, WriterT.mk, bind_assoc,
+--       failureOfLift_eq_lift_fail, liftM_def]
 
 instance [LawfulMonad m] : LawfulMonadLift m (WriterT ω m) where
   monadLift_pure x := map_pure (·, 1) x

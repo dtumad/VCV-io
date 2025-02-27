@@ -118,11 +118,11 @@ namespace OracleComp
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
-instance : Monad (OracleComp spec) := OptionT.instMonad
-instance : Alternative (OracleComp spec) := inferInstanceAs (Alternative (OptionT _))
+instance : AlternativeMonad (OracleComp spec) :=
+  inferInstanceAs (AlternativeMonad (OptionT (FreeMonad (OracleQuery spec))))
 
-instance : LawfulMonad (OracleComp spec) := instLawfulMonadOptionT_mathlib _
-instance : LawfulFailure (OracleComp spec) := inferInstanceAs (LawfulFailure (OptionT _))
+instance : LawfulAlternative (OracleComp spec) :=
+  inferInstanceAs (LawfulAlternative (OptionT (FreeMonad (OracleQuery spec))))
 
 instance : Inhabited (OracleComp spec α) := ⟨failure⟩
 
@@ -359,12 +359,12 @@ lemma mapM_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleCom
   | failure => simp [hfail]
 
 @[simp]
-lemma mapM_bind' [Failure m] [LawfulMonad m] [LawfulFailure m]
+lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulAlternative m]
     (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    (oa >>= ob).mapM Failure.fail qm =
-      oa.mapM Failure.fail qm >>= λ x ↦ (ob x).mapM Failure.fail qm :=
-  mapM_bind _ _ _ _ fail_bind
+    (oa >>= ob).mapM failure qm =
+      oa.mapM failure qm >>= λ x ↦ (ob x).mapM failure qm :=
+  mapM_bind _ _ _ _ failure_bind
 
 lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
     (hfail : ∀ f : α → β, f <$> fail = fail) :
@@ -375,10 +375,10 @@ lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
   | failure => simp [hfail]
 
 @[simp]
-lemma mapM_map' [Failure m] [LawfulMonad m] [LawfulFailure m]
+lemma mapM_map' {m : Type v → Type w} [AlternativeMonad m] [LawfulAlternative m]
     (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (f : α → β) :
-    (f <$> oa).mapM Failure.fail qm = f <$> oa.mapM Failure.fail qm := by
+    (f <$> oa).mapM failure qm = f <$> oa.mapM failure qm := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | query_bind i t oa h => simp [h]

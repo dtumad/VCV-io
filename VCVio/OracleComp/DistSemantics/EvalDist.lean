@@ -68,9 +68,6 @@ lemma evalDist_query (i : ι) (t : spec.domain i) :
 lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := rfl
 
 @[simp]
-lemma evalDist_fail : evalDist (Failure.fail : OracleComp spec α) = failure := rfl
-
-@[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := mapM_bind' _ _ _
 

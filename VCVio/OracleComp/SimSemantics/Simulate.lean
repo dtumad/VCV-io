@@ -47,19 +47,14 @@ section simulateQ
 /-- Canonical lifting of a function `OracleQuery spec α → m α`
 to a new function `OracleComp spec α` by preserving `bind`, `pure`, and `failure`.
 NOTE: could change the output type to `OracleComp spec →ᵐ m`, makes some stuff below free -/
-def simulateQ [Monad m] [Failure m] [LawfulMonad m] [LawfulFailure m]
+def simulateQ [AlternativeMonad m] [LawfulAlternative m]
     (so : QueryImpl spec m) (oa : OracleComp spec α) : m α :=
   OptionT.mapM' (FreeMonad.mapM' m so.impl) oa
 
-variable [Monad m] [Failure m] [LawfulMonad m] [LawfulFailure m]
-  (so : QueryImpl spec m)
+variable [AlternativeMonad m] [LawfulAlternative m] (so : QueryImpl spec m)
 
 @[simp]
-lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = Failure.fail :=
-  OptionT.mapM'_failure (FreeMonad.mapM' m so.impl)
-
-@[simp]
-lemma simulateQ_fail : simulateQ so (Failure.fail : OracleComp spec α) = Failure.fail :=
+lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = failure :=
   OptionT.mapM'_failure (FreeMonad.mapM' m so.impl)
 
 @[simp]
