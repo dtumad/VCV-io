@@ -4,12 +4,93 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import ToMathlib.Control.FreeMonad
+import ToMathlib.General
 
 /-!
 # Laws for well behaved monadic `failure` operation
 -/
 
 universe u v w
+
+class AlternativeMonad (m : Type u → Type v) extends Monad m, Alternative m
+
+variable {m : Type u → Type v} {α β σ : Type u}
+
+instance : AlternativeMonad Option.{u} where
+  __ := instAlternativeOption
+  __ := instMonadOption
+
+@[simp] lemma OptionT.run_failure [Monad m] :
+    (failure : OptionT m α).run = pure none := rfl
+
+instance [Monad m] : AlternativeMonad (OptionT m) where
+  __ := OptionT.instAlternative
+  __ := OptionT.instMonad
+
+@[simp] lemma StateT.run_failure [AlternativeMonad m] :
+    (failure : StateT σ m α).run = fun _ => failure := rfl
+
+instance [AlternativeMonad m] {σ : Type u} : AlternativeMonad (StateT σ m) where
+  __ := StateT.instAlternative
+  __ := StateT.instMonad
+
+instance : AlternativeMonad List.{u} where
+  __ := List.instAlternative
+  __ := List.instMonad
+
+section LawfulAlternative
+
+class LawfulAlternative (m : Type u → Type v) [AlternativeMonad m] extends LawfulMonad m where
+  failure_bind {α β : Type u} (g : α → m β) : failure >>= g = failure
+  bind_failure {α β : Type u} (a : m α) : (do let _ ← a; failure : m β) = failure
+  orElse_failure {α : Type u} (a : m α) : (a <|> failure) = a
+  failure_orElse {α : Type u} (b : m α) : (failure <|> b) = b
+
+export LawfulAlternative (failure_bind bind_failure orElse_failure failure_orElse)
+attribute [simp] failure_bind bind_failure orElse_failure failure_orElse
+
+variable [AlternativeMonad m] [LawfulAlternative m]
+
+instance : LawfulAlternative Option where
+  failure_bind _ := rfl
+  bind_failure | none => rfl | some _ => rfl
+  orElse_failure := Option.orElse_none
+  failure_orElse := Option.none_orElse
+
+instance [AlternativeMonad m] [h : LawfulMonad m] : LawfulAlternative (OptionT m) where
+  failure_bind g := by simp [OptionT.ext_iff]
+  bind_failure {α β} x := by
+    simp [OptionT.ext_iff]
+    have : (do let x ← x.run; pure none : m (Option β)) = pure none := by {
+      simp
+      sorry
+    }
+    refine symm (this.symm.trans ?_)
+    refine bind_congr fun | none => rfl | some _ => rfl
+  orElse_failure := sorry
+  failure_orElse := sorry
+  -- __ :=
+
+-- instance [AlternativeMonad m] {σ : Type u} : LawfulAlternative (StateT σ m) where
+--   __ := StateT.instAlternative
+--   __ := StateT.instMonad
+
+-- instance : LawfulAlternative List.{u} where
+--   __ := List.instAlternative
+--   __ := List.instMonad
+
+@[simp] lemma map_failure (f : α → β) :
+    f <$> (failure : m α) = failure := by
+  rw [map_eq_bind_pure_comp, failure_bind]
+
+@[simp] lemma failure_seq  (x : m α) :
+    (failure : m (α → β)) <*> x = failure := by
+  rw [seq_eq_bind, failure_bind]
+
+@[simp] lemma seq_failure (x : m (α → β)) : x <*> failure = failure := by
+  simp_rw [seq_eq_bind, map_failure, bind_failure]
+
+end LawfulAlternative
 
 -- Stripped down version of `Alternative` to avoid diamonds.
 class Failure (m : Type u → Type v) where
@@ -57,13 +138,13 @@ variable {m : Type u → Type v} [h' : Alternative m] [h : Monad m]
     (failure : m α) >>= g = failure :=
   by simp [← fail_eq_failure]
 
-@[simp] lemma map_failure (g : α → β) [LawfulMonad m] :
-    h.toApplicative.map g (failure : m α) = failure :=
-  by simp [← fail_eq_failure]
+-- @[simp] lemma map_failure (g : α → β) [LawfulMonad m] :
+--     h.toApplicative.map g (failure : m α) = failure :=
+--   by simp [← fail_eq_failure]
 
-@[simp] lemma failure_seq (ob : m α) [LawfulMonad m] :
-    h.toApplicative.toSeq.seq (failure : m (α → β)) (λ _ ↦ ob) = failure :=
-  by simp [← fail_eq_failure]
+-- @[simp] lemma failure_seq (ob : m α) [LawfulMonad m] :
+--     h.toApplicative.toSeq.seq (failure : m (α → β)) (λ _ ↦ ob) = failure :=
+--   by simp [← fail_eq_failure]
 
 end Alternative
 
