@@ -1,4 +1,5 @@
 import ToMathlib.Control
+import ToMathlib.Control.AlternativeMonad
 import ToMathlib.Control.FreeMonad
 import ToMathlib.Control.Lawful
 import ToMathlib.Control.Lawful.MonadControl
