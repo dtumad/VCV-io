@@ -58,11 +58,6 @@ section basic
 @[simp] lemma finSupport_pure (x : α) [spec.FiniteRange] [DecidableEq α] :
   (pure x : OracleComp spec α).finSupport = {x} := rfl
 
-@[simp] lemma support_fail : (Failure.fail : OracleComp spec α).support = ∅ := rfl
-
-@[simp] lemma finSupport_fail [spec.FiniteRange] [DecidableEq α] :
-    (Failure.fail : OracleComp spec α).finSupport = ∅ := rfl
-
 @[simp] lemma support_failure : (failure : OracleComp spec α).support = ∅ := rfl
 
 @[simp] lemma finSupport_failure [spec.FiniteRange] [DecidableEq α] :

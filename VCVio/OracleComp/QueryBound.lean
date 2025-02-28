@@ -27,38 +27,28 @@ section IsQueryBound
 
 variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
 
+/-- Predicate expressing that `qb` is a bound on the number of queries made by `oa`.
+In particular any simulation with a `countingOracle` produces counts that are smaller. -/
 def IsQueryBound (oa : OracleComp spec α) (qb : ι → ℕ) : Prop :=
-    ∀ log ∈ (snd <$> (simulateQ loggingOracle oa).run).support,
-      ∀ i, log.countQ i ≤ qb i
+    ∀ qc ∈ (snd <$> (simulateQ countingOracle oa).run).support, qc ≤ qb
 
--- /-- Predicate expressing that `qb` is a bound on the number of queries made by `oa`.
--- In particular any simulation with a `countingOracle` produces counts that are smaller. -/
--- def IsQueryBound (oa : OracleComp spec α) (qb : ι → ℕ) : Prop :=
---     ∀ qc ∈ (snd <$> simulate countingOracle 0 oa).support, qc ≤ qb
+lemma isQueryBound_def (oa : OracleComp spec α) (qb : QueryCount spec) :
+    IsQueryBound oa qb ↔ ∀ qc ∈ (snd <$> (simulateQ countingOracle oa).run).support, qc ≤ qb :=
+  Iff.rfl
 
--- lemma isQueryBound_def (oa : OracleComp spec α) (qb : ι → ℕ) :
---     IsQueryBound oa qb ↔ ∀ qc ∈ (snd <$> simulate countingOracle 0 oa).support, qc ≤ qb :=
---   Iff.rfl
+lemma isQueryBound_mono {oa : OracleComp spec α} (qb : ι → ℕ) {qb' : ι → ℕ}
+    (h' : IsQueryBound oa qb) (h : qb ≤ qb') : IsQueryBound oa qb' :=
+  λ qc hqc ↦ le_trans (h' qc hqc) h
 
--- lemma isQueryBound_mono {oa : OracleComp spec α} (qb : ι → ℕ) {qb' : ι → ℕ}
---     (h' : IsQueryBound oa qb) (h : qb ≤ qb') : IsQueryBound oa qb' :=
---   λ qc hqc ↦ le_trans (h' qc hqc) h
+@[simp]
+lemma isQueryBound_pure (a : α) (qb : ι → ℕ) :
+    IsQueryBound (pure a : OracleComp spec α) qb := by
+  simp [isQueryBound_def]
 
--- @[simp]
--- lemma isQueryBound_pure (a : α) (qb : ι → ℕ) :
---     IsQueryBound (pure a : OracleComp spec α) qb := by
---   simp [isQueryBound_def]
-
--- @[simp]
--- lemma isQueryBound_query_iff (i : ι) (t : spec.domain i) (qb : ι → ℕ) :
---     IsQueryBound (query i t : OracleComp spec _) qb ↔ qb i ≠ 0 := by
---   simp [isQueryBound_def, Nat.lt_iff_add_one_le, zero_add, ← Nat.pos_iff_ne_zero]
---   sorry
---   -- refine ⟨λ h ↦ le_of_eq_of_le (symm <| Function.update_self i 1 0) (h i), λ h j ↦ ?_⟩
---   -- by_cases hij : j = i
---   -- · induction hij
---   --   simpa using h
---   -- · simp [Function.update_noteq hij]
+@[simp]
+lemma isQueryBound_query_iff_pos [Nonempty α] (q : OracleQuery spec α) (qb : ι → ℕ) :
+    IsQueryBound (q : OracleComp spec α) qb ↔ 0 < qb q.index := by
+  simp [isQueryBound_def, liftM_query_eq_liftM_liftM]
 
 -- lemma isQueryBound_query (i : ι) (t : spec.domain i) {qb : ι → ℕ} (hqb : qb i ≠ 0) :
 --     IsQueryBound (query i t : OracleComp spec _) qb :=

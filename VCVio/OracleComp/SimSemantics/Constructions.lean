@@ -23,7 +23,7 @@ namespace QueryImpl
 
 section compose
 
-variable {m : Type u → Type v} [Monad m] [Failure m] [LawfulMonad m] [LawfulFailure m]
+variable {m : Type u → Type v} [AlternativeMonad m] [LawfulAlternative m]
 
 /-- Given an implementation of `spec` in terms of a new set of oracles `spec'`,
 and an implementation of `spec'` in terms of arbitrary `m`, implement `spec` in terms of `m`. -/

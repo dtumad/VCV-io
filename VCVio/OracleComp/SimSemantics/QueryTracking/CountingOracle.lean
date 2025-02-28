@@ -22,9 +22,9 @@ open OracleSpec OracleComp Function Prod
 
 universe u v w
 
-variable {ι : Type u} {spec : OracleSpec ι}
-
 namespace OracleSpec
+
+variable {ι : Type u} {spec : OracleSpec ι}
 
 /-- Simple wrapper in order to introduce the `Monoid` structure for `countingOracle`.
 Marked as reducible and can generally be treated as just a function. -/
@@ -35,14 +35,41 @@ namespace QueryCount
 
 /-- Pointwise addition as the `Monoid` operation used for `WriterT`. -/
 instance : Monoid (QueryCount spec) where
-  mul := (· + ·)
+  mul qc qc' := qc + qc'
   mul_assoc := add_assoc
   one := 0
   one_mul := zero_add
   mul_one := add_zero
 
-def single [DecidableEq ι] (i : ι) : QueryCount spec :=
-  fun j => if i = j then 1 else 0
+@[simp]
+lemma monoid_mul_def (qc qc' : QueryCount spec) :
+    (@HMul.hMul _ _ _ (by
+      refine @instHMul _ (by
+        refine Monoid.toMulOneClass.toMul
+        -- sorry
+      )
+
+
+    ) qc qc')
+
+     = (qc : ι → ℕ) + (qc' : ι → ℕ) := rfl
+
+@[simp]
+lemma monoid_one_def :
+    (@OfNat.ofNat (QueryCount spec) 1 (@One.toOfNat1 _ (Monoid.toOne))) = (0 : ι → ℕ) := rfl
+
+section single
+
+variable [DecidableEq ι]
+
+def single (i : ι) : QueryCount spec := Function.update 0 i 1
+
+@[simp]
+lemma single_le_iff_pos (i : ι) (qc : QueryCount spec) :
+    single i ≤ qc ↔ 0 < qc i :=
+  sorry
+
+end single
 
 end QueryCount
 
@@ -50,24 +77,25 @@ end OracleSpec
 
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
-def countingOracle [DecidableEq ι] :
-    QueryImpl spec (WriterT spec.QueryCount (OracleComp spec)) where
-  impl | query i t => do
-    tell (QueryCount.single i)
-    query i t
+def countingOracle {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
+    QueryImpl spec (WriterT (QueryCount spec) (OracleComp spec)) where
+  impl | q => do tell (QueryCount.single q.index); q
 
--- namespace countingOracle
+namespace countingOracle
 
--- variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
---     (oa : OracleComp spec α) (qc : ι → ℕ)
+variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
 
--- @[simp]
--- protected lemma apply_eq (q : OracleQuery spec α) :
---     countingOracle.impl q = (do modify λ qc ↦ update qc q.index (qc q.index + 1); q) := rfl
+@[simp]
+protected lemma apply_eq (q : OracleQuery spec α) :
+    countingOracle.impl q = (do tell (QueryCount.single q.index); q) := rfl
 
--- /-- `countingOracle` has no effect on the behavior of the computation itself. -/
--- instance : SimOracle.IsTracking (countingOracle (spec := spec)) where
---   state_indep | query _ _, _ => rfl
+/-- `countingOracle` has no effect on the behavior of the computation itself. -/
+lemma fst_map_run_eq (oa : OracleComp spec α) :
+    fst <$> (simulateQ countingOracle oa).run = oa := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | query_bind i t oa h => simp [h, liftM_query_eq_liftM_liftM]
+  | failure => simp
 
 -- lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι → ℕ) :
 --     (simulateT countingOracle oa).run qc =
@@ -314,4 +342,4 @@ def countingOracle [DecidableEq ι] :
 
 -- end support
 
--- end countingOracle
+end countingOracle

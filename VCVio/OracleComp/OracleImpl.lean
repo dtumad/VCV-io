@@ -16,8 +16,9 @@ We implement this a structure so that the types of protocols can extend it,
 allowing the main definition to be oracle agnostic.
 
 TODO!: re-evaluate this in context of the simulate changes
-  Should maybe be using `MonadControl` or something for the reduction
 -/
+
+universe u v w
 
 open OracleSpec OracleComp
 
@@ -31,6 +32,22 @@ structure OracleImpl {ι : Type} (spec : OracleSpec ι) (σ : Type) where
   /-- Simulation oracle giving an implementation of the oracles in `spec`. -/
   baseSimOracle : QueryImpl spec (StateT σ (OracleComp unifSpec))
   init_state : σ
+
+section new
+
+variable {ι : Type u} {spec : OracleSpec ι} {m : Type u → Type v}
+    [AlternativeMonad m] [LawfulAlternative m] {α : Type u}
+
+structure OracleImpl' (spec : OracleSpec ι) (m : Type u → Type v)
+    extends QueryImpl spec m where
+  -- How to run the computation. e.g. call `StateT.run` with an empty cache as initial state
+  exec_as_probComp {α : Type u} : m α → ProbComp α
+
+-- Execute a computation so you can use `evalDist` to reason about it
+def exec (impl : OracleImpl' spec m) (oa : OracleComp spec α) : ProbComp α :=
+  impl.exec_as_probComp (simulateQ impl.toQueryImpl oa)
+
+end new
 
 namespace OracleImpl
 

@@ -264,8 +264,8 @@ We also require that each element has the same probability of being chosen from 
 see `SelectableType.probOutput_selectElem` for the reduction when `α` has a fintype instance.
 NOTE: universe polymorphism of `β` is hard. -/
 class SelectableType (β : Type) where
-  selectElem : OracleComp unifSpec β
-  mem_support_selectElem (x : β) : x ∈ (OracleComp.support (spec := unifSpec) (α := β) selectElem : Set β)
+  selectElem : ProbComp β
+  mem_support_selectElem (x : β) : x ∈ selectElem.support
   probOutput_selectElem_eq (x y : β) : [= x | selectElem] = [= y | selectElem]
   probFailure_selectElem : [⊥ | selectElem] = 0
 

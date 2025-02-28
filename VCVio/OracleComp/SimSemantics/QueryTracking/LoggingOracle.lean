@@ -154,5 +154,5 @@ variable {ι : Type u} {spec : OracleSpec.{u,v} ι} [DecidableEq ι]
 
 end loggingOracle
 
-#eval! (OracleComp.simulateQ loggingOracle
-  (for i in List.range 50 do let _ ← $[0..i])).run
+-- #eval! (OracleComp.simulateQ loggingOracle
+--   (for i in List.range 50 do let _ ← $[0..i])).run

@@ -51,7 +51,7 @@ TODO: test if generalized append solves all the problems this was meant to...
 -- lemma impl_liftSO (q : OracleQuery spec α) (so : SimOracle spec spec₁ σ) :
 --     (liftSO so : SimOracle spec spec₂ σ).impl q = liftM (so.impl q) := rfl
 
--- /-- Simulating with a lifted simulation oracle is the same as lifting the result of simulation. -/
+-- /-- Simulating with lifted simulation oracle is the same as lifting the result of simulation. -/
 -- @[simp]
 -- lemma simulateT_liftSO_eq_liftM_simulateT
 --     (so : SimOracle spec spec₁ σ) (oa : OracleComp spec α) :
