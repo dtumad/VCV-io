@@ -125,7 +125,7 @@ end idOracle
 The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
 def unifOracle [∀ i, SelectableType (spec.range i)] :
-    QueryImpl spec (OracleComp unifSpec) where
+    QueryImpl spec ProbComp where
   impl | query i _ => $ᵗ spec.range i
 
 namespace unifOracle

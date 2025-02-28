@@ -13,14 +13,14 @@ This file defines an anologue of the ElGamal Encryption scheme and proves it is 
 
 -- open HomogeneousSpace AsymmEncAlg
 
-open OracleSpec OracleComp OracleImpl
+open OracleSpec OracleComp
 
 /-- Elgemal-style encryption adapted to a homogeneous space with group structure on points.
 Messages are base points in `P` (in practice this is some encoding of messages),
 The public key is a pair of base points in `P` chosen uniformly at random,
 and the secret key is their vectorization in `G`. Signatures are also a pair of base points. -/
 def elgamalAsymmEnc (G P : Type) [SelectableType G] [SelectableType P]
-    [AddGroup G] [Group P] [AddTorsor G P] : AsymmEncAlg unifSpec Unit
+    [AddGroup G] [Group P] [AddTorsor G P] : AsymmEncAlg unifSpec ProbComp
     (M := P) (PK := P × P) (SK := G) (C := P × P) where
   keygen := do
     let x₀ ←$ᵗ P
@@ -31,7 +31,7 @@ def elgamalAsymmEnc (G P : Type) [SelectableType G] [SelectableType P]
     return (g +ᵥ x₀, m * (g +ᵥ pk))
   decrypt := λ (c₁, c₂) sk ↦ do
     return c₂ / (sk +ᵥ c₁)
-  __ := defaultImpl -- No oracles to implement
+  __ := ExecutionMethod.default
 
 -- namespace elgamalAsymmEnc
 

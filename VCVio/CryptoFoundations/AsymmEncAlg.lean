@@ -17,15 +17,18 @@ public/secret keys `PK` and `SK`, and ciphertext space `C`.
 
 open OracleSpec OracleComp
 
-structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι)
-    (σ M PK SK C : Type) extends OracleImpl spec σ where
+universe u v w
+
+structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι) (em : Type → Type v)
+    (M PK SK C : Type) extends ExecutionMethod spec em where
   keygen : OracleComp spec (PK × SK)
   encrypt (m : M) (pk : PK) : OracleComp spec C
   decrypt (c : C) (sk : SK) : OracleComp spec M
 
 namespace AsymmEncAlg
 
-variable {ι : Type} {spec : OracleSpec ι} {σ M PK SK C : Type}
+variable {ι : Type} {spec : OracleSpec ι} {M PK SK C : Type}
+    {em : Type → Type v} [AlternativeMonad em] [LawfulAlternative em]
 
 section sound
 
@@ -45,8 +48,8 @@ section sound
 --     return m = m'
 --   __ := encAlg
 
-def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C)
-    (m : M) : SecExp spec σ where
+def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C)
+    (m : M) : SecExp spec em where
   main := do
     let (pk, sk) ← encAlg.keygen
     let σ ← encAlg.encrypt m pk
@@ -54,8 +57,16 @@ def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C)
     guard (m' = m)
   __ := encAlg
 
-def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec σ M PK SK C) : Prop :=
-  ∀ m : M, (soundnessExp encAlg m).advantage = 1
+-- def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C) : Prop :=
+--   ∀ m : M, (soundnessExp encAlg m).advantage = 1
+
+def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C) : Prop :=
+    ∀ m : M, [⊥ | encAlg.exec do
+      let (pk, sk) ← encAlg.keygen
+      let σ ← encAlg.encrypt m pk
+      let m' ← encAlg.decrypt σ sk
+      guard (m' = m)] = 0
+
 
 -- namespace soundnessExp
 
@@ -89,7 +100,7 @@ it can distinguish the encryption of. It addionally has a `distinguish` function
 that given a pair of messages and an encryption, returns whether it is an encryption of
 the first message or the second message.
 TODO: should use sim oracles to allow state sharing -/
-structure IND_CPA_Adv (encAlg : AsymmEncAlg spec σ M PK SK C)
+structure IND_CPA_Adv (encAlg : AsymmEncAlg spec em M PK SK C)
     extends SecAdv spec PK (M × M) where
   distinguish : PK → M × M → C → OracleComp spec Bool
 
@@ -100,9 +111,9 @@ the boolean chosen in `inp_gen`, finally asking the adversary to determine the b
 given the messages and resulting ciphertext. `is_valid` checks that this choice is correct.
 The simulation oracles are pulled in directly from the encryption algorithm. -/
 def IND_CPA_Exp [unifSpec ⊂ₒ spec]
-    {encAlg : AsymmEncAlg spec σ M PK SK C}
+    {encAlg : AsymmEncAlg spec em M PK SK C}
     (adv : IND_CPA_Adv encAlg) :
-    SecExp spec σ where
+    SecExp spec em where
   main := do
     let (pk, _) ← encAlg.keygen
     let (m₁, m₂) ← adv.run pk

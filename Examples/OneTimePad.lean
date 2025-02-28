@@ -12,21 +12,25 @@ import Mathlib.Data.Vector.Zip
 This file defines and proves the perfect secrecy of the one-time pad encryption algorithm.
 -/
 
-open Mathlib OracleSpec OracleComp OracleImpl ENNReal BigOperators
+open Mathlib OracleSpec OracleComp ENNReal BigOperators
 
 /-- The one-time pad symmetric encryption algorithm, using `BitVec`s as keys and messages.
 Encryption and decryption both just apply `BitVec.xor` with the key.
 The only oracles needed are `unifSpec`, which requires no implementation. -/
-@[simps!] def oneTimePad (n : ℕ) : SymmEncAlg unifSpec Unit
+@[simps!] def oneTimePad (n : ℕ) : SymmEncAlg unifSpec ProbComp
     (M := BitVec n) (K := BitVec n) (C := BitVec n) where
   keygen := $ᵗ BitVec n -- Generate a key by choosing a random bit-vector
   encrypt k m := return k ^^^ m -- encrypt by xor-ing with the key
   decrypt k σ := return k ^^^ σ -- decrypt by xor-ing with the key
-  __ := defaultImpl -- No oracles to implement so use default
+  __ := ExecutionMethod.default -- No oracles to implement so use default
 
 namespace oneTimePad
 
 theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
-  λ m ↦ by simp [SymmEncAlg.soundnessExp, oneTimePad]; sorry
+  λ m ↦ by {
+    simp [SymmEncAlg.soundnessExp, oneTimePad]
+
+    sorry
+  }
 
 end oneTimePad
