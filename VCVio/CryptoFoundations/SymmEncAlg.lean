@@ -14,27 +14,30 @@ for symmetric encryption using oracles in `spec`, with message space `M`,
 secret keys of type `K`, and ciphertext space `C`.
 -/
 
+universe u v w
+
 open OracleSpec OracleComp
 
 /-- Symmetric encryption algorithm with access to oracles in `spec` (simulated with state `σ`),
 where `M` is the space of messages, `K` is the key space, and `C` is the ciphertext space. -/
-structure SymmEncAlg {ι : Type} (spec : OracleSpec ι) (σ M K C : Type)
-    extends OracleImpl spec σ where
+structure SymmEncAlg {ι : Type w} (spec : OracleSpec ι) (em : Type → Type v) (M K C : Type u)
+    extends ExecutionMethod spec em where
   keygen : OracleComp spec K
   encrypt (k : K) (m : M) : OracleComp spec C
   decrypt (k : K) (c : C) : OracleComp spec M
 
 namespace SymmEncAlg
 
-variable {ι : Type} {spec : OracleSpec ι} {σ M K C : Type}
+variable {ι : Type w} {spec : OracleSpec ι} {em : Type → Type v} {M K C : Type}
+    [AlternativeMonad em] [LawfulAlternative em]
 
 section sound
 
 variable [DecidableEq M]
 
 /-- Experiment to check that an encryption and decryption are inverses of each other. -/
-def soundnessExp (encAlg : SymmEncAlg spec σ M K C)
-    (m : M) : SecExp spec σ where
+def soundnessExp (encAlg : SymmEncAlg spec em M K C)
+    (m : M) : SecExp spec em where
   main := do
     let k ← encAlg.keygen
     let σ ← encAlg.encrypt k m
@@ -44,7 +47,7 @@ def soundnessExp (encAlg : SymmEncAlg spec σ M K C)
 
 /-- A symmetric encryption algorithm is complete if correctly generated ciphertexts
 always decrypt to the original plaintext. -/
-def isComplete (encAlg : SymmEncAlg spec σ M K C) : Prop :=
+def isComplete (encAlg : SymmEncAlg spec em M K C) : Prop :=
   ∀ m : M, (soundnessExp encAlg m).advantage = 1
 
 end sound

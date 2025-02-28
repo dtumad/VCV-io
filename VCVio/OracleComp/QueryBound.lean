@@ -21,11 +21,13 @@ but it can be useful in some proofs that only care about the existence of a boun
 
 open OracleSpec Prod
 
+universe u v w
+
 namespace OracleComp
 
 section IsQueryBound
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
+variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
 
 /-- Predicate expressing that `qb` is a bound on the number of queries made by `oa`.
 In particular any simulation with a `countingOracle` produces counts that are smaller. -/
