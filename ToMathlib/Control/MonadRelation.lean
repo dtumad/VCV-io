@@ -5,7 +5,7 @@ Authors: Quang Dao
 -/
 
 import Batteries.Tactic.Alias
-import Batteries.Control.Lawful.MonadLift
+import ToMathlib.Control.Lawful.MonadLift
 
 /-! # Monad relations -/
 
