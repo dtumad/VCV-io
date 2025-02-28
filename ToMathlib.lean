@@ -4,6 +4,7 @@ import ToMathlib.Control.FreeMonad
 import ToMathlib.Control.Lawful
 import ToMathlib.Control.Lawful.MonadControl
 import ToMathlib.Control.Lawful.MonadFunctor
+import ToMathlib.Control.Lawful.MonadLift
 import ToMathlib.Control.Lawful.MonadReader
 import ToMathlib.Control.Lawful.MonadState
 import ToMathlib.Control.LawfulFailure

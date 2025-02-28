@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import ToMathlib.Control.MonadAlgebra
-import Batteries.Control.Lawful.MonadLift
+import ToMathlib.Control.Lawful.MonadLift
 
 /-!
 # Morphisms Between Monads
