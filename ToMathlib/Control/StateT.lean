@@ -6,6 +6,7 @@ Authors: Devon Tuma
 import ToMathlib.Control.FreeMonad
 import ToMathlib.Control.LawfulFailure
 import ToMathlib.General
+-- import Batteries.Control.Lemmas
 
 /-!
 # Lemmas about `StateT`
@@ -38,7 +39,7 @@ lemma monad_failure_eq [Monad m] [Alternative m] :
     (failure : StateT σ m α) = StateT.failure := rfl
 
 @[simp]
-lemma mk_eq_pure [Monad m] (x : α) :
+lemma mk_pure_eq_pure [Monad m] (x : α) :
   StateT.mk (λ s ↦ pure (x, s)) = (pure x : StateT σ m α) := rfl
 
 end StateT

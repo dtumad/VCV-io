@@ -173,10 +173,15 @@ By making this range inclusive we avoid the case of choosing from the empty rang
 @[reducible, inline] def uniformFin (n : ℕ) : ProbComp (Fin (n + 1)) :=
   unifSpec.query n ()
 
+@[reducible, inline] def uniformFin' (n m : ℕ) : OracleComp probSpec (Fin (m + 1)) :=
+  probSpec.query m n
+
 notation "$[0.." n "]" => uniformFin n
 
-example : ProbComp ℕ := do
-  let x ← $[0..31415]; let y ← $[0..16180]
+notation:50 "$[" n "⋯" m "]" => uniformFin' n m
+
+example : OracleComp probSpec ℕ := do
+  let x ← $[314⋯31415]; let y ← $[161⋯1618033]
   return x + 2 * y
 
 @[simp] -- NOTE: debatable if this should be simp

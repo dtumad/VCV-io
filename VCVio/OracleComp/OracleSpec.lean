@@ -152,6 +152,9 @@ By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ emp
 @[inline, reducible] def unifSpec : OracleSpec.{0,0} ℕ :=
   λ n ↦ (Unit, Fin (n + 1))
 
+def probSpec : OracleSpec.{0,0} ℕ :=
+  fun n => (ℕ, Fin (n + 1))
+
 instance : unifSpec.DecidableEq where
   domain_decidableEq' := inferInstance
   range_decidableEq' := inferInstance
