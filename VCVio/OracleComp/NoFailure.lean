@@ -18,17 +18,20 @@ open OracleSpec
 
 namespace OracleComp
 
-variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type u}
+variable {ι : Type*} {spec : OracleSpec ι} {α β γ : Type u}
 
+-- TODO: should this actually be a class? feels like slightly abusing type-class search
 class noFailure {α : Type u} (oa : OracleComp spec α) : Prop where
   no_failure : by induction oa using OracleComp.construct with
     | pure _ => exact True
     | failure => exact False
     | query_bind _ _ r => exact ∀ x, r x
 
+@[simp]
 instance noFailure_pure (x : α) : noFailure (pure x : OracleComp spec α) where
   no_failure := trivial
 
+@[simp]
 instance noFailure_query (q : OracleQuery spec α) : noFailure (q : OracleComp spec α) where
   no_failure := fun _ => trivial
 

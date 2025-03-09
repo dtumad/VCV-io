@@ -33,8 +33,7 @@ instance : Monoid (QueryLog spec) where
   mul_one := List.append_nil
 
 /-- Get all the queries made to oracle `i`. -/
-def getQ [DecidableEq ι] (log : QueryLog spec) (i : ι) :
-    List (spec.domain i × spec.range i) :=
+def getQ [DecidableEq ι] (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
   log.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) []
 
 def countQ [DecidableEq ι] (log : QueryLog spec) (i : ι) : ℕ :=
@@ -43,13 +42,32 @@ def countQ [DecidableEq ι] (log : QueryLog spec) (i : ι) : ℕ :=
 instance [DecidableEq ι] [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
   inferInstanceAs (DecidableEq (List _))
 
-def singleton {i : ι} (t : spec.domain i) (u : spec.range i) :
-    QueryLog spec := [⟨i, (t, u)⟩]
+section singleton
+
+/-- Query log with a single entry. Note that we do pattern matching here to simplify `loggingOracle`.-/
+def singleton (q : OracleQuery spec α) (u : α) : QueryLog spec :=
+  match q with | query i t => [⟨i, (t, u)⟩]
+
+@[simp]
+lemma getQ_singleton [DecidableEq ι] (q : OracleQuery spec α) (u : α) (i : ι) :
+    getQ (singleton q u) i = match q with
+      | query j t => if h : j = i then [h ▸ (t, u)] else [] := by
+  cases q with | query i t => ?_
+  simp [getQ, singleton]
+
+@[simp]
+lemma countQ_singleton [DecidableEq ι] (q : OracleQuery spec α) (u : α) (i : ι) :
+    countQ (singleton q u) i = if q.index = i then 1 else 0 := by
+  cases q with | query i t => ?_
+  simp only [countQ, getQ_singleton, OracleQuery.index_query]
+  split_ifs with hi <;> rfl
+
+end singleton
 
 /-- Update a query log by adding a new element to the appropriate list.
 Note that this requires decidable equality on the indexing set. -/
-def logQuery (log : QueryLog spec) {i : ι} (t : spec.domain i) (u : spec.range i) :
-    QueryLog spec := log ++ singleton t u
+def logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
+    QueryLog spec := log ++ singleton q u
 
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
@@ -98,13 +116,12 @@ open Prod OracleSpec OracleComp
 
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
-which list to update when queries come in. -/
+which list to update when queries come in.
+
+Note that the need to do pattern matching on `q` -/
 def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
     QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) where
-  impl | query i t => do
-    let u ← query i t
-    tell (QueryLog.singleton t u)
-    return u
+  impl q := do let u ← q; tell (QueryLog.singleton q u); return u
 
 namespace loggingOracle
 
@@ -112,15 +129,12 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
 @[simp]
 lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
-    match q with | query i t => do
-      let u ← query i t
-      tell (QueryLog.singleton t u)
-      return u := rfl
+    do let u ← q; tell (QueryLog.singleton q u); return u := rfl
 
 @[simp]
 lemma fst_map_run_simulateQ (oa : OracleComp spec α) :
     (fst <$> (simulateQ loggingOracle oa).run) = oa :=
-  fst_map_writerT_run_simulateQ (fun (query i t) => by simp) oa
+  fst_map_writerT_run_simulateQ (by simp) oa
 
 @[simp]
 lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
@@ -130,14 +144,15 @@ lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp s
 @[simp]
 lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
     [⊥ | (simulateQ loggingOracle oa).run] = [⊥ | oa] :=
-  probFailure_writerT_run_simulateQ (fun (query i t) => by simp) (fun (query i t) => by simp) oa
+  probFailure_writerT_run_simulateQ (by simp) (by simp) oa
 
 @[simp]
 lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
-    noFailure (simulateQ loggingOracle oa).run ↔ noFailure oa := by
-  sorry
+    noFailure (simulateQ loggingOracle oa).run ↔ noFailure oa :=
+  noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
 
 instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
-    noFailure (simulateQ loggingOracle oa).run := by sorry
+    noFailure (simulateQ loggingOracle oa).run := by
+  rwa [noFailure_run_simulateQ_iff]
 
 end loggingOracle

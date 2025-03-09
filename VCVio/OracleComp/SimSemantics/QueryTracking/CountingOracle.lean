@@ -96,11 +96,12 @@ lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
 
 @[simp]
 lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
-    noFailure (simulateQ countingOracle oa).run ↔ noFailure oa := by
-  sorry
+    noFailure (simulateQ countingOracle oa).run ↔ noFailure oa :=
+  noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
 
 instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
-    noFailure (simulateQ countingOracle oa).run := by sorry
+    noFailure (simulateQ countingOracle oa).run := by
+  rwa [noFailure_run_simulateQ_iff]
 
 -- lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι → ℕ) :
 --     (simulateT countingOracle oa).run qc =

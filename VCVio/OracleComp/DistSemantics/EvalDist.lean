@@ -893,6 +893,21 @@ lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
 
 end map
 
+section noFailure
+
+@[simp]
+lemma probFailure_eq_zero_iff (oa : OracleComp spec α) : [⊥ | oa] = 0 ↔ oa.noFailure := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | failure => simp
+  | query_bind i t oa h => simp [probFailure_bind_eq_tsum, h]
+
+@[simp]
+lemma probFailure_pos_iff (oa : OracleComp spec α) : 0 < [⊥ | oa] ↔ ¬ oa.noFailure := by
+  rw [pos_iff_ne_zero, ne_eq, probFailure_eq_zero_iff]
+
+end noFailure
+
 section eqRec
 
 variable (oa : OracleComp spec α) (h : α = β)
