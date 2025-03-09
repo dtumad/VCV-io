@@ -155,28 +155,32 @@ end OracleSpec
 
 open Prod OracleSpec OracleComp
 
+#check Seq.seq
+
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
-which list to update when queries come in.
-
-Note that the need to do pattern matching on `q` -/
+which list to update when queries come in. -/
 def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
     QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) where
-  impl q := do let u ← q; tell (QueryLog.singleton q u); return u
+  impl q := do let u ← q; pass (return (u, fun log => log.logQuery q u))
+  -- do let u ← q; tell (QueryLog.singleton q u); return u
 
 namespace loggingOracle
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
-@[simp]
+@[simp] -- Note: still using `tell` instead of pass here. `LawfulMonadWriter` stuff
 lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
-    do let u ← q; tell (QueryLog.singleton q u); return u := rfl
+    do let u ← q; tell (QueryLog.singleton q u); return u := by
+  simp [loggingOracle]; rfl
 
+/-- Taking only the main output after logging queries is the original compuation. -/
 @[simp]
 lemma fst_map_run_simulateQ (oa : OracleComp spec α) :
     (fst <$> (simulateQ loggingOracle oa).run) = oa :=
   fst_map_writerT_run_simulateQ (by simp) oa
 
+/-- Throwing away the query log after simulation looks like running the original computation. -/
 @[simp]
 lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     ((simulateQ loggingOracle oa).run >>= fun x => ob x.1) = oa >>= ob := by
