@@ -278,7 +278,8 @@ class LawfulRelativeMonad (j : Type u → Type w) (m : Type u → Type v)
     (pureᵣ x) >>=ᵣ f = f x
 
   -- bind_mapᵣ : ∀ {α β : Type u} (f : m (α → β)) (x : m α),
-  --   f >>=ᵣ (fun y => mapᵣ (f := m) y x) = @Seq.seq m (instSeqOfRelativeMonadOfSeq) _ _ f (fun _ => x)
+  --   f >>=ᵣ (fun y => mapᵣ (f := m) y x) =
+  --   @Seq.seq m (instSeqOfRelativeMonadOfSeq) _ _ f (fun _ => x)
 
   bind_pure_compᵣ {α β : Type u} (f : j α → j β) (x : m α) :
     x >>=ᵣ (fun y => pureᵣ (f y)) = f <$>ᵣ x
@@ -387,7 +388,8 @@ class RelativeMonadMorphism (r₁ : Type u → Type v₁) (m₁ : Type u → Typ
   [instFunctor : Functor r₁₂]
   φ : MonadIso r₂ (r₁₂ ∘ r₁)
   mmapᵣ {α : Type u} : r₁₂ (m₁ α) → m₂ α
-  mmapᵣ_pureᵣ {α} : mmapᵣ ∘ (Functor.map (f := r₁₂) (@pureᵣ r₁ m₁ _ α)) = pureᵣ ∘ φ.invLift.monadLift
+  mmapᵣ_pureᵣ {α} :
+    mmapᵣ ∘ (Functor.map (f := r₁₂) (@pureᵣ r₁ m₁ _ α)) = pureᵣ ∘ φ.invLift.monadLift
   mmapᵣ_bindᵣ {α β : Type u} (f : r₁ α → m₁ β) :
     mmapᵣ ∘ (Functor.map (f := r₁₂) (bindᵣ · f)) =
       (· >>=ᵣ mmapᵣ ∘ Functor.map (f := r₁₂) f ∘ φ.toLift.monadLift) ∘ mmapᵣ
