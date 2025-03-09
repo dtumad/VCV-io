@@ -25,6 +25,8 @@ def QueryLog (spec : OracleSpec ι) : Type _ :=
 namespace QueryLog
 
 instance : Append (QueryLog spec) := ⟨List.append⟩
+
+/-- Dummy `Monoid` instance to be used with `WriterT`. Actual constructions should use `append`. -/
 instance : Monoid (QueryLog spec) where
   mul := List.append
   mul_assoc := List.append_assoc
@@ -32,42 +34,85 @@ instance : Monoid (QueryLog spec) where
   one_mul := List.nil_append
   mul_one := List.append_nil
 
-/-- Get all the queries made to oracle `i`. -/
-def getQ [DecidableEq ι] (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
-  log.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) []
-
-def countQ [DecidableEq ι] (log : QueryLog spec) (i : ι) : ℕ :=
-  (log.getQ i).length
-
-instance [DecidableEq ι] [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
-  inferInstanceAs (DecidableEq (List _))
-
-section singleton
+@[simp] -- Automatically reduce "multiplication" of query logs to `List.append`
+lemma monoid_mul_def (qc qc' : QueryLog spec) :
+  (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
+     = (qc : List _) ++ (qc' : List _) := rfl
 
 /-- Query log with a single entry. Note that we do pattern matching here to simplify `loggingOracle`.-/
 def singleton (q : OracleQuery spec α) (u : α) : QueryLog spec :=
   match q with | query i t => [⟨i, (t, u)⟩]
 
-@[simp]
-lemma getQ_singleton [DecidableEq ι] (q : OracleQuery spec α) (u : α) (i : ι) :
+/-- Update a query log by adding a new element to the appropriate list.
+Note that this requires decidable equality on the indexing set. -/
+def logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
+    QueryLog spec := log ++ singleton q u
+
+instance [DecidableEq ι] [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
+  inferInstanceAs (DecidableEq (List _))
+
+section getQ
+
+variable [DecidableEq ι]
+
+/-- Get all the queries made to oracle `i`. -/
+def getQ  (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
+  List.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) [] log
+
+-- NOTE: should this simp? feels bad to simp with ▸ and pattern matching in target
+lemma getQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
     getQ (singleton q u) i = match q with
       | query j t => if h : j = i then [h ▸ (t, u)] else [] := by
   cases q with | query i t => ?_
   simp [getQ, singleton]
 
 @[simp]
-lemma countQ_singleton [DecidableEq ι] (q : OracleQuery spec α) (u : α) (i : ι) :
+lemma getQ_singleton_self (i : ι) (t : spec.domain i) (u : spec.range i) :
+    getQ (singleton (query i t) u) i = [(t, u)] := by simp [getQ_singleton]
+
+lemma getQ_singleton_of_ne {q : OracleQuery spec α} {u : α} {i : ι}
+    (h : q.index ≠ i) : getQ (singleton q u) i = [] := by
+  cases q with | query i t => simpa [getQ_singleton] using h
+
+@[simp]
+lemma getQ_append (log log' : QueryLog spec) (i : ι) :
+    (log ++ log').getQ i = log.getQ i ++ log'.getQ i := sorry
+
+@[simp]
+lemma getQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
+    (i : ι) : (log.logQuery q u).getQ i = log.getQ i ++ (singleton q u).getQ i := by
+  rw [logQuery, getQ_append]
+
+end getQ
+
+section countQ
+
+variable [DecidableEq ι]
+
+def countQ (log : QueryLog spec) (i : ι) : ℕ := (log.getQ i).length
+
+@[simp]
+lemma countQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
     countQ (singleton q u) i = if q.index = i then 1 else 0 := by
   cases q with | query i t => ?_
   simp only [countQ, getQ_singleton, OracleQuery.index_query]
   split_ifs with hi <;> rfl
 
-end singleton
+lemma countQ_singleton_self (i : ι) (t : spec.domain i) (u : spec.range i) :
+    countQ (singleton (query i t) u) i = 1 := by simp
 
-/-- Update a query log by adding a new element to the appropriate list.
-Note that this requires decidable equality on the indexing set. -/
-def logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
-    QueryLog spec := log ++ singleton q u
+@[simp]
+lemma countQ_append (log log' : QueryLog spec) (i : ι) :
+    (log ++ log').countQ i = log.countQ i + log'.countQ i := by simp [countQ]
+
+@[simp]
+lemma countQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
+    (i : ι) : (log.logQuery q u).countQ i = log.countQ i + if q.index = i then 1 else 0 := by
+  rw [logQuery, countQ_append, countQ_singleton]
+
+end countQ
+
+section wasQueried
 
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
@@ -77,36 +122,32 @@ def wasQueried [DecidableEq ι] [spec.DecidableEq] (log : QueryLog spec)
   | Option.some _ => true
   | Option.none => false
 
--- variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
+end wasQueried
 
--- def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
---   log.map sorry
+section prod
 
--- def snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
---   sorry --λ i ↦ log (.inr i)
+variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
--- def inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂)
---   | .inl i => log i | .inr _ => []
--- def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂)
---   | .inl _ => [] | .inr i => log i
+/-- Get only the portion of the log for queries in `spec₁`. -/
+protected def take_fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
+  log.filterMap (fun | ⟨.inl i, t, u⟩ => some ⟨i, t, u⟩ | _ => none)
 
--- instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inl⟩
--- instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inr⟩
+/-- Get only the portion of the log for queries in `spec₂`. -/
+protected def take_snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
+  log.filterMap (fun | ⟨.inr i, t, u⟩ => some ⟨i, t, u⟩ | _ => none)
 
--- @[simp]
--- theorem append_apply (log₁ : QueryLog spec) (log₂ : QueryLog spec) (i : ι) :
---   (log₁.append log₂) i = log₂ i ++ log₁ i := rfl
+/-- View a log for `spec₁` as one for `spec₁ ++ₒ spec₂` by inclusion. -/
+protected def lift_inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂) :=
+  log.map fun ⟨i, t, u⟩ => ⟨.inl i, t, u⟩
 
--- @[simp]
--- theorem append_empty (log : QueryLog spec) : log.append ∅ = log := by ext; simp [append]
+/-- View a log for `spec₂` as one for `spec₁ ++ₒ spec₂` by inclusion. -/
+protected def lift_inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂) :=
+  log.map fun ⟨i, t, u⟩ => ⟨.inr i, t, u⟩
 
--- @[simp]
--- theorem empty_append (log : QueryLog spec) : (∅ : QueryLog spec).append log = log := by
---   ext; simp [append]
+instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.lift_inl⟩
+instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.lift_inr⟩
 
--- theorem append_assoc (log₁ : QueryLog spec) (log₂ : QueryLog spec) (log₃ : QueryLog spec) :
---     (log₁.append log₂).append log₃ = log₁.append (log₂.append log₃) := by
---   ext; simp [append]
+end prod
 
 end QueryLog
 
