@@ -3,10 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.IsTracking
-import VCVio.OracleComp.RunIO
-import VCVio.OracleComp.Coercions.SimOracle
-import ToMathlib.Control.WriterT
+import VCVio.OracleComp.SimSemantics.Transformers.WriterT
 
 /-!
 # Logging Queries Made by a Computation
@@ -62,7 +59,7 @@ def wasQueried [DecidableEq ι] [spec.DecidableEq] (log : QueryLog spec)
   | Option.some _ => true
   | Option.none => false
 
-variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
+-- variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
 -- def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
 --   log.map sorry
@@ -97,7 +94,7 @@ end QueryLog
 
 end OracleSpec
 
-open OracleSpec
+open Prod OracleSpec OracleComp
 
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
@@ -111,48 +108,36 @@ def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
 
 namespace loggingOracle
 
-variable {ι : Type u} {spec : OracleSpec.{u,v} ι} [DecidableEq ι]
-  {α : Type v}
+variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
--- @[simp]
--- lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
---     match q with | query i t => do
---       let u ← query i t
---       tell (QueryLog.singleton t u)
---       return u := rfl
+@[simp]
+lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
+    match q with | query i t => do
+      let u ← query i t
+      tell (QueryLog.singleton t u)
+      return u := rfl
 
--- instance : (loggingOracle (spec := spec)).IsTracking where
---   state_indep | query _ _, _ => rfl
+@[simp]
+lemma fst_map_run_simulateQ (oa : OracleComp spec α) :
+    (fst <$> (simulateQ loggingOracle oa).run) = oa :=
+  fst_map_writerT_run_simulateQ (fun (query i t) => by simp) oa
 
--- theorem simulate_eq_append_simulate_empty [spec.DecidableEq] (oa : OracleComp spec α)
---     (log : QueryLog spec) :
---       simulate loggingOracle log oa = do
---         let ⟨a, log_oa⟩ ← simulate loggingOracle ∅ oa
---         return (a, log.append log_oa) := by
---   induction oa using OracleComp.induction with
---   | pure a => simp [simulate_pure]; ext : 1; simp [QueryLog.append]
---   | query_bind i t oa ih => simp [simulate_bind, ih]; sorry
---   | failure => simp
+@[simp]
+lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    ((simulateQ loggingOracle oa).run >>= fun x => ob x.1) = oa >>= ob := by
+  rw [← bind_map_left fst, fst_map_run_simulateQ]
 
--- variable [spec₁.DecidableEq] [spec₂.DecidableEq]
---   [DecidableEq ι₁] [DecidableEq ι₂]
+@[simp]
+lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
+    [⊥ | (simulateQ loggingOracle oa).run] = [⊥ | oa] :=
+  probFailure_writerT_run_simulateQ (fun (query i t) => by simp) (fun (query i t) => by simp) oa
 
--- -- Should this be `simp`?
--- theorem inl_eq (oa : OracleComp spec₁ α) (log : QueryLog (spec₁ ++ₒ spec₂)) :
---   simulate (loggingOracle (spec := spec₁ ++ₒ spec₂)) log oa = do
---     let ⟨a, log_oa⟩ ← simulate (loggingOracle (spec := spec₁)) ∅ oa
---     return (a, log.append (QueryLog.inl log_oa)) := by
---   simp [liftM_eq_liftComp, bind_pure_comp]
---   sorry
+@[simp]
+lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
+    noFailure (simulateQ loggingOracle oa).run ↔ noFailure oa := by
+  sorry
 
--- theorem inr_eq (oa : OracleComp spec₂ α) (log : QueryLog (spec₁ ++ₒ spec₂)) :
---   simulate (loggingOracle (spec := spec₁ ++ₒ spec₂)) log oa = do
---     let ⟨a, log_oa⟩ ← simulate (loggingOracle (spec := spec₂)) ∅ oa
---     return (a, log.append (QueryLog.inr log_oa)) := by
---   simp [liftM_eq_liftComp, bind_pure_comp]
---   sorry
+instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
+    noFailure (simulateQ loggingOracle oa).run := by sorry
 
 end loggingOracle
-
--- #eval! (OracleComp.simulateQ loggingOracle
---   (for i in List.range 50 do let _ ← $[0..i])).run

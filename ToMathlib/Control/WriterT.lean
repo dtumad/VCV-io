@@ -53,6 +53,9 @@ lemma run_seqLeft {m : Type u → Type v} [Monad m] {ω : Type u} [Monoid ω] {�
     (x : WriterT ω m α) (y : WriterT ω m β) :
     (x *> y).run = x.run >>= fun z => Prod.map id (z.2 * ·) <$> y.run := rfl
 
+@[simp]
+lemma run_map (x : WriterT ω m α) (f : α → β) : (f <$> x).run = Prod.map f id <$> x.run := rfl
+
 end basic
 
 -- @[simp]

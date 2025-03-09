@@ -3,10 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.IsTracking
-import VCVio.OracleComp.DistSemantics.Prod
-import ToMathlib.Control.WriterT
-import VCVio.OracleComp.NoFailure
+import VCVio.OracleComp.SimSemantics.Transformers.WriterT
 
 /-!
 # Counting Queries Made by a Computation
@@ -68,37 +65,6 @@ end QueryCount
 
 end OracleSpec
 
-@[simp]
-lemma fst_map_writerT_run_simulateQ {ι : Type u} {spec : OracleSpec ι} {α : Type u}
-    {ω : Type u} [Monoid ω] {so : QueryImpl spec (WriterT ω (OracleComp spec))}
-    (hso : ∀ {α}, ∀ q : OracleQuery spec α, fst <$> (so.impl q).run = q)
-    (oa : OracleComp spec α) : fst <$> (simulateQ so oa).run = oa := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind i t oa h =>
-      simp_rw [simulateQ_bind, simulateQ_query, WriterT.run_bind, map_bind, Functor.map_map,
-        map_fst, id_eq, h, ← (congr_arg (· >>= oa) (hso (query i t))), bind_map_left]
-  | failure => simp
-
-@[simp]
-lemma probFailure_writerT_run_simulateQ {ι : Type u} {spec : OracleSpec ι} [spec.FiniteRange] {α : Type u}
-    {ω : Type u} [Monoid ω] {so : QueryImpl spec (WriterT ω (OracleComp spec))}
-    (hso : ∀ {α}, ∀ q : OracleQuery spec α, fst <$> (so.impl q).run = q)
-    (hso' : ∀ {α}, ∀ q : OracleQuery spec α, [⊥ | (so.impl q).run] = 0)
-    (oa : OracleComp spec α) : [⊥ | (simulateQ so oa).run] = [⊥ | oa] := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind i t oa h =>
-      simp [probFailure_bind_eq_tsum, h, hso']
-      rw [ENNReal.tsum_prod']
-      refine tsum_congr fun x => ?_
-      simp [ENNReal.tsum_mul_right]
-      congr 1
-      calc ∑' (w : ω), [=(x, w) | (so.impl (query i t)).run]
-        _ = [= x | fst <$> (so.impl (query i t)).run] := by rw [probOutput_fst_map_eq_tsum]
-        _ = (↑(Fintype.card (spec.range i)))⁻¹ := by rw [hso, probOutput_query]
-  | failure => simp
-
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
@@ -119,6 +85,11 @@ lemma fst_map_run_simulateQ (oa : OracleComp spec α) : fst <$> (simulateQ count
   fst_map_writerT_run_simulateQ (by simp) oa
 
 @[simp]
+lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    ((simulateQ countingOracle oa).run >>= fun x => ob x.1) = oa >>= ob := by
+  rw [← bind_map_left fst, fst_map_run_simulateQ]
+
+@[simp]
 lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
     [⊥ | (simulateQ countingOracle oa).run] = [⊥ | oa] :=
   probFailure_writerT_run_simulateQ (by simp) (by simp) oa
@@ -127,6 +98,9 @@ lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
 lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
     noFailure (simulateQ countingOracle oa).run ↔ noFailure oa := by
   sorry
+
+instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
+    noFailure (simulateQ countingOracle oa).run := by sorry
 
 -- lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι → ℕ) :
 --     (simulateT countingOracle oa).run qc =
