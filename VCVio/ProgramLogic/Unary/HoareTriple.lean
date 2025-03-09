@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import VCVio
+import VCVio.OracleComp.DistSemantics.EvalDist
 -- import ToMathlib.Control.Lawful
 -- import ToMathlib.Control.RelativeMonad
 
@@ -21,36 +21,12 @@ open OracleComp OracleSpec
 
 open scoped ENNReal
 
-variable {ι : Type u} {spec : OracleSpec ι} [spec.FiniteRange] {α β γ : Type v}
-
-/-- If pre-condition `P` holds for `x` then `comp x` satisfies
-post-condition `Q` with probability at least `r`-/
-def HoareTriple (P : α → Prop) (comp : α → OracleComp spec β) (Q : β → Prop) (r : ℝ≥0∞) : Prop :=
-  ∀ x : α, P x → r ≤ [Q | comp x]
-
-scoped notation "⦃" P "⦄ " comp " ⦃" Q "⦄ " r => HoareTriple P comp Q r
-
-namespace HoareTriple
-
-def bind {P : α → Prop} {comp₁ : α → OracleComp spec β}
-    {Q : β → Prop} {comp₂ : α → β → OracleComp spec γ} {R : γ → Prop} {r r' : ℝ≥0∞}
-    (h1 : ⦃P⦄ comp₁ ⦃Q⦄ r) (h2 : ∀ x, ⦃Q⦄ comp₂ x ⦃R⦄ r') :
-        ⦃P⦄ fun x => comp₁ x >>= comp₂ x ⦃R⦄ (r * r') := by
-  refine fun x hx => (mul_le_mul_right' (h1 x hx) r').trans ?_
-  rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_indicator, ← ENNReal.tsum_mul_right]
-  refine ENNReal.tsum_le_tsum fun y => ?_
-  rw [← Set.indicator_mul_const]
-  refine Set.indicator_apply_le' ?_ ?_
-  · exact fun hy => mul_le_mul_left' (h2 x y hy) [=y|comp₁ x]
-  · simp only [zero_le, implies_true]
-
-end HoareTriple
-
-end OracleComp
-
 -- Notation: we want to write pre and post-conditions as `{P} e {Q}_⦃ ε ⦄` for a probabilistic program `e`, which means that assuming pre-condition `P`, the program `e` after execution satisfies post-condition `Q` except with probability `ε`.
 
 namespace StateM
+
+-- Below is an experimental implementation of Hoare triples for the state monad
+-- We will eventually integrate this with the Hoare triples for `OracleComp`
 
 def PreCondition (σ : Type*) := σ → Prop
 
@@ -293,12 +269,12 @@ end pure
 
 section bind
 
-instance {Q : PostCondition σ β} {comp₁ : StateM σ α} {comp₂ : α → StateM σ β}
-    [∀ x, Inhabited (WeakestPrecondition (comp₂ x) Q)]
-    []:
-      Inhabited (WeakestPrecondition (comp₁ >>= comp₂) Q) where
-  default := ⟨fun s => ∃ x s', Q₁ s x s' ∧ P₂ x s', HoareTriple.bind_rule (default : WeakestPrecondition comp₁ Q₁) (fun x => default : StrongestPostcondition (fun s => Q₁ s ∧ P₂ s) (comp₂ x)),
-    fun P' hP' s h_p => by aesop⟩
+-- instance {Q : PostCondition σ β} {comp₁ : StateM σ α} {comp₂ : α → StateM σ β}
+--     [∀ x, Inhabited (WeakestPrecondition (comp₂ x) Q)]
+--     [Inhabited (WeakestPrecondition comp₁ Q₁)]
+--       Inhabited (WeakestPrecondition (comp₁ >>= comp₂) Q) where
+--   default := ⟨fun s => ∃ x s', Q₁ s x s' ∧ P₂ x s', HoareTriple.bind_rule (default : WeakestPrecondition comp₁ Q₁) (fun x => default : StrongestPostcondition (fun s => Q₁ s ∧ P₂ s) (comp₂ x)),
+--     fun P' hP' s h_p => by aesop⟩
 
 end bind
 
