@@ -3,7 +3,8 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.DistSemantics.Support
+import VCVio.OracleComp.NoFailure
+import VCVio.OracleComp.SimSemantics.Simulate
 import Mathlib.Probability.Distributions.Uniform
 import ToMathlib.General
 
@@ -42,34 +43,32 @@ section evalDist
 
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
-We use `OptionT PMF` rather than `PMF ∘ Option` as the generated monad instance is nicer. -/
-noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) :
-    OptionT PMF α := oa.mapM (fail := failure)
-  (query_map := λ (query i _) ↦ OptionT.lift (PMF.uniformOfFintype (spec.range i)))
+Implemented by simulating queries in the `PMF` monad. -/
+noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) : OptionT PMF α :=
+  simulateQ ⟨fun (query i _) => PMF.uniformOfFintype (spec.range i)⟩ oa
 
 @[simp]
-lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := rfl
+lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := simulateQ_pure _ _
 
 @[simp]
 lemma evalDist_liftM [Nonempty α] [Fintype α] (q : OracleQuery spec α) :
     evalDist (q : OracleComp spec α) = OptionT.lift (PMF.uniformOfFintype α) := by
-  cases q; rw [evalDist, mapM_query]
+  cases q; rw [evalDist, simulateQ_query]
   refine congr_arg OptionT.lift (PMF.ext λ x ↦ ?_)
-  simp only [PMF.uniformOfFintype_apply, inv_inj, Nat.cast_inj]
+  simp only [monadLift_self, PMF.uniformOfFintype_apply, inv_inj, Nat.cast_inj]
   refine congr_arg Finset.card (Finset.ext λ _ ↦ by simp)
 
 @[simp]
 lemma evalDist_query (i : ι) (t : spec.domain i) :
-    evalDist (query i t : OracleComp spec _) =
-      OptionT.lift (PMF.uniformOfFintype (spec.range i)) := by
-  rw [evalDist_liftM]
+    evalDist (query i t : OracleComp spec _) = OptionT.lift (PMF.uniformOfFintype (spec.range i)) :=
+  simulateQ_query _ _
 
 @[simp]
-lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := rfl
+lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := simulateQ_failure _
 
 @[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := mapM_bind' _ _ _
+    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by simp [evalDist, Function.comp_def]
 
 lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
     evalDist ((query i t : OracleComp spec _) >>= ou) =
@@ -78,14 +77,11 @@ lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → Or
 
 @[simp]
 lemma evalDist_map (oa : OracleComp spec α) (f : α → β) :
-    evalDist (f <$> oa) = f <$> (evalDist oa) := mapM_map' _ _ _
+    evalDist (f <$> oa) = f <$> (evalDist oa) := simulateQ_map _ _ _
 
 @[simp]
 lemma evalDist_seq (oa : OracleComp spec α) (og : OracleComp spec (α → β)) :
-    evalDist (og <*> oa) = evalDist og <*> evalDist oa := by
-  simp only [seq_eq_bind_map, map_eq_bind_pure_comp]
-  simp [Function.comp_def]
-
+    evalDist (og <*> oa) = evalDist og <*> evalDist oa := simulateQ_seq _ _ _
 
 @[simp]
 lemma evalDist_eqRec (h : α = β) (oa : OracleComp spec α) :

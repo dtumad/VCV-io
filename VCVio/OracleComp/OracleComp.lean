@@ -145,9 +145,21 @@ protected lemma liftM_def (q : OracleQuery spec α) :
     (q : OracleComp spec α) = OptionT.lift (FreeMonad.lift q) := rfl
 alias lift_query_def := OracleComp.liftM_def
 
---@[simp] -- Usually this is a better simp pathway but occasionally bad
+--@[simp] -- Usually this is a better simp pathway but occasionally bad. Simp specific cases below
 lemma liftM_query_eq_liftM_liftM {m : Type v → Type z} [MonadLift (OracleComp spec) m] {α : Type v}
     (q : OracleQuery spec α) : (liftM q : m α) = liftM (liftM q : OracleComp spec α) := rfl
+
+@[simp]
+lemma liftM_query_stateT {σ : Type v} {α : Type v} (q : OracleQuery spec α) :
+  (liftM q : StateT σ (OracleComp spec) α) = liftM (liftM q : OracleComp spec α) := rfl
+
+@[simp]
+lemma liftM_query_writerT {ω : Type v} [Monoid ω] {α : Type v} (q : OracleQuery spec α) :
+  (liftM q : WriterT ω (OracleComp spec) α) = liftM (liftM q : OracleComp spec α) := rfl
+
+@[simp]
+lemma liftM_query_readerT {ρ : Type v} {α : Type v} (q : OracleQuery spec α) :
+  (liftM q : ReaderT ρ (OracleComp spec) α) = liftM (liftM q : OracleComp spec α) := rfl
 
 lemma query_bind_eq_roll (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
     (q : OracleComp spec α) >>= ob = OptionT.mk (FreeMonad.roll q ob) := rfl

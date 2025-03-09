@@ -39,6 +39,10 @@ lemma monad_failure_eq [Monad m] [Alternative m] :
     (failure : StateT σ m α) = StateT.failure := rfl
 
 @[simp]
+lemma run_failure [Monad m] [Alternative m] :
+    (failure : StateT σ m α).run = fun _ => failure := rfl
+
+@[simp]
 lemma mk_pure_eq_pure [Monad m] (x : α) :
   StateT.mk (λ s ↦ pure (x, s)) = (pure x : StateT σ m α) := rfl
 

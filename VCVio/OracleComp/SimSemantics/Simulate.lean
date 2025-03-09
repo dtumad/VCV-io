@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.DistSemantics.EvalDist
+import VCVio.OracleComp.DistSemantics.Support
 import ToMathlib.Control.StateT
 
 /-!
@@ -72,13 +72,19 @@ lemma simulateQ_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) 
 
 @[simp]
 lemma simulateQ_map (oa : OracleComp spec α) (f : α → β) :
-    simulateQ so (f <$> oa) = f <$> simulateQ so oa :=
-  MonadHom.mmap_map _ oa f
+    simulateQ so (f <$> oa) = f <$> simulateQ so oa := by simp [map_eq_bind_pure_comp]
 
 @[simp]
 lemma simulateQ_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
-    simulateQ so (og <*> oa) = simulateQ so og <*> simulateQ so oa :=
-  MonadHom.mmap_seq _ og oa
+    simulateQ so (og <*> oa) = simulateQ so og <*> simulateQ so oa := by simp [seq_eq_bind]
+
+@[simp]
+lemma simulateQ_seqLeft (oa : OracleComp spec α) (ob : OracleComp spec β) :
+    simulateQ so (oa <* ob) = simulateQ so oa <* simulateQ so ob := by simp [seqLeft_eq]
+
+@[simp]
+lemma simulateQ_seqRight (oa : OracleComp spec α) (ob : OracleComp spec β) :
+    simulateQ so (oa *> ob) = simulateQ so oa *> simulateQ so ob := by simp [seqRight_eq]
 
 @[simp]
 lemma simulateQ_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
@@ -211,28 +217,6 @@ lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s
   exact ⟨s', h⟩
 
 end support
-
-section idem
-
-variable {σ : Type u} (so : QueryImpl spec (StateT σ (OracleComp spec)))
-
-/-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
-Then `simulate' so` doesn't change the output distribution.
-Stateless oracles are the most common example of this -/
-lemma evalDist_simulate'_eq_evalDist [spec.FiniteRange]
-    (h : ∀ i t s, (evalDist ((so.impl (query i t)).run' s)) =
-      OptionT.lift (PMF.uniformOfFintype (spec.range i)))
-    (s : σ) (oa : OracleComp spec α) : evalDist (simulate' so s oa) = evalDist oa := by
-  revert s
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind i t oa hoa => exact (λ s ↦ by
-      simp only [StateT.run'_eq] at h
-      simp only [simulate'_bind, simulate_query, evalDist_bind, Function.comp_def, hoa,
-        evalDist_query, ← h i t s, evalDist_map, PMF.bind_map, hoa, bind_map_left])
-  | failure => intro s; rw [simulate'_failure]
-
-end idem
 
 section subsingleton
 
