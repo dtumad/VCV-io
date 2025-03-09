@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.QueryTracking.CountingOracle
-import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle
+import VCVio.OracleComp.DistSemantics.Alternative
 
 /-!
 # Bounding Queries Made by a Computation
@@ -42,9 +42,17 @@ lemma isQueryBound_mono {oa : OracleComp spec α} (qb : ι → ℕ) {qb' : ι �
     (h' : IsQueryBound oa qb) (h : qb ≤ qb') : IsQueryBound oa qb' :=
   λ qc hqc ↦ le_trans (h' qc hqc) h
 
+lemma isQueryBound_iff_probEvent [spec.FiniteRange] {oa : OracleComp spec α} {qb : ι → ℕ} :
+    IsQueryBound oa qb ↔ [(· ≤ qb) | snd <$> (simulateQ countingOracle oa).run <|> return 0] = 1 := by
+  simp [probEvent_eq_one_iff, isQueryBound_def]
+  split_ifs <;> simp
+
 @[simp]
-lemma isQueryBound_pure (a : α) (qb : ι → ℕ) :
-    IsQueryBound (pure a : OracleComp spec α) qb := by
+lemma isQueryBound_pure (a : α) (qb : ι → ℕ) : IsQueryBound (pure a : OracleComp spec α) qb := by
+  simp [isQueryBound_def]
+
+@[simp]
+lemma isQueryBound_failure (qb : ι → ℕ) : IsQueryBound (failure : OracleComp spec α) qb := by
   simp [isQueryBound_def]
 
 @[simp]

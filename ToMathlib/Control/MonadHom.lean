@@ -57,6 +57,16 @@ lemma mmap_seq [LawfulMonad m] [LawfulMonad n]
     (F : m →ᵐ n) (x : m (α → β)) (y : m α) : F (x <*> y) = F x <*> F y := by
   simp [seq_eq_bind_map]
 
+@[simp]
+lemma mmap_seqLeft [LawfulMonad m] [LawfulMonad n]
+    (F : m →ᵐ n) (x : m α) (y : m β) : F (x <* y) = F x <* F y := by
+  simp [seqLeft_eq]
+
+@[simp]
+lemma mmap_seqRight [LawfulMonad m] [LawfulMonad n]
+    (F : m →ᵐ n) (x : m α) (y : m β) : F (x *> y) = F x *> F y := by
+  simp [seqRight_eq]
+
 section ofLift
 
 /-- Construct a `MonadHom` from a lawful monad lift. -/

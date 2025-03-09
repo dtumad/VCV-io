@@ -72,7 +72,7 @@ lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) =
     | [] => PMF.pure none
     | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map (some (x :: xs)[·]) :=
   match xs with
-  | [] => rfl
+  | [] => by simp only [uniformSelectList_nil, evalDist_failure]; rfl
   | x :: xs => by
     apply OptionT.ext
     simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map, evalDist_liftM,

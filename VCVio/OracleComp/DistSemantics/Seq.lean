@@ -16,8 +16,6 @@ that runs the two computations `oa` and `ob` to get some `x` and `y` respectivel
 returning only the value `f x y`.
 -/
 
-open Mathlib OracleSpec ENNReal BigOperators
-
 universe u v w
 
 namespace OracleComp

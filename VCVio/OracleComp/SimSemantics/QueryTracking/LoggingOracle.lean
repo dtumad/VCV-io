@@ -3,10 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.IsTracking
-import VCVio.OracleComp.RunIO
-import VCVio.OracleComp.Coercions.SimOracle
-import ToMathlib.Control.WriterT
+import VCVio.OracleComp.SimSemantics.Transformers.WriterT
 
 /-!
 # Logging Queries Made by a Computation
@@ -28,6 +25,8 @@ def QueryLog (spec : OracleSpec ι) : Type _ :=
 namespace QueryLog
 
 instance : Append (QueryLog spec) := ⟨List.append⟩
+
+/-- Dummy `Monoid` instance to be used with `WriterT`. Actual constructions should use `append`. -/
 instance : Monoid (QueryLog spec) where
   mul := List.append
   mul_assoc := List.append_assoc
@@ -35,24 +34,103 @@ instance : Monoid (QueryLog spec) where
   one_mul := List.nil_append
   mul_one := List.append_nil
 
-/-- Get all the queries made to oracle `i`. -/
-def getQ [DecidableEq ι] (log : QueryLog spec) (i : ι) :
-    List (spec.domain i × spec.range i) :=
-  log.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) []
+@[simp] -- Automatically reduce "multiplication" of query logs to `List.append`
+lemma monoid_mul_def (qc qc' : QueryLog spec) :
+  (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
+     = (qc : List _) ++ (qc' : List _) := rfl
 
-def countQ [DecidableEq ι] (log : QueryLog spec) (i : ι) : ℕ :=
-  (log.getQ i).length
+/-- Query log with a single entry. Note that we do pattern matching here to simplify `loggingOracle`.-/
+def singleton (q : OracleQuery spec α) (u : α) : QueryLog spec :=
+  match q with | query i t => [⟨i, (t, u)⟩]
+
+/-- Update a query log by adding a new element to the appropriate list.
+Note that this requires decidable equality on the indexing set. -/
+def logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
+    QueryLog spec := log ++ singleton q u
 
 instance [DecidableEq ι] [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
   inferInstanceAs (DecidableEq (List _))
 
-def singleton {i : ι} (t : spec.domain i) (u : spec.range i) :
-    QueryLog spec := [⟨i, (t, u)⟩]
+section getQ
 
-/-- Update a query log by adding a new element to the appropriate list.
-Note that this requires decidable equality on the indexing set. -/
-def logQuery (log : QueryLog spec) {i : ι} (t : spec.domain i) (u : spec.range i) :
-    QueryLog spec := log ++ singleton t u
+variable [DecidableEq ι]
+
+/-- Get all the queries made to oracle `i`. -/
+def getQ (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
+  List.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) [] log
+
+-- NOTE: should this simp? feels bad to simp with ▸ and pattern matching in target
+lemma getQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
+    getQ (singleton q u) i = match q with
+      | query j t => if h : j = i then [h ▸ (t, u)] else [] := by
+  cases q with | query i t => ?_
+  simp [getQ, singleton]
+
+@[simp]
+lemma getQ_singleton_self (i : ι) (t : spec.domain i) (u : spec.range i) :
+    getQ (singleton (query i t) u) i = [(t, u)] := by simp [getQ_singleton]
+
+lemma getQ_singleton_of_ne {q : OracleQuery spec α} {u : α} {i : ι}
+    (h : q.index ≠ i) : getQ (singleton q u) i = [] := by
+  cases q with | query i t => simpa [getQ_singleton] using h
+
+@[simp]
+lemma getQ_cons (log : QueryLog spec) (q : (i : ι) × spec.domain i × spec.range i) (i : ι) :
+    getQ (q :: log) i =
+      if h : q.1 = i then h ▸ (q.2.1, q.2.2) :: getQ log i else getQ log i := by
+  simp [getQ]
+
+@[simp]
+lemma getQ_append (log log' : QueryLog spec) (i : ι) :
+    (log ++ log').getQ i = log.getQ i ++ log'.getQ i := by
+  induction log with
+  | nil => rfl
+  | cons hd tl ih =>
+    induction log' with
+    | nil => simp [getQ]
+    | cons hd' tl' ih' =>
+      simp
+      split_ifs with hi₁ <;> simp [ih, ih', hi₁]
+      · split_ifs; simp
+      · simpa
+      · split_ifs; simp
+      · simpa
+
+@[simp]
+lemma getQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
+    (i : ι) : (log.logQuery q u).getQ i = log.getQ i ++ (singleton q u).getQ i := by
+  rw [logQuery, getQ_append]
+
+end getQ
+
+section countQ
+
+variable [DecidableEq ι]
+
+def countQ (log : QueryLog spec) (i : ι) : ℕ := (log.getQ i).length
+
+@[simp]
+lemma countQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
+    countQ (singleton q u) i = if q.index = i then 1 else 0 := by
+  cases q with | query i t => ?_
+  simp only [countQ, getQ_singleton, OracleQuery.index_query]
+  split_ifs with hi <;> rfl
+
+lemma countQ_singleton_self (i : ι) (t : spec.domain i) (u : spec.range i) :
+    countQ (singleton (query i t) u) i = 1 := by simp
+
+@[simp]
+lemma countQ_append (log log' : QueryLog spec) (i : ι) :
+    (log ++ log').countQ i = log.countQ i + log'.countQ i := by simp [countQ]
+
+@[simp]
+lemma countQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
+    (i : ι) : (log.logQuery q u).countQ i = log.countQ i + if q.index = i then 1 else 0 := by
+  rw [logQuery, countQ_append, countQ_singleton]
+
+end countQ
+
+section wasQueried
 
 /-- Check if an element was ever queried in a log of queries.
 Relies on decidable equality of the domain types of oracles. -/
@@ -62,97 +140,80 @@ def wasQueried [DecidableEq ι] [spec.DecidableEq] (log : QueryLog spec)
   | Option.some _ => true
   | Option.none => false
 
+end wasQueried
+
+section prod
+
 variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
--- def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
---   log.map sorry
+/-- Get only the portion of the log for queries in `spec₁`. -/
+protected def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
+  log.filterMap (fun | ⟨.inl i, t, u⟩ => some ⟨i, t, u⟩ | _ => none)
 
--- def snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
---   sorry --λ i ↦ log (.inr i)
+/-- Get only the portion of the log for queries in `spec₂`. -/
+protected def snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
+  log.filterMap (fun | ⟨.inr i, t, u⟩ => some ⟨i, t, u⟩ | _ => none)
 
--- def inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂)
---   | .inl i => log i | .inr _ => []
--- def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂)
---   | .inl _ => [] | .inr i => log i
+/-- View a log for `spec₁` as one for `spec₁ ++ₒ spec₂` by inclusion. -/
+protected def inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂) :=
+  log.map fun ⟨i, t, u⟩ => ⟨.inl i, t, u⟩
 
--- instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inl⟩
--- instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨inr⟩
+/-- View a log for `spec₂` as one for `spec₁ ++ₒ spec₂` by inclusion. -/
+protected def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂) :=
+  log.map fun ⟨i, t, u⟩ => ⟨.inr i, t, u⟩
 
--- @[simp]
--- theorem append_apply (log₁ : QueryLog spec) (log₂ : QueryLog spec) (i : ι) :
---   (log₁.append log₂) i = log₂ i ++ log₁ i := rfl
+instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.inl⟩
+instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.inr⟩
 
--- @[simp]
--- theorem append_empty (log : QueryLog spec) : log.append ∅ = log := by ext; simp [append]
-
--- @[simp]
--- theorem empty_append (log : QueryLog spec) : (∅ : QueryLog spec).append log = log := by
---   ext; simp [append]
-
--- theorem append_assoc (log₁ : QueryLog spec) (log₂ : QueryLog spec) (log₃ : QueryLog spec) :
---     (log₁.append log₂).append log₃ = log₁.append (log₂.append log₃) := by
---   ext; simp [append]
+end prod
 
 end QueryLog
 
 end OracleSpec
 
-open OracleSpec
+open Prod OracleSpec OracleComp
 
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
 which list to update when queries come in. -/
 def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
     QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) where
-  impl | query i t => do
-    let u ← query i t
-    tell (QueryLog.singleton t u)
-    return u
+  impl q := do let u ← q; pass (return (u, fun log => log.logQuery q u))
+  -- do let u ← q; tell (QueryLog.singleton q u); return u
 
 namespace loggingOracle
 
-variable {ι : Type u} {spec : OracleSpec.{u,v} ι} [DecidableEq ι]
-  {α : Type v}
+variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
--- @[simp]
--- lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
---     match q with | query i t => do
---       let u ← query i t
---       tell (QueryLog.singleton t u)
---       return u := rfl
+@[simp] -- Note: still using `tell` instead of pass here. `LawfulMonadWriter` stuff
+lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
+    do let u ← q; tell (QueryLog.singleton q u); return u := by
+  simp [loggingOracle]; rfl
 
--- instance : (loggingOracle (spec := spec)).IsTracking where
---   state_indep | query _ _, _ => rfl
+/-- Taking only the main output after logging queries is the original compuation. -/
+@[simp]
+lemma fst_map_run_simulateQ (oa : OracleComp spec α) :
+    (fst <$> (simulateQ loggingOracle oa).run) = oa :=
+  fst_map_writerT_run_simulateQ (by simp) oa
 
--- theorem simulate_eq_append_simulate_empty [spec.DecidableEq] (oa : OracleComp spec α)
---     (log : QueryLog spec) :
---       simulate loggingOracle log oa = do
---         let ⟨a, log_oa⟩ ← simulate loggingOracle ∅ oa
---         return (a, log.append log_oa) := by
---   induction oa using OracleComp.induction with
---   | pure a => simp [simulate_pure]; ext : 1; simp [QueryLog.append]
---   | query_bind i t oa ih => simp [simulate_bind, ih]; sorry
---   | failure => simp
+/-- Throwing away the query log after simulation looks like running the original computation. -/
+@[simp]
+lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    ((simulateQ loggingOracle oa).run >>= fun x => ob x.1) = oa >>= ob := by
+  rw [← bind_map_left fst, fst_map_run_simulateQ]
 
--- variable [spec₁.DecidableEq] [spec₂.DecidableEq]
---   [DecidableEq ι₁] [DecidableEq ι₂]
+@[simp]
+lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
+    [⊥ | (simulateQ loggingOracle oa).run] = [⊥ | oa] :=
+  probFailure_writerT_run_simulateQ (by simp) (by simp) oa
 
--- -- Should this be `simp`?
--- theorem inl_eq (oa : OracleComp spec₁ α) (log : QueryLog (spec₁ ++ₒ spec₂)) :
---   simulate (loggingOracle (spec := spec₁ ++ₒ spec₂)) log oa = do
---     let ⟨a, log_oa⟩ ← simulate (loggingOracle (spec := spec₁)) ∅ oa
---     return (a, log.append (QueryLog.inl log_oa)) := by
---   simp [liftM_eq_liftComp, bind_pure_comp]
---   sorry
+@[simp]
+lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
+    noFailure (simulateQ loggingOracle oa).run ↔ noFailure oa :=
+  noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
 
--- theorem inr_eq (oa : OracleComp spec₂ α) (log : QueryLog (spec₁ ++ₒ spec₂)) :
---   simulate (loggingOracle (spec := spec₁ ++ₒ spec₂)) log oa = do
---     let ⟨a, log_oa⟩ ← simulate (loggingOracle (spec := spec₂)) ∅ oa
---     return (a, log.append (QueryLog.inr log_oa)) := by
---   simp [liftM_eq_liftComp, bind_pure_comp]
---   sorry
+instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
+    noFailure (simulateQ loggingOracle oa).run := by
+  rwa [noFailure_run_simulateQ_iff]
 
 end loggingOracle
-
--- #eval! (OracleComp.simulateQ loggingOracle
---   (for i in List.range 50 do let _ ← $[0..i])).run

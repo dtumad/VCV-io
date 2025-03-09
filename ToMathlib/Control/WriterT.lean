@@ -28,7 +28,7 @@ lemma run_tell (w : ω) : (tell w : WriterT ω m PUnit).run = pure (⟨⟩, w) :
 variable [Monoid ω]
 
 @[simp]
-lemma run_liftM (x : m α) : (liftM x : WriterT ω m α).run = (·, 1) <$> x := rfl
+lemma run_monadLift (x : m α) : (monadLift x : WriterT ω m α).run = (·, 1) <$> x := rfl
 
 lemma liftM_def (x : m α) :
     (liftM x : WriterT ω m α) = WriterT.mk ((·, 1) <$> x) := rfl
@@ -47,6 +47,14 @@ lemma run_pure [LawfulMonad m] (x : α) :
 @[simp]
 lemma run_bind [LawfulMonad m] (x : WriterT ω m α) (f : α → WriterT ω m β) :
     (x >>= f).run = x.run >>= fun (a, w₁) => Prod.map id (w₁ * ·) <$> (f a).run := rfl
+
+@[simp]
+lemma run_seqLeft {m : Type u → Type v} [Monad m] {ω : Type u} [Monoid ω] {α β : Type u}
+    (x : WriterT ω m α) (y : WriterT ω m β) :
+    (x *> y).run = x.run >>= fun z => Prod.map id (z.2 * ·) <$> y.run := rfl
+
+@[simp]
+lemma run_map (x : WriterT ω m α) (f : α → β) : (f <$> x).run = Prod.map f id <$> x.run := rfl
 
 end basic
 

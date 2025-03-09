@@ -3,9 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.IsTracking
-import VCVio.OracleComp.RunIO
-import ToMathlib.Control.WriterT
+import VCVio.OracleComp.SimSemantics.Transformers.WriterT
 
 /-!
 # Counting Queries Made by a Computation
@@ -43,15 +41,7 @@ instance : Monoid (QueryCount spec) where
 
 @[simp]
 lemma monoid_mul_def (qc qc' : QueryCount spec) :
-    (@HMul.hMul _ _ _ (by
-      refine @instHMul _ (by
-        refine Monoid.toMulOneClass.toMul
-        -- sorry
-      )
-
-
-    ) qc qc')
-
+  (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
      = (qc : ι → ℕ) + (qc' : ι → ℕ) := rfl
 
 @[simp]
@@ -79,23 +69,39 @@ end OracleSpec
 function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
     QueryImpl spec (WriterT (QueryCount spec) (OracleComp spec)) where
-  impl | q => do tell (QueryCount.single q.index); q
+  impl q := tell (QueryCount.single q.index) *> liftM q
 
 namespace countingOracle
 
 variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
 
 @[simp]
-protected lemma apply_eq (q : OracleQuery spec α) :
-    countingOracle.impl q = (do tell (QueryCount.single q.index); q) := rfl
+protected lemma impl_apply_eq (q : OracleQuery spec α) :
+    countingOracle.impl q = (tell (QueryCount.single q.index) *> liftM q) := rfl
 
 /-- `countingOracle` has no effect on the behavior of the computation itself. -/
-lemma fst_map_run_eq (oa : OracleComp spec α) :
-    fst <$> (simulateQ countingOracle oa).run = oa := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind i t oa h => simp [h, liftM_query_eq_liftM_liftM]
-  | failure => simp
+@[simp]
+lemma fst_map_run_simulateQ (oa : OracleComp spec α) : fst <$> (simulateQ countingOracle oa).run = oa :=
+  fst_map_writerT_run_simulateQ (by simp) oa
+
+@[simp]
+lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    ((simulateQ countingOracle oa).run >>= fun x => ob x.1) = oa >>= ob := by
+  rw [← bind_map_left fst, fst_map_run_simulateQ]
+
+@[simp]
+lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
+    [⊥ | (simulateQ countingOracle oa).run] = [⊥ | oa] :=
+  probFailure_writerT_run_simulateQ (by simp) (by simp) oa
+
+@[simp]
+lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
+    noFailure (simulateQ countingOracle oa).run ↔ noFailure oa :=
+  noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
+
+instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
+    noFailure (simulateQ countingOracle oa).run := by
+  rwa [noFailure_run_simulateQ_iff]
 
 -- lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι → ℕ) :
 --     (simulateT countingOracle oa).run qc =

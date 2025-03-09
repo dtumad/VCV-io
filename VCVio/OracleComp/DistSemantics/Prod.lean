@@ -37,6 +37,36 @@ lemma snd_map_prod_map (oa : OracleComp spec (α × β)) (f : α → γ) (g : β
     snd <$> map f g <$> oa = (g ∘ Prod.snd) <$> oa := by
   simp [Functor.map_map]; rfl
 
+@[simp]
+lemma probOutput_fst_map_eq_tsum [spec.FiniteRange] (oa : OracleComp spec (α × β)) (x : α) :
+    [= x | fst <$> oa] = ∑' y, [= (x, y) | oa] := by
+  have : DecidableEq α := Classical.decEq _
+  simp only [probOutput_map_eq_tsum, probOutput_pure, mul_ite, mul_one, mul_zero,
+    ENNReal.tsum_prod']
+  refine (tsum_eq_single x ?_).trans (by simp)
+  simp only [ne_eq, ENNReal.tsum_eq_zero, ite_eq_right_iff, probOutput_eq_zero_iff]
+  tauto
+
+@[simp]
+lemma probOutput_fst_map_eq_sum [spec.FiniteRange] [Fintype β] (oa : OracleComp spec (α × β)) (x : α) :
+    [= x | fst <$> oa] = ∑ y, [= (x, y) | oa] := by
+  rw [probOutput_fst_map_eq_tsum, tsum_fintype]
+
+@[simp]
+lemma probOutput_snd_map_eq_tsum [spec.FiniteRange] (oa : OracleComp spec (α × β)) (y : β) :
+    [= y | snd <$> oa] = ∑' x, [= (x, y) | oa] := by
+  have : DecidableEq β := Classical.decEq _
+  simp only [probOutput_map_eq_tsum, probOutput_pure, mul_ite, mul_one, mul_zero,
+    ENNReal.tsum_prod']
+  refine tsum_congr fun _ => (tsum_eq_single y ?_).trans (by simp)
+  simp only [ne_eq, ite_eq_right_iff, probOutput_eq_zero_iff]
+  tauto
+
+@[simp]
+lemma probOutput_snd_map_eq_sum [spec.FiniteRange] [Fintype α] (oa : OracleComp spec (α × β)) (y : β) :
+    [= y | snd <$> oa] = ∑ x, [= (x, y) | oa] := by
+  rw [probOutput_snd_map_eq_tsum, tsum_fintype]
+
 section seq_map_mk -- TODO: bind versions of these lemmas
 
 variable [spec.FiniteRange] (oa : OracleComp spec α) (ob : OracleComp spec β)

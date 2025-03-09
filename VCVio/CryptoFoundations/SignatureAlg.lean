@@ -68,7 +68,7 @@ def signingOracle (sigAlg : SignatureAlg spec em M PK SK S)
     (StateT (QueryLog (M →ₒ S)) (OracleComp spec)) where
   impl | query () m => do
     let σ ← sigAlg.sign pk sk m
-    modifyGet λ log ↦ (σ, log.logQuery m σ)
+    modifyGet λ log ↦ (σ, log.logQuery ⟨(), m⟩ σ)
 
 abbrev unforgeableAdv (_sigAlg : SignatureAlg spec em M PK SK S) :=
   SecAdv (spec ++ₒ (M →ₒ S)) PK (M × S)
