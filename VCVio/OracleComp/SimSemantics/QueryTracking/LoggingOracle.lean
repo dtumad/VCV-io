@@ -56,7 +56,7 @@ section getQ
 variable [DecidableEq ι]
 
 /-- Get all the queries made to oracle `i`. -/
-def getQ  (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
+def getQ (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
   List.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) [] log
 
 -- NOTE: should this simp? feels bad to simp with ▸ and pattern matching in target
@@ -75,8 +75,26 @@ lemma getQ_singleton_of_ne {q : OracleQuery spec α} {u : α} {i : ι}
   cases q with | query i t => simpa [getQ_singleton] using h
 
 @[simp]
+lemma getQ_cons (log : QueryLog spec) (q : (i : ι) × spec.domain i × spec.range i) (i : ι) :
+    getQ (q :: log) i =
+      if h : q.1 = i then h ▸ (q.2.1, q.2.2) :: getQ log i else getQ log i := by
+  simp [getQ]
+
+@[simp]
 lemma getQ_append (log log' : QueryLog spec) (i : ι) :
-    (log ++ log').getQ i = log.getQ i ++ log'.getQ i := sorry
+    (log ++ log').getQ i = log.getQ i ++ log'.getQ i := by
+  induction log with
+  | nil => rfl
+  | cons hd tl ih =>
+    induction log' with
+    | nil => simp [getQ]
+    | cons hd' tl' ih' =>
+      simp
+      split_ifs with hi₁ <;> simp [ih, ih', hi₁]
+      · split_ifs; simp
+      · simpa
+      · split_ifs; simp
+      · simpa
 
 @[simp]
 lemma getQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
@@ -129,23 +147,23 @@ section prod
 variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
 /-- Get only the portion of the log for queries in `spec₁`. -/
-protected def take_fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
+protected def fst (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₁ :=
   log.filterMap (fun | ⟨.inl i, t, u⟩ => some ⟨i, t, u⟩ | _ => none)
 
 /-- Get only the portion of the log for queries in `spec₂`. -/
-protected def take_snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
+protected def snd (log : QueryLog (spec₁ ++ₒ spec₂)) : QueryLog spec₂ :=
   log.filterMap (fun | ⟨.inr i, t, u⟩ => some ⟨i, t, u⟩ | _ => none)
 
 /-- View a log for `spec₁` as one for `spec₁ ++ₒ spec₂` by inclusion. -/
-protected def lift_inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂) :=
+protected def inl (log : QueryLog spec₁) : QueryLog (spec₁ ++ₒ spec₂) :=
   log.map fun ⟨i, t, u⟩ => ⟨.inl i, t, u⟩
 
 /-- View a log for `spec₂` as one for `spec₁ ++ₒ spec₂` by inclusion. -/
-protected def lift_inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂) :=
+protected def inr (log : QueryLog spec₂) : QueryLog (spec₁ ++ₒ spec₂) :=
   log.map fun ⟨i, t, u⟩ => ⟨.inr i, t, u⟩
 
-instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.lift_inl⟩
-instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.lift_inr⟩
+instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.inl⟩
+instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.inr⟩
 
 end prod
 
@@ -154,8 +172,6 @@ end QueryLog
 end OracleSpec
 
 open Prod OracleSpec OracleComp
-
-#check Seq.seq
 
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
