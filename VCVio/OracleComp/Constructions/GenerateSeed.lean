@@ -30,11 +30,16 @@ def generateSeedT (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
     modify (QuerySeed.addValues (← ($ᵗ spec.range j).replicate (qc j)))
 
 /-- Generate a `QuerySeed` uniformly at random for some set of oracles `spec : OracleSpec ι`,
-with `qc i : ℕ` values seeded for each `i ∈ activeOracles`.
-Note that `activeOracles` is allowed to contain duplicates, but usually won't in practice. -/
+with `qc i : ℕ` values seeded for each index `i ∈ js`. Note that `js` is allowed to contain duplicates,
+but usually wouldn't in practice. -/
 def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
-    (qc : ι → ℕ) (activeOracles : List ι) : ProbComp (QuerySeed spec) :=
-  Prod.snd <$> (generateSeedT spec qc activeOracles).run ∅
+    (qc : ι → ℕ) (js : List ι) : ProbComp (QuerySeed spec) := do
+  let mut seed : QuerySeed spec := ∅
+  for j in js do
+    seed := seed.addValues (← ($ᵗ spec.range j).replicate (qc j))
+  return seed
+
+  -- Prod.snd <$> (generateSeedT spec qc activeOracles).run ∅
 -- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   (qc : ι → ℕ) (j : ι) (js : List ι)
 

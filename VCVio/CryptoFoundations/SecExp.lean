@@ -52,7 +52,7 @@ The expirement is considered successfull unless it terminates with `failure`.
 This is usually based off of `guard` statements but can be anything.
 
 TODO: evaluate whether this simplifies things for users in practice. -/
-structure SecExp {ι : Type u} (spec : OracleSpec ι) (em : Type → Type w)
+structure SecExp {ι : Type u} (spec : OracleSpec ι) (em : Type v → Type w)
     extends ExecutionMethod spec em where
   main : OracleComp spec Unit
 

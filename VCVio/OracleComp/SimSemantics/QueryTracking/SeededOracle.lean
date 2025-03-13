@@ -18,13 +18,15 @@ This simplifies a number of lemmas by making the computation revert to its origi
 
 open OracleComp OracleSpec BigOperators
 
-variable {ι : Type} {spec : OracleSpec ι}
+universe u v w
+
+variable {ι : Type u} {spec : OracleSpec ι}
 
 namespace OracleSpec
 
 /-- Type to represent a store of seed values to use in a computation, represented as a function.
 Updates to individual seed lists are performed via continuation passing. -/
-def QuerySeed (spec : OracleSpec ι) : Type :=
+def QuerySeed (spec : OracleSpec ι) : Type u :=
   (i : ι) → List (spec.range i)
 
 namespace QuerySeed

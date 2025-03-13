@@ -32,7 +32,7 @@ doesn't affect the underlying probability distribution of the computation.
 Informally, `spec ⊂ₒ superSpec` means that for any query to an oracle of `sub_spec`,
 it can be perfectly simulated by a computation using the oracles of `superSpec`.
 
-We avoid implementing this via the built-in subset type as we care about the actual data
+We avoid implementing this via the built-in subset notation as we care about the actual data
 of the mapping rather than just its existence, which is needed when defining type coercions. -/
 class SubSpec (spec : OracleSpec ι) (superSpec : OracleSpec τ)
   extends MonadLift (OracleQuery spec) (OracleQuery superSpec) where

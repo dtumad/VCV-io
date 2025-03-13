@@ -19,16 +19,28 @@ open OracleSpec OracleComp
 
 universe u v w
 
-structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι) (em : Type → Type v)
-    (M PK SK C : Type) extends ExecutionMethod spec em where
+structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι) (m : Type → Type v)
+    (M PK SK C : Type) extends ExecutionMethod spec m where
   keygen : OracleComp spec (PK × SK)
-  encrypt (m : M) (pk : PK) : OracleComp spec C
-  decrypt (c : C) (sk : SK) : OracleComp spec M
+  encrypt (pk : PK) (m : M) : OracleComp spec C
+  decrypt (sk : SK) (c : C) : OracleComp spec M
 
 namespace AsymmEncAlg
 
-variable {ι : Type} {spec : OracleSpec ι} {M PK SK C : Type}
-    {em : Type → Type v} [AlternativeMonad em] [LawfulAlternative em]
+variable {ι : Type} {spec : OracleSpec ι} {M PK SK C : Type} {m : Type → Type v}
+    [AlternativeMonad m] [LawfulAlternative m]
+
+section complete
+
+variable [DecidableEq M]
+
+/-- A `SymmEncAlg` is complete if decrypting an encrypted message always returns that original
+message, captured here by a `guard` statement. -/
+class Complete (encAlg : AsymmEncAlg spec m M PK SK C) : Prop where
+  decrypt_encrypt_eq_message (msg : M) : [= msg | encAlg.exec do
+    let (pk, sk) ← encAlg.keygen; encAlg.decrypt sk (← encAlg.encrypt pk msg)] = 1
+
+end complete
 
 section sound
 
@@ -48,24 +60,24 @@ section sound
 --     return m = m'
 --   __ := encAlg
 
-def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C)
-    (m : M) : SecExp spec em where
-  main := do
-    let (pk, sk) ← encAlg.keygen
-    let σ ← encAlg.encrypt m pk
-    let m' ← encAlg.decrypt σ sk
-    guard (m' = m)
-  __ := encAlg
+-- def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec m M PK SK C)
+--     (msg : M) : SecExp spec m where
+--   main := do
+--     let (pk, sk) ← encAlg.keygen
+--     let σ ← encAlg.encrypt pk msg
+--     -- let msg' ← encAlg.decrypt σ sk
+--     guard ((← encAlg.decrypt sk σ) = msg)
+--   __ := encAlg
 
--- def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C) : Prop :=
---   ∀ m : M, (soundnessExp encAlg m).advantage = 1
+-- -- def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C) : Prop :=
+-- --   ∀ m : M, (soundnessExp encAlg m).advantage = 1
 
-def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C) : Prop :=
-    ∀ m : M, [⊥ | encAlg.exec do
-      let (pk, sk) ← encAlg.keygen
-      let σ ← encAlg.encrypt m pk
-      let m' ← encAlg.decrypt σ sk
-      guard (m' = m)] = 0
+-- def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec m M PK SK C) : Prop :=
+--     ∀ m : M, [⊥ | encAlg.exec do
+--       let (pk, sk) ← encAlg.keygen
+--       let σ ← encAlg.encrypt m pk
+--       let m' ← encAlg.decrypt σ sk
+--       guard (m' = m)] = 0
 
 
 -- namespace soundnessExp
@@ -100,7 +112,7 @@ it can distinguish the encryption of. It addionally has a `distinguish` function
 that given a pair of messages and an encryption, returns whether it is an encryption of
 the first message or the second message.
 TODO: should use sim oracles to allow state sharing -/
-structure IND_CPA_Adv (encAlg : AsymmEncAlg spec em M PK SK C)
+structure IND_CPA_Adv (encAlg : AsymmEncAlg spec m M PK SK C)
     extends SecAdv spec PK (M × M) where
   distinguish : PK → M × M → C → OracleComp spec Bool
 
@@ -111,15 +123,15 @@ the boolean chosen in `inp_gen`, finally asking the adversary to determine the b
 given the messages and resulting ciphertext. `is_valid` checks that this choice is correct.
 The simulation oracles are pulled in directly from the encryption algorithm. -/
 def IND_CPA_Exp [unifSpec ⊂ₒ spec]
-    {encAlg : AsymmEncAlg spec em M PK SK C}
+    {encAlg : AsymmEncAlg spec m M PK SK C}
     (adv : IND_CPA_Adv encAlg) :
-    SecExp spec em where
+    SecExp spec m where
   main := do
     let (pk, _) ← encAlg.keygen
     let (m₁, m₂) ← adv.run pk
     let b : Bool ←$ᵗ Bool
     let m := if b then m₁ else m₂
-    let c ← encAlg.encrypt m pk
+    let c ← encAlg.encrypt pk m
     let b' ← adv.distinguish pk (m₁, m₂) c
     guard (b = b')
   __ := encAlg

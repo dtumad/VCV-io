@@ -15,43 +15,33 @@ import VCVio.OracleComp.Coercions.Append
 
 open OracleSpec OracleComp Option ENNReal Function
 
--- structure ForkAdv {ι : Type} (spec : OracleSpec ι) (α β : Type) (i : ι)
---     extends SecAdv spec α β where
---   chooseFork : α → β → Option (Fin (queryBound i + 1))
-
--- namespace ForkAdv
-
--- variable {spec : OracleSpec} [∀ j, SelectableType (spec.range j)]
---   [unifSpec ⊂ₒ spec] {α β : Type} {i : spec.ι}
-
--- def seedAndRun (adv : ForkAdv spec α β i)
---     (x : α) (initSeed : QuerySeed spec) :
---   OracleComp spec (β × QuerySeed spec) := do
---     let missingCount := adv.queryBound - (λ i ↦ (initSeed i).length)
---     let freshSeed : QuerySeed spec ← generateSeed missingCount adv.activeOracles
---     let fullSeed := λ i ↦ initSeed i ++ freshSeed i
---     let z ← simulate' seededOracle fullSeed <| adv.run x
---     return (z, fullSeed)
-
--- end ForkAdv
-
 namespace OracleComp
 
--- variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} [∀ j, SelectableType (spec.range j)]
---   [unifSpec ⊂ₒ spec] {α β : Type} {i : ι}
+variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι}
+  [∀ i, SelectableType (spec.range i)] [spec.DecidableEq] [unifSpec ⊂ₒ spec]
+  {α β γ : Type}
 
-variable {ι : Type} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type}
+structure forkInput (spec : OracleSpec ι) (α : Type) where
+  /-- The main program to fork execution of -/
+  main : OracleComp spec α
+  /-- A bound on the number of queries the adversary makes-/
+  queryBound : ι → ℕ
+  /-- Specifies the index of which oracle should be forked. -/
+  i : ι
+  /-- List of oracles that are queried during computation (used to order seed generation). -/
+  activeOracles : List ι
+  /-- Function that picks out an index of where to do the forking. -/
+  chooseFork : α → QueryLog spec → Option (Fin (queryBound i + 1))
 
-variable [∀ i, SelectableType (spec.range i)] [spec.DecidableEq]
-
-def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
-    (activeOracles : List ι) (i : ι)
-    (cf : α → QueryLog spec → Option (Fin (qb i + 1))) :
-    OracleComp spec ((α × α × Fin (qb i + 1))) := do
+def fork (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
+    (js : List ι) (cf : α → QueryLog spec → Option (Fin (qb i + 1))) :
+    OracleComp spec (α × α) := do
+  -- let ⟨main, qb, i, activeOracles, cf⟩ := input
   -- Choose a random query index `s` at which to fork the execution
   let s : Fin (qb i + 1) ← $[0..qb i]
+  let qb' : ι → ℕ := update qb i s
   -- Generate a shared seed for the initial execution
-  let sharedSeed : QuerySeed spec ← generateSeed spec (update qb i s) activeOracles
+  let sharedSeed : QuerySeed spec ← generateSeed spec qb' js
   -- Generate the query outputs for the query to be forked
   let u₁ ←$ᵗ spec.range i
   let u₂ ←$ᵗ spec.range i
@@ -59,24 +49,29 @@ def fork [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
   let seed₁ := sharedSeed.addValue i u₁
   let seed₂ := sharedSeed.addValue i u₂
   -- Execute the program with the two slightly different seeds
-  let (x₁, log₁) ← (simulateQ loggingOracle <| (simulateQ seededOracle oa).run' seed₁).run
-  let (x₂, log₂) ← (simulateQ loggingOracle <| (simulateQ seededOracle oa).run' seed₂).run
+  let (x₁, log₁) ← (simulateQ loggingOracle <| (simulateQ seededOracle main).run' seed₁).run
+  let (x₂, log₂) ← (simulateQ loggingOracle <| (simulateQ seededOracle main).run' seed₂).run
   -- Check that `cf` chooses to fork at `s` in both cases
   guard (cf x₁ log₁ = some s ∧ cf x₂ log₂ = some s)
-  return (x₁, x₂, s)
+  return (x₁, x₂)
 
-variable [unifSpec ⊂ₒ spec] (oa : OracleComp spec α) (qb : ι → ℕ)
+/-- Call fork using the fields of a `forkInput` structure. -/
+def fork_input (input : forkInput spec α) : OracleComp spec (α × α) :=
+  fork input.main input.i input.queryBound input.activeOracles input.chooseFork
+
+variable [unifSpec ⊂ₒ spec] (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι)
     (cf : α → QueryLog spec → Option (Fin (qb i + 1)))
+    (input : forkInput spec α)
 
 /-- Proof of non-negligible lower bound on the failure chance of forking a computation
 succeeding in producing a result. By the filtering in the final `ite` this bounds the
 chance of getting a result with the desired forking semantics. -/
 theorem probFailure_fork_le [spec.FiniteRange] :
-    let acc := [λ (x, log) ↦ (cf x log).isSome | (simulateQ loggingOracle oa).run]
-    let q : ℝ≥0∞ := qb i
-    let h : ℝ≥0∞ := Fintype.card (spec.range i)
-    [⊥ | fork oa qb js i cf] ≤ 1 / h + (acc / q) ^ 2 := by
+    let acc := [λ (x, log) ↦ (input.cf x log).isSome | (simulateQ loggingOracle input.main).run]
+    let q : ℝ≥0∞ := input.qb input.i
+    let h : ℝ≥0∞ := Fintype.card (spec.range input.i)
+    [⊥ | fork input] ≤ 1 / h + (acc / q) ^ 2 := by
   sorry -- TODO: proof after change to "guard"
 
 -- /-- Succesfull outputs of `fork oa qb js i cf` are outputs of running `oa` with a seeded oracle
@@ -98,7 +93,7 @@ Weaker than the full characterization of the `support` of fork,
 but often more useful in practice -/
 theorem exists_log_of_mem_support_fork (x₁ x₂ : α) (s : Fin (qb i + 1))
     (hcf : ∀ x log, (cf x log).isSome → ↑s < log.countQ i)
-    (h : (x₁, x₂, s) ∈ ((fork oa qb js i cf)).support) :
+    (h : (x₁, x₂, s) ∈ ((fork  qb js i cf)).support) :
     ∃ log₁ : QueryLog spec, ∃ log₂ : QueryLog spec,
       ∃ h₁ : cf x₁ log₁ = some s, ∃ h₂ : cf x₂ log₂ = some s,
       let hcf₁ : ↑s < log₁.countQ i := hcf x₁ log₁ (h₁ ▸ isSome_some)

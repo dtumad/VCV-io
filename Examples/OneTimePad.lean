@@ -28,9 +28,9 @@ namespace oneTimePad
 
 @[simp] lemma toQueryImpl_eq (n : ℕ) : (oneTimePad n).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
 
-@[simp] lemma toExecutionMethod (n : ℕ) : (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
+@[simp] lemma toExecutionMethod_eq (n : ℕ) : (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
 
-theorem Complete (n : ℕ) : (oneTimePad n).Complete := by
-  simp [SymmEncAlg.Complete_def]
+/-- Encryption and decryption are inverses for any OTP key. -/
+instance complete (n : ℕ) : (oneTimePad n).Complete := ⟨by simp⟩
 
 end oneTimePad

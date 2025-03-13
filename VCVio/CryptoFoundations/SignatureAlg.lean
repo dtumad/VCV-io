@@ -24,11 +24,11 @@ open OracleSpec OracleComp
 where `M` is the space of messages, `PK`/`SK` are the spaces of the public/private keys,
 and `S` is the type of the final signature.
 `em` is the execution monad used in the implementation of the oracles. -/
-structure SignatureAlg {ι : Type} (spec : OracleSpec ι) (em : Type → Type)
-    (M PK SK S : Type) extends ExecutionMethod spec em where
+structure SignatureAlg {ι : Type u} (spec : OracleSpec ι) (m : Type → Type v)
+    (M PK SK S : Type) extends ExecutionMethod spec m where
   keygen : OracleComp spec (PK × SK)
-  sign (pk : PK) (sk : SK) (m : M) : OracleComp spec S
-  verify (pk : PK) (m : M) (s : S) : OracleComp spec Bool
+  sign (pk : PK) (sk : SK) (msg : M) : OracleComp spec S
+  verify (pk : PK) (msg : M) (σ : S) : OracleComp spec Bool
 
 namespace SignatureAlg
 
