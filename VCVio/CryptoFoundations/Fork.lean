@@ -59,19 +59,17 @@ def fork (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
 def fork_input (input : forkInput spec α) : OracleComp spec (α × α) :=
   fork input.main input.i input.queryBound input.activeOracles input.chooseFork
 
-variable [unifSpec ⊂ₒ spec] (main : OracleComp spec α) (qb : ι → ℕ)
-    (js : List ι) (i : ι)
-    (cf : α → QueryLog spec → Option (Fin (qb i + 1)))
-    (input : forkInput spec α)
+variable [unifSpec ⊂ₒ spec] (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
+    (js : List ι) (cf : α → QueryLog spec → Option (Fin (qb i + 1)))
 
 /-- Proof of non-negligible lower bound on the failure chance of forking a computation
 succeeding in producing a result. By the filtering in the final `ite` this bounds the
 chance of getting a result with the desired forking semantics. -/
 theorem probFailure_fork_le [spec.FiniteRange] :
-    let acc := [λ (x, log) ↦ (input.cf x log).isSome | (simulateQ loggingOracle input.main).run]
-    let q : ℝ≥0∞ := input.qb input.i
-    let h : ℝ≥0∞ := Fintype.card (spec.range input.i)
-    [⊥ | fork input] ≤ 1 / h + (acc / q) ^ 2 := by
+    let acc := [λ (x, log) ↦ (cf x log).isSome | (simulateQ loggingOracle main).run]
+    let q : ℝ≥0∞ := qb i
+    let h : ℝ≥0∞ := Fintype.card (spec.range i)
+    [⊥ | fork main i qb js cf] ≤ 1 / h + (acc / q) ^ 2 := by
   sorry -- TODO: proof after change to "guard"
 
 -- /-- Succesfull outputs of `fork oa qb js i cf` are outputs of running `oa` with a seeded oracle
@@ -92,15 +90,15 @@ framed in terms of `loggingOracle` instead of `seededOracle`.
 Weaker than the full characterization of the `support` of fork,
 but often more useful in practice -/
 theorem exists_log_of_mem_support_fork (x₁ x₂ : α) (s : Fin (qb i + 1))
-    (hcf : ∀ x log, (cf x log).isSome → ↑s < log.countQ i)
-    (h : (x₁, x₂, s) ∈ ((fork  qb js i cf)).support) :
+    (hcf : ∀ x log, (cf x log) = some s → ↑s < log.countQ i)
+    (h : (x₁, x₂) ∈ ((fork main i qb js cf)).support) :
     ∃ log₁ : QueryLog spec, ∃ log₂ : QueryLog spec,
       ∃ h₁ : cf x₁ log₁ = some s, ∃ h₂ : cf x₂ log₂ = some s,
-      let hcf₁ : ↑s < log₁.countQ i := hcf x₁ log₁ (h₁ ▸ isSome_some)
-      let hcf₂ : ↑s < log₂.countQ i := hcf x₂ log₂ (h₂ ▸ isSome_some)
-      ((log₁.getQ i)[s]'hcf₁).1 = ((log₂.getQ i)[s]'hcf₂).1 ∧
-      ((log₁.getQ i)[s]'hcf₁).2 ≠ ((log₂.getQ i)[s]'hcf₂).2 ∧
-      (x₁, log₁) ∈ (simulateQ loggingOracle oa).run.support ∧
-      (x₂, log₂) ∈ (simulateQ loggingOracle oa).run.support := sorry -- TODO: proof after guard ch
+      let hcf₁ : ↑s < log₁.countQ i := hcf x₁ log₁ h₁
+      let hcf₂ : ↑s < log₂.countQ i := hcf x₂ log₂ h₂
+      (log₁.getQ i)[s].1 = (log₂.getQ i)[s].1 ∧
+      (log₁.getQ i)[s].2 ≠ (log₂.getQ i)[s].2 ∧
+      (x₁, log₁) ∈ (simulateQ loggingOracle main).run.support ∧
+      (x₂, log₂) ∈ (simulateQ loggingOracle main).run.support := sorry -- TODO: proof after guard ch
 
 end OracleComp
