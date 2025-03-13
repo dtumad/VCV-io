@@ -18,4 +18,5 @@ import ToMathlib.Control.RelativeMonad
 import ToMathlib.Control.StateT
 import ToMathlib.Control.WriterT
 import ToMathlib.General
+import ToMathlib.OrderEnrichedCategory
 import ToMathlib.ProbabilityTheory.Coupling
