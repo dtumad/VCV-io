@@ -24,7 +24,7 @@ structure SymmEncAlg {ι : Type w} (spec : OracleSpec ι) (em : Type → Type v)
     extends ExecutionMethod spec em where
   keygen : OracleComp spec K
   encrypt (k : K) (m : M) : OracleComp spec C
-  decrypt (k : K) (c : C) : OracleComp spec M
+  decrypt : K → C → Option M
 
 namespace SymmEncAlg
 
@@ -35,25 +35,36 @@ section sound
 
 variable [DecidableEq M]
 
-/-- Experiment to check that an encryption and decryption are inverses of each other. -/
-@[simp] def soundnessExp (encAlg : SymmEncAlg spec em M K C)
-    (m : M) : SecExp spec em where
-  main := do
-    let k ← encAlg.keygen
-    let σ ← encAlg.encrypt k m
-    let m' ← encAlg.decrypt k σ
-    guard (m' = m)
-  __ := encAlg
+/-- A `SymmEncAlg` is complete if decrypting an encrypted message always returns that original
+message, captured here by a `guard` statement. -/
+class Complete (encAlg : SymmEncAlg spec em M K C) : Prop where
+  decrypt_encrypt_eq_message (m : M) : [⊥ | encAlg.exec
+    do let k ← encAlg.keygen; guard (encAlg.decrypt k (← encAlg.encrypt k m) = m)] = 0
 
-/-- A symmetric encryption algorithm is complete if correctly generated ciphertexts
-always decrypt to the original plaintext. -/
-def isComplete (encAlg : SymmEncAlg spec em M K C) : Prop :=
-  ∀ m : M, (soundnessExp encAlg m).advantage = 1
-
-lemma isComplete_iff_forall (encAlg : SymmEncAlg spec em M K C) : encAlg.isComplete ↔
-    ∀ m : M, noFailure (encAlg.exec (soundnessExp encAlg m).main) := by
-  simp [isComplete]
+lemma Complete_def (encAlg : SymmEncAlg spec em M K C) : encAlg.Complete ↔ ∀ m, [⊥ | encAlg.exec
+    do let k ← encAlg.keygen; guard (encAlg.decrypt k (← encAlg.encrypt k m) = m)] = 0 :=
+  ⟨fun ⟨h⟩ => h, fun h => ⟨h⟩⟩
 
 end sound
+
+section perfectSecrecy
+
+open ENNReal
+
+def perfectSecrecy (encAlg : SymmEncAlg spec em M K C) : Prop :=
+  ∀ message_dist : OracleComp spec M, ∀ m : M, ∀ σ : C,
+    [= (m, σ) | encAlg.exec do
+      let m' ← message_dist; (m', ·) <$> encAlg.encrypt (← encAlg.keygen) m'] =
+    [= m | encAlg.exec message_dist]
+
+-- /-- Shanon's theorem on perfect secrecy, showing that encryption and decryption must be non-probabalistic
+-- bijections between message and cipher-text space, and that keys must be chosen uniformly at random. -/
+-- theorem perfectSecrecy_iff_of_card_eq [Fintype M] [Fintype K] [Fintype C]
+--     (encAlg : SymmEncAlg spec em M K C)
+--     (h1 : Fintype.card M = Fintype.card K) (h2 : Fintype.card K = Fintype.card C) :
+--     encAlg.perfectSecrecy ↔ (∀ k, [= k | encAlg.exec encAlg.keygen] = (Fintype.card K : ℝ≥0∞)⁻¹) ∧
+--     (∀ m c, ∃! k, k ∈ (encAlg.keygen ()).support ∧ se_alg.encrypt (m, k) = c)
+
+end perfectSecrecy
 
 end SymmEncAlg

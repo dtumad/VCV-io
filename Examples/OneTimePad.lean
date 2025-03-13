@@ -30,7 +30,7 @@ namespace oneTimePad
 
 @[simp] lemma toExecutionMethod (n : ℕ) : (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
 
-theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
-  fun m => by simp [SymmEncAlg.isComplete]
+theorem Complete (n : ℕ) : (oneTimePad n).Complete := by
+  simp [SymmEncAlg.Complete_def]
 
 end oneTimePad
