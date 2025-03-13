@@ -212,8 +212,6 @@ lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
     noFailure (simulateQ loggingOracle oa).run ↔ noFailure oa :=
   noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
 
-instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
-    noFailure (simulateQ loggingOracle oa).run := by
-  rwa [noFailure_run_simulateQ_iff]
+alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
 
 end loggingOracle

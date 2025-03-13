@@ -56,8 +56,15 @@ def single (i : ι) : QueryCount spec := Function.update 0 i 1
 
 @[simp]
 lemma single_le_iff_pos (i : ι) (qc : QueryCount spec) :
-    single i ≤ qc ↔ 0 < qc i :=
-  sorry
+    single i ≤ qc ↔ 0 < qc i := by
+  simp [single, update, Pi.hasLe]
+  constructor <;> intro h
+  · have : 1 ≤ qc i := by simpa using h i
+    exact this
+  · intro j
+    by_cases hj : j = i
+    · simp [hj]; omega
+    · simp [hj]
 
 end single
 
@@ -99,9 +106,7 @@ lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
     noFailure (simulateQ countingOracle oa).run ↔ noFailure oa :=
   noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
 
-instance noFailure_simulateQ (oa : OracleComp spec α) [noFailure oa] :
-    noFailure (simulateQ countingOracle oa).run := by
-  rwa [noFailure_run_simulateQ_iff]
+alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
 
 -- lemma run_simulateT_eq_run_simulateT_zero (oa : OracleComp spec α) (qc : ι → ℕ) :
 --     (simulateT countingOracle oa).run qc =
