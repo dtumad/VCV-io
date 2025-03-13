@@ -26,11 +26,11 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
 
 namespace oneTimePad
 
-theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
-  λ m ↦ by {
-    simp [SymmEncAlg.soundnessExp, oneTimePad]
+@[simp] lemma toQueryImpl_eq (n : ℕ) : (oneTimePad n).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
 
-    sorry
-  }
+@[simp] lemma toExecutionMethod (n : ℕ) : (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
+
+theorem isComplete (n : ℕ) : (oneTimePad n).isComplete :=
+  fun m => by simp [SymmEncAlg.isComplete]
 
 end oneTimePad

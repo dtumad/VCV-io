@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.DistSemantics.Prod
-import ToMathlib.General
+import ToMathlib.Control.OptionT
 
 /-!
 # Selecting Uniformly From a Collection
@@ -62,12 +62,7 @@ lemma uniformSelectList_nil : ($ ([] : List α) : ProbComp α) = failure := rfl
 lemma uniformSelectList_cons (x : α) (xs : List α) :
     ($ x :: xs : ProbComp α) = ((x :: xs)[·]) <$> $[0..xs.length] := rfl
 
-@[simp]
-lemma test {m : Type u → Type v} [Monad m]
-    {α : Type u} (x : m α) : (OptionT.lift x).run = x := rfl
-
-@[simp]
-lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) =
+@[simp] lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) =
     match xs with
     | [] => PMF.pure none
     | x :: xs => (PMF.uniformOfFintype (Fin xs.length.succ)).map (some (x :: xs)[·]) :=
@@ -76,11 +71,10 @@ lemma evalDist_uniformSelectList (xs : List α) : evalDist ($ xs) =
   | x :: xs => by
     apply OptionT.ext
     simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map, evalDist_liftM,
-      OptionT.run_map, test, PMF.monad_pure_eq_pure, PMF.monad_bind_eq_bind, Nat.succ_eq_add_one]
+      OptionT.run_map, OptionT.run_lift, PMF.monad_pure_eq_pure, PMF.monad_bind_eq_bind, Nat.succ_eq_add_one]
     simp [OptionT.run, PMF.monad_map_eq_map, PMF.map, Function.comp_def]
 
-@[simp]
-lemma support_uniformSelectList (xs : List α) :
+@[simp] lemma support_uniformSelectList (xs : List α) :
     ($ xs).support = if xs.isEmpty then ∅ else {y | y ∈ (xs)} :=
   match xs with
   | [] => rfl
@@ -89,8 +83,7 @@ lemma support_uniformSelectList (xs : List α) :
       List.mem_iff_get, List.length_cons, List.get_eq_getElem, Set.ext_iff, Set.mem_range,
       Set.mem_setOf_eq, implies_true]
 
-@[simp]
-lemma finSupport_uniformSelectList [DecidableEq α] (xs : List α) :
+@[simp] lemma finSupport_uniformSelectList [DecidableEq α] (xs : List α) :
     ($ xs).finSupport = if xs.isEmpty then ∅ else xs.toFinset :=
   match xs with
   | [] => rfl
@@ -99,22 +92,19 @@ lemma finSupport_uniformSelectList [DecidableEq α] (xs : List α) :
         List.isEmpty_cons, Bool.false_eq_true, if_false]
       refine Set.ext (λ y ↦ by simp)
 
-@[simp]
-lemma probOutput_uniformSelectList [DecidableEq α] (xs : List α) (x : α) :
+@[simp] lemma probOutput_uniformSelectList [DecidableEq α] (xs : List α) (x : α) :
     [= x | $ xs] = if xs.isEmpty then 0 else (xs.count x : ℝ≥0∞) / xs.length := match xs with
   | [] => by simp
   | y :: ys => by
     rw [List.count, ← List.countP_eq_sum_fin_ite]
     simp [uniformSelectList_cons, probOutput_map_eq_sum_fintype_ite, div_eq_mul_inv, @eq_comm _ x]
 
-@[simp]
-lemma probFailure_uniformSelectList (xs : List α) :
+@[simp] lemma probFailure_uniformSelectList (xs : List α) :
     [⊥ | $ xs] = if xs.isEmpty then 1 else 0 := match xs with
   | [] => by simp
   | y :: ys => by simp [uniformSelectList_cons]
 
-@[simp]
-lemma probEvent_uniformSelectList (xs : List α) (p : α → Prop) [DecidablePred p] :
+@[simp] lemma probEvent_uniformSelectList (xs : List α) (p : α → Prop) [DecidablePred p] :
     [p | $ xs] = if xs.isEmpty then 0 else (xs.countP p : ℝ≥0∞) / xs.length := match xs with
   | [] => by simp
   | y :: ys => by simp [← List.countP_eq_sum_fin_ite, uniformSelectList_cons,
@@ -197,20 +187,17 @@ lemma uniformSelectFinset_def {α : Type} [DecidableEq α] (s : Finset α) :
 
 variable {α : Type}
 
-@[simp]
-lemma support_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+@[simp] lemma support_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     ($ s).support = if s.Nonempty then ↑s else ∅ := by
   simp only [Finset.nonempty_iff_ne_empty, ne_eq, ite_not]
   split_ifs with hs <;> simp [hs, uniformSelectFinset_def]
 
-@[simp]
-lemma finSupport_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+@[simp] lemma finSupport_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     ($ s).finSupport = if s.Nonempty then s else ∅ := by
   split_ifs with hs <;> simp only [hs, finSupport_eq_iff_support_eq_coe,
     support_uniformSelectFinset, if_true, if_false, Finset.coe_singleton, Finset.coe_empty]
 
-@[simp]
-lemma probOutput_uniformSelectFinset [DecidableEq α] (s : Finset α) (x : α) :
+@[simp] lemma probOutput_uniformSelectFinset [DecidableEq α] (s : Finset α) (x : α) :
     [= x | $ s] = if x ∈ s then (s.card : ℝ≥0∞)⁻¹ else 0 := by
   rw [uniformSelectFinset_def, probOutput_uniformSelectList]
   by_cases hx : x ∈ s
@@ -219,16 +206,14 @@ lemma probOutput_uniformSelectFinset [DecidableEq α] (s : Finset α) (x : α) :
     simp [this, hx]
   · simp [hx]
 
-@[simp]
-lemma probFailure_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+@[simp] lemma probFailure_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     [⊥ | $ s] = if s.Nonempty then 0 else 1 := by
   simp_rw [Finset.nonempty_iff_ne_empty]
   split_ifs with hs
   · simp [hs, uniformSelectFinset_def]
   · simp [hs, uniformSelectFinset_def]
 
-@[simp]
-lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
+@[simp] lemma evalDist_uniformSelectFinset [DecidableEq α] (s : Finset α) :
     evalDist ($ s) = if hs : s.Nonempty then
       OptionT.lift (PMF.uniformOfFinset s hs) else failure := by
   refine PMF.ext λ x ↦ ?_
@@ -278,8 +263,7 @@ prefix : 90 "$ᵗ" => uniformOfFintype
 
 variable (α : Type) [hα : SelectableType α]
 
-@[simp]
-lemma probOutput_uniformOfFintype [Fintype α] (x : α) :
+@[simp] lemma probOutput_uniformOfFintype [Fintype α] (x : α) :
     [= x | $ᵗ α] = (Fintype.card α : ℝ≥0∞)⁻¹ := by
   have : (Fintype.card α : ℝ≥0∞) = ∑ y : α, 1 :=
     by simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one]
@@ -288,12 +272,12 @@ lemma probOutput_uniformOfFintype [Fintype α] (x : α) :
   rw [← sum_probOutput_eq_one ($ᵗ α) SelectableType.probFailure_selectElem]
   exact Finset.sum_congr rfl λ y _ ↦ SelectableType.probOutput_selectElem_eq x y
 
-@[simp]
-lemma probFailure_uniformOfFintype : [⊥ | $ᵗ α] = 0 :=
+@[simp] lemma probFailure_uniformOfFintype : [⊥ | $ᵗ α] = 0 :=
   SelectableType.probFailure_selectElem
 
-@[simp]
-lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
+@[simp] instance : noFailure ($ᵗ α) := noFailure_of_probFailure_eq_zero (probFailure_uniformOfFintype α)
+
+@[simp] lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
     evalDist ($ᵗ α) = OptionT.lift (PMF.uniformOfFintype α) := by
   refine OptionT.ext ?_
   simp
@@ -305,18 +289,15 @@ lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
       · simp [@eq_comm _ x]
       · simp
 
-@[simp]
-lemma support_uniformOfFintype : ($ᵗ α).support = Set.univ := by
+@[simp] lemma support_uniformOfFintype : ($ᵗ α).support = Set.univ := by
   simp only [Set.ext_iff, Set.mem_univ, iff_true]
   apply SelectableType.mem_support_selectElem
 
-@[simp]
-lemma finSupport_uniformOfFintype [Fintype α] [DecidableEq α] :
+@[simp] lemma finSupport_uniformOfFintype [Fintype α] [DecidableEq α] :
     ($ᵗ α).finSupport = Finset.univ := by
   simp only [finSupport_eq_iff_support_eq_coe, support_uniformOfFintype, Finset.coe_univ]
 
-@[simp]
-lemma probEvent_uniformOfFintype [Fintype α] (p : α → Prop) [DecidablePred p] :
+@[simp] lemma probEvent_uniformOfFintype [Fintype α] (p : α → Prop) [DecidablePred p] :
     [p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α := by
   simp only [probEvent_eq_sum_filter_univ, probOutput_uniformOfFintype, Finset.sum_const,
     nsmul_eq_mul, div_eq_mul_inv]

@@ -36,7 +36,7 @@ section sound
 variable [DecidableEq M]
 
 /-- Experiment to check that an encryption and decryption are inverses of each other. -/
-def soundnessExp (encAlg : SymmEncAlg spec em M K C)
+@[simp] def soundnessExp (encAlg : SymmEncAlg spec em M K C)
     (m : M) : SecExp spec em where
   main := do
     let k ← encAlg.keygen
@@ -49,6 +49,10 @@ def soundnessExp (encAlg : SymmEncAlg spec em M K C)
 always decrypt to the original plaintext. -/
 def isComplete (encAlg : SymmEncAlg spec em M K C) : Prop :=
   ∀ m : M, (soundnessExp encAlg m).advantage = 1
+
+lemma isComplete_iff_forall (encAlg : SymmEncAlg spec em M K C) : encAlg.isComplete ↔
+    ∀ m : M, noFailure (encAlg.exec (soundnessExp encAlg m).main) := by
+  simp [isComplete]
 
 end sound
 

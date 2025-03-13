@@ -906,6 +906,12 @@ lemma probFailure_eq_zero_iff (oa : OracleComp spec α) : [⊥ | oa] = 0 ↔ oa.
 lemma probFailure_pos_iff (oa : OracleComp spec α) : 0 < [⊥ | oa] ↔ ¬ oa.noFailure := by
   rw [pos_iff_ne_zero, ne_eq, probFailure_eq_zero_iff]
 
+lemma noFailure_of_probFailure_eq_zero {oa : OracleComp spec α} (h : [⊥ | oa] = 0) : noFailure oa := by
+  rwa [← probFailure_eq_zero_iff]
+
+lemma not_noFailure_of_probFailure_pos {oa : OracleComp spec α} (h : 0 < [⊥ | oa]) : ¬ noFailure oa := by
+  rwa [← probFailure_pos_iff]
+
 end noFailure
 
 section eqRec
