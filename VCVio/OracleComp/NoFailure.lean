@@ -45,11 +45,7 @@ lemma noFailure_query (q : OracleQuery spec α) : noFailure (q : OracleComp spec
 
 @[simp]
 lemma noFailure_query_bind_iff {q : OracleQuery spec α} {oa : α → OracleComp spec β} :
-    (liftM q >>= oa).noFailure ↔ ∀ x, noFailure (oa x) := by
-  simp [liftM, monadLift, MonadLift.monadLift, lift, OptionT.lift, OptionT.mk, bind, OptionT.bind]
-  rw [noFailure_eq_freeMonad_construct]
-  unfold FreeMonad.construct
-  exact Eq.to_iff (by simp_rw [noFailure_eq_freeMonad_construct])
+    (liftM q >>= oa).noFailure ↔ ∀ x, noFailure (oa x) := Iff.rfl
 
 alias ⟨noFailure_query_bind, _⟩ := noFailure_query_bind_iff
 
@@ -62,11 +58,7 @@ lemma noFailure_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec 
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | failure => simp
-  | query_bind _ _ r ih =>
-    simp [ih]
-    constructor <;> intro h
-    · exact ⟨fun x => (h x).1, fun a x h' => (h x).2 a h'⟩
-    · exact fun x => ⟨h.1 x, fun a h' => h.2 a x h'⟩
+  | query_bind _ _ r ih => simp [ih, forall_and]; tauto
 
 alias ⟨noFailure_bind, _⟩ := noFailure_bind_iff
 
@@ -78,13 +70,12 @@ lemma noFailure_map_iff (oa : OracleComp spec α) (f : α → β) :
 
 @[simp]
 instance {α : Type u} [spec.FiniteRange] : DecidablePred (@OracleComp.noFailure _ spec α) :=
-  fun oa => by induction oa using OracleComp.construct with
+  fun oa => by induction oa using OracleComp.construct' with
   | pure x =>
       refine Decidable.isTrue (noFailure_pure x)
   | failure =>
       refine Decidable.isFalse not_noFailure_failure
-  | query_bind q _ r =>
-      cases q
+  | query_bind i t _ r =>
       simp only [noFailure_bind_iff, noFailure_query, support_liftM, Set.mem_univ, forall_const, true_and]
       exact Fintype.decidableForallFintype
 
