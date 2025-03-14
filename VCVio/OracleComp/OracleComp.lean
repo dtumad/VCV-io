@@ -504,4 +504,53 @@ protected instance instDecidableEq [spec.FiniteRange] [hd : ∀ i, DecidableEq (
         | ⟨h1, h2, _⟩ => @congr_heq _ _ ι OracleQuery.index OracleQuery.index
             (query i t) (query i' t') (h1 ▸ HEq.rfl) h2
 
+section when
+
+def supportWhen (oa : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Set α := by
+  induction oa using OracleComp.construct with
+  | pure x => exact {x}
+  | query_bind q _ f => exact ⋃ u ∈ possible_outputs q, f u
+  | failure => exact ∅
+
+/-- All the given predicates hold on a computation when queries respond with
+elements of `possible_outputs q` for every query `q` -/
+def allWhen (oa : OracleComp spec α) (pure_pred : {α : Type v} → α → Prop)
+    (query_pred : {α : Type v} → OracleQuery spec α → Prop) (fail_pred : Prop)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop := by
+  induction oa using OracleComp.construct with
+  | pure x => exact pure_pred x
+  | failure => exact fail_pred
+  | query_bind q _ r => exact query_pred q ∧ ∀ x ∈ possible_outputs q, r x
+
+/-- `oa` never fails if when responses to queries `q` are in `possible_outputs q`. -/
+def neverFailWhen (oa : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop :=
+  oa.allWhen (fun _ => True) (fun _ => True) False possible_outputs
+
+/-- `oa` never fails even when queries can output any possible value. -/
+def neverFail (oa : OracleComp spec α) : Prop :=
+  oa.neverFailWhen fun _ => Set.univ
+
+-- Versions below could be explicit rather than use `¬`
+
+/-- One of the given predicates hold on a computation when queries respond with
+elements of `possible_outputs q` for every query `q` -/
+def anyWhen (oa : OracleComp spec α) (pure_pred : {α : Type v} → α → Prop) (fail_pred : Prop)
+    (query_pred : {α : Type v} → OracleQuery spec α → Prop)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop :=
+  ¬ oa.allWhen (fun x => ¬ pure_pred x) (fun q => (¬ query_pred q))
+      (¬ fail_pred) possible_outputs
+
+/-- `oa` might fail when responses to queries `q` are in `possible_outputs q`-/
+def mayFailWhen (oa : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop :=
+  ¬ neverFailWhen oa possible_outputs
+
+/-- `oa` might fail if queries can output any possible value. -/
+def mayFail (oa : OracleComp spec α) : Prop := ¬ oa.neverFail
+
+end when
+
+
 end OracleComp
