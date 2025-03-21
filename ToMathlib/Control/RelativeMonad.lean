@@ -153,7 +153,7 @@ end CategoryTheory
 
 /-! ## Old stuff below.
 
-Turns out one cannot just work with `Type u → Type v`, since in the relational context, the relative
+Turns out one cannot just work with `Type u → Type v`, since in the relational context, relative
 relational specification monad actually has signature `Type u₁ × Type u₂ → Type v₁ × Type v₂`. This
 means that we have to develop the general theory at the category-theoretic level.
 
@@ -358,7 +358,8 @@ instance [RelativeMonad Id m] [LawfulRelativeMonad Id m] : LawfulMonad m where
   pure_seq g x := by simp only [instMonadOfRelativeMonadId, pure_bindᵣ]
   bind_pure_comp f x := by simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]; sorry
   bind_map f x := by simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]
-  pure_bind x f := by simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId, pure_bindᵣ]
+  pure_bind x f := by
+    simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId, pure_bindᵣ]
   bind_assoc x f g := by simp only [instMonadOfRelativeMonadId, bind_assocᵣ, Id]
 
 end Lawful

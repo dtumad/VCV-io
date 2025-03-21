@@ -59,16 +59,16 @@ lemma evalDist_liftM [Nonempty α] [Fintype α] (q : OracleQuery spec α) :
   refine congr_arg Finset.card (Finset.ext λ _ ↦ by simp)
 
 @[simp]
-lemma evalDist_query (i : ι) (t : spec.domain i) :
-    evalDist (query i t : OracleComp spec _) = OptionT.lift (PMF.uniformOfFintype (spec.range i)) :=
-  simulateQ_query _ _
+lemma evalDist_query (i : ι) (t : spec.domain i) : evalDist (query i t : OracleComp spec _) =
+    OptionT.lift (PMF.uniformOfFintype (spec.range i)) := simulateQ_query _ _
 
 @[simp]
 lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := simulateQ_failure _
 
 @[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by simp [evalDist, Function.comp_def]
+    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by
+  simp [evalDist, Function.comp_def]
 
 lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
     evalDist ((query i t : OracleComp spec _) >>= ou) =
@@ -906,11 +906,11 @@ lemma probFailure_eq_zero_iff (oa : OracleComp spec α) : [⊥ | oa] = 0 ↔ oa.
 lemma probFailure_pos_iff (oa : OracleComp spec α) : 0 < [⊥ | oa] ↔ ¬ oa.noFailure := by
   rw [pos_iff_ne_zero, ne_eq, probFailure_eq_zero_iff]
 
-lemma noFailure_of_probFailure_eq_zero {oa : OracleComp spec α} (h : [⊥ | oa] = 0) : noFailure oa := by
-  rwa [← probFailure_eq_zero_iff]
+lemma noFailure_of_probFailure_eq_zero {oa : OracleComp spec α} (h : [⊥ | oa] = 0) :
+    noFailure oa := by rwa [← probFailure_eq_zero_iff]
 
-lemma not_noFailure_of_probFailure_pos {oa : OracleComp spec α} (h : 0 < [⊥ | oa]) : ¬ noFailure oa := by
-  rwa [← probFailure_pos_iff]
+lemma not_noFailure_of_probFailure_pos {oa : OracleComp spec α} (h : 0 < [⊥ | oa]) :
+    ¬ noFailure oa := by rwa [← probFailure_pos_iff]
 
 end noFailure
 

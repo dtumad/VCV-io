@@ -53,13 +53,14 @@ def perfectSecrecy (encAlg : SymmEncAlg spec m M K C) : Prop :=
       let msg' ← mgen; (msg', ·) <$> encAlg.encrypt (← encAlg.keygen) msg'] =
     [= msg | encAlg.exec mgen]
 
--- /-- Shanon's theorem on perfect secrecy, showing that encryption and decryption must be non-probabalistic
--- bijections between message and cipher-text space, and that keys must be chosen uniformly at random. -/
--- theorem perfectSecrecy_iff_of_card_eq [Fintype M] [Fintype K] [Fintype C]
---     (encAlg : SymmEncAlg spec em M K C) [encAlg.Complete]
---     (h1 : Fintype.card M = Fintype.card K) (h2 : Fintype.card K = Fintype.card C) :
---     encAlg.perfectSecrecy ↔ (∀ k, [= k | encAlg.exec encAlg.keygen] = (Fintype.card K : ℝ≥0∞)⁻¹) ∧
---     (∀ m c, ∃! k, k ∈ (encAlg.keygen ()).support ∧ se_alg.encrypt (m, k) = c)
+/-- Shanon's theorem on perfect secrecy, showing that encryption and decryption must be determined
+bijections between message and cipher-text space, and that keys must be chosen uniformly. -/
+theorem perfectSecrecy_iff_of_card_eq [Fintype M] [Fintype K] [Fintype C]
+    (encAlg : SymmEncAlg spec m M K C) [encAlg.Complete]
+    (h1 : Fintype.card M = Fintype.card K) (h2 : Fintype.card K = Fintype.card C) :
+    encAlg.perfectSecrecy ↔ (∀ k, [= k | encAlg.exec encAlg.keygen] = (Fintype.card K : ℝ≥0∞)⁻¹) ∧
+    (∀ m c, ∃! k, k ∈ encAlg.keygen.support ∧ encAlg.encrypt k m = c) :=
+  sorry
 
 end perfectSecrecy
 

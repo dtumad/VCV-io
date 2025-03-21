@@ -43,7 +43,8 @@ lemma isQueryBound_mono {oa : OracleComp spec α} (qb : ι → ℕ) {qb' : ι �
   λ qc hqc ↦ le_trans (h' qc hqc) h
 
 lemma isQueryBound_iff_probEvent [spec.FiniteRange] {oa : OracleComp spec α} {qb : ι → ℕ} :
-    IsQueryBound oa qb ↔ [(· ≤ qb) | snd <$> (simulateQ countingOracle oa).run <|> return 0] = 1 := by
+    IsQueryBound oa qb ↔
+      [(· ≤ qb) | snd <$> (simulateQ countingOracle oa).run <|> return 0] = 1 := by
   simp [probEvent_eq_one_iff, isQueryBound_def]
   split_ifs <;> simp
 
@@ -130,10 +131,6 @@ lemma isQueryBound_query_iff_pos [Nonempty α] (q : OracleQuery spec α) (qb : �
 
 -- section minimalQueryBound
 
--- -- /-- The minimal query bound on a computation, assuming that at each step we count the execution
--- -- path that results in the most possible queries, individually for each oracle index.
--- -- Minimal in the sense that any other query bound will be point-wise smaller than this query bound.
--- -- In general this count is not an actual possible result of simulating with `countingOracle`. -/
 -- -- def minimalQueryBound [spec.FiniteRange] [DecidableEq ι] [spec.DecidableEq]
 -- --   {α : Type} (oa : OracleComp spec α) : (ι → ℕ) := by
 -- --   induction oa using OracleComp.construct with
@@ -274,43 +271,6 @@ lemma isQueryBound_query_iff_pos [Nonempty α] (q : OracleQuery spec α) (qb : �
 
 -- end minimalQueryBound
 
--- -- NOTE: not sure this is actually true
--- -- lemma isQueryBound_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (qb : ι → ℕ) :
--- --     IsQueryBound (oa >>= ob) qb ↔ ∃ (qb₁ : ι → ℕ) (qb₂ : α → ι → ℕ),
--- --       IsQueryBound oa qb₁ ∧ (∀ u ∈ oa.support, IsQueryBound (ob u) (qb₂ u)) ∧
--- --         (∀ u ∈ oa.support, qb₁ + qb₂ u ≤ qb) := by
--- --   refine ⟨λ h ↦ ?_, λ h ↦ ?_⟩
--- --   · refine ⟨minimalQueryBound oa, λ u ↦ minimalQueryBound (ob u),
--- --       ⟨isQueryBound_minimalQueryBound oa, ⟨λ u _ ↦ isQueryBound_minimalQueryBound (ob u),
--- --       λ u ↦ ?_⟩⟩⟩
--- --     simp only
--- --     intro hu
-
--- --     have := minimalQueryBound_le_of_isQueryBound h
--- --     refine le_trans ?_ this
-
-
--- --     sorry
-
--- --     -- rw [IsQueryBound] at h
--- --     -- let ⟨qc, hqc⟩ := countingOracle.exists_mem_support_of_mem_support hu 0
-
--- --     -- let ⟨⟨y, qc'⟩, hqc'⟩ := exists_mem_support (simulate countingOracle 0 (ob u))
--- --     -- specialize h (qc + qc') _
--- --     -- · simp
--- --     --   refine ⟨y, u, qc, hqc, ?_⟩
--- --     --   rw [countingOracle.add_right_mem_support_simulate_iff]
--- --     --   exact hqc'
--- --     -- refine le_trans ?_ h
--- --     -- refine add_le_add ?_ ?_
-
--- --     -- exact minimalQueryBound_le_of_mem_support_simulate hqc
--- --     -- exact minimalQueryBound_le_of_mem_support_simulate hqc'
-
--- --   · obtain ⟨qb₁, qb₂, hqb₁, hqb₂, h⟩ := h
--- --     exact isQueryBound_bind' qb₁ qb₂ hqb₁ hqb₂ h
-
-
 -- -- lemma isQueryBound_query_bind_iff (i : ι) (t : spec.domain i)
 -- --     (oa : spec.range i → OracleComp spec α) (qc : ι → ℕ) :
 -- --     IsQueryBound (query i t >>= oa) qc ↔ qc i ≠ 0 ∧
@@ -329,20 +289,6 @@ lemma isQueryBound_query_iff_pos [Nonempty α] (q : OracleQuery spec α) (qb : �
 -- --     · simp [hj]
 
 -- section simulate
-
--- -- variable {ι' : Type} {spec' : OracleSpec ι} {σ : Type}
-
--- -- /-- If we have a query bound on a computation, and a query bound on a `SimOracle` implementation,
--- -- then their product is a query bound on the -/
--- -- lemma isQueryBound_simulate (oa : OracleComp spec α) (so : spec →[σ]ₛₒ spec') (s : σ)
--- --     {qb qbs : ι → ℕ} (hqb : IsQueryBound oa qb) (hqbs : ∀ i t s, IsQueryBound (so i t s) qbs) :
--- --     IsQueryBound (simulate so s oa) (qb * qbs) := by
--- --   induction oa using OracleComp.inductionOn with
--- --   | h_pure x => exact isQueryBound_pure (x, s) (qb * qbs)
--- --   | h_queryBind i t oa hoa => {
--- --       rw [simulate_query_bind]
--- --       sorry
--- --   }
 
 -- end simulate
 

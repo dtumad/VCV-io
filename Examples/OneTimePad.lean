@@ -26,9 +26,11 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
 
 namespace oneTimePad
 
-@[simp] lemma toQueryImpl_eq (n : ℕ) : (oneTimePad n).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
+@[simp] lemma toQueryImpl_eq (n : ℕ) :
+    (oneTimePad n).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
 
-@[simp] lemma toExecutionMethod_eq (n : ℕ) : (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
+@[simp] lemma toExecutionMethod_eq (n : ℕ) :
+    (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
 
 /-- Encryption and decryption are inverses for any OTP key. -/
 instance complete (n : ℕ) : (oneTimePad n).Complete := ⟨by simp⟩

@@ -71,13 +71,11 @@ lemma noFailure_map_iff (oa : OracleComp spec α) (f : α → β) :
 @[simp]
 instance {α : Type u} [spec.FiniteRange] : DecidablePred (@OracleComp.noFailure _ spec α) :=
   fun oa => by induction oa using OracleComp.construct' with
-  | pure x =>
-      refine Decidable.isTrue (noFailure_pure x)
-  | failure =>
-      refine Decidable.isFalse not_noFailure_failure
+  | pure x => exact Decidable.isTrue (noFailure_pure x)
+  | failure => exact Decidable.isFalse not_noFailure_failure
   | query_bind i t _ r =>
-      simp only [noFailure_bind_iff, noFailure_query, support_liftM, Set.mem_univ, forall_const, true_and]
-      exact Fintype.decidableForallFintype
+      simpa only [noFailure_bind_iff, noFailure_query, support_liftM, Set.mem_univ,
+        forall_const, true_and] using Fintype.decidableForallFintype
 
 section List
 

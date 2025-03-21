@@ -25,7 +25,8 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type u} [hs : spec.Fin
 Then `simulate' so` doesn't change the output distribution.
 Stateless oracles are the most common example of this
 TODO: move-/
-lemma evalDist_simulate'_eq_evalDist {σ α : Type u} (so : QueryImpl spec (StateT σ (OracleComp spec)))
+lemma evalDist_simulate'_eq_evalDist {σ α : Type u}
+    (so : QueryImpl spec (StateT σ (OracleComp spec)))
     (h : ∀ i t s, (evalDist ((so.impl (query i t)).run' s)) =
       OptionT.lift (PMF.uniformOfFintype (spec.range i)))
     (s : σ) (oa : OracleComp spec α) : evalDist (simulate' so s oa) = evalDist oa := by

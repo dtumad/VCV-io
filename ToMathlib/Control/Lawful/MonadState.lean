@@ -60,8 +60,8 @@ theorem modifyThe_eq (f : σ → σ) :
 
 end LawfulMonadStateOf
 
-class LawfulMonadState (σ : outParam (Type u)) (m : Type u → Type v) [Monad m]
-    extends MonadState σ m : Type (max (u+1) v) where
+class LawfulMonadState (σ : outParam (Type u)) (m : Type u → Type v) [Monad m] :
+    Type (max (u+1) v) extends MonadState σ m where
 
   /-- `modifyGet f` is equivalent to `do let (a, s) := f (← get); set s; pure a` -/
   modifyGet_eq : {α : Type u} → (f : σ → α × σ) →

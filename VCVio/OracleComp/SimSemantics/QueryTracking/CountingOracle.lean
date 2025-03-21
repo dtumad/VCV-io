@@ -88,7 +88,8 @@ protected lemma impl_apply_eq (q : OracleQuery spec α) :
 
 /-- `countingOracle` has no effect on the behavior of the computation itself. -/
 @[simp]
-lemma fst_map_run_simulateQ (oa : OracleComp spec α) : fst <$> (simulateQ countingOracle oa).run = oa :=
+lemma fst_map_run_simulateQ (oa : OracleComp spec α) :
+    fst <$> (simulateQ countingOracle oa).run = oa :=
   fst_map_writerT_run_simulateQ (by simp) oa
 
 @[simp]
@@ -136,14 +137,17 @@ alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
 --       Prod.map id (qc + ·) '' (simulate countingOracle 0 oa).support := by
 --   revert qc
 --   induction oa using OracleComp.inductionOn with
---   | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply, id_eq,
+--   | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply,
+  -- id_eq,
 --       add_zero, implies_true]
 --   | query_bind i t oa hoa =>
 --       refine λ qc ↦ ?_
 --       -- simp
 --       sorry -- refine λ qc ↦ ?_
---       -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,support_bind,support_map,
---       --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
+--       -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,
+-- support_bind,support_map,
+--       --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists,
+-- Set.iUnion_iUnion_eq',
 --       --   Prod.map_apply, id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
 --       -- refine Set.iUnion_congr (λ u ↦ ?_)
 --       -- simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
@@ -326,7 +330,7 @@ alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
 --   · refine apply_ne_zero_of_mem_support_simulate_queryBind h
 --   · refine exists_mem_support_of_mem_support_simulate_queryBind h
 --   · obtain ⟨hz0, ⟨u, hu⟩⟩ := h
---     simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
+--     simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind,
 --       support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists,
 --       Set.iUnion_iUnion_eq', Set.mem_iUnion]
 --     sorry

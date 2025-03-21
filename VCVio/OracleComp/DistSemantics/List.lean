@@ -123,8 +123,8 @@ lemma probFailure_list_mapM_loop {α β : Type*} [spec.FiniteRange]
   }
 
 @[simp]
-lemma probFailure_list_mapM {α β : Type*} [spec.FiniteRange] (xs : List α) (f : α → OracleComp spec β) :
-    [⊥ | xs.mapM f] = 1 - (xs.map (1 - [⊥ | f ·])).prod := by
+lemma probFailure_list_mapM {α β : Type*} [spec.FiniteRange] (xs : List α)
+    (f : α → OracleComp spec β) : [⊥ | xs.mapM f] = 1 - (xs.map (1 - [⊥ | f ·])).prod := by
   rw [mapM, probFailure_list_mapM_loop]
 
 @[simp]
@@ -168,8 +168,8 @@ lemma probOutput_list_mapM_loop {α β : Type*} [DecidableEq β] [spec.FiniteRan
   · simp [h]
 
 @[simp]
-lemma probOutput_list_mapM {α β : Type*} [spec.FiniteRange] (xs : List α) (f : α → OracleComp spec β)
-    (ys : List β) : [= ys | xs.mapM f] = if ys.length = xs.length
+lemma probOutput_list_mapM {α β : Type*} [spec.FiniteRange] (xs : List α)
+    (f : α → OracleComp spec β) (ys : List β) : [= ys | xs.mapM f] = if ys.length = xs.length
       then (List.zipWith (λ x y ↦ [= y | f x]) xs ys).prod else 0 := by
   have : DecidableEq β := Classical.decEq β; simp [List.mapM]
 

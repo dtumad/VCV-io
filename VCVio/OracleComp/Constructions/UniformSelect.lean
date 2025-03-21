@@ -71,7 +71,8 @@ lemma uniformSelectList_cons (x : α) (xs : List α) :
   | x :: xs => by
     apply OptionT.ext
     simp only [uniformSelectList_cons, Fin.getElem_fin, evalDist_map, evalDist_liftM,
-      OptionT.run_map, OptionT.run_lift, PMF.monad_pure_eq_pure, PMF.monad_bind_eq_bind, Nat.succ_eq_add_one]
+      OptionT.run_map, OptionT.run_lift, PMF.monad_pure_eq_pure, PMF.monad_bind_eq_bind,
+      Nat.succ_eq_add_one]
     simp [OptionT.run, PMF.monad_map_eq_map, PMF.map, Function.comp_def]
 
 @[simp] lemma support_uniformSelectList (xs : List α) :
@@ -275,7 +276,8 @@ variable (α : Type) [hα : SelectableType α]
 @[simp] lemma probFailure_uniformOfFintype : [⊥ | $ᵗ α] = 0 :=
   SelectableType.probFailure_selectElem
 
-@[simp] instance : noFailure ($ᵗ α) := noFailure_of_probFailure_eq_zero (probFailure_uniformOfFintype α)
+@[simp] instance : noFailure ($ᵗ α) :=
+  noFailure_of_probFailure_eq_zero (probFailure_uniformOfFintype α)
 
 @[simp] lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
     evalDist ($ᵗ α) = OptionT.lift (PMF.uniformOfFintype α) := by

@@ -39,7 +39,7 @@ lemma monoid_mul_def (qc qc' : QueryLog spec) :
   (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
      = (qc : List _) ++ (qc' : List _) := rfl
 
-/-- Query log with a single entry. Note that we do pattern matching here to simplify `loggingOracle`.-/
+/-- Query log with a single entry. -/
 def singleton (q : OracleQuery spec α) (u : α) : QueryLog spec :=
   match q with | query i t => [⟨i, (t, u)⟩]
 

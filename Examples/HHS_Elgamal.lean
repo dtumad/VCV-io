@@ -37,9 +37,11 @@ namespace elgamalAsymmEnc
 variable {G P : Type} [SelectableType G] [SelectableType P]
     [AddCommGroup G] [Group P] [AddTorsor G P]
 
-@[simp] lemma toQueryImpl_eq : (elgamalAsymmEnc G P).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
+@[simp] lemma toQueryImpl_eq :
+    (elgamalAsymmEnc G P).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
 
-@[simp] lemma toExecutionMethod_eq : (elgamalAsymmEnc G P).toExecutionMethod = ExecutionMethod.default := rfl
+@[simp] lemma toExecutionMethod_eq :
+    (elgamalAsymmEnc G P).toExecutionMethod = ExecutionMethod.default := rfl
 
 instance complete : (elgamalAsymmEnc G P).Complete := by
   have : ∀ (msg x : P) (g₁ g₂ : G),

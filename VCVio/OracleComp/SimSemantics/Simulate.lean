@@ -249,7 +249,7 @@ def supportWhen' (ox : OracleComp spec α)
   ox.simulateQ ⟨possible_outputs⟩
 
 def support' (oa : OracleComp spec α) : Set α :=
-  oa.simulateQ ⟨fun | query i t => Set.univ⟩
+  oa.simulateQ ⟨fun | query i _ => Set.univ⟩
 
 end support_test
 
