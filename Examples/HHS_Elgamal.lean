@@ -25,10 +25,10 @@ and the secret key is their vectorization in `G`. Signatures are also a pair of 
   keygen := do
     let x₀ ←$ᵗ P; let sk ←$ᵗ G
     return ((x₀, sk +ᵥ x₀), sk)
-  encrypt := λ (x₀, pk) msg ↦ do
+  encrypt := fun (x₀, pk) msg => do
     let g ←$ᵗ G
     return (g +ᵥ x₀, msg * (g +ᵥ pk))
-  decrypt := λ sk (c₁, c₂) ↦ do
+  decrypt := fun sk (c₁, c₂) => do
     return c₂ / (sk +ᵥ c₁)
   __ := ExecutionMethod.default
 
@@ -42,8 +42,9 @@ variable {G P : Type} [SelectableType G] [SelectableType P]
 @[simp] lemma toExecutionMethod_eq : (elgamalAsymmEnc G P).toExecutionMethod = ExecutionMethod.default := rfl
 
 instance complete : (elgamalAsymmEnc G P).Complete := by
-  have : ∀ (msg x : P) (g₁ g₂ : G), msg * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = msg :=
-    fun m x g₁ g₂ => by rw [vadd_comm, mul_div_cancel_right]
-  exact ⟨by simp [this]⟩
+  have : ∀ (msg x : P) (g₁ g₂ : G),
+      msg * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = msg :=
+    fun m x g₁ g₂ => by rw [vadd_comm g₁ g₂ x, mul_div_cancel_right]
+  exact fun m => by simp [this]
 
 end elgamalAsymmEnc

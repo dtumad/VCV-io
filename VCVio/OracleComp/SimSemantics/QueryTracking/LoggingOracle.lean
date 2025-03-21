@@ -178,7 +178,7 @@ behavior of the oracle. Requires decidable equality of the indexing set to deter
 which list to update when queries come in. -/
 def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
     QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) where
-  impl q := do let u ← q; pass (return (u, fun log => log.logQuery q u))
+  impl | q => do let u ← q; pass (return (u, fun log => log.logQuery q u))
   -- do let u ← q; tell (QueryLog.singleton q u); return u
 
 namespace loggingOracle

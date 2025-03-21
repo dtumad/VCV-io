@@ -44,8 +44,8 @@ section evalDist
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 Implemented by simulating queries in the `PMF` monad. -/
-noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) : OptionT PMF α :=
-  simulateQ ⟨fun (query i _) => PMF.uniformOfFintype (spec.range i)⟩ oa
+noncomputable def evalDist (oa : OracleComp spec α) : OptionT PMF α :=
+  oa.simulateQ ⟨fun (query i _) => PMF.uniformOfFintype (spec.range i)⟩
 
 @[simp]
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := simulateQ_pure _ _

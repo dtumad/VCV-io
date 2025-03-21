@@ -39,8 +39,7 @@ namespace OracleSpec
 /-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
 use for querying that oracle, implemented as a dependent pair.
 Implemented as a functor with the oracle output type as the constructor result. -/
-inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) :
-    Type v → Type (max u v)
+inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) : Type v → Type (max u v)
   | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
 
 namespace OracleQuery

@@ -36,9 +36,10 @@ variable [DecidableEq M]
 
 /-- A `SymmEncAlg` is complete if decrypting an encrypted message always returns that original
 message, captured here by a `guard` statement. -/
-class Complete (encAlg : AsymmEncAlg spec m M PK SK C) : Prop where
-  decrypt_encrypt_eq_message (msg : M) : [= msg | encAlg.exec do
-    let (pk, sk) ← encAlg.keygen; encAlg.decrypt sk (← encAlg.encrypt pk msg)] = 1
+def Complete (encAlg : AsymmEncAlg spec m M PK SK C) : Prop :=
+  ∀ (msg : M), [= msg | encAlg.exec do
+    let (pk, sk) ← encAlg.keygen
+    encAlg.decrypt sk (← encAlg.encrypt pk msg)] = 1
 
 end complete
 
