@@ -17,8 +17,33 @@ open OracleSpec
 local instance {α} : Zero (Option α) where
   zero := none
 
+local instance {α} : {x : Option α} → Decidable (x ≠ 0) := fun {x} => match x with
+  | none => isFalse (by intro h; contradiction)
+  | some _ => isTrue (by intro h; contradiction)
+
+local instance {α} : DecidablePred (fun x : Option α => x = none) := fun n => match n with
+  | none => isTrue (by rfl)
+  | some _ => isFalse (by intro h; contradiction)
+
 /-- A heap of values of type `V` is a finite map from locations (indexed by `Nat`) to values of type `V`. -/
-def Heap (V : Type u) := Finsupp Nat (Option V)
+@[reducible]
+def Heap (V : Type u) := Π₀ _ : Nat, (Option V)
+
+namespace Heap
+
+variable {V : Type u}
+
+def update (l : Nat) (v : V) : Heap V → Heap V :=
+  fun h => DFinsupp.update h l (some v)
+
+def size (heap : Heap V) : Nat := heap.support.card
+
+/-- Return the first free location in the heap. -/
+def findFree (heap : Heap V) : Nat :=
+  @Nat.find (fun n => heap n = none) _ (by simp; sorry)
+
+end Heap
+
 
 /-- Interaction trees. There are two main differences with `OracleComp`:
 
@@ -32,10 +57,9 @@ inductive ITree (E : Type u → Type v) (α : Type u) where
   | tau (t : ITree E α)
   | vis (e : E α) (t : α → ITree E α)
 
--- Actually, `ITree` without `tau` is **exactly** `FreeMonad`!
+-- Actually, inductive `ITree` without `tau` is **exactly** `FreeMonad`!
 #check FreeMonad
 #print OracleSpec.OracleQuery
-
 
 /-! ## Definitions of common events -/
 
@@ -60,7 +84,28 @@ inductive State (σ : Type u) : Type u → Type u where
   | put (s : σ) : State σ PUnit
 
 /-- The type of events for a heap of values of type `V`. -/
-def HeapState (V : Type u) := State (Heap V)
+def Heap (V : Type u) := State (_root_.Heap V)
+
+variable {V : Type u}
+
+/-- Load the value at location `l` in the heap. Returns `none` if the location is not allocated. -/
+def Heap.load (l : Nat) : FreeMonad (Heap V) (Option V) := do
+  let s ← .lift State.get
+  return s l
+
+/-- Store a value at location `l` in the heap. Returns the value that was previously at that
+  location (or `none` if the location was not allocated). -/
+def Heap.store (l : Nat) (v : V) : FreeMonad (Heap V) (Option V) := do
+  let s ← .lift State.get
+  .lift <| State.put (s.update l v)
+  return s l
+
+/-- Allocate a new location in the heap, returning the location index. -/
+def Heap.alloc (v : V) : FreeMonad (Heap V) (ULift Nat) := do
+  let s ← .lift State.get
+  let l := s.findFree
+  .lift <| State.put (s.update l v)
+  return l
 
 /-- The event type for non-determinism, comes with a single event `choose` to non-deterministically
   choose an element of a given type. This will be handled / interpreted as either angelic (there
@@ -72,19 +117,22 @@ inductive NonDet : Type u → Type v where
 def sum (E₁ : Type u → Type v) (E₂ : Type u → Type w) : Type u → Type (max v w) :=
   fun α => E₁ α ⊕ E₂ α
 
-def sumEquivVoidLeft {E : Type u → Type v} {α : Type u} : sum Void E α ≃ E α where
+@[inherit_doc] infixr:30 " ⊕ₑ " => sum
+
+def sumEquivVoidLeft {E : Type u → Type v} {α : Type u} : (Void ⊕ₑ E) α ≃ E α where
   toFun := fun x => match x with | .inr y => y
   invFun := fun x => .inr x
   left_inv := by intro x; simp; split; rfl
   right_inv := by intro x; rfl
 
-def sumEquivVoidRight {E : Type u → Type v} {α : Type u} : sum E Void α ≃ E α where
+def sumEquivVoidRight {E : Type u → Type v} {α : Type u} : (E ⊕ₑ Void) α ≃ E α where
   toFun := fun x => match x with | .inl y => y
   invFun := fun x => .inl x
   left_inv := by intro x; simp; split; rfl
   right_inv := by intro x; rfl
 
-@[inherit_doc] infixr:30 " ⊕ₑ " => sum
+def sumList (l : List (Type u → Type v)) : Type u → Type v :=
+  l.foldr (fun E E' => E ⊕ₑ E') Void
 
 /-- The handler for a given event (needs to replace `Prop` with `iProp` once integrated with Iris).
 
@@ -103,7 +151,7 @@ instance {E} : CoeFun (Handler E) (fun _ => {α : Type u} → E α → (α → P
 
 namespace Handler
 
-variable {E₁ : Type u → Type v} {E₂ : Type u → Type w}
+variable {E E₁ : Type u → Type v} {E₂ : Type u → Type w}
 
 /-- The handler for the sum of two event types, given individual handlers for each event type. -/
 def sum (H₁ : Handler E₁) (H₂ : Handler E₂) : Handler (E₁ ⊕ₑ E₂) where
@@ -113,15 +161,17 @@ def sum (H₁ : Handler E₁) (H₂ : Handler E₂) : Handler (E₁ ⊕ₑ E₂)
     | .inl e => exact H₁.is_mono hΦ e h
     | .inr e => exact H₂.is_mono hΦ e h
 
-/-- A handler is monotone if it respects the ordering on the continuation & spawning threads
-    conditions.-/
-class IsMono {E : Type u → Type v} (H : Handler E) where
-  is_mono {α : Type u} {Φ Φ' : α → Prop} (hΦ : ∀ a, Φ a → Φ' a) (e : E α) : H e Φ → H e Φ'
+@[inherit_doc] infixr:30 " ⊕ₕ " => sum
 
-instance {H₁ : Handler E₁} {H₂ : Handler E₂} [IsMono H₁] [IsMono H₂] : IsMono (sum H₁ H₂) where
-  is_mono := fun hΦ e h => match e with
-    | .inl e => IsMono.is_mono hΦ e h
-    | .inr e => IsMono.is_mono hΦ e h
+variable {H : Handler E} {H₁ : Handler E₁} {H₂ : Handler E₂}
+
+@[simp]
+theorem sum_inl_apply {α : Type u} {e : E₁ α} {Φ : α → Prop} :
+    (H₁ ⊕ₕ H₂).toFun (Sum.inl e) Φ = H₁ e Φ := rfl
+
+@[simp]
+theorem sum_inr_apply {α : Type u} {e : E₂ α} {Φ : α → Prop} :
+    (H₁ ⊕ₕ H₂).toFun (Sum.inr e) Φ = H₂ e Φ := rfl
 
 end Handler
 
@@ -144,13 +194,24 @@ def handleNonDetDemonic : Handler NonDet where
   is_mono := fun hΦ e h => match e with
     | .choose _ => by simp_all
 
--- def handleState {σ} : Handler (State σ) := fun e Φ => match e with
---   | .get => Φ (State.get)
---   | .put s => Φ (State.put s)
+/-- The handler for the state event, parametrized by a predicate on the state (i.e. a state
+  interpretation). -/
+def handleState {σ} (S : σ → Prop) : Handler (State σ) where
+  -- This really doesn't make sense until we integrate with Iris.
+  toFun := fun e Φ => match e with
+    -- S s -* ⇛(S s * Φ s)
+    | .get => ∀ s, S s → (S s ∧ Φ s)
+    -- S s -* ⇛(S s' * Φ _)
+    | .put s' => ∀ s, S s → (S s' ∧ Φ PUnit.unit)
+  is_mono := fun {α Φ Φ'} hΦ e h => by
+    cases e <;> simp_all
+    exact fun s hs => ⟨(h s hs).1, hΦ _ (h s hs).2⟩
 
--- def handleHeap : Handler (HeapState V) := fun e Φ => match e with
---   | .get => Φ (HeapState.get)
---   | .put s => Φ (HeapState.put s)
+/-- The handler for the heap event, parametrized by a heap interpretation (heap invariant?).
+
+TODO: re-examine this. -/
+def handleHeap {V} (S : _root_.Heap V → Prop) : Handler (Heap V) :=
+  handleState S
 
 end Event
 
@@ -158,84 +219,33 @@ open Event
 
 namespace FreeMonad
 
-#check FreeMonad.mapM
+variable {E : Type u → Type v} {E' : Type u → Type w} {α β : Type u}
 
-variable {E : Type u → Type v} {f : Type u → Type v} {m : Type u → Type w} [Pure m] [Bind m]
+section Sum
 
--- @[simp]
--- lemma bind_eq_pure_iff (x : FreeMonad f α) (r : α → FreeMonad f β) (b : β) :
---     FreeMonad.bind x r = FreeMonad.pure b ↔ ∃ a, x = FreeMonad.pure a ∧ r a = FreeMonad.pure b := by
---   induction x with
---   | pure a => simp [bind_pure]
---   | roll x r ih => simp [bind_roll]
+/-- Lift a `FreeMonad E α` to a `FreeMonad (E ⊕ₑ E') α` by injecting into the left component. -/
+def inl : FreeMonad E α → FreeMonad (E ⊕ₑ E') α :=
+  FreeMonad.mapM (fun a => .lift (Sum.inl a))
+  -- | .pure a => .pure a
+  -- | .roll e r => .roll (Sum.inl e) (fun a => inl (r a))
 
-theorem mapM_eq_freeMonad_pure_iff {s : {α : Type u} → f α → FreeMonad E α} {α : Type u} (oa : FreeMonad f α) (a : α) :
-    FreeMonad.mapM s oa = FreeMonad.pure a ↔
-      (oa = FreeMonad.pure a) ∨
-        (∃ β x r b, oa = .roll (β := β) x r ∧ (s x) = .pure b ∧ (r b).mapM s = FreeMonad.pure a) := by
-  induction oa with
-  | pure x => simp [mapM, bind_eq_pure_iff]
-  | @roll β x r ih =>
-    simp [mapM, ih]
-    constructor <;> intro h
-    · refine ⟨β, x, r, ?_⟩
-      simp [h]
-      simp_all only [exists_and_left]
-    · simp_all only [exists_and_left]
-      obtain ⟨w, h⟩ := h
-      obtain ⟨w_1, h⟩ := h
-      obtain ⟨w_2, h⟩ := h
-      obtain ⟨left, right⟩ := h
-      obtain ⟨left, right_1⟩ := left
-      obtain ⟨w_3, h⟩ := right
-      obtain ⟨left_1, right⟩ := right_1
-      obtain ⟨left_2, right_1⟩ := h
-      subst left
-      simp_all only [heq_eq_eq, pure.injEq, exists_eq_left']
+/-- Lift a `FreeMonad E' α` to a `FreeMonad (E ⊕ₑ E') α` by injecting into the right component. -/
+def inr : FreeMonad E' α → FreeMonad (E ⊕ₑ E') α :=
+  FreeMonad.mapM (fun a => .lift (Sum.inr a))
+  -- | .pure a => .pure a
+  -- | .roll e r => .roll (Sum.inr e) (fun a => inr (r a))
 
-instance : AlternativeMonad (FreeMonad (E ⊕ₑ Fail)) where
-  failure := .roll (Sum.inr $ Fail.fail) .pure
-  orElse := fun _ y => y ()
+@[simp]
+def inl_apply {x : FreeMonad E α} :
+  (inl x : FreeMonad (E ⊕ₑ E') α) = FreeMonad.mapM (fun a => .lift (Sum.inl a)) x := rfl
 
--- instance : LawfulAlternative (FreeMonad (E ⊕ₑ Fail)) where
---   failure_bind g := by simp only [bind, failure, bind_roll, bind_pure]; sorry
---   mapConst_failure {α β : Type u} (y : β) : Functor.mapConst y (failure : FreeMonad (E ⊕ₑ Fail) α) = failure := by simp [Functor.mapConst, failure]
---   orElse_failure {α : Type u} (x : FreeMonad (E ⊕ₑ Fail) α) : (x <|> failure) = x := sorry
---   failure_orElse {α : Type u} (y : FreeMonad (E ⊕ₑ Fail) α) : (failure <|> y) = y := sorry
+@[simp]
+def inr_apply {x : FreeMonad E' α} :
+  (inr x : FreeMonad (E ⊕ₑ E') α) = FreeMonad.mapM (fun a => .lift (Sum.inr a)) x := rfl
 
-def handleFailRight {α : Type u} : FreeMonad (E ⊕ₑ Fail) α → OptionT (FreeMonad E) α :=
-  FreeMonad.mapM (fun a => match a with
-    | .inl e => .roll e (fun b => .pure (some b))
-    | .inr .fail => FreeMonad.pure none)
+end Sum
 
-def sumFailEquivOptionT (E : Type u → Type v) {α : Type u} :
-    FreeMonad (E ⊕ₑ Fail) α ≃ OptionT (FreeMonad E) α where
-  toFun := handleFailRight
-    -- | .pure a => sorry
-    -- | .roll (.inr .fail) _ => sorry
-    -- | .roll (.inl e) a => .roll e (fun b => failEquivOption E (a b))
-  invFun := OptionT.mapM (FreeMonad.mapM (fun e => .roll (Sum.inl e) .pure))
-  left_inv := by
-    intro x; simp [handleFailRight, OptionT.mapM, OptionT.run, pure, bind, OptionT.bind, OptionT.pure, OptionT.mk];
-    rcases x with x | x
-    · simp [pure, OptionT.pure, OptionT.mk]
-    · simp [failure, bind, OptionT.bind, OptionT.mk]
-      unfold FreeMonad.bind
-      split <;> simp_all <;> sorry
-  right_inv := by
-    intro x
-    rcases x with x | x
-    · simp [OptionT.mapM, OptionT.run]
-      rcases x
-      · simp [failure, handleFailRight]
-      · rfl
-    · simp [OptionT.mapM, OptionT.run, bind, OptionT.bind, OptionT.mk, handleFailRight]
-      congr
-      funext a
-      simp [FreeMonad.bind, failure]
-      sorry
-
-variable {E : Type u → Type v} {α β : Type u}
+section WeakestPre
 
 /-- Weakest precondition of a `FreeMonad` program, with respect to a postcondition and a handler for
   the events.
@@ -283,17 +293,201 @@ theorem wp_conseq {x : FreeMonad E α} (hΦ : ∀ a, Φ a → Φ' a) (h : wp H �
 
 alias wp_mono := wp_conseq
 
-/-- The frame rule for weakest preconditions: both `P` and `wp H Φ x` hold if and only if
-  `wp H (fun a => P ∧ Φ a) x` holds. -/
-theorem wp_frame {x : FreeMonad E α} {P : Prop} : P ∧ wp H Φ x ↔ wp H (fun a => P ∧ Φ a) x := by
-  induction x with
+/-- The frame rule for weakest preconditions: if `P` and `wp H Φ x` hold,
+  then `wp H (fun a => P ∧ Φ a) x` holds. (does the reverse implication hold?) -/
+@[simp]
+theorem wp_frame {x : FreeMonad E α} {P : Prop} (hP : P) (h : wp H Φ x) :
+    wp H (fun a => P ∧ Φ a) x := by
+  induction x generalizing Φ with
   | pure a => simp_all
-  | roll e r ih => simp_all [wp, ih]; sorry
+  | roll e r ih => simp_all [wp, ih]
+
+variable {E' : Type u → Type w}
+
+/-- Weakest precondition of `inl` is equivalent to the weakest precondition of the left component,
+  assuming the overall handler is equivalent to the handler for the left component -/
+@[simp]
+theorem wp_inl {H' : Handler (E ⊕ₑ E')} (hH : ∀ {α} e Φ, @H α e Φ ↔ H' (Sum.inl e) Φ) {x : FreeMonad E α} :
+    wp H' Φ (FreeMonad.inl x) ↔ wp H Φ x := by
+  induction x with
+  | pure a => simp
+  | roll e r ih =>
+    simp [wp, hH]
+    constructor <;> intro h
+    · exact H'.is_mono (fun a hwp => (ih a).mp hwp) (Sum.inl e) h
+    · exact H'.is_mono (fun a hwp => (ih a).mpr hwp) (Sum.inl e) h
+
+/-- Special case of `wp_inl` when the handler is the sum of two handlers. -/
+@[simp]
+theorem wp_inl' {H' : Handler E'} {x : FreeMonad E α} :
+    wp (H ⊕ₕ H') Φ (FreeMonad.inl x) ↔ wp H Φ x :=
+  wp_inl (fun e Φ => by simp)
+
+/-- Weakest precondition of `inr` is equivalent to the weakest precondition of the right component,
+  assuming the overall handler is equivalent to the handler for the right component -/
+@[simp]
+theorem wp_inr {H' : Handler (E' ⊕ₑ E)} (hH : ∀ {α} e Φ, @H α e Φ ↔ H' (Sum.inr e) Φ) {x : FreeMonad E α} :
+    wp H' Φ (.inr x) ↔ wp H Φ x := by
+  induction x with
+  | pure a => simp
+  | roll e r ih =>
+    simp [wp, hH]
+    constructor <;> intro h
+    · exact H'.is_mono (fun a hwp => (ih a).mp hwp) (Sum.inr e) h
+    · exact H'.is_mono (fun a hwp => (ih a).mpr hwp) (Sum.inr e) h
+
+/-- Special case of `wp_inr` when the handler is the sum of two handlers. -/
+@[simp]
+theorem wp_inr' {H' : Handler E'} {x : FreeMonad E' α} :
+    wp (H ⊕ₕ H') Φ (.inr x) ↔ wp H' Φ x :=
+  wp_inr (fun e Φ => by simp)
+
+/-- Weakest precondition of `fail`, given the canonical handler for `Fail`, is False. -/
+@[simp]
+theorem wp_fail : wp handleFail Φ (.lift $ @Fail.fail α) = False := by simp [handleFail]
+
+/-- Weakest precondition of `NonDet.choose`, handled demonically, is equivalent to the postcondition
+  being true for all possible choices. -/
+@[simp]
+theorem wp_demonic : wp handleNonDetDemonic Φ (.lift $ @NonDet.choose α) = ∀ a, Φ a := by
+  simp [handleNonDetDemonic]
+
+/-- Weakest precondition of `NonDet.choose`, handled angelically, is equivalent to the postcondition
+  being true for some possible choice. -/
+@[simp]
+theorem wp_angelic : wp handleNonDetAngelic Φ (.lift $ @NonDet.choose α) = ∃ a, Φ a := by
+  simp [handleNonDetAngelic]
+
+-- theorem wp_get {σ} {S : σ → Prop} : wp (handleState S) (fun s => S s) (FreeMonad.lift State.get) ↔ S := by
+--   simp [handleState]
+
+-- theorem wp_put {σ} {S : σ → Prop} {s : σ} : wp (handleState S) (fun _ => S s) (FreeMonad.lift (State.put s)) ↔ S s := by
+--   simp [handleState]
+
+end WeakestPre
+
+section HoareTriple
 
 /-- Hoare triple for `FreeMonad` programs, defined in terms of weakest preconditions. -/
 def hoareTriple (H : Handler E) (Ψ : Prop) (Φ : α → Prop) (x : FreeMonad E α) : Prop :=
   -- Replace `→` with `-*` once integrated with Iris.
   Ψ → wp H Φ x
+
+variable {H : Handler E} {Ψ Ψ' : Prop} {Φ Φ' : α → Prop}
+
+@[simp]
+theorem hoareTriple_pure {a : α} : hoareTriple H Ψ Φ (FreeMonad.pure a) ↔ Ψ → Φ a := by
+  simp only [hoareTriple, wp_pure]
+
+@[simp]
+theorem hoareTriple_roll {e : E α} {r : α → FreeMonad E α} :
+    hoareTriple H Ψ Φ (FreeMonad.roll e r) ↔ Ψ → H e (fun a => wp H Φ (r a)) := by
+  simp only [hoareTriple, wp_roll]
+
+@[simp]
+theorem hoareTriple_lift {e : E α} : hoareTriple H Ψ Φ (FreeMonad.lift e) ↔ Ψ → H e Φ := by
+  simp only [hoareTriple, wp_event]
+
+@[simp]
+theorem hoareTriple_bind {x : FreeMonad E β} {f : β → FreeMonad E α} :
+    hoareTriple H Ψ Φ (FreeMonad.bind x f) ↔ Ψ → wp H (fun a => wp H Φ (f a)) x := by
+  simp only [hoareTriple, wp_bind]
+
+theorem hoareTriple_conseq (hΨ : Ψ' → Ψ) (hΦ : ∀ a, Φ a → Φ' a) {x : FreeMonad E α}
+    (h : hoareTriple H Ψ Φ x) : hoareTriple H Ψ' Φ' x := by
+  intro ψ
+  exact wp_conseq hΦ (h (hΨ ψ))
+
+theorem hoareTriple_weaken (hΨ : Ψ' → Ψ) {x : FreeMonad E α} (h : hoareTriple H Ψ Φ x) :
+    hoareTriple H Ψ' Φ x :=
+  hoareTriple_conseq hΨ (fun _ => id) h
+
+theorem hoareTriple_strengthen (hΦ : ∀ a, Φ a → Φ' a) {x : FreeMonad E α} (h : hoareTriple H Ψ Φ x) :
+    hoareTriple H Ψ Φ' x :=
+  hoareTriple_conseq (id) hΦ h
+
+@[simp]
+theorem hoareTriple_frame {x : FreeMonad E α} {P : Prop} (hP : P) (h : hoareTriple H Ψ Φ x) :
+    hoareTriple H (P ∧ Ψ) (fun a => P ∧ Φ a) x :=
+  fun ⟨_, ψ⟩ => wp_frame hP (h ψ)
+
+@[simp]
+theorem hoareTriple_inl {H' : Handler E'} {x : FreeMonad E α} :
+    hoareTriple (H ⊕ₕ H') Ψ Φ (FreeMonad.inl x) ↔ hoareTriple H Ψ Φ x := by
+  simp [hoareTriple, wp_inl']
+  refine iff_eq_eq.mpr ?_
+  congr
+  exact iff_eq_eq.mp wp_inl'
+
+@[simp]
+theorem hoareTriple_inr {H' : Handler E'} {x : FreeMonad E' α} :
+    hoareTriple (H ⊕ₕ H') Ψ Φ (FreeMonad.inr x) ↔ hoareTriple H' Ψ Φ x := by
+  simp [hoareTriple, wp_inr']
+  refine iff_eq_eq.mpr ?_
+  congr
+  exact iff_eq_eq.mp wp_inr'
+
+end HoareTriple
+
+variable {E : Type u → Type v} {f : Type u → Type v} {m : Type u → Type w} [Pure m] [Bind m]
+
+theorem mapM_eq_freeMonad_pure_iff {s : {α : Type u} → f α → FreeMonad E α} {α : Type u} (oa : FreeMonad f α) (a : α) :
+    FreeMonad.mapM s oa = FreeMonad.pure a ↔
+      (oa = FreeMonad.pure a) ∨
+        (∃ β x r b, oa = .roll (β := β) x r ∧ (s x) = .pure b ∧ (r b).mapM s = FreeMonad.pure a) := by
+  induction oa with
+  | pure x => simp [mapM, bind_eq_pure_iff]
+  | @roll β x r ih =>
+    simp [mapM, ih]
+    constructor <;> intro h
+    · refine ⟨β, x, r, ?_⟩
+      simp [h]
+      simp_all only [exists_and_left]
+    · simp_all only [exists_and_left]
+      obtain ⟨_, ⟨_, ⟨_, ⟨⟨hEq, _⟩, _⟩⟩⟩⟩ := h
+      subst hEq
+      simp_all only [heq_eq_eq, pure.injEq, exists_eq_left']
+
+instance : AlternativeMonad (FreeMonad (E ⊕ₑ Fail)) where
+  failure := .roll (Sum.inr $ Fail.fail) .pure
+  orElse := fun _ y => y ()
+
+-- Note: this instance does **not** satisfy `LawfulAlternative` since the `fail` events do not collapse
+
+def handleFailLeft {α : Type u} : FreeMonad (Fail ⊕ₑ E) α → OptionT (FreeMonad E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl .fail => FreeMonad.pure none
+    | .inr e => .roll e (fun b => .pure (some b)))
+
+def handleFailRight {α : Type u} : FreeMonad (E ⊕ₑ Fail) α → OptionT (FreeMonad E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl e => .roll e (fun b => .pure (some b))
+    | .inr .fail => FreeMonad.pure none)
+
+-- This seems wrong, there is definitely no equivalence (could there be a split injection though?)
+def sumFailEquivOptionT (E : Type u → Type v) {α : Type u} :
+    FreeMonad (E ⊕ₑ Fail) α ≃ OptionT (FreeMonad E) α where
+  toFun := handleFailRight
+  invFun := OptionT.mapM (FreeMonad.mapM (fun e => .roll (Sum.inl e) .pure))
+  left_inv := by
+    intro x; simp [handleFailRight, OptionT.mapM, OptionT.run, pure, bind, OptionT.bind, OptionT.pure, OptionT.mk];
+    rcases x with x | x
+    · simp [pure, OptionT.pure, OptionT.mk]
+    · simp [failure, bind, OptionT.bind, OptionT.mk]
+      unfold FreeMonad.bind
+      split <;> simp_all <;> sorry
+  right_inv := by
+    intro x
+    rcases x with x | x
+    · simp [OptionT.mapM, OptionT.run]
+      rcases x
+      · simp [failure, handleFailRight]
+      · rfl
+    · simp [OptionT.mapM, OptionT.run, bind, OptionT.bind, OptionT.mk, handleFailRight]
+      congr
+      funext a
+      simp [FreeMonad.bind, failure]
+      sorry
 
 end FreeMonad
 
