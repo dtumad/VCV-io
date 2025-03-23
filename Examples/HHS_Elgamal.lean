@@ -43,10 +43,13 @@ variable {G P : Type} [SelectableType G] [SelectableType P]
 @[simp] lemma toExecutionMethod_eq :
     (elgamalAsymmEnc G P).toExecutionMethod = ExecutionMethod.default := rfl
 
-instance complete : (elgamalAsymmEnc G P).Complete := by
+theorem Correct : (elgamalAsymmEnc G P).Correct := by
   have : ∀ (msg x : P) (g₁ g₂ : G),
       msg * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = msg :=
     fun m x g₁ g₂ => by rw [vadd_comm g₁ g₂ x, mul_div_cancel_right]
   exact fun m => by simp [this]
+
+theorem Correct' : (elgamalAsymmEnc G P).Correct' := by
+
 
 end elgamalAsymmEnc

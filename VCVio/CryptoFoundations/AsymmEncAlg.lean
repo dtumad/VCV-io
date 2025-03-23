@@ -6,6 +6,7 @@ Authors: Devon Tuma
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.Coercions.SubSpec
+import VCVio.OracleComp.SimSemantics.Append
 
 /-!
 # Asymmetric Encryption Schemes.
@@ -15,96 +16,116 @@ for asymmetric encryption using oracles in `spec`, with message space `M`,
 public/secret keys `PK` and `SK`, and ciphertext space `C`.
 -/
 
-open OracleSpec OracleComp
+open OracleSpec OracleComp ENNReal
 
 universe u v w
 
+def withRejection {ι : Type u} {spec : OracleSpec ι} {m : Type v → Type w} [Alternative m]
+    (so : QueryImpl spec m) (prohibited : {i : ι} → spec.domain i → Prop)
+    [∀ i, DecidablePred (@prohibited i)] :
+    QueryImpl spec m where
+  impl | query i t => if prohibited t then failure else so.impl (query i t)
+
+
+/-- An `AsymmEncAlg` with message space `M`, key spaces `PK` and `SK`, and ciphertexts in `C`.
+`spec` is the available oracle set and `m` is the monad used to execute the oracle calls.
+Extends `ExecutionMethod spec m`, in most cases will be `ExecutionMethod.default`. -/
 structure AsymmEncAlg {ι : Type} (spec : OracleSpec ι) (m : Type → Type v)
     (M PK SK C : Type) extends ExecutionMethod spec m where
   keygen : OracleComp spec (PK × SK)
   encrypt (pk : PK) (m : M) : OracleComp spec C
-  decrypt (sk : SK) (c : C) : OracleComp spec M
+  decrypt (sk : SK) (c : C) : Option M
+
+alias PKE_Alg := AsymmEncAlg
 
 namespace AsymmEncAlg
 
-variable {ι : Type} {spec : OracleSpec ι} {M PK SK C : Type} {m : Type → Type v}
-    [AlternativeMonad m] [LawfulAlternative m]
+variable {ι : Type} {spec : OracleSpec ι} {m : Type → Type v} {M PK SK C : Type}
+  (encAlg : AsymmEncAlg spec m M PK SK C) {α β γ : Type}
 
-section complete
+section Correct
 
-variable [DecidableEq M]
+variable [AlternativeMonad m] [LawfulAlternative m] [DecidableEq M]
 
 /-- A `SymmEncAlg` is complete if decrypting an encrypted message always returns that original
 message, captured here by a `guard` statement. -/
-def Complete (encAlg : AsymmEncAlg spec m M PK SK C) : Prop :=
-  ∀ (msg : M), [= msg | encAlg.exec do
-    let (pk, sk) ← encAlg.keygen
-    encAlg.decrypt sk (← encAlg.encrypt pk msg)] = 1
+@[reducible, inline]
+def CorrectExp (encAlg : AsymmEncAlg spec m M PK SK C) (msg : M) :
+    ProbComp Unit := encAlg.exec do
+  let (pk, sk) ← encAlg.keygen
+  guard (encAlg.decrypt sk (← encAlg.encrypt pk msg) = msg)
 
-end complete
+/-- Perfectly correct if messages never fail to decrypt back to themselves for any message. -/
+def PerfectlyCorrect (encAlg : AsymmEncAlg spec m M PK SK C) : Prop :=
+  ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0
 
-section sound
+@[simp] lemma PerfectlyCorrect_iff : encAlg.PerfectlyCorrect ↔
+    ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0 := Iff.rfl
 
--- variable [Π sp, DecidableEq (M sp)]
+end Correct
 
+/-- Oracle that uses a secret key to respond to decryption requests. -/
+def decryptionOracle (encAlg : AsymmEncAlg spec m M PK SK C)
+    (sk : SK) : QueryImpl (C →ₒ M) (OracleComp spec) where
+  impl | query () c => Option.getM (encAlg.decrypt sk c)
 
--- /-- Experiment for checking that an asymmetric encryption algorithm is sound,
--- i.e. that decryption properly reverses encryption -/
--- def soundnessExp (encAlg : AsymmEncAlg spec M PK SK C)
---     (mDist : (sp : ℕ) → OracleComp (spec sp) (M sp)) :
---     SecExp spec where
---   main := λ sp ↦ do
---     let m ← mDist sp
---     let (pk, sk) ← encAlg.keygen sp
---     let σ ← encAlg.encrypt sp m pk
---     let m' ← encAlg.decrypt sp σ sk
---     return m = m'
---   __ := encAlg
+@[simp]
+lemma decryptionOracle.apply_eq (encAlg : AsymmEncAlg spec m M PK SK C)
+    (sk : SK) (q : OracleQuery (C →ₒ M) α) : (decryptionOracle encAlg sk).impl q =
+    match q with | query () c => Option.getM (encAlg.decrypt sk c) := rfl
 
--- def soundnessExp [DecidableEq M] (encAlg : AsymmEncAlg spec m M PK SK C)
---     (msg : M) : SecExp spec m where
---   main := do
---     let (pk, sk) ← encAlg.keygen
---     let σ ← encAlg.encrypt pk msg
---     -- let msg' ← encAlg.decrypt σ sk
---     guard ((← encAlg.decrypt sk σ) = msg)
---   __ := encAlg
+section IND_CCA
 
--- -- def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec em M PK SK C) : Prop :=
--- --   ∀ m : M, (soundnessExp encAlg m).advantage = 1
+variable [AlternativeMonad m] [LawfulAlternative m]
 
--- def IsSound [DecidableEq M] (encAlg : AsymmEncAlg spec m M PK SK C) : Prop :=
---     ∀ m : M, [⊥ | encAlg.exec do
---       let (pk, sk) ← encAlg.keygen
---       let σ ← encAlg.encrypt m pk
---       let m' ← encAlg.decrypt σ sk
---       guard (m' = m)] = 0
+/-- Two oracles for IND-CCA Experiment, the first for decrypting ciphertexts, and the second
+for getting a challenge from a pair of messages. -/
+def IND_CCA_Oracles (_encAlg : AsymmEncAlg spec m M PK SK C) :=
+    (C →ₒ M) ++ₒ ((M × M) →ₒ C)
 
-
--- namespace soundnessExp
+def IND_CCA_OracleImpl [DecidableEq C] (encAlg : AsymmEncAlg spec m M PK SK C) (pk : PK) (sk : SK) :
+    QueryImpl (IND_CCA_Oracles encAlg) (StateT (Bool × Option C) (OracleComp spec)) where impl
+  | query (Sum.inl ()) c => do
+      guard ((← get).2 ≠ some c)
+      Option.getM (encAlg.decrypt sk c)
+  | query (Sum.inr ()) (m₁, m₂) => do match (← get) with
+    | (b, none) =>
+      let m := if b then m₁ else m₂
+      let c ← encAlg.encrypt pk m
+      set (b, some c)
+      return c
+    | _ => failure
 
 
--- end soundnessExp
+      -- guard ((← get).2 = none)
+      -- let m := if (← get).1 then m₁ else m₂
+      -- let c ← encAlg.encrypt pk m
+      -- set
+      -- return c
 
--- /-- An asymmetric encryption algorithm is sound if messages always decrypt to themselves. -/
--- def isSound (encAlg : AsymmEncAlg spec M PK SK C) : Prop :=
---   ∀ mDist, negligible (1 - (soundnessExp encAlg mDist).advantage)
 
--- -- lemma sound_iff [DecidableEq M] (encAlg : AsymmEncAlg spec M PK SK C) : encAlg.isSound ↔
--- --     ∀ m : M, ∀ m' ∈ (encAlg.exec <| do
--- --       let (pk, sk) ← encAlg.keygen ()
--- --       let σ ← encAlg.encrypt m pk
--- --       encAlg.decrypt σ sk).support, m = m' := by
--- --   simp only [isSound, SecExp.advantage_eq_one_iff]
--- --   sorry
 
-end sound
+structure IND_CCA_Adv (encAlg : AsymmEncAlg spec m M PK SK C) (σ : Type) where
+    advSpec := spec ++ₒ (C →ₒ M) -- Base oracles plus a decryption oracle
+    init : σ
+    main : PK → StateT σ (OracleComp (spec ++ₒ (C →ₒ M))) (M × M)
+    distinguish : PK → M × M → C → StateT σ (OracleComp (spec ++ₒ (C →ₒ M))) Bool
+
+def IND_CCA_Exp {encAlg : AsymmEncAlg spec m M PK SK C} {σ : Type}
+    (adv : IND_CCA_Adv encAlg σ) : ProbComp Unit := encAlg.exec do
+
+  let (pk, sk) ← encAlg.keygen
+  let so : QueryImpl (spec ++ₒ (C →ₒ M)) (OracleComp spec) := idOracle ++ₛₒ decryptionOracle encAlg sk
+  let ((m₁, m₂), st) ← simulateQ so ((adv.main pk).run adv.init)
+  return ()
+
+end IND_CCA
 
 section IND_CPA
 
 -- variable [DecidableEq ι]
 
-variable [DecidableEq ι]
+variable [AlternativeMonad m] [LawfulAlternative m] [DecidableEq ι]
 
 /-- `IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an
 asymmetric encryption with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
@@ -125,9 +146,8 @@ given the messages and resulting ciphertext. `is_valid` checks that this choice 
 The simulation oracles are pulled in directly from the encryption algorithm. -/
 def IND_CPA_Exp [unifSpec ⊂ₒ spec]
     {encAlg : AsymmEncAlg spec m M PK SK C}
-    (adv : IND_CPA_Adv encAlg) :
-    SecExp spec m where
-  main := do
+    (adv : IND_CPA_Adv encAlg) : ProbComp Unit :=
+  encAlg.exec do
     let (pk, _) ← encAlg.keygen
     let (m₁, m₂) ← adv.run pk
     let b : Bool ←$ᵗ Bool
@@ -135,8 +155,23 @@ def IND_CPA_Exp [unifSpec ⊂ₒ spec]
     let c ← encAlg.encrypt pk m
     let b' ← adv.distinguish pk (m₁, m₂) c
     guard (b = b')
-  __ := encAlg
+
+  -- main := do
+  --   let (pk, _) ← encAlg.keygen
+  --   let (m₁, m₂) ← adv.run pk
+  --   let b : Bool ←$ᵗ Bool
+  --   let m := if b then m₁ else m₂
+  --   let c ← encAlg.encrypt pk m
+  --   let b' ← adv.distinguish pk (m₁, m₂) c
+  --   guard (b = b')
+  -- __ := encAlg
 
 end IND_CPA
+
+section IND_CCA
+
+
+
+end IND_CCA
 
 end AsymmEncAlg
