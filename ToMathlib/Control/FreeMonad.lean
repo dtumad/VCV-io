@@ -174,21 +174,6 @@ lemma mapM_pure (x : α) : (FreeMonad.pure x : FreeMonad f α).mapM s = pure x :
 lemma mapM_roll (x : f α) (r : α → FreeMonad f β) :
     (FreeMonad.roll x r).mapM s = s x >>= λ u ↦ (r u).mapM s := rfl
 
--- lemma mapM_freeMonad_eq_bind {s : {α : Type u} → f α → FreeMonad f α} {α : Type u} (oa : FreeMonad f α) :
---     FreeMonad.mapM s oa = FreeMonad.bind oa (fun a => FreeMonad.mapM s (FreeMonad.pure a)) := by
---   induction oa with
---   | pure a => simp [mapM, bind_eq_pure_iff]
---   | roll x r ih =>
---     simp [mapM, ih]
---     have {u} : (r u).bind (fun a => FreeMonad.pure a) = r u := by
---       show (r u).bind FreeMonad.pure = r u
---       exact _root_.bind_pure (r u)
---     -- conv =>
---     --   enter [2, 2, u]
---     --   rw [this]
---     simp [this, FreeMonad.bind]
-
-
 end mapM
 
 -- instance instMonadAlgebra {f} {pre : {α : Type v} → f α → α} : MonadAlgebra (FreeMonad f) where

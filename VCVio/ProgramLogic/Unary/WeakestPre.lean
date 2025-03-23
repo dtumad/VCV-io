@@ -14,6 +14,8 @@ universe u v w
 
 open OracleSpec
 
+alias StateT.put := StateT.set
+
 local instance {α} : Zero (Option α) where
   zero := none
 
@@ -212,6 +214,8 @@ def handleState {σ} (S : σ → Prop) : Handler (State σ) where
 TODO: re-examine this. -/
 def handleHeap {V} (S : _root_.Heap V → Prop) : Handler (Heap V) :=
   handleState S
+
+-- Handling oracle queries?? We probably need Iris here since we are mapping to `PMF` instead of `Prop`
 
 end Event
 
@@ -429,48 +433,98 @@ theorem hoareTriple_inr {H' : Handler E'} {x : FreeMonad E' α} :
 
 end HoareTriple
 
-variable {E : Type u → Type v} {f : Type u → Type v} {m : Type u → Type w} [Pure m] [Bind m]
+section Interpretation
 
-theorem mapM_eq_freeMonad_pure_iff {s : {α : Type u} → f α → FreeMonad E α} {α : Type u} (oa : FreeMonad f α) (a : α) :
-    FreeMonad.mapM s oa = FreeMonad.pure a ↔
-      (oa = FreeMonad.pure a) ∨
-        (∃ β x r b, oa = .roll (β := β) x r ∧ (s x) = .pure b ∧ (r b).mapM s = FreeMonad.pure a) := by
-  induction oa with
-  | pure x => simp [mapM, bind_eq_pure_iff]
-  | @roll β x r ih =>
-    simp [mapM, ih]
-    constructor <;> intro h
-    · refine ⟨β, x, r, ?_⟩
-      simp [h]
-      simp_all only [exists_and_left]
-    · simp_all only [exists_and_left]
-      obtain ⟨_, ⟨_, ⟨_, ⟨⟨hEq, _⟩, _⟩⟩⟩⟩ := h
-      subst hEq
-      simp_all only [heq_eq_eq, pure.injEq, exists_eq_left']
+/-- Interpret the sole `Fail` event, returning an `Option` -/
+def interpFail : FreeMonad Fail α → Option α :=
+  FreeMonad.mapM (fun a => match a with | .fail => none)
 
+/-- Interpret the `Fail` event (occurring on the left), by mapping it to `none` in the `OptionT` monad. -/
+def interpFailLeft : FreeMonad (Fail ⊕ₑ E) α → OptionT (FreeMonad E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl .fail => FreeMonad.pure none
+    | .inr e => .lift e)
+
+/-- Interpret the `Fail` event (occurring on the right), by mapping it to `none` in the `OptionT` monad. -/
+def interpFailRight : FreeMonad (E ⊕ₑ Fail) α → OptionT (FreeMonad E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl e => .lift e
+    | .inr .fail => FreeMonad.pure none)
+
+def interpState {σ} : FreeMonad (State σ) α → StateM σ α :=
+  FreeMonad.mapM (fun a => match a with | .get => StateT.get | .put s => StateT.put s)
+
+def interpStateLeft {σ} : FreeMonad (State σ ⊕ₑ E) α → StateT σ (FreeMonad E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl .get => StateT.get
+    | .inl (.put s) => StateT.put s
+    | .inr e => .lift e)
+
+def interpStateRight {σ} : FreeMonad (E ⊕ₑ State σ) α → StateT σ (FreeMonad E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl e => .lift e
+    | .inr .get => StateT.get
+    | .inr (.put s) => StateT.put s)
+
+/-- To interpret `NonDet` demonically, we need to use a relation and not just a function. -/
+def interpDemonicLeft {α : Type u} : FreeMonad (NonDet ⊕ₑ E) α → FreeMonad E α → Prop := sorry
+
+noncomputable section
+
+variable {ι} {spec : OracleSpec ι} [spec.FiniteRange]
+
+/-- Interpret `OracleQuery` as a `PMF` by assuming each oracle response is uniformly distributed.
+
+This is the same as the `evalDist` function on `OracleComp` (modulo the `OptionT` wrapper). -/
+def interpOracleQuery : FreeMonad (OracleQuery spec) α → PMF α :=
+  FreeMonad.mapM (fun a => match a with | query i _ => PMF.uniformOfFintype (spec.range i))
+
+-- instance : Monad (fun α => FreeMonad E (PMF α)) where
+--   pure := fun a => FreeMonad.pure (PMF.pure a)
+--   bind := fun x f => x.bind (fun a => f <$> a)
+
+-- def interpOracleQueryLeft : FreeMonad (OracleQuery spec ⊕ₑ E) α → FreeMonad E (PMF α) :=
+--   FreeMonad.mapM (f := OracleQuery spec ⊕ₑ E) (α := α) (m := fun α => FreeMonad E (PMF α)) (fun a => match a with
+--     | Sum.inl q => match q with | query i _ => FreeMonad.pure (PMF.uniformOfFintype (spec.range i))
+--     | Sum.inr e => .lift e)
+
+-- def interpOracleQueryRight : FreeMonad (E ⊕ₑ OracleQuery spec) α → FreeMonad E α → Prop := sorry
+
+end
+
+end Interpretation
+
+#print and
+
+section Adequacy
+
+/-- Adequacy theorem for the `Fail` event occurring on the left. -/
+theorem adequacyFailLeft {x : FreeMonad (Fail ⊕ₑ E) α} {y : OptionT (FreeMonad E) α} {H : Handler E} {Φ : α → Prop}
+    (h : interpFailLeft x = y) (hwp : wp (handleFail ⊕ₕ H) Φ x) :
+      wp H (fun a => ∃ b, a = some b ∧ Φ b) y := by
+  rw [← h]
+  induction x with
+  | pure a => simp_all [interpFailLeft, handleFail, pure, OptionT.pure, OptionT.mk, ← h]
+  | roll e r ih =>
+    simp_all [interpFailLeft, handleFail, bind, OptionT.bind, OptionT.mk, OptionT.lift, ← h, ih]
+    sorry
+
+-- TODO: state & prove adequacy theorems for other events
+
+end Adequacy
+
+-- Note: this instance does **not** satisfy `LawfulAlternative` since the `fail` events do not collapse
 instance : AlternativeMonad (FreeMonad (E ⊕ₑ Fail)) where
   failure := .roll (Sum.inr $ Fail.fail) .pure
   orElse := fun _ y => y ()
 
--- Note: this instance does **not** satisfy `LawfulAlternative` since the `fail` events do not collapse
-
-def handleFailLeft {α : Type u} : FreeMonad (Fail ⊕ₑ E) α → OptionT (FreeMonad E) α :=
-  FreeMonad.mapM (fun a => match a with
-    | .inl .fail => FreeMonad.pure none
-    | .inr e => .roll e (fun b => .pure (some b)))
-
-def handleFailRight {α : Type u} : FreeMonad (E ⊕ₑ Fail) α → OptionT (FreeMonad E) α :=
-  FreeMonad.mapM (fun a => match a with
-    | .inl e => .roll e (fun b => .pure (some b))
-    | .inr .fail => FreeMonad.pure none)
-
 -- This seems wrong, there is definitely no equivalence (could there be a split injection though?)
 def sumFailEquivOptionT (E : Type u → Type v) {α : Type u} :
     FreeMonad (E ⊕ₑ Fail) α ≃ OptionT (FreeMonad E) α where
-  toFun := handleFailRight
+  toFun := interpFailRight
   invFun := OptionT.mapM (FreeMonad.mapM (fun e => .roll (Sum.inl e) .pure))
   left_inv := by
-    intro x; simp [handleFailRight, OptionT.mapM, OptionT.run, pure, bind, OptionT.bind, OptionT.pure, OptionT.mk];
+    intro x; simp [interpFailRight, OptionT.mapM, OptionT.run, pure, bind, OptionT.bind, OptionT.pure, OptionT.mk];
     rcases x with x | x
     · simp [pure, OptionT.pure, OptionT.mk]
     · simp [failure, bind, OptionT.bind, OptionT.mk]
@@ -481,9 +535,9 @@ def sumFailEquivOptionT (E : Type u → Type v) {α : Type u} :
     rcases x with x | x
     · simp [OptionT.mapM, OptionT.run]
       rcases x
-      · simp [failure, handleFailRight]
+      · simp [failure, interpFailRight]
       · rfl
-    · simp [OptionT.mapM, OptionT.run, bind, OptionT.bind, OptionT.mk, handleFailRight]
+    · simp [OptionT.mapM, OptionT.run, bind, OptionT.bind, OptionT.mk, interpFailRight, OptionT.lift]
       congr
       funext a
       simp [FreeMonad.bind, failure]
@@ -494,4 +548,4 @@ end FreeMonad
 variable {ι : Type u} {spec : OracleSpec ι} {α : Type w}
 
 def OracleComp.ofFreeMonadSumFail : FreeMonad (OracleQuery spec ⊕ₑ Fail) α → OracleComp spec α :=
-  FreeMonad.handleFailRight
+  FreeMonad.interpFailRight
