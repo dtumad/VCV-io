@@ -479,14 +479,32 @@ This is the same as the `evalDist` function on `OracleComp` (modulo the `OptionT
 def interpOracleQuery : FreeMonad (OracleQuery spec) α → PMF α :=
   FreeMonad.mapM (fun a => match a with | query i _ => PMF.uniformOfFintype (spec.range i))
 
--- instance : Monad (fun α => FreeMonad E (PMF α)) where
---   pure := fun a => FreeMonad.pure (PMF.pure a)
---   bind := fun x f => x.bind (fun a => f <$> a)
+-- Note: it does not seem possible to have an interpretation from
+-- `FreeMonad (OracleQuery spec ⊕ₑ E) α` to something involving `FreeMonad E` and `PMF`
 
--- def interpOracleQueryLeft : FreeMonad (OracleQuery spec ⊕ₑ E) α → FreeMonad E (PMF α) :=
---   FreeMonad.mapM (f := OracleQuery spec ⊕ₑ E) (α := α) (m := fun α => FreeMonad E (PMF α)) (fun a => match a with
---     | Sum.inl q => match q with | query i _ => FreeMonad.pure (PMF.uniformOfFintype (spec.range i))
---     | Sum.inr e => .lift e)
+-- However, it is possible to map `OracleQuery spec` to `NonDet` and thus interpret oracle queries
+-- in either angelic or demonic style
+
+def interpOracleQueryAngelic : FreeMonad (OracleQuery spec ⊕ₑ E) α → FreeMonad (NonDet ⊕ₑ E) α :=
+  FreeMonad.mapM (fun a => match a with
+    | .inl (query i _) => .lift (Sum.inl (NonDet.choose (spec.range i)))
+    | .inr e => .lift (Sum.inr e))
+
+-- def interpOracleQueryLeft : FreeMonad (OracleQuery spec ⊕ₑ E) α → PMF (FreeMonad E α)
+--   | .pure a => PMF.pure (FreeMonad.pure a)
+--   | .roll (Sum.inl (query i _)) r => PMF.bind (PMF.uniformOfFintype (spec.range i)) (fun a => interpOracleQueryLeft (r a))
+--   | .roll (Sum.inr e) r => PMF.bind (PMF.pure (FreeMonad.lift e))
+--     (fun a => interpOracleQueryLeft (r a))
+  -- Problem: `interpOracleQueryLeft (r b)` for some `b : β` is of type `PMF (FreeMonad E α)`
+  -- So of course there are some non-trivial bindings inside `r`
+
+  -- FreeMonad.mapM (f := OracleQuery spec ⊕ₑ E) (α := α) (fun a => match a with
+  --   | Sum.inl q => match q with | query i _ => FreeMonad.pure (PMF.uniformOfFintype (spec.range i))
+  --   | Sum.inr e => .lift e)
+
+-- What should happen? `.lift (query i t) : FreeMonad (OracleQuery spec ⊕ₑ E) α` should be sent to
+-- `FreeMonad.pure <$> PMF.uniformOfFintype (spec.range i) : PMF (FreeMonad E α)`?
+-- while `.lift e : FreeMonad (OracleQuery spec ⊕ₑ E) α` should be sent to `PMF.pure (.lift e) : PMF (FreeMonad E α)`?
 
 -- def interpOracleQueryRight : FreeMonad (E ⊕ₑ OracleQuery spec) α → FreeMonad E α → Prop := sorry
 
