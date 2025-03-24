@@ -76,48 +76,34 @@ lemma decryptionOracle.apply_eq (encAlg : AsymmEncAlg spec m M PK SK C)
 
 section IND_CCA
 
-variable [AlternativeMonad m] [LawfulAlternative m]
+variable [AlternativeMonad m] [LawfulAlternative m] [DecidableEq C]
 
 /-- Two oracles for IND-CCA Experiment, the first for decrypting ciphertexts, and the second
 for getting a challenge from a pair of messages. -/
-def IND_CCA_Oracles (_encAlg : AsymmEncAlg spec m M PK SK C) :=
+def IND_CCA_oracleSpec (_encAlg : AsymmEncAlg spec m M PK SK C) :=
     (C →ₒ M) ++ₒ ((M × M) →ₒ C)
 
-def IND_CCA_OracleImpl [DecidableEq C] (encAlg : AsymmEncAlg spec m M PK SK C) (pk : PK) (sk : SK) :
-    QueryImpl (IND_CCA_Oracles encAlg) (StateT (Bool × Option C) (OracleComp spec)) where impl
+def IND_CCA_oracleImpl [DecidableEq C] (encAlg : AsymmEncAlg spec m M PK SK C)
+    (pk : PK) (sk : SK) (b : Bool) : QueryImpl (IND_CCA_oracleSpec encAlg)
+      (StateT (Option C) (OracleComp spec)) where impl
   | query (Sum.inl ()) c => do
-      guard ((← get).2 ≠ some c)
+      guard ((← get) ≠ some c)
       Option.getM (encAlg.decrypt sk c)
-  | query (Sum.inr ()) (m₁, m₂) => do match (← get) with
-    | (b, none) =>
+  | query (Sum.inr ()) (m₁, m₂) => do
+      guard (← get).isNone
       let m := if b then m₁ else m₂
       let c ← encAlg.encrypt pk m
-      set (b, some c)
+      set (some c)
       return c
-    | _ => failure
 
+structure IND_CCA_Adversary (encAlg : AsymmEncAlg spec m M PK SK C) where
+    main : PK → OracleComp (encAlg.IND_CCA_oracleSpec) Bool
 
-      -- guard ((← get).2 = none)
-      -- let m := if (← get).1 then m₁ else m₂
-      -- let c ← encAlg.encrypt pk m
-      -- set
-      -- return c
-
-
-
-structure IND_CCA_Adv (encAlg : AsymmEncAlg spec m M PK SK C) (σ : Type) where
-    advSpec := spec ++ₒ (C →ₒ M) -- Base oracles plus a decryption oracle
-    init : σ
-    main : PK → StateT σ (OracleComp (spec ++ₒ (C →ₒ M))) (M × M)
-    distinguish : PK → M × M → C → StateT σ (OracleComp (spec ++ₒ (C →ₒ M))) Bool
-
-def IND_CCA_Exp {encAlg : AsymmEncAlg spec m M PK SK C} {σ : Type}
-    (adv : IND_CCA_Adv encAlg σ) : ProbComp Unit := encAlg.exec do
-
-  let (pk, sk) ← encAlg.keygen
-  let so : QueryImpl (spec ++ₒ (C →ₒ M)) (OracleComp spec) := idOracle ++ₛₒ decryptionOracle encAlg sk
-  let ((m₁, m₂), st) ← simulateQ so ((adv.main pk).run adv.init)
-  return ()
+def IND_CCA_Game [coinSpec ⊂ₒ spec] (encAlg : AsymmEncAlg spec m M PK SK C)
+    (adversary : encAlg.IND_CCA_Adversary) : ProbComp Unit := encAlg.exec do
+  let (pk, sk) ← encAlg.keygen; let b ← coin
+  let b' ← (simulateQ (encAlg.IND_CCA_oracleImpl pk sk b) (adversary.main pk)).run' none
+  guard (b = b')
 
 end IND_CCA
 
