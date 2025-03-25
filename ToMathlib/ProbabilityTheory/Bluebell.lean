@@ -196,17 +196,21 @@ abbrev PSp (Ω : Type*) := WithTop (ProbabilitySpace Ω)
 
 @[simp]
 instance : Valid (PSp Ω) where
-  valid := fun x => match x with | some _ => True | none => False
+  valid := fun x => Option.isSome x
 
 instance [inst : Nonempty Ω] : OrderedUnitalResourceAlgebra (PSp Ω) where
   mul := fun x y => match x, y with
     | some x, some y => if h : (x.indepProduct y).isSome then (x.indepProduct y).get h else none
     | _, _ => none
-  valid_one := by simp
+  valid_one := by simp [Option.isSome]
   -- There seems to be a problem here: if `a = some x`, `b = some y`, but `x.indepProduct y = none`,
   -- then `a` is valid but `a * b = ⊤` is not
   valid_mul := by intro a b ha hb; cases a <;> cases b <;> simp_all; sorry
-  valid_mono := by intro a b _ _; cases a <;> cases b <;> simp_all
+  valid_mono := by
+    intro a b h h'; cases a <;> cases b <;> simp_all
+    have h' : (⊤ : PSp Ω) ≤ WithTop.some _ := h
+    contrapose! h'
+    simp
   one_mul := sorry
   mul_left_mono := sorry
 
