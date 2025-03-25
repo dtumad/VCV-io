@@ -41,7 +41,7 @@ class DiscreteCMRA (α : Type*) extends CommSemigroup α, Valid α where
 
   -- TODO: check whether these are stated correctly
   valid_equiv {x y} : equiv x y → valid x → valid y
-  valid_mul_left {x y} : valid (x * y) → valid x
+  valid_mul {x y} : valid (x * y) → valid x
   valid_extend {x y₁ y₂} : valid x → equiv x (y₁ * y₂) → ∃ z₁ z₂, equiv x (z₁ * z₂) ∧ valid z₁ ∧ valid z₂
 
 -- /-- A discrete CMRA can be converted to a regular CMRA -/
@@ -63,13 +63,17 @@ instance {M : Type*} [MulOneClass M] : MulOneLeftClass M where
   one_mul := one_mul
 
 /-- An **ordered unital resource algebra** is a type with a multiplication, a one, a preorder `≤`,
-  and a validity predicate `✓`, such that `1` is valid, validity is closed under multiplication
-  and the preorder, and left multiplication is monotone. -/
+  and a validity predicate `✓`, such that:
+
+  - `1` is valid
+  - validity is monotone
+  - validity of multiplication cancels on the right
+  - multiplication on the right is monotone -/
 class OrderedUnitalResourceAlgebra (M : Type*) extends MulOneLeftClass M, Valid M, Preorder M where
   valid_one : ✓ (1 : M)
-  valid_mul {a b} : ✓ a → ✓ b → ✓ (a * b : M)
   valid_mono {a b} : a ≤ b → ✓ b → ✓ (a : M)
-  mul_left_mono {a b c} : a ≤ b → a * c ≤ (b * c : M)
+  valid_mul {a b} : ✓ (a * b : M) → ✓ a
+  mul_right_mono {a b c} : a ≤ b → a * c ≤ (b * c : M)
 
 /-- Define a discrete `CMRA` instance given an `OrderedUnitalResourceAlgebra` instance -/
 instance OrderedUnitalResourceAlgebra.instCMRA {M : Type*} [OrderedUnitalResourceAlgebra M] :
@@ -94,9 +98,10 @@ variable {α : Type*}
 instance : OrderedUnitalResourceAlgebra (Permission α) where
   valid := fun p => p ≤ 1
   valid_one := by simp
-  valid_mul := by intro a b ha hb; simp_all only [le_one_iff_eq_one, mul_one, le_refl]
+  valid_mul := by intro a b hab; simp_all only [le_one_iff_eq_one, LeftCancelMonoid.mul_eq_one,
+    le_refl]
   valid_mono := by intro a b h h'; simp_all only [le_one_iff_eq_one]
-  mul_left_mono := by intro a b c h i; sorry
+  mul_right_mono := by intro a b c h i; sorry
 
 
 /-! ## Probability stuff -/
@@ -196,23 +201,21 @@ abbrev PSp (Ω : Type*) := WithTop (ProbabilitySpace Ω)
 
 @[simp]
 instance : Valid (PSp Ω) where
-  valid := fun x => Option.isSome x
+  valid := fun x => match x with | some _ => True | none => False
 
 instance [inst : Nonempty Ω] : OrderedUnitalResourceAlgebra (PSp Ω) where
   mul := fun x y => match x, y with
     | some x, some y => if h : (x.indepProduct y).isSome then (x.indepProduct y).get h else none
     | _, _ => none
-  valid_one := by simp [Option.isSome]
-  -- There seems to be a problem here: if `a = some x`, `b = some y`, but `x.indepProduct y = none`,
-  -- then `a` is valid but `a * b = ⊤` is not
-  valid_mul := by intro a b ha hb; cases a <;> cases b <;> simp_all; sorry
+  valid_one := by simp
+  valid_mul := by intro a b hab; cases a <;> cases b <;> simp_all
   valid_mono := by
     intro a b h h'; cases a <;> cases b <;> simp_all
     have h' : (⊤ : PSp Ω) ≤ WithTop.some _ := h
     contrapose! h'
     simp
   one_mul := sorry
-  mul_left_mono := sorry
+  mul_right_mono := sorry
 
 variable {V : Type*}
 
@@ -247,7 +250,7 @@ instance [Nonempty V] : OrderedUnitalResourceAlgebra (PSpPm α V) where
   valid_one := by simp [Valid.valid, One.one]; sorry
   valid_mul := by sorry
   valid_mono := by sorry
-  mul_left_mono := by sorry
+  mul_right_mono := by sorry
 
 -- To handle multiple programs drawn from index set `I : Finset ℕ`, we use the RA `I → PSpPm` where
 -- operations are lifted pointwise
