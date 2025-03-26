@@ -86,6 +86,8 @@ namespace OrderedUnitalResourceAlgebra
 
 variable {I M : Type*} [OrderedUnitalResourceAlgebra M]
 
+instance : MulRightMono M := ⟨fun _ _ _ h ↦ mul_right_mono h⟩
+
 /-- Lifting the validity predicate to indexed tuples by requiring all elements to be valid -/
 @[simp]
 instance [Valid M] : Valid (I → M) where
@@ -324,8 +326,8 @@ def «forall» {β : Sort*} (P : β → HyperAssertion I α V) : HyperAssertion 
 /-- Separating conjunction of two hyper-assertions, `P ∗ Q`, defined for every `a` as the existence of elements
   `b₁ ∈ P` and `b₂ ∈ Q` respectively, such that `b₁ * b₂ ≤ a`. -/
 def sep (P : HyperAssertion I α V) (Q : HyperAssertion I α V) : HyperAssertion I α V :=
-  ⟨setOf (fun a => ∀ b, valid (a * b) → P b → Q (a * b)),
-    fun _ _ hab h b hb₁ hb₂ => by simp_all; sorry⟩
+  ⟨setOf (fun a => ∀ b, valid (a * b) → P b → Q (a * b)), fun a a' ha h b hb₁ hb₂ => by
+    simp_all; sorry⟩
 
 /-- Separating implication of two hyper-assertions, `P -∗ Q`, defined for every `a` as the existence of elements
   `b₁ ∈ P` and `b₂ ∈ Q` respectively, such that `b₁ * b₂ ≤ a`. -/
@@ -410,18 +412,19 @@ def assertPermission (P : HyperAssertion I α V) (p : I → Permission α) : Hyp
 
 end Ownership
 
--- #check Measure.bind
+def isPermissionAbstract (X : Set (I × α)) (P : HyperAssertion I α V) : Prop := sorry
+  -- ∀ Pp : IndexedPSpPm I α V, ∀ q : ℚ≥0, ∀ n : ℕ+, P Pp ≤ P → ∃ Pp' : IndexedPSpPm I α V, Pp' ≤ P ∧ Pp = Pp' ∧ True
 
 /-- The joint conditioning modality -/
-def jointCondition {β : Type*} [MeasurableSpace β] (μ : PMF β) (K : β → HyperAssertion I α V) :
+def jointCondition {β : Type*} [MeasurableSpace β] [MeasurableSpace V] (μ : PMF β) (K : β → HyperAssertion I α V) :
     HyperAssertion I α V := sorry
   -- «exists» (fun P : I → ProbabilitySpace (α → V) => sorry)
   -- ⟨setOf (fun a => ∃ P : I → ProbabilitySpace (α → V),
   --   ∃ p : I → Permission α,
   --   ∃ h : ∀ i, (P i).compatiblePerm (p i),
-  --   ∃ κ : I → β → Measure _,
+  --   ∃ κ : (i : I) → β → @Measure (α → V) (P i).σAlg,
   --   (fun i => ⟨⟨P i, p i⟩, h i⟩ : IndexedPSpPm I α V) ≤ a ∧ ∀ i, (P i).μ = μ.toMeasure.bind (κ i) ∧
-  --     ∀ v, K v ⟨⟨(P i).σAlg, sorry⟩, sorry⟩), by sorry⟩
+  --     ∀ v ∈ μ.support, K v (fun j => ⟨⟨@ProbabilitySpace.mk _ (P j).σAlg (κ j v) sorry, p j⟩, h j⟩)), by sorry⟩
 
 notation "𝑪_" => jointCondition
 
@@ -476,6 +479,7 @@ theorem sampledFrom_prod {β₁ β₂ : Type _} [MeasurableSpace β₁] [Measura
 section JointConditioning
 
 variable {β : Type*} [MeasurableSpace β] {μ : PMF β} {K K₁ K₂ : β → HyperAssertion I α V}
+  [MeasurableSpace V]
 
 theorem C_conseq (h : ∀ v, K₁ v ⊢ K₂ v) : 𝑪_ μ K₁ ⊢ 𝑪_ μ K₂ := by
   sorry
@@ -532,7 +536,7 @@ end JointConditioning
 
 section WeakestPrecondition
 
-variable {I α V : Type*} {t t₁ t₂ : IndexedPSpPm I α V → IndexedPSpPm I α V}
+variable {I α V : Type*} [MeasurableSpace V] {t t₁ t₂ : IndexedPSpPm I α V → IndexedPSpPm I α V}
   {P Q Q' Q₁ Q₂ : HyperAssertion I α V}
 
 theorem wp_conseq (h : Q ⊢ Q') : (wp t Q) ⊢ (wp t Q') := by sorry
