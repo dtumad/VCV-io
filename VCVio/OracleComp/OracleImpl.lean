@@ -31,6 +31,9 @@ structure ExecutionMethod (spec : OracleSpec ι) (m : Type v → Type w)
     extends QueryImpl spec m where
   exec_as_probComp {α : Type v} : m α → ProbComp α
 
+structure ExecutionMethod' (m : Type u → Type v) where
+    exec_as_probComp {α : Type u} : m α → ProbComp α
+
 namespace ExecutionMethod
 
 /-- Implement a computation on `unifSpec` as a `ProbComp` by identity. -/

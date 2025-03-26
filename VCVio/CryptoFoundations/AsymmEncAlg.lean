@@ -26,6 +26,11 @@ def withRejection {ι : Type u} {spec : OracleSpec ι} {m : Type v → Type w} [
     QueryImpl spec m where
   impl | query i t => if prohibited t then failure else so.impl (query i t)
 
+structure AsymmEncAlg' (m : Type → Type u) (M PK SK C : Type)
+    extends ExecutionMethod' m where
+  keygen : m (PK × SK)
+  encrypt : (pk : PK) → (msg : M) →  m C
+  decrypt : (sk : SK) → (c : C) → Option M
 
 /-- An `AsymmEncAlg` with message space `M`, key spaces `PK` and `SK`, and ciphertexts in `C`.
 `spec` is the available oracle set and `m` is the monad used to execute the oracle calls.
@@ -55,12 +60,24 @@ def CorrectExp (encAlg : AsymmEncAlg spec m M PK SK C) (msg : M) :
   let (pk, sk) ← encAlg.keygen
   guard (encAlg.decrypt sk (← encAlg.encrypt pk msg) = msg)
 
+def CorrectExp' (encAlg : AsymmEncAlg' m M PK SK C) (msg : M) :
+    ProbComp Unit := encAlg.exec_as_probComp do
+  let (pk, sk) ← encAlg.keygen
+  guard (encAlg.decrypt sk (← encAlg.encrypt pk msg) = msg)
+
 /-- Perfectly correct if messages never fail to decrypt back to themselves for any message. -/
 def PerfectlyCorrect (encAlg : AsymmEncAlg spec m M PK SK C) : Prop :=
   ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0
 
+def PerfectlyCorrect' (encAlg : AsymmEncAlg' m M PK SK C) : Prop :=
+  ∀ (msg : M), [⊥ | CorrectExp' encAlg msg] = 0
+
 @[simp] lemma PerfectlyCorrect_iff : encAlg.PerfectlyCorrect ↔
     ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0 := Iff.rfl
+
+@[simp] lemma PerfectlyCorrect_iff' (encAlg : AsymmEncAlg' m M PK SK C) :
+    PerfectlyCorrect' encAlg ↔
+    ∀ (msg : M), [⊥ | CorrectExp' encAlg msg] = 0 := Iff.rfl
 
 end Correct
 
@@ -91,8 +108,7 @@ def IND_CCA_oracleImpl [DecidableEq C] (encAlg : AsymmEncAlg spec m M PK SK C)
       Option.getM (encAlg.decrypt sk c)
   | query (Sum.inr ()) (m₁, m₂) => do
       guard (← get).isNone
-      let m := if b then m₁ else m₂
-      let c ← encAlg.encrypt pk m
+      let c ← encAlg.encrypt pk (if b then m₁ else m₂)
       set (some c)
       return c
 
