@@ -24,6 +24,13 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
   decrypt k σ := return k ^^^ σ -- decrypt by xor-ing with the key
   __ := ExecutionMethod.default -- No oracles to implement so use default
 
+@[simps!] def oneTimePad' (n : ℕ) : SymmEncAlg' ProbComp
+    (M := BitVec n) (K := BitVec n) (C := BitVec n) where
+  keygen := $ᵗ BitVec n -- Generate a key by choosing a random bit-vector
+  encrypt k m := return k ^^^ m -- encrypt by xor-ing with the key
+  decrypt k σ := some (k ^^^ σ) -- decrypt by xor-ing with the key
+  __ := ExecutionMethod.default -- No oracles to implement so use default
+
 namespace oneTimePad
 
 @[simp] lemma toQueryImpl_eq (n : ℕ) :

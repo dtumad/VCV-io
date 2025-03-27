@@ -30,6 +30,12 @@ structure SignatureAlg {ι : Type u} (spec : OracleSpec ι) (m : Type → Type v
   sign (pk : PK) (sk : SK) (msg : M) : OracleComp spec S
   verify (pk : PK) (msg : M) (σ : S) : OracleComp spec Bool
 
+structure SignatureAlg' (m : Type → Type v)
+    (M PK SK S : Type) extends ExecutionMethod' m where
+  keygen : m (PK × SK)
+  sign (pk : PK) (sk : SK) (msg : M) : m S
+  verify (pk : PK) (msg : M) (σ : S) : Bool
+
 namespace SignatureAlg
 
 variable {ι : Type} {spec : OracleSpec ι} {em : Type → Type} {σ M PK SK S : Type}
