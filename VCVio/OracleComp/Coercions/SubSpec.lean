@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.SimulateQ
 import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
@@ -197,13 +197,5 @@ variable [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 @[simp]
 lemma liftM_eq_liftComp (oa : OracleComp spec α) :
     (liftM oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
-
--- NOTE: Should be handled by other things now.
--- /-- View a probabalistic computation as one with a larger set of oracles.
--- We make this a special instance as it's often needed in situations where the
--- type-class instance is not yet available (e.g. defining security experiments). -/
--- instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
---     Coe (ProbComp α) (OracleComp spec α) where
---   coe oa := oa
 
 end OracleComp

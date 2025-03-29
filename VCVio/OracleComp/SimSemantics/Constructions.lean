@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.SimulateQ
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.Prod
 
@@ -97,30 +97,6 @@ end equivState
 
 end QueryImpl
 
-/-- Simulate a computation using the original oracles by "replacing" queries with queries.
-This operates as an actual identity for `simulate'`, in that we get an exact equality
-between the new and original computation.
-This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
-in a larger set of oracles, leaving the behavior of other oracles unchanged.
-The relevant spec can usually be inferred automatically, so we leave it implicit. -/
-def idOracle : QueryImpl spec (OracleComp spec) where
-  impl q := OracleComp.lift q
-
-namespace idOracle
-
-@[simp]
-lemma apply_eq (q : OracleQuery spec α) : idOracle.impl q = q := rfl
-
-@[simp]
-lemma simulateQ_eq (oa : OracleComp spec α) :
-    simulateQ idOracle oa = oa := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => rfl
-  | query_bind i t oa hoa => simp [hoa]
-  | failure => rfl
-
-end idOracle
-
 /-- Simulation oracle for replacing queries with uniform random selection, using `unifSpec`.
 The resulting computation is still identical under `evalDist`.
 The relevant `OracleSpec` can usually be inferred automatically, so we leave it implicit. -/
@@ -170,28 +146,3 @@ lemma probEvent_simulateQ [spec.FiniteRange] (oa : OracleComp spec α)
   refine probEvent_congr (fun _ => Iff.rfl) (evalDist_simulateQ oa)
 
 end unifOracle
-
-/-- Simulate a computation by having each oracle return the default value of the query output type
-for all queries. This gives a way to run arbitrary computations to get *some* output.
-Mostly useful in some existence proofs, not usually used in an actual implementation.
-NOTE: output monad should really be `Id` but doesn't exist currently. -/
-def defaultOracle [spec.FiniteRange] : QueryImpl spec (OracleComp []ₒ) where
-  impl | q => do return q.defaultOutput
-
-namespace defaultOracle
-
-variable [FiniteRange spec]
-
-@[simp]
-lemma apply_eq (q : OracleQuery spec α) :
-    defaultOracle.impl q = return q.defaultOutput := rfl
-
-@[simp]
-lemma simulateQ_eq (oa : OracleComp spec α) :
-    simulateQ defaultOracle oa = oa.defaultResult.getM := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp [defaultResult, Option.getM]
-  | query_bind i t oa hoa => simp [hoa]; rfl
-  | failure => simp [defaultResult, Option.getM]
-
-end defaultOracle

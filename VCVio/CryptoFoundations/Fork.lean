@@ -49,8 +49,8 @@ def fork (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
   let seed₁ := sharedSeed.addValue i u₁
   let seed₂ := sharedSeed.addValue i u₂
   -- Execute the program with the two slightly different seeds
-  let (x₁, log₁) ← (simulateQ loggingOracle <| (simulateQ seededOracle main).run' seed₁).run
-  let (x₂, log₂) ← (simulateQ loggingOracle <| (simulateQ seededOracle main).run' seed₂).run
+  let (x₁, log₁) ← (simulateQ seededOracle.withLogging main).run.run' seed₁
+  let (x₂, log₂) ← (simulateQ seededOracle.withLogging main).run.run' seed₂
   -- Check that `cf` chooses to fork at `s` in both cases
   guard (cf x₁ log₁ = some s ∧ cf x₂ log₂ = some s)
   return (x₁, x₂)
