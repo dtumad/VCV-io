@@ -5,7 +5,7 @@ Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
-import VCVio.OracleComp.SimSemantics.QueryTracking.LoggingOracle
+import VCVio.OracleComp.QueryTracking.LoggingOracle
 import VCVio.OracleComp.SimSemantics.Append
 
 /-!

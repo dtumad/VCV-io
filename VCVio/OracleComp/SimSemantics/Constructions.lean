@@ -77,21 +77,16 @@ lemma equivState_equivState : (so.equivState e).equivState e.symm = so :=
 
 @[simp]
 lemma simulate_equivState (s : τ) (oa : OracleComp spec α) :
-    simulate (so.equivState e) s oa = map id e <$> simulate so (e.symm s) oa := by
-  revert s; induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind i t oa hoa =>
-      intro s
-      simp [hoa, map_eq_bind_pure_comp, StateT.run]
-
-      sorry
-  | failure => simp
+    simulateQ (so.equivState e) oa = fun s => map id e <$> simulateQ so oa (e.symm s) := by
+  sorry
 
 /-- Masking the state doesn't affect the main output of a simulation. -/
 @[simp]
 lemma simulate'_equivState (s : τ) (oa : OracleComp spec α) :
-    simulate' (so.equivState e) s oa = simulate' so (e.symm s) (oa) := by
-  simp only [StateT.run'_eq, simulate_equivState, Functor.map_map, map_fst, id_eq]
+    (simulateQ (so.equivState e) oa).run' s = (simulateQ so oa).run' (e.symm s) := by
+  simp only [StateT.run'_eq, StateT.run, simulate_equivState, Functor.map_map, map_fst, id_eq]
+  simp [equivState, Functor.map_map]
+  sorry
 
 end equivState
 

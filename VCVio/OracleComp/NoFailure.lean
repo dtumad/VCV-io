@@ -3,7 +3,7 @@ Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma, Quang Dao
 -/
-import VCVio.OracleComp.DistSemantics.Support
+import VCVio.OracleComp.Support
 
 /-!
 # Computations that Never Fail
@@ -20,6 +20,7 @@ namespace OracleComp
 
 variable {ι : Type*} {spec : OracleSpec ι}
 
+-- TODO: @[deprecated "OracleComp.neverFailsWhen" (since := "")]
 def noFailure {α : Type u} (oa : OracleComp spec α) : Prop := by
   induction oa using OracleComp.construct with
   | pure _ => exact True
@@ -158,8 +159,11 @@ open Array
   induction ha : as.toList generalizing as with
   | nil => simp_all [h, Array.mapM, mapM.map, noFailure_pure]
   | cons x xs ih =>
+    rw [mapM_eq_mapM_toList, noFailure_map_iff]
+
     simp_rw [mapM_eq_mapM_toList, ha] at ih ⊢
     simp at ih ⊢
+    specialize ih h
     -- boring case analysis
     sorry
 
