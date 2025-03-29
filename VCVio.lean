@@ -6,6 +6,7 @@ import VCVio.CryptoFoundations.Fork
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.HardnessAssumptions.HardRelation
+import VCVio.CryptoFoundations.KeyEncapMech
 import VCVio.CryptoFoundations.SecExp
 import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
@@ -27,9 +28,9 @@ import VCVio.OracleComp.DistSemantics.Prod
 import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Simulate
 import VCVio.OracleComp.DistSemantics.Support
+import VCVio.OracleComp.ExecutionMethod
 import VCVio.OracleComp.NoFailure
 import VCVio.OracleComp.OracleComp
-import VCVio.OracleComp.OracleImpl
 import VCVio.OracleComp.OracleSpec
 import VCVio.OracleComp.QueryBound
 import VCVio.OracleComp.RunIO

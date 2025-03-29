@@ -17,14 +17,7 @@ open Mathlib OracleSpec OracleComp ENNReal BigOperators
 /-- The one-time pad symmetric encryption algorithm, using `BitVec`s as keys and messages.
 Encryption and decryption both just apply `BitVec.xor` with the key.
 The only oracles needed are `unifSpec`, which requires no implementation. -/
-@[simps!] def oneTimePad (n : ℕ) : SymmEncAlg unifSpec ProbComp
-    (M := BitVec n) (K := BitVec n) (C := BitVec n) where
-  keygen := $ᵗ BitVec n -- Generate a key by choosing a random bit-vector
-  encrypt k m := return k ^^^ m -- encrypt by xor-ing with the key
-  decrypt k σ := return k ^^^ σ -- decrypt by xor-ing with the key
-  __ := ExecutionMethod.default -- No oracles to implement so use default
-
-@[simps!] def oneTimePad' (n : ℕ) : SymmEncAlg' ProbComp
+@[simps!] def oneTimePad (n : ℕ) : SymmEncAlg ProbComp
     (M := BitVec n) (K := BitVec n) (C := BitVec n) where
   keygen := $ᵗ BitVec n -- Generate a key by choosing a random bit-vector
   encrypt k m := return k ^^^ m -- encrypt by xor-ing with the key
@@ -32,9 +25,6 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
   __ := ExecutionMethod.default -- No oracles to implement so use default
 
 namespace oneTimePad
-
-@[simp] lemma toQueryImpl_eq (n : ℕ) :
-    (oneTimePad n).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
 
 @[simp] lemma toExecutionMethod_eq (n : ℕ) :
     (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl

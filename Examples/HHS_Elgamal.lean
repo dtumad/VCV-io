@@ -20,20 +20,7 @@ Messages are base points in `P` (in practice this is some encoding of messages),
 The public key is a pair of base points in `P` chosen uniformly at random,
 and the secret key is their vectorization in `G`. Signatures are also a pair of base points. -/
 @[simps!] def elgamalAsymmEnc (G P : Type) [SelectableType G] [SelectableType P]
-    [AddGroup G] [Group P] [AddTorsor G P] : AsymmEncAlg unifSpec ProbComp
-    (M := P) (PK := P × P) (SK := G) (C := P × P) where
-  keygen := do
-    let x₀ ←$ᵗ P; let sk ←$ᵗ G
-    return ((x₀, sk +ᵥ x₀), sk)
-  encrypt := fun (x₀, pk) msg => do
-    let g ←$ᵗ G
-    return (g +ᵥ x₀, msg * (g +ᵥ pk))
-  decrypt := fun sk (c₁, c₂) => do
-    return c₂ / (sk +ᵥ c₁)
-  __ := ExecutionMethod.default
-
-@[simps!] def elgamalAsymmEnc' (G P : Type) [SelectableType G] [SelectableType P]
-    [AddGroup G] [Group P] [AddTorsor G P] : AsymmEncAlg' ProbComp
+    [AddGroup G] [Group P] [AddTorsor G P] : AsymmEncAlg ProbComp
     (M := P) (PK := P × P) (SK := G) (C := P × P) where
   keygen := do
     let x₀ ←$ᵗ P; let sk ←$ᵗ G
@@ -50,9 +37,6 @@ namespace elgamalAsymmEnc
 variable {G P : Type} [SelectableType G] [SelectableType P]
     [AddCommGroup G] [Group P] [AddTorsor G P]
 
-@[simp] lemma toQueryImpl_eq :
-    (elgamalAsymmEnc G P).toQueryImpl = ExecutionMethod.default.toQueryImpl := rfl
-
 @[simp] lemma toExecutionMethod_eq :
     (elgamalAsymmEnc G P).toExecutionMethod = ExecutionMethod.default := rfl
 
@@ -60,10 +44,5 @@ theorem Correct [DecidableEq P] : (elgamalAsymmEnc G P).PerfectlyCorrect := by
   have : ∀ (msg x : P) (g₁ g₂ : G), msg * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = msg :=
     fun m x g₁ g₂ => by rw [vadd_comm g₁ g₂ x, mul_div_cancel_right]
   simp [this]
-
-theorem Correct' [DecidableEq P] : AsymmEncAlg.PerfectlyCorrect' (elgamalAsymmEnc' G P) := by
-  have : ∀ (msg x : P) (g₁ g₂ : G), msg * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = msg :=
-    fun m x g₁ g₂ => by rw [vadd_comm g₁ g₂ x, mul_div_cancel_right]
-  simp [this, AsymmEncAlg.PerfectlyCorrect', AsymmEncAlg.CorrectExp']
 
 end elgamalAsymmEnc

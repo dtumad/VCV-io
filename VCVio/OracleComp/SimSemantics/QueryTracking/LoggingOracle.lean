@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Transformers.WriterT
+import VCVio.OracleComp.SimSemantics.Constructions
 
 /-!
 # Logging Queries Made by a Computation
@@ -14,7 +15,7 @@ universe u v w
 
 namespace OracleSpec
 
-variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
+variable {ι : Type u} {spec : OracleSpec ι}
 
 /-- Log of oracle queries represented by lists of input output pairs,
 parameterized by the set of oracles available. -/
@@ -39,13 +40,15 @@ lemma monoid_mul_def (qc qc' : QueryLog spec) :
   (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
      = (qc : List _) ++ (qc' : List _) := rfl
 
+@[simp] lemma monoid_one_def : (1 : QueryLog spec) = List.nil := rfl
+
 /-- Query log with a single entry. -/
-def singleton (q : OracleQuery spec α) (u : α) : QueryLog spec :=
+def singleton {α} (q : OracleQuery spec α) (u : α) : QueryLog spec :=
   match q with | query i t => [⟨i, (t, u)⟩]
 
 /-- Update a query log by adding a new element to the appropriate list.
 Note that this requires decidable equality on the indexing set. -/
-def logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
+def logQuery {α} (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
     QueryLog spec := log ++ singleton q u
 
 instance [DecidableEq ι] [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
@@ -60,7 +63,7 @@ def getQ (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :
   List.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) [] log
 
 -- NOTE: should this simp? feels bad to simp with ▸ and pattern matching in target
-lemma getQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
+lemma getQ_singleton {α} (q : OracleQuery spec α) (u : α) (i : ι) :
     getQ (singleton q u) i = match q with
       | query j t => if h : j = i then [h ▸ (t, u)] else [] := by
   cases q with | query i t => ?_
@@ -70,7 +73,7 @@ lemma getQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
 lemma getQ_singleton_self (i : ι) (t : spec.domain i) (u : spec.range i) :
     getQ (singleton (query i t) u) i = [(t, u)] := by simp [getQ_singleton]
 
-lemma getQ_singleton_of_ne {q : OracleQuery spec α} {u : α} {i : ι}
+lemma getQ_singleton_of_ne {α} {q : OracleQuery spec α} {u : α} {i : ι}
     (h : q.index ≠ i) : getQ (singleton q u) i = [] := by
   cases q with | query i t => simpa [getQ_singleton] using h
 
@@ -97,7 +100,7 @@ lemma getQ_append (log log' : QueryLog spec) (i : ι) :
       · simpa
 
 @[simp]
-lemma getQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
+lemma getQ_logQuery {α} (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
     (i : ι) : (log.logQuery q u).getQ i = log.getQ i ++ (singleton q u).getQ i := by
   rw [logQuery, getQ_append]
 
@@ -110,7 +113,7 @@ variable [DecidableEq ι]
 def countQ (log : QueryLog spec) (i : ι) : ℕ := (log.getQ i).length
 
 @[simp]
-lemma countQ_singleton (q : OracleQuery spec α) (u : α) (i : ι) :
+lemma countQ_singleton {α} (q : OracleQuery spec α) (u : α) (i : ι) :
     countQ (singleton q u) i = if q.index = i then 1 else 0 := by
   cases q with | query i t => ?_
   simp only [countQ, getQ_singleton, OracleQuery.index_query]
@@ -124,7 +127,7 @@ lemma countQ_append (log log' : QueryLog spec) (i : ι) :
     (log ++ log').countQ i = log.countQ i + log'.countQ i := by simp [countQ]
 
 @[simp]
-lemma countQ_logQuery (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
+lemma countQ_logQuery {α} (log : QueryLog spec) (q : OracleQuery spec α) (u : α)
     (i : ι) : (log.logQuery q u).countQ i = log.countQ i + if q.index = i then 1 else 0 := by
   rw [logQuery, countQ_append, countQ_singleton]
 
@@ -173,13 +176,17 @@ end OracleSpec
 
 open Prod OracleSpec OracleComp
 
+/-- Add logging to an existing query implementation, using `StateT` to extend the final monad. -/
+def withLogging {ι : Type u} {spec : OracleSpec ι} {m : Type u → Type v} [Monad m]
+    (so : QueryImpl spec m) : QueryImpl spec (WriterT (QueryLog spec) m) where
+  impl {α} | q => do let x ← (so.impl q : m α); tell (QueryLog.singleton q x); return x
+
 /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
 behavior of the oracle. Requires decidable equality of the indexing set to determine
 which list to update when queries come in. -/
 def loggingOracle {ι : Type u} {spec : OracleSpec ι} :
-    QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) where
-  impl | q => do let u ← q; pass (return (u, fun log => log.logQuery q u))
-  -- do let u ← q; tell (QueryLog.singleton q u); return u
+    QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) :=
+  withLogging idOracle
 
 namespace loggingOracle
 
@@ -187,8 +194,7 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
 @[simp] -- Note: still using `tell` instead of pass here. `LawfulMonadWriter` stuff
 lemma apply_eq (q : OracleQuery spec α) : loggingOracle.impl q =
-    do let u ← q; tell (QueryLog.singleton q u); return u := by
-  simp [loggingOracle]; rfl
+    do let u ← q; tell (QueryLog.singleton q u); return u := rfl
 
 /-- Taking only the main output after logging queries is the original compuation. -/
 @[simp]

@@ -158,3 +158,18 @@ instance : LawfulAlternative List where
   failure_orElse := List.nil_append
 
 end List
+
+section guard
+
+variable {m : Type → Type v} [AlternativeMonad m] [LawfulAlternative m]
+
+lemma guard_and (p q : Prop) [Decidable p] [Decidable q] :
+    (guard (p ∧ q) : m Unit) = (do guard p; guard q) := by
+  by_cases hp : p <;> by_cases hq : q <;> simp [hp, hq]
+
+-- lemma guard_or (p q : Prop) [Decidable p] [Decidable q] :
+--     (guard (p ∨ q) : m Unit) = (guard p <|> guard q) := by
+--   by_cases hp : p <;> by_cases hq : q <;> simp [hp, hq]
+--   sorry -- Need `pure_orElse` lemma
+
+end guard
