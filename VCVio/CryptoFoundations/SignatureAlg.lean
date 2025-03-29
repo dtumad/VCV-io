@@ -37,7 +37,7 @@ variable {m : Type → Type v} [Monad m] {σ M PK SK S : Type}
 
 def signingOracle (sigAlg : SignatureAlg m M PK SK S) (pk : PK) (sk : SK) :
     QueryImpl (M →ₒ S) (WriterT (QueryLog (M →ₒ S)) m) :=
-  withLogging ⟨fun | query () msg => sigAlg.sign pk sk msg⟩
+  QueryImpl.withLogging ⟨fun | query () msg => sigAlg.sign pk sk msg⟩
 
 end signingOracle
 

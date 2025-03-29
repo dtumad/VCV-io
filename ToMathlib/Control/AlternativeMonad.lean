@@ -159,6 +159,17 @@ instance : LawfulAlternative List where
 
 end List
 
+namespace ReaderT
+
+variable {m : Type u → Type v} {ρ : Type u}
+
+instance [AlternativeMonad m] : AlternativeMonad (ReaderT ρ m) where
+
+instance [AlternativeMonad m] [LawfulAlternative m] : LawfulAlternative (ReaderT ρ m) := sorry
+
+end ReaderT
+
+
 section guard
 
 variable {m : Type → Type v} [AlternativeMonad m] [LawfulAlternative m]
