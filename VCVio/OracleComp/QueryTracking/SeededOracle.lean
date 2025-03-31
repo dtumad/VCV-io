@@ -13,7 +13,7 @@ This file defines a function `QueryImpl.withPregen` that modifies a query implem
 to take in a list of pre-chosen outputs to use when answering queries.
 
 Note that ordering is subtle, for example `so.withCaching.withPregen` will first check for seeds
-and not cache the result if one is found, while `so.withPregen.withCaching` would check the cache first,
+and not cache the result if one is found, while `so.withPregen.withCaching` checks the cache first,
 and include seed values into the cache after returning them.
 -/
 

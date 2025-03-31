@@ -344,7 +344,8 @@ example : finSupport (do
 --       refine λ _ t s' _ ↦ Set.subset_iUnion_of_subset t (hoa t s')
 --   | failure => simp
 
--- /-- Simulation only reduces the possible oracle outputs, so can't reduce the support. In particular
+-- /-- Simulation only reduces the possible oracle outputs, so can't reduce the support.
+-- In particular
 -- the first output of a simulation has support at most that of the original computation -/
 -- lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
 --     (simulate' so s oa).support ⊆ oa.support := by

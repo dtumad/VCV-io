@@ -137,12 +137,12 @@ namespace RelativeMonadHom
 variable {C' : Type u₄} [Category.{v₄} C'] {J' : C' ⥤ C}
   {M₁ : RelativeMonad C D₁ J₁} {M₂ : RelativeMonad C D₂ J₂}
 
-@[simps!]
-def precompose (f : RelativeMonadHom M₁ M₂) :
-    RelativeMonadHom (M₁.precompose J') (M₂.precompose J') where
-  J₁₂ := f.J₁₂
-  φ := sorry
-  map := f.map
+-- @[simps!]
+-- def precompose (f : RelativeMonadHom M₁ M₂) :
+--     RelativeMonadHom (M₁.precompose J') (M₂.precompose J') where
+--   J₁₂ := f.J₁₂
+--   φ := sorry
+--   map := f.map
 
 end RelativeMonadHom
 
@@ -350,17 +350,17 @@ instance [RelativeFunctor Id f] [LawfulRelativeFunctor Id f] : LawfulFunctor f w
   id_map := @id_mapᵣ Id f _ _
   comp_map := @comp_mapᵣ Id f _ _
 
-instance [RelativeMonad Id m] [LawfulRelativeMonad Id m] : LawfulMonad m where
-  seqLeft_eq x y := by simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]; sorry
-  seqRight_eq x y := by
-    simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]
-    sorry
-  pure_seq g x := by simp only [instMonadOfRelativeMonadId, pure_bindᵣ]
-  bind_pure_comp f x := by simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]; sorry
-  bind_map f x := by simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]
-  pure_bind x f := by
-    simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId, pure_bindᵣ]
-  bind_assoc x f g := by simp only [instMonadOfRelativeMonadId, bind_assocᵣ, Id]
+-- instance [RelativeMonad Id m] [LawfulRelativeMonad Id m] : LawfulMonad m where
+--   seqLeft_eq x y := by simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]; sorry
+--   seqRight_eq x y := by
+--     simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]
+--     sorry
+--   pure_seq g x := by simp only [instMonadOfRelativeMonadId, pure_bindᵣ]
+--   bind_pure_comp f x := by simp [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]
+--   bind_map f x := by simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId]
+--   pure_bind x f := by
+--     simp only [instMonadOfRelativeMonadId, instFunctorOfRelativeFunctorId, pure_bindᵣ]
+--   bind_assoc x f g := by simp only [instMonadOfRelativeMonadId, bind_assocᵣ, Id]
 
 end Lawful
 

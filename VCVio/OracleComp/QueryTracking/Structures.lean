@@ -8,7 +8,8 @@ import VCVio.OracleComp.SimSemantics.SimulateQ
 /-!
 # Structures For Tracking a Computation's Oracle Queries
 
-This file defines types like `QueryLog` and `QueryCache` for use with simulation oracles defined in the same directory. -/
+This file defines types like `QueryLog` and `QueryCache` for use with
+simulation oracles and implementation transformers defined in the same directory. -/
 
 open OracleSpec OracleComp
 
@@ -83,7 +84,9 @@ lemma single_le_iff_pos [DecidableEq ι] (i : ι) (qc : QueryCount spec) :
 
 end QueryCount
 
-/-- Log of oracle queries represented by a list of dependent product's tagging the oracle's index. -/
+/-- Log of queries represented by a list of dependent product's tagging the oracle's index.
+`(i : ι) → spec.domain i × spec.range i` is slightly more restricted as it doesn't
+keep track of query ordering between different oracles. -/
 @[reducible]
 def QueryLog (spec : OracleSpec ι) : Type _ :=
   List ((i : ι) × spec.domain i × spec.range i)
@@ -92,7 +95,7 @@ namespace QueryLog
 
 instance : Append (QueryLog spec) := ⟨List.append⟩
 
-/-- Dummy `Monoid` instance to be used with `WriterT`. Actual constructions should use `append`. -/
+/-- Dummy `Monoid` instance to be used with `WriterT`, actual calls should use `append`. -/
 instance : Monoid (QueryLog spec) where
   mul := List.append
   mul_assoc := List.append_assoc

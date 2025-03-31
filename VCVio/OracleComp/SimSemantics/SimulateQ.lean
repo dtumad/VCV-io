@@ -48,27 +48,52 @@ section simulateQ
 to a new function `OracleComp spec α` by preserving `bind`, `pure`, and `failure`.
 NOTE: could change the output type to `OracleComp spec →ᵐ m`, makes some stuff below free -/
 def simulateQ [AlternativeMonad m] (so : QueryImpl spec m) (oa : OracleComp spec α) : m α :=
-  OptionT.mapM (fun x => x.mapM so.impl) oa
+  do Option.getM (← FreeMonad.mapM oa.run so.impl)
 
--- TODO: can remove `LawfulAlternative`s around a lot now.
-variable [AlternativeMonad m] [LawfulAlternative m] (so : QueryImpl spec m)
+variable [AlternativeMonad m] (so : QueryImpl spec m)
 
 @[simp]
-lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = failure :=
-  OptionT.mapM'_failure (FreeMonad.mapM' m so.impl)
+lemma simulateQ_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
+    simulateQ so (ite p oa oa') = ite p (simulateQ so oa) (simulateQ so oa') := by
+  split_ifs <;> rfl
+
+variable [LawfulMonad m]
+
+@[simp]
+lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = failure := by
+  simp [simulateQ, Option.getM]
 
 @[simp]
 lemma simulateQ_query (q : OracleQuery spec α) : simulateQ so q = so.impl q := by
-  sorry --simp [simulateQ, OracleComp.liftM_def]
+  simp [simulateQ, Option.getM]
 
 @[simp]
 lemma simulateQ_pure (x : α) : simulateQ so (pure x) = pure x :=
-  sorry --MonadHom.mmap_pure _ x
+  by simp [simulateQ, Option.getM]
+
+@[simp]
+lemma simulateQ_comp_pure_comp (f : α → β) : simulateQ so ∘ pure ∘ f = pure ∘ f := by
+  simp [Function.comp_def]
+
+variable [LawfulAlternative m]
+
+@[simp]
+lemma simulateQ_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
+    simulateQ so (liftM q >>= ob) = so.impl q >>= (simulateQ so ∘ ob) := sorry
 
 @[simp]
 lemma simulateQ_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    simulateQ so (oa >>= ob) = simulateQ so oa >>= fun x => simulateQ so (ob x) :=
-  sorry --MonadHom.mmap_bind _ oa ob
+    simulateQ so (oa >>= ob) = simulateQ so oa >>= (simulateQ so ∘ ob) := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => simp
+  | failure => simp [simulateQ, Option.getM]
+  | query_bind i t oa h => {
+    rw [bind_assoc]
+    simp [simulateQ]
+    refine bind_congr fun u => ?_
+
+    sorry
+  }
 
 @[simp]
 lemma simulateQ_map (oa : OracleComp spec α) (f : α → β) :
@@ -76,7 +101,8 @@ lemma simulateQ_map (oa : OracleComp spec α) (f : α → β) :
 
 @[simp]
 lemma simulateQ_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
-    simulateQ so (og <*> oa) = simulateQ so og <*> simulateQ so oa := by simp [seq_eq_bind]
+    simulateQ so (og <*> oa) = simulateQ so og <*> simulateQ so oa := by
+  simp [seq_eq_bind, Function.comp_def]
 
 @[simp]
 lemma simulateQ_seqLeft (oa : OracleComp spec α) (ob : OracleComp spec β) :
@@ -85,11 +111,6 @@ lemma simulateQ_seqLeft (oa : OracleComp spec α) (ob : OracleComp spec β) :
 @[simp]
 lemma simulateQ_seqRight (oa : OracleComp spec α) (ob : OracleComp spec β) :
     simulateQ so (oa *> ob) = simulateQ so oa *> simulateQ so ob := by simp [seqRight_eq]
-
-@[simp]
-lemma simulateQ_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
-    simulateQ so (ite p oa oa') = ite p (simulateQ so oa) (simulateQ so oa') := by
-  split_ifs <;> rfl
 
 end simulateQ
 
@@ -115,12 +136,13 @@ namespace idOracle
 
 @[simp] lemma apply_eq (q : OracleQuery spec α) : idOracle.impl q = q := rfl
 
-@[simp] lemma simulateQ_eq (oa : OracleComp spec α) :
-    simulateQ idOracle oa = oa := by
-  induction oa using OracleComp.inductionOn with
+@[simp] lemma simulateQ_eq_id : @simulateQ ι spec _ α _ idOracle = id := by
+  refine funext fun oa => by induction oa using OracleComp.inductionOn with
   | pure x => rfl
-  | query_bind i t oa hoa => simp [hoa]
+  | query_bind i t oa hoa => simp [hoa, Function.comp_def]
   | failure => rfl
+
+lemma simulateQ_eq (oa : OracleComp spec α) : simulateQ idOracle oa = oa := by simp
 
 end idOracle
 
@@ -135,11 +157,14 @@ namespace defaultOracle
 @[simp] lemma apply_eq [spec.FiniteRange] (q : OracleQuery spec α) :
     defaultOracle.impl q = return q.defaultOutput := rfl
 
-@[simp] lemma simulateQ_eq [spec.FiniteRange] (oa : OracleComp spec α) :
-    simulateQ defaultOracle oa = oa.defaultResult.getM := by
-  induction oa using OracleComp.inductionOn with
+@[simp] lemma simulateQ_eq_getM_defaultResult [spec.FiniteRange] :
+    @simulateQ ι spec _ α _ defaultOracle = Option.getM ∘ defaultResult := by
+  refine funext fun oa => by induction oa using OracleComp.inductionOn with
   | pure x => simp [defaultResult, Option.getM]
   | query_bind i t oa hoa => simp [hoa]; rfl
   | failure => simp [defaultResult, Option.getM]
+
+lemma simulateQ_eq [spec.FiniteRange] (oa : OracleComp spec α) :
+    simulateQ defaultOracle oa = oa.defaultResult.getM := by simp
 
 end defaultOracle

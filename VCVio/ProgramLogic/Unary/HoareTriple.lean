@@ -343,8 +343,8 @@ def flatten : (t : Tree' α) → List α
   | .leaf a => [a]
   | .node l r => flatten l ++ flatten r
 
-theorem flatten_relabel {t : Tree' α} {n : ℕ} : List.Nodup (flatten ((relabelM t).run n).1) := by
-  sorry
+-- theorem flatten_relabel {t : Tree' α} {n : ℕ} : List.Nodup (flatten ((relabelM t).run n).1) := by
+--   sorry
 
 def size : Tree' α → ℕ
   | .leaf _ => 1

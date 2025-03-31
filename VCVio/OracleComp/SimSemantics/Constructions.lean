@@ -23,7 +23,7 @@ namespace QueryImpl
 
 section compose
 
-variable {m : Type u → Type v} [AlternativeMonad m] [LawfulAlternative m]
+variable {m : Type u → Type v} [AlternativeMonad m]
 
 /-- Given an implementation of `spec` in terms of a new set of oracles `spec'`,
 and an implementation of `spec'` in terms of arbitrary `m`, implement `spec` in terms of `m`. -/
@@ -38,11 +38,12 @@ lemma apply_compose (so' : QueryImpl spec' m) (so : QueryImpl spec (OracleComp s
     (q : OracleQuery spec α) : (so' ∘ₛ so).impl q = simulateQ so' (so.impl q) := rfl
 
 @[simp]
-lemma simulateQ_compose (so' : QueryImpl spec' m) (so : QueryImpl spec (OracleComp spec'))
+lemma simulateQ_compose [LawfulMonad m] [LawfulAlternative m] (so' : QueryImpl spec' m)
+    (so : QueryImpl spec (OracleComp spec'))
     (oa : OracleComp spec α) : simulateQ (so' ∘ₛ so) oa = simulateQ so' (simulateQ so oa) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp
-  | query_bind i t oa hoa => simp [hoa]
+  | query_bind i t oa hoa => simp [hoa, Function.comp_def]
   | failure => simp
 
 end compose
@@ -75,18 +76,18 @@ lemma equivState_subsingleton [Subsingleton σ] (e : σ ≃ σ) :
 lemma equivState_equivState : (so.equivState e).equivState e.symm = so :=
   QueryImpl.ext' λ q ↦ by simp [Prod.map]
 
-@[simp]
-lemma simulate_equivState (s : τ) (oa : OracleComp spec α) :
-    simulateQ (so.equivState e) oa = fun s => map id e <$> simulateQ so oa (e.symm s) := by
-  sorry
+-- @[simp]
+-- lemma simulate_equivState (s : τ) (oa : OracleComp spec α) :
+--     simulateQ (so.equivState e) oa = fun s => map id e <$> simulateQ so oa (e.symm s) := by
+--   sorry
 
-/-- Masking the state doesn't affect the main output of a simulation. -/
-@[simp]
-lemma simulate'_equivState (s : τ) (oa : OracleComp spec α) :
-    (simulateQ (so.equivState e) oa).run' s = (simulateQ so oa).run' (e.symm s) := by
-  simp only [StateT.run'_eq, StateT.run, simulate_equivState, Functor.map_map, map_fst, id_eq]
-  simp [equivState, Functor.map_map]
-  sorry
+-- /-- Masking the state doesn't affect the main output of a simulation. -/
+-- @[simp]
+-- lemma simulate'_equivState (s : τ) (oa : OracleComp spec α) :
+--     (simulateQ (so.equivState e) oa).run' s = (simulateQ so oa).run' (e.symm s) := by
+--   simp only [StateT.run'_eq, StateT.run, simulate_equivState, Functor.map_map, map_fst, id_eq]
+--   simp [equivState, Functor.map_map]
+--   sorry
 
 end equivState
 

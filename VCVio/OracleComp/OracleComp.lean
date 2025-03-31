@@ -5,6 +5,7 @@ Authors: Devon Tuma
 -/
 import ToMathlib.Control.FreeMonad
 import ToMathlib.Control.OptionT
+import Mathlib.Control.Lawful
 import VCVio.OracleComp.OracleSpec
 
 /-!
@@ -119,6 +120,9 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
 instance : AlternativeMonad (OracleComp spec) :=
   inferInstanceAs (AlternativeMonad (OptionT (FreeMonad (OracleQuery spec))))
+
+instance : LawfulMonad (OracleComp spec) :=
+  inferInstanceAs (LawfulMonad (OptionT (FreeMonad (OracleQuery spec))))
 
 instance : LawfulAlternative (OracleComp spec) :=
   inferInstanceAs (LawfulAlternative (OptionT (FreeMonad (OracleQuery spec))))
@@ -375,8 +379,8 @@ lemma mapM_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleCom
   | failure => simp [hfail]
 
 @[simp]
-lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulAlternative m]
-    (qm : {α : Type v} → OracleQuery spec α → m α)
+lemma mapM_bind' {m : Type v → Type w} [AlternativeMonad m] [LawfulMonad m]
+    [LawfulAlternative m] (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (oa >>= ob).mapM failure qm =
       oa.mapM failure qm >>= λ x ↦ (ob x).mapM failure qm :=
@@ -392,7 +396,7 @@ lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β)
 
 @[simp]
 lemma mapM_map' {m : Type v → Type w} [AlternativeMonad m] [LawfulAlternative m]
-    (qm : {α : Type v} → OracleQuery spec α → m α)
+    [LawfulMonad m] (qm : {α : Type v} → OracleQuery spec α → m α)
     (oa : OracleComp spec α) (f : α → β) :
     (f <$> oa).mapM failure qm = f <$> oa.mapM failure qm := by
   induction oa using OracleComp.inductionOn with

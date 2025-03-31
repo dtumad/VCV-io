@@ -133,7 +133,7 @@ lemma liftComp_query (q : OracleQuery spec α) :
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     liftComp (oa >>= ob) superSpec =
       liftComp oa superSpec >>= λ x ↦ liftComp (ob x) superSpec := by
-  simp [liftComp]
+  simp [liftComp, Function.comp_def]
 
 @[simp]
 lemma liftComp_failure : liftComp (failure : OracleComp spec α) superSpec = failure := rfl
@@ -146,7 +146,7 @@ lemma liftComp_map (oa : OracleComp spec α) (f : α → β) :
 @[simp]
 lemma liftComp_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
     liftComp (og <*> oa) superSpec = liftComp og superSpec <*> liftComp oa superSpec := by
-  simp [liftComp, seq_eq_bind]
+  simp [liftComp, seq_eq_bind, Function.comp_def]
 
 /-- Lifting a computation to a different set of oracles doesn't change the output distribution,
 since `evalDist` assumes uniformly random queries. -/
