@@ -3,7 +3,9 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Transformers.WriterT
+import VCVio.OracleComp.QueryTracking.Structures
+import VCVio.OracleComp.SimSemantics.WriterT
+import VCVio.OracleComp.SimSemantics.Constructions
 
 /-!
 # Counting Queries Made by a Computation
@@ -16,71 +18,30 @@ Tracking individually is not necessary, but gives tighter security bounds in som
 It also allows for generating things like seed values for a computation more tightly.
 -/
 
-open OracleSpec OracleComp Function Prod
+open OracleSpec OracleComp
 
 universe u v w
 
-namespace OracleSpec
+variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
 
-variable {ι : Type u} {spec : OracleSpec ι}
+namespace QueryImpl
 
-/-- Simple wrapper in order to introduce the `Monoid` structure for `countingOracle`.
-Marked as reducible and can generally be treated as just a function. -/
-@[reducible]
-def QueryCount (_spec : OracleSpec ι) : Type u := ι → ℕ
+variable {m : Type u → Type v} [Monad m]
 
-namespace QueryCount
+def withCounting (so : QueryImpl spec m) : QueryImpl spec (WriterT spec.QueryCount m) where
+  impl | q => tell (QueryCount.single q.index) *> ↑(so.impl q)
 
-/-- Pointwise addition as the `Monoid` operation used for `WriterT`. -/
-instance : Monoid (QueryCount spec) where
-  mul qc qc' := qc + qc'
-  mul_assoc := add_assoc
-  one := 0
-  one_mul := zero_add
-  mul_one := add_zero
+@[simp] lemma withCounting_apply {α} (so : QueryImpl spec m) (q : OracleQuery spec α) :
+    so.withCounting.impl q = tell (QueryCount.single q.index) *> ↑(so.impl q) := rfl
 
-@[simp]
-lemma monoid_mul_def (qc qc' : QueryCount spec) :
-  (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
-     = (qc : ι → ℕ) + (qc' : ι → ℕ) := rfl
-
-@[simp]
-lemma monoid_one_def :
-    (@OfNat.ofNat (QueryCount spec) 1 (@One.toOfNat1 _ (Monoid.toOne))) = (0 : ι → ℕ) := rfl
-
-section single
-
-variable [DecidableEq ι]
-
-def single (i : ι) : QueryCount spec := Function.update 0 i 1
-
-@[simp]
-lemma single_le_iff_pos (i : ι) (qc : QueryCount spec) :
-    single i ≤ qc ↔ 0 < qc i := by
-  simp [single, update, Pi.hasLe]
-  constructor <;> intro h
-  · have : 1 ≤ qc i := by simpa using h i
-    exact this
-  · intro j
-    by_cases hj : j = i
-    · simp [hj]; omega
-    · simp [hj]
-
-end single
-
-end QueryCount
-
-end OracleSpec
+end QueryImpl
 
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
-def countingOracle {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} :
-    QueryImpl spec (WriterT (QueryCount spec) (OracleComp spec)) where
-  impl q := tell (QueryCount.single q.index) *> liftM q
+def countingOracle : QueryImpl spec (WriterT (QueryCount spec) (OracleComp spec)) :=
+  idOracle.withCounting
 
 namespace countingOracle
-
-variable {ι : Type u} [DecidableEq ι] {spec : OracleSpec ι} {α β γ : Type u}
 
 @[simp]
 protected lemma impl_apply_eq (q : OracleQuery spec α) :
@@ -88,13 +49,14 @@ protected lemma impl_apply_eq (q : OracleQuery spec α) :
 
 /-- `countingOracle` has no effect on the behavior of the computation itself. -/
 @[simp]
-lemma fst_map_run_simulateQ (oa : OracleComp spec α) : fst <$> (simulateQ countingOracle oa).run = oa :=
+lemma fst_map_run_simulateQ (oa : OracleComp spec α) :
+    Prod.fst <$> (simulateQ countingOracle oa).run = oa :=
   fst_map_writerT_run_simulateQ (by simp) oa
 
 @[simp]
 lemma run_simulateQ_bind_fst (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     ((simulateQ countingOracle oa).run >>= fun x => ob x.1) = oa >>= ob := by
-  rw [← bind_map_left fst, fst_map_run_simulateQ]
+  rw [← bind_map_left Prod.fst, fst_map_run_simulateQ]
 
 @[simp]
 lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
@@ -136,14 +98,17 @@ alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
 --       Prod.map id (qc + ·) '' (simulate countingOracle 0 oa).support := by
 --   revert qc
 --   induction oa using OracleComp.inductionOn with
---   | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply, id_eq,
+--   | pure a => simp only [simulate_pure, support_pure, Set.image_singleton, Prod.map_apply,
+  -- id_eq,
 --       add_zero, implies_true]
 --   | query_bind i t oa hoa =>
 --       refine λ qc ↦ ?_
 --       -- simp
 --       sorry -- refine λ qc ↦ ?_
---       -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,support_bind,support_map,
---       --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists, Set.iUnion_iUnion_eq',
+--       -- simp only [simulate_bind, simulate_query,countingOracle.apply_eq,
+-- support_bind,support_map,
+--       --   support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists,
+-- Set.iUnion_iUnion_eq',
 --       --   Prod.map_apply, id_eq, Pi.zero_apply, zero_add, Set.image_iUnion]
 --       -- refine Set.iUnion_congr (λ u ↦ ?_)
 --       -- simp only [hoa u (update qc i (qc i + 1)), hoa u (update 0 i 1),
@@ -326,7 +291,7 @@ alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
 --   · refine apply_ne_zero_of_mem_support_simulate_queryBind h
 --   · refine exists_mem_support_of_mem_support_simulate_queryBind h
 --   · obtain ⟨hz0, ⟨u, hu⟩⟩ := h
---     simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind, support_map,
+--     simp only [simulate_bind, simulate_query, countingOracle.apply_eq, support_bind,
 --       support_query, Set.image_univ, Set.mem_range, Set.iUnion_exists,
 --       Set.iUnion_iUnion_eq', Set.mem_iUnion]
 --     sorry

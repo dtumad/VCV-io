@@ -146,10 +146,10 @@ lemma mapM'_lift [Monad m] [LawfulMonad m]
   simp [FreeMonad.mapM', FreeMonad.lift, FreeMonad.mapM_aux]
 
 /-- Canonical mapping of a free monad into any other monad, given a map on the base functor, -/
-protected def mapM [Pure m] [Bind m] (s : {α : Type u} → f α → m α) :
-    (oa : FreeMonad f α) → m α
-  | .pure x => pure x
-  | .roll x r => s x >>= λ u ↦ (r u).mapM s
+protected def mapM [Pure m] [Bind m] :
+    (oa : FreeMonad f α) → (s : {α : Type u} → f α → m α) → m α
+  | .pure x, _ => pure x
+  | .roll x r, s => s x >>= λ u ↦ (r u).mapM s
 
 variable [Monad m]
 

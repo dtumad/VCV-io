@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.SimulateQ
 import VCVio.OracleComp.Constructions.UniformSelect
 
 /-!
@@ -32,7 +32,7 @@ doesn't affect the underlying probability distribution of the computation.
 Informally, `spec ⊂ₒ superSpec` means that for any query to an oracle of `sub_spec`,
 it can be perfectly simulated by a computation using the oracles of `superSpec`.
 
-We avoid implementing this via the built-in subset type as we care about the actual data
+We avoid implementing this via the built-in subset notation as we care about the actual data
 of the mapping rather than just its existence, which is needed when defining type coercions. -/
 class SubSpec (spec : OracleSpec ι) (superSpec : OracleSpec τ)
   extends MonadLift (OracleQuery spec) (OracleQuery superSpec) where
@@ -133,7 +133,7 @@ lemma liftComp_query (q : OracleQuery spec α) :
 lemma liftComp_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     liftComp (oa >>= ob) superSpec =
       liftComp oa superSpec >>= λ x ↦ liftComp (ob x) superSpec := by
-  simp [liftComp]
+  simp [liftComp, Function.comp_def]
 
 @[simp]
 lemma liftComp_failure : liftComp (failure : OracleComp spec α) superSpec = failure := rfl
@@ -146,7 +146,7 @@ lemma liftComp_map (oa : OracleComp spec α) (f : α → β) :
 @[simp]
 lemma liftComp_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
     liftComp (og <*> oa) superSpec = liftComp og superSpec <*> liftComp oa superSpec := by
-  simp [liftComp, seq_eq_bind]
+  simp [liftComp, seq_eq_bind, Function.comp_def]
 
 /-- Lifting a computation to a different set of oracles doesn't change the output distribution,
 since `evalDist` assumes uniformly random queries. -/
@@ -197,13 +197,5 @@ variable [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 @[simp]
 lemma liftM_eq_liftComp (oa : OracleComp spec α) :
     (liftM oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
-
--- NOTE: Should be handled by other things now.
--- /-- View a probabalistic computation as one with a larger set of oracles.
--- We make this a special instance as it's often needed in situations where the
--- type-class instance is not yet available (e.g. defining security experiments). -/
--- instance {ι : Type} (spec : OracleSpec ι) [unifSpec ⊂ₒ spec] (α : Type) :
---     Coe (ProbComp α) (OracleComp spec α) where
---   coe oa := oa
 
 end OracleComp
