@@ -29,8 +29,9 @@ lemma fst_map_writerT_run_simulateQ
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | query_bind i t oa h =>
-      simp_rw [simulateQ_bind, simulateQ_query, WriterT.run_bind, map_bind, Functor.map_map,
-        map_fst, id_eq, h, ← (congr_arg (· >>= oa) (hso (query i t))), bind_map_left]
+      simp_rw [simulateQ_bind, Function.comp_def, simulateQ_query, WriterT.run_bind, map_bind,
+        Functor.map_map, map_fst, id_eq, h, ← (congr_arg (· >>= oa) (hso (query i t))),
+        bind_map_left]
   | failure => simp
 
 lemma probFailure_writerT_run_simulateQ [spec.FiniteRange]
@@ -62,7 +63,7 @@ lemma noFailure_writerT_run_simulateQ_iff
   | query_bind i t oa h =>
       simp only [simulateQ_bind, simulateQ_query, WriterT.run_bind, noFailure_bind_iff, hso',
         noFailure_map_iff, h, Prod.forall, true_and, noFailure_query, support_liftM, Set.mem_univ,
-        forall_const]
+        forall_const, Function.comp_def]
       refine ⟨fun h' x  => ?_, fun h' x w hw => h' x⟩
       have := congr_arg (x ∈ ·) (hso (query i t))
       simp only [support_map, Set.mem_image, Prod.exists, exists_and_right, exists_eq_right,

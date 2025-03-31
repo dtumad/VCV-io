@@ -3,8 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.OracleComp
-import Mathlib.Data.Set.Finite.Lattice
+import VCVio.OracleComp.SimSemantics.SimulateQ
 
 /-!
 # Support of a Computation
@@ -27,7 +26,30 @@ namespace OracleComp
 
 universe u v w
 
+-- section support_test
+
+-- variable {ι : Type u} {spec : OracleSpec ι} {α : Type v}
+
+-- attribute [local instance] Set.monad
+
+-- def supportWhen' (ox : OracleComp spec α)
+--     (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Set α :=
+--   ox.simulateQ ⟨possible_outputs⟩
+
+-- def support' (oa : OracleComp spec α) : Set α :=
+--   oa.simulateQ ⟨fun | query i _ => Set.univ⟩
+
+-- end support_test
+
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
+
+/-- Possible outputs of the computation `oa` given a set of possible outputs for each query. -/
+def supportWhen (oa : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Set α := by
+  induction oa using OracleComp.construct with
+  | pure x => exact {x}
+  | query_bind q _ f => exact ⋃ u ∈ possible_outputs q, f u
+  | failure => exact ∅
 
 /-- The `support` of a computation `oa` is the set of all possible output values,
 assuming that all output values of the oracles are possible.
@@ -298,5 +320,44 @@ example : finSupport (do
     let z ← (if b || b' then return x else return 0);
     return (x * z)) = {0} :=
   by simp
+
+-- section simulate
+
+-- variable {ι ιₜ : Type*} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ}
+--     {m : Type u → Type v} {α β γ σ : Type u} (so : QueryImpl spec (StateT σ (OracleComp specₜ)))
+
+-- open Prod
+
+-- lemma support_simulate' (oa : OracleComp spec α) (s : σ) :
+--     (simulate' so s oa).support = fst <$> (simulate so s oa).support :=
+--   support_map _ fst
+
+-- /-- Since `support` assumes any possible query result, `simulate` will never reduce the support.
+-- In particular the support of a simulation lies in the preimage of the original support. -/
+-- lemma support_simulate_subset_preimage_support (oa : OracleComp spec α) (s : σ) :
+--     (simulate so s oa).support ⊆ fst ⁻¹' oa.support := by
+--   revert s
+--   induction oa using OracleComp.inductionOn with
+--   | pure x => simp
+--   | query_bind i t oa hoa =>
+--       simp [hoa]
+--       refine λ _ t s' _ ↦ Set.subset_iUnion_of_subset t (hoa t s')
+--   | failure => simp
+
+-- /-- Simulation only reduces the possible oracle outputs, so can't reduce the support.
+-- In particular
+-- the first output of a simulation has support at most that of the original computation -/
+-- lemma support_simulate'_subset_support (oa : OracleComp spec α) (s : σ) :
+--     (simulate' so s oa).support ⊆ oa.support := by
+--   rw [simulate', StateT.run', support_map, Set.image_subset_iff]
+--   apply support_simulate_subset_preimage_support
+
+-- lemma mem_support_simulate'_of_mem_support_simulate {oa : OracleComp spec α} {s : σ} {x : α}
+--     (s' : σ) (h : (x, s') ∈ (simulate so s oa).support) : x ∈ (simulate' so s oa).support := by
+--   simp only [support_simulate', Set.fmap_eq_image, Set.mem_image, Prod.exists, exists_and_right,
+--     exists_eq_right]
+--   exact ⟨s', h⟩
+
+-- end simulate
 
 end OracleComp

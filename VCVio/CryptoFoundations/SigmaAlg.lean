@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.OracleImpl
+import VCVio.OracleComp.ExecutionMethod
 
 /-!
 # Sigma Protocol
@@ -24,8 +24,8 @@ and secret part in `SC`. Only the commitment in `PC` is revealed to the verifier
 but the `prove` function may still use `SC` in generating a proof.
 
 We leave properties like special soundness as seperate definitions for better modularity. -/
-structure SigmaAlg {ι : Type} (spec : OracleSpec ι) (em : Type → Type)
-    (S W : Type) (p : S → W → Bool) (PC SC Ω P : Type) extends ExecutionMethod spec em where
+structure SigmaAlg {ι : Type} (spec : OracleSpec ι) (m : Type → Type)
+    (S W : Type) (p : S → W → Bool) (PC SC Ω P : Type) extends ExecutionMethod m where
   /-- Given a statement `s`, make a commitment to prove that you have a valid witness `w`. -/
   commit (s : S) (w : W) : OracleComp spec (PC × SC)
   /-- Given a previous secret commitment `sc`, repond to the challenge `ω`-/

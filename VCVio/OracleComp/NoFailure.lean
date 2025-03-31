@@ -3,7 +3,7 @@ Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma, Quang Dao
 -/
-import VCVio.OracleComp.DistSemantics.Support
+import VCVio.OracleComp.Support
 
 /-!
 # Computations that Never Fail
@@ -20,6 +20,7 @@ namespace OracleComp
 
 variable {ι : Type*} {spec : OracleSpec ι}
 
+-- TODO: @[deprecated "OracleComp.neverFailsWhen" (since := "")]
 def noFailure {α : Type u} (oa : OracleComp spec α) : Prop := by
   induction oa using OracleComp.construct with
   | pure _ => exact True
@@ -45,11 +46,7 @@ lemma noFailure_query (q : OracleQuery spec α) : noFailure (q : OracleComp spec
 
 @[simp]
 lemma noFailure_query_bind_iff {q : OracleQuery spec α} {oa : α → OracleComp spec β} :
-    (liftM q >>= oa).noFailure ↔ ∀ x, noFailure (oa x) := by
-  simp [liftM, monadLift, MonadLift.monadLift, lift, OptionT.lift, OptionT.mk, bind, OptionT.bind]
-  rw [noFailure_eq_freeMonad_construct]
-  unfold FreeMonad.construct
-  exact Eq.to_iff (by simp_rw [noFailure_eq_freeMonad_construct])
+    (liftM q >>= oa).noFailure ↔ ∀ x, noFailure (oa x) := Iff.rfl
 
 alias ⟨noFailure_query_bind, _⟩ := noFailure_query_bind_iff
 
@@ -62,11 +59,7 @@ lemma noFailure_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec 
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | failure => simp
-  | query_bind _ _ r ih =>
-    simp [ih]
-    constructor <;> intro h
-    · exact ⟨fun x => (h x).1, fun a x h' => (h x).2 a h'⟩
-    · exact fun x => ⟨h.1 x, fun a h' => h.2 a x h'⟩
+  | query_bind _ _ r ih => simp [ih, forall_and]; tauto
 
 alias ⟨noFailure_bind, _⟩ := noFailure_bind_iff
 
@@ -78,15 +71,12 @@ lemma noFailure_map_iff (oa : OracleComp spec α) (f : α → β) :
 
 @[simp]
 instance {α : Type u} [spec.FiniteRange] : DecidablePred (@OracleComp.noFailure _ spec α) :=
-  fun oa => by induction oa using OracleComp.construct with
-  | pure x =>
-      refine Decidable.isTrue (noFailure_pure x)
-  | failure =>
-      refine Decidable.isFalse not_noFailure_failure
-  | query_bind q _ r =>
-      cases q
-      simp only [noFailure_bind_iff, noFailure_query, support_liftM, Set.mem_univ, forall_const, true_and]
-      exact Fintype.decidableForallFintype
+  fun oa => by induction oa using OracleComp.construct' with
+  | pure x => exact Decidable.isTrue (noFailure_pure x)
+  | failure => exact Decidable.isFalse not_noFailure_failure
+  | query_bind i t _ r =>
+      simpa only [noFailure_bind_iff, noFailure_query, support_liftM, Set.mem_univ,
+        forall_const, true_and] using Fintype.decidableForallFintype
 
 section List
 
@@ -164,15 +154,18 @@ section Array
 
 open Array
 
-@[simp] lemma noFailure_array_mapM {f : α → OracleComp spec β} {as : Array α}
-    (h : ∀ x ∈ as, noFailure (f x)) : noFailure (mapM f as) := by
-  induction ha : as.toList generalizing as with
-  | nil => simp_all [h, Array.mapM, mapM.map, noFailure_pure]
-  | cons x xs ih =>
-    simp_rw [mapM_eq_mapM_toList, ha] at ih ⊢
-    simp at ih ⊢
-    -- boring case analysis
-    sorry
+-- @[simp] lemma noFailure_array_mapM {f : α → OracleComp spec β} {as : Array α}
+--     (h : ∀ x ∈ as, noFailure (f x)) : noFailure (mapM f as) := by
+--   induction ha : as.toList generalizing as with
+--   | nil => simp_all [h, Array.mapM, mapM.map, noFailure_pure]
+--   | cons x xs ih =>
+--     rw [mapM_eq_mapM_toList, noFailure_map_iff]
+
+--     simp_rw [mapM_eq_mapM_toList, ha] at ih ⊢
+--     simp at ih ⊢
+--     specialize ih h
+--     -- boring case analysis
+--     sorry
 
 end Array
 
@@ -180,16 +173,16 @@ section Vector
 
 open Vector
 
-variable {n : ℕ}
+-- variable {n : ℕ}
 
--- Need induction principle for vectors
-@[simp] lemma noFailure_vector_mapM {f : α → OracleComp spec β} {xs : Vector α n}
-    (h : ∀ x ∈ xs.toList, noFailure (f x)) : noFailure (mapM f xs) := by sorry
-  -- match h : xs with
-  -- | ⟨⟨[]⟩, _⟩ => simp [Vector.mapM, Vector.mapM.go, noFailure_pure]
-  -- | ⟨⟨x :: xs⟩, _⟩ =>
-  --   simp only [mapM_cons, bind_pure_comp, noFailure_bind_iff, noFailure_map_iff]
-  --   exact ⟨h x (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
+-- -- Need induction principle for vectors
+-- @[simp] lemma noFailure_vector_mapM {f : α → OracleComp spec β} {xs : Vector α n}
+--     (h : ∀ x ∈ xs.toList, noFailure (f x)) : noFailure (mapM f xs) := by sorry
+--   -- match h : xs with
+--   -- | ⟨⟨[]⟩, _⟩ => simp [Vector.mapM, Vector.mapM.go, noFailure_pure]
+--   -- | ⟨⟨x :: xs⟩, _⟩ =>
+--   --   simp only [mapM_cons, bind_pure_comp, noFailure_bind_iff, noFailure_map_iff]
+--   --   exact ⟨h x (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
 
 end Vector
 

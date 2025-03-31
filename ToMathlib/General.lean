@@ -43,6 +43,9 @@ lemma Function.injective2_swap_iff {α β γ : Type*} (f : α → β → γ) :
     f.swap.Injective2 ↔ f.Injective2 :=
   ⟨λ h _ _ _ _ h' ↦ and_comm.1 (h h'), λ h _ _ _ _ h' ↦ and_comm.1 (h h')⟩
 
+@[simp] theorem Finset.image_const_univ {α β} [DecidableEq β]  [Fintype α]
+    [Nonempty α] (b : β) : (Finset.univ.image fun _ : α => b) = singleton b :=
+  Finset.univ.image_const Finset.univ_nonempty b
 
 /-- Summing `1` over list indices that satisfy a predicate is just `countP` applied to `p`. -/
 lemma List.countP_eq_sum_fin_ite {α : Type*} (xs : List α) (p : α → Bool) :
@@ -158,7 +161,7 @@ lemma List.foldlM_range {m : Type u → Type v} [Monad m] [LawfulMonad m]
       rw [← hn, List.foldlM_map]
 
 lemma list_mapM_loop_eq {m : Type u → Type v} [Monad m] [LawfulMonad m]
-    {α β : Type u} (xs : List α) (f : α → m β) (ys : List β) :
+    {α : Type w} {β : Type u} (xs : List α) (f : α → m β) (ys : List β) :
     List.mapM.loop f xs ys = (ys.reverse ++ ·) <$> List.mapM.loop f xs [] := by
   revert ys
   induction xs with

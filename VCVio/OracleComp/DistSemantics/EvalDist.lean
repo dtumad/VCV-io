@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.NoFailure
-import VCVio.OracleComp.SimSemantics.Simulate
+import VCVio.OracleComp.SimSemantics.SimulateQ
 import Mathlib.Probability.Distributions.Uniform
 import ToMathlib.General
 
@@ -44,8 +44,8 @@ section evalDist
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 Implemented by simulating queries in the `PMF` monad. -/
-noncomputable def evalDist {α : Type w} (oa : OracleComp spec α) : OptionT PMF α :=
-  simulateQ ⟨fun (query i _) => PMF.uniformOfFintype (spec.range i)⟩ oa
+noncomputable def evalDist (oa : OracleComp spec α) : OptionT PMF α :=
+  oa.simulateQ ⟨fun (query i _) => PMF.uniformOfFintype (spec.range i)⟩
 
 @[simp]
 lemma evalDist_pure (x : α) : evalDist (pure x : OracleComp spec α) = pure x := simulateQ_pure _ _
@@ -59,16 +59,16 @@ lemma evalDist_liftM [Nonempty α] [Fintype α] (q : OracleQuery spec α) :
   refine congr_arg Finset.card (Finset.ext λ _ ↦ by simp)
 
 @[simp]
-lemma evalDist_query (i : ι) (t : spec.domain i) :
-    evalDist (query i t : OracleComp spec _) = OptionT.lift (PMF.uniformOfFintype (spec.range i)) :=
-  simulateQ_query _ _
+lemma evalDist_query (i : ι) (t : spec.domain i) : evalDist (query i t : OracleComp spec _) =
+    OptionT.lift (PMF.uniformOfFintype (spec.range i)) := simulateQ_query _ _
 
 @[simp]
 lemma evalDist_failure : evalDist (failure : OracleComp spec α) = failure := simulateQ_failure _
 
 @[simp]
 lemma evalDist_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by simp [evalDist, Function.comp_def]
+    evalDist (oa >>= ob) = (evalDist oa) >>= (evalDist ∘ ob) := by
+  simp [evalDist, Function.comp_def]
 
 lemma evalDist_query_bind (i : ι) (t : spec.domain i) (ou : spec.range i → OracleComp spec α) :
     evalDist ((query i t : OracleComp spec _) >>= ou) =
@@ -905,6 +905,12 @@ lemma probFailure_eq_zero_iff (oa : OracleComp spec α) : [⊥ | oa] = 0 ↔ oa.
 @[simp]
 lemma probFailure_pos_iff (oa : OracleComp spec α) : 0 < [⊥ | oa] ↔ ¬ oa.noFailure := by
   rw [pos_iff_ne_zero, ne_eq, probFailure_eq_zero_iff]
+
+lemma noFailure_of_probFailure_eq_zero {oa : OracleComp spec α} (h : [⊥ | oa] = 0) :
+    noFailure oa := by rwa [← probFailure_eq_zero_iff]
+
+lemma not_noFailure_of_probFailure_pos {oa : OracleComp spec α} (h : 0 < [⊥ | oa]) :
+    ¬ noFailure oa := by rwa [← probFailure_pos_iff]
 
 end noFailure
 

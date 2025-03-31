@@ -48,8 +48,8 @@ lemma probOutput_fst_map_eq_tsum [spec.FiniteRange] (oa : OracleComp spec (α ×
   tauto
 
 @[simp]
-lemma probOutput_fst_map_eq_sum [spec.FiniteRange] [Fintype β] (oa : OracleComp spec (α × β)) (x : α) :
-    [= x | fst <$> oa] = ∑ y, [= (x, y) | oa] := by
+lemma probOutput_fst_map_eq_sum [spec.FiniteRange] [Fintype β]
+    (oa : OracleComp spec (α × β)) (x : α) : [= x | fst <$> oa] = ∑ y, [= (x, y) | oa] := by
   rw [probOutput_fst_map_eq_tsum, tsum_fintype]
 
 @[simp]
@@ -63,8 +63,8 @@ lemma probOutput_snd_map_eq_tsum [spec.FiniteRange] (oa : OracleComp spec (α ×
   tauto
 
 @[simp]
-lemma probOutput_snd_map_eq_sum [spec.FiniteRange] [Fintype α] (oa : OracleComp spec (α × β)) (y : β) :
-    [= y | snd <$> oa] = ∑ x, [= (x, y) | oa] := by
+lemma probOutput_snd_map_eq_sum [spec.FiniteRange] [Fintype α]
+    (oa : OracleComp spec (α × β)) (y : β) : [= y | snd <$> oa] = ∑ x, [= (x, y) | oa] := by
   rw [probOutput_snd_map_eq_tsum, tsum_fintype]
 
 section seq_map_mk -- TODO: bind versions of these lemmas
