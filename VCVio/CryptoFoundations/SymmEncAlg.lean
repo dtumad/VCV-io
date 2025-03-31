@@ -20,8 +20,8 @@ open OracleSpec OracleComp
 
 /-- Symmetric encryption algorithm with access to oracles in `spec` (simulated with state `σ`),
 where `M` is the space of messages, `K` is the key space, and `C` is the ciphertext space. -/
-structure SymmEncAlg (m : Type u → Type v) (M K C : Type u)
-    extends ExecutionMethod m where
+structure SymmEncAlg (m : Type u → Type v)
+    (M K C : Type u) extends ExecutionMethod m where
   keygen : m K
   encrypt (k : K) (msg : M) : m C
   decrypt (k : K) (c : C) : Option M

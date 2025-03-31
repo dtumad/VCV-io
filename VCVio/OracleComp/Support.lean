@@ -26,20 +26,31 @@ namespace OracleComp
 
 universe u v w
 
--- section support_test
+section support_test
 
--- variable {ι : Type u} {spec : OracleSpec ι} {α : Type v}
+variable {ι : Type u} {spec : OracleSpec ι} {α : Type v}
 
--- attribute [local instance] Set.monad
+section altMonadTest
 
--- def supportWhen' (ox : OracleComp spec α)
---     (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Set α :=
---   ox.simulateQ ⟨possible_outputs⟩
+open Classical
 
--- def support' (oa : OracleComp spec α) : Set α :=
---   oa.simulateQ ⟨fun | query i _ => Set.univ⟩
+protected def Set.alternativeMonad : AlternativeMonad.{u} Set where
+  failure := ∅
+  orElse s t := if s = ∅ then t () else s
+  __ := Set.monad
 
--- end support_test
+end altMonadTest
+
+attribute [local instance] Set.alternativeMonad
+
+def supportWhen' (ox : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Set α :=
+  ox.simulateQ ⟨possible_outputs⟩
+
+def support' (oa : OracleComp spec α) : Set α :=
+  oa.simulateQ ⟨fun | query i _ => Set.univ⟩
+
+end support_test
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 

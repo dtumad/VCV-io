@@ -49,7 +49,7 @@ message, captured here by a `guard` statement. -/
 --   let (pk, sk) ← encAlg.keygen
 --   guard (encAlg.decrypt sk (← encAlg.encrypt pk msg) = msg)
 
-def CorrectExp' (encAlg : AsymmEncAlg m M PK SK C) (msg : M) :
+def CorrectExp (encAlg : AsymmEncAlg m M PK SK C) (msg : M) :
     ProbComp Unit := encAlg.exec do
   let (pk, sk) ← encAlg.keygen
   guard (encAlg.decrypt sk (← encAlg.encrypt pk msg) = msg)
@@ -59,14 +59,14 @@ def CorrectExp' (encAlg : AsymmEncAlg m M PK SK C) (msg : M) :
 --   ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0
 
 def PerfectlyCorrect (encAlg : AsymmEncAlg m M PK SK C) : Prop :=
-  ∀ (msg : M), [⊥ | CorrectExp' encAlg msg] = 0
+  ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0
 
 -- @[simp] lemma PerfectlyCorrect_iff : encAlg.PerfectlyCorrect ↔
 --     ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0 := Iff.rfl
 
 @[simp] lemma PerfectlyCorrect_iff (encAlg : AsymmEncAlg m M PK SK C) :
     PerfectlyCorrect encAlg ↔
-    ∀ (msg : M), [⊥ | CorrectExp' encAlg msg] = 0 := Iff.rfl
+    ∀ (msg : M), [⊥ | CorrectExp encAlg msg] = 0 := Iff.rfl
 
 end Correct
 

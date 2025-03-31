@@ -27,9 +27,8 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type v}
 
 section allWhen
 
-variable
-    (query_pred : {α : Type v} → OracleQuery spec α → Prop)
-    (fail_pred : Prop) (oa : OracleComp spec α)
+variable (Q : {α : Type v} → OracleQuery spec α → Prop)
+    (F : Prop) (oa : OracleComp spec α)
     (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
 
 /-- All the given predicates hold on a computation when queries respond with
@@ -38,40 +37,38 @@ def allWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α
     (oa : OracleComp spec α) : Prop := by
   induction oa using OracleComp.construct with
   | pure x => exact True
-  | failure => exact fail_pred
-  | query_bind q _ r => exact query_pred q ∧ ∀ x ∈ possible_outputs q, r x
+  | failure => exact F
+  | query_bind q _ r => exact Q q ∧ ∀ x ∈ possible_outputs q, r x
 
-@[simp] lemma allWhen_pure (x : α) : (pure x : OracleComp spec α).allWhen
-     query_pred fail_pred possible_outputs := True.intro
+@[simp] lemma allWhen_pure_iff (x : α) :
+    (pure x : OracleComp spec α).allWhen Q F possible_outputs := True.intro
 
-@[simp] lemma allWhen_failure_iff : (failure : OracleComp spec α).allWhen
-   query_pred fail_pred possible_outputs ↔ fail_pred := Iff.rfl
+@[simp] lemma allWhen_failure_iff :
+    (failure : OracleComp spec α).allWhen Q F possible_outputs ↔ F := Iff.rfl
 
-@[simp] lemma allWhen_query_iff (q : OracleQuery spec α) : (q : OracleComp spec α).allWhen
-    query_pred fail_pred possible_outputs ↔ query_pred q := by simp [allWhen]
+@[simp] lemma allWhen_query_iff (q : OracleQuery spec α) :
+    (q : OracleComp spec α).allWhen Q F possible_outputs ↔ Q q := by simp [allWhen]
 
 @[simp] lemma allWhen_query_bind (q : OracleQuery spec α) (oa : α → OracleComp spec β) :
-    ((q : OracleComp spec α) >>= oa).allWhen query_pred fail_pred possible_outputs ↔ query_pred q ∧
-      ∀ x ∈ possible_outputs q, (oa x).allWhen query_pred fail_pred possible_outputs := by rfl
+    ((q : OracleComp spec α) >>= oa).allWhen Q F possible_outputs ↔
+      Q q ∧ ∀ x ∈ possible_outputs q, (oa x).allWhen Q F possible_outputs := by rfl
 
 -- TODO: We need a full theory of `supportWhen` to make this work well.
--- @[simp] lemma allWhen_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
---     (oa >>= ob).allWhen query_pred fail_pred possible_outputs ↔
---       oa.allWhen query_pred fail_pred possible_outputs ∧
---         ∀ x ∈ oa.supportWhen possible_outputs, (ob x).allWhen query_pred fail_pred possible_outputs := by
---   induction oa using OracleComp.inductionOn with
---   | pure x => {
---     simp [supportWhen]
---   }
---   | failure => {
---     simp [supportWhen]
---   }
---   | query_bind i t oa h => {
---     rw [bind_assoc, allWhen_query_bind]
---     simp [h, supportWhen]
---     rw [and_assoc]
---     refine and_congr_right fun _ => ?_
---   }
+@[simp] lemma allWhen_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+    (oa >>= ob).allWhen Q F possible_outputs ↔ oa.allWhen Q F possible_outputs ∧
+      ∀ x ∈ oa.supportWhen possible_outputs, (ob x).allWhen Q F possible_outputs := by
+  induction oa using OracleComp.inductionOn with
+  | pure x => {
+    simp [supportWhen]
+  }
+  | failure => {
+    simp [supportWhen]
+  }
+  | query_bind i t oa h => {
+    rw [bind_assoc, allWhen_query_bind]
+    simp [h, supportWhen]
+    sorry
+  }
 
 end allWhen
 
