@@ -154,18 +154,18 @@ section Array
 
 open Array
 
-@[simp] lemma noFailure_array_mapM {f : α → OracleComp spec β} {as : Array α}
-    (h : ∀ x ∈ as, noFailure (f x)) : noFailure (mapM f as) := by
-  induction ha : as.toList generalizing as with
-  | nil => simp_all [h, Array.mapM, mapM.map, noFailure_pure]
-  | cons x xs ih =>
-    rw [mapM_eq_mapM_toList, noFailure_map_iff]
+-- @[simp] lemma noFailure_array_mapM {f : α → OracleComp spec β} {as : Array α}
+--     (h : ∀ x ∈ as, noFailure (f x)) : noFailure (mapM f as) := by
+--   induction ha : as.toList generalizing as with
+--   | nil => simp_all [h, Array.mapM, mapM.map, noFailure_pure]
+--   | cons x xs ih =>
+--     rw [mapM_eq_mapM_toList, noFailure_map_iff]
 
-    simp_rw [mapM_eq_mapM_toList, ha] at ih ⊢
-    simp at ih ⊢
-    specialize ih h
-    -- boring case analysis
-    sorry
+--     simp_rw [mapM_eq_mapM_toList, ha] at ih ⊢
+--     simp at ih ⊢
+--     specialize ih h
+--     -- boring case analysis
+--     sorry
 
 end Array
 
@@ -173,16 +173,16 @@ section Vector
 
 open Vector
 
-variable {n : ℕ}
+-- variable {n : ℕ}
 
--- Need induction principle for vectors
-@[simp] lemma noFailure_vector_mapM {f : α → OracleComp spec β} {xs : Vector α n}
-    (h : ∀ x ∈ xs.toList, noFailure (f x)) : noFailure (mapM f xs) := by sorry
-  -- match h : xs with
-  -- | ⟨⟨[]⟩, _⟩ => simp [Vector.mapM, Vector.mapM.go, noFailure_pure]
-  -- | ⟨⟨x :: xs⟩, _⟩ =>
-  --   simp only [mapM_cons, bind_pure_comp, noFailure_bind_iff, noFailure_map_iff]
-  --   exact ⟨h x (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
+-- -- Need induction principle for vectors
+-- @[simp] lemma noFailure_vector_mapM {f : α → OracleComp spec β} {xs : Vector α n}
+--     (h : ∀ x ∈ xs.toList, noFailure (f x)) : noFailure (mapM f xs) := by sorry
+--   -- match h : xs with
+--   -- | ⟨⟨[]⟩, _⟩ => simp [Vector.mapM, Vector.mapM.go, noFailure_pure]
+--   -- | ⟨⟨x :: xs⟩, _⟩ =>
+--   --   simp only [mapM_cons, bind_pure_comp, noFailure_bind_iff, noFailure_map_iff]
+--   --   exact ⟨h x (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
 
 end Vector
 

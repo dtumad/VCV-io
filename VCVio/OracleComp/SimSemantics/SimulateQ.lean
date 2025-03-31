@@ -42,8 +42,6 @@ lemma QueryImpl.ext' {so so' : QueryImpl spec m}
 
 namespace OracleComp
 
-section simulateQ
-
 /-- Canonical lifting of a function `OracleQuery spec α → m α`
 to a new function `OracleComp spec α` by preserving `bind`, `pure`, and `failure`.
 NOTE: could change the output type to `OracleComp spec →ᵐ m`, makes some stuff below free -/
@@ -52,73 +50,56 @@ def simulateQ [AlternativeMonad m] (so : QueryImpl spec m) (oa : OracleComp spec
 
 variable [AlternativeMonad m] (so : QueryImpl spec m)
 
-@[simp]
-lemma simulateQ_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
+@[simp] lemma simulateQ_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
     simulateQ so (ite p oa oa') = ite p (simulateQ so oa) (simulateQ so oa') := by
   split_ifs <;> rfl
 
 variable [LawfulMonad m]
 
-@[simp]
-lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = failure := by
+@[simp] lemma simulateQ_failure : simulateQ so (failure : OracleComp spec α) = failure := by
   simp [simulateQ, Option.getM]
 
-@[simp]
-lemma simulateQ_query (q : OracleQuery spec α) : simulateQ so q = so.impl q := by
+@[simp] lemma simulateQ_query (q : OracleQuery spec α) : simulateQ so q = so.impl q := by
   simp [simulateQ, Option.getM]
 
-@[simp]
-lemma simulateQ_pure (x : α) : simulateQ so (pure x) = pure x :=
+@[simp] lemma simulateQ_pure (x : α) : simulateQ so (pure x) = pure x :=
   by simp [simulateQ, Option.getM]
 
-@[simp]
-lemma simulateQ_comp_pure_comp (f : α → β) : simulateQ so ∘ pure ∘ f = pure ∘ f := by
+@[simp] lemma simulateQ_comp_pure_comp (f : α → β) : simulateQ so ∘ pure ∘ f = pure ∘ f := by
   simp [Function.comp_def]
+
+@[simp] lemma simulateQ_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
+    simulateQ so (liftM q >>= ob) = so.impl q >>= (simulateQ so ∘ ob) := by
+  simp [simulateQ, OptionT.run, OracleComp.query_bind_eq_roll, OptionT.mk,
+    FreeMonad.mapM_roll, bind_assoc, Function.comp_def]
 
 variable [LawfulAlternative m]
 
-@[simp]
-lemma simulateQ_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
-    simulateQ so (liftM q >>= ob) = so.impl q >>= (simulateQ so ∘ ob) := sorry
-
-@[simp]
-lemma simulateQ_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+@[simp] lemma simulateQ_bind (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     simulateQ so (oa >>= ob) = simulateQ so oa >>= (simulateQ so ∘ ob) := by
   induction oa using OracleComp.inductionOn with
   | pure x => simp
   | failure => simp [simulateQ, Option.getM]
-  | query_bind i t oa h => {
-    rw [bind_assoc]
-    simp [simulateQ]
-    refine bind_congr fun u => ?_
+  | query_bind i t oa h => simp [bind_assoc, simulateQ_query_bind, Function.comp_def, h]
 
-    sorry
-  }
-
-@[simp]
-lemma simulateQ_map (oa : OracleComp spec α) (f : α → β) :
+@[simp] lemma simulateQ_map (oa : OracleComp spec α) (f : α → β) :
     simulateQ so (f <$> oa) = f <$> simulateQ so oa := by simp [map_eq_bind_pure_comp]
 
-@[simp]
-lemma simulateQ_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
+@[simp] lemma simulateQ_seq (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
     simulateQ so (og <*> oa) = simulateQ so og <*> simulateQ so oa := by
   simp [seq_eq_bind, Function.comp_def]
 
-@[simp]
-lemma simulateQ_seqLeft (oa : OracleComp spec α) (ob : OracleComp spec β) :
+@[simp] lemma simulateQ_seqLeft (oa : OracleComp spec α) (ob : OracleComp spec β) :
     simulateQ so (oa <* ob) = simulateQ so oa <* simulateQ so ob := by simp [seqLeft_eq]
 
-@[simp]
-lemma simulateQ_seqRight (oa : OracleComp spec α) (ob : OracleComp spec β) :
+@[simp] lemma simulateQ_seqRight (oa : OracleComp spec α) (ob : OracleComp spec β) :
     simulateQ so (oa *> ob) = simulateQ so oa *> simulateQ so ob := by simp [seqRight_eq]
 
-end simulateQ
-
-section subsingleton
-
-
-
-end subsingleton
+-- NOTE: I don't think this is true in general
+-- @[simp] lemma simulateQ_orElse (oa oa' : OracleComp spec α) :
+--     simulateQ so (oa <|> oa') = (simulateQ so oa <|> simulateQ so oa') := by
+--   simp only [simulateQ, Option.getM]
+--   simp [OracleComp.orElse_def, OptionT.run]
 
 end OracleComp
 

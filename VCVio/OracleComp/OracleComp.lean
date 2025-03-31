@@ -169,12 +169,15 @@ lemma query_bind_eq_roll (q : OracleQuery spec α) (ob : α → OracleComp spec 
 
 end lift
 
-lemma pure_def (x : α) : (pure x : OracleComp spec α) = OptionT.pure x := rfl
+protected lemma pure_def (x : α) : (pure x : OracleComp spec α) = OptionT.pure x := rfl
 
-lemma bind_def (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
+protected lemma bind_def (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     oa >>= ob = OptionT.bind oa ob := rfl
 
-lemma failure_def : (failure : OracleComp spec α) = OptionT.fail := rfl
+protected lemma failure_def : (failure : OracleComp spec α) = OptionT.fail := rfl
+
+protected lemma orElse_def (oa oa' : OracleComp spec α) : (oa <|> oa') = OptionT.mk
+      (do match ← OptionT.run oa with | some a => pure (some a) | _  => OptionT.run oa') := rfl
 
 protected lemma bind_congr' {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' := h ▸ bind_congr h'
@@ -193,10 +196,11 @@ By making this range inclusive we avoid the case of choosing from the empty rang
 
 notation "$[0.." n "]" => uniformFin n
 
+-- TODO: could consider this notation if we switch to probspec
 notation:50 "$[" n "⋯" m "]" => uniformFin' n m
 
 example : OracleComp probSpec ℕ := do
-  let x ← $[314⋯31415]; let y ← $[161⋯1618033]
+  let x ← $[314⋯31415]; let y ← $[0⋯x]
   return x + 2 * y
 
 @[simp] -- NOTE: debatable if this should be simp
@@ -436,7 +440,7 @@ section inj
 
 @[simp]
 lemma pure_inj (x y : α) : (pure x : OracleComp spec α) = pure y ↔ x = y := by
-  simp [pure_def, OptionT.pure, OptionT.mk]
+  simp [OracleComp.pure_def, OptionT.pure, OptionT.mk]
   rw [FreeMonad.pure.injEq, Option.some_inj]
 
 @[simp]
@@ -455,8 +459,8 @@ lemma query_inj (i : ι) (t t' : spec.domain i) :
 lemma queryBind_inj (q q' : OracleQuery spec α) (ob ob' : α → OracleComp spec β) :
     (q : OracleComp spec α) >>= ob = (q' : OracleComp spec α) >>= ob' ↔ q = q' ∧ ob = ob' := by
   simp only [OracleComp.liftM_def, OptionT.lift, OptionT.mk, FreeMonad.monad_pure_def,
-    FreeMonad.monad_bind_def, FreeMonad.bind_lift, bind_def, OptionT.bind, FreeMonad.bind_roll,
-    FreeMonad.bind_pure]
+    FreeMonad.monad_bind_def, FreeMonad.bind_lift, OracleComp.bind_def, OptionT.bind,
+    FreeMonad.bind_roll, FreeMonad.bind_pure]
   rw [FreeMonad.roll.injEq]
   simp only [heq_eq_eq, true_and]
 

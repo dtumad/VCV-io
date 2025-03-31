@@ -62,10 +62,12 @@ class LawfulAlternative (m : Type u → Type v) [Alternative m] : Prop
   orElse_assoc {α} (x y z : m α) : (x <|> y <|> z) = ((x <|> y) <|> z)
   /-- `map` commutes with `orElse`. The stronger statement with `bind` generally isn't true -/
   map_orElse {α β} (x y : m α) (f : α → β) : f <$> (x <|> y) = (f <$> x <|> f <$> y)
+  /-- TODO: add this -/
+  pure_orElse {α} (x : α) (y : m α) : (pure x <|> y) = pure x
 
 export LawfulAlternative (map_failure failure_seq orElse_failure failure_orElse orElse_assoc
-  map_orElse)
-attribute [simp] map_failure failure_seq orElse_failure failure_orElse map_orElse
+  map_orElse pure_orElse)
+attribute [simp] map_failure failure_seq orElse_failure failure_orElse map_orElse pure_orElse
 
 section Alternative
 
@@ -121,6 +123,8 @@ class LawfulAlternativeLift (m : semiOutParam (Type u → Type v)) (n : Type u �
 
 export LawfulAlternativeLift (monadLift_failure monadLift_orElse)
 
+section liftM
+
 variable {α β}
 
 @[simp] theorem liftM_failure [Alternative m] [Alternative n] [MonadLift m n]
@@ -152,7 +156,11 @@ theorem monadLift_optional [AlternativeMonad m] [AlternativeMonad n]
     (x : m α) : liftM (optional x) = optional (liftM x : n α) :=
   monadLift_optional x
 
+end liftM
+
 namespace Option
+
+variable {α β}
 
 instance : AlternativeMonad Option.{u} where
 
@@ -163,6 +171,7 @@ instance : LawfulAlternative Option.{u} where
   failure_orElse := Option.none_orElse
   orElse_assoc | some _, _, _ => rfl | none, _, _ => rfl
   map_orElse | some _ => by simp | none => by simp
+  pure_orElse x y := rfl
 
 @[simp] theorem elimM_pure [Monad m] [LawfulMonad m] (x : Option α) (y : m β)
     (z : α → m β) : Option.elimM (pure x) y z = Option.elim x y z := by
@@ -192,7 +201,7 @@ end Option
 
 namespace OptionT
 
-@[simp] theorem run_mapConst [Monad m] [LawfulMonad m] (x : OptionT m α) (y : β) :
+@[simp] theorem run_mapConst {α β} [Monad m] [LawfulMonad m] (x : OptionT m α) (y : β) :
     (Functor.mapConst y x).run = Option.map (Function.const α y) <$> x.run := run_map _ _
 
 instance (m) [Monad m] : AlternativeMonad (OptionT m) where
@@ -208,10 +217,9 @@ instance (m) [Monad m] [LawfulMonad m] : LawfulMonad (OptionT m) :=
       simp only [run_bind, Option.elimM, bind_assoc])
     (pure_bind := by intros; apply OptionT.ext; simp)
 
+@[simp] theorem run_failure [Monad m] {α} : (failure : OptionT m α).run = pure none := rfl
 
-@[simp] theorem run_failure [Monad m] : (failure : OptionT m α).run = pure none := rfl
-
-@[simp] theorem run_orElse [Monad m] (x : OptionT m α) (y : OptionT m α) :
+@[simp] theorem run_orElse [Monad m] {α} (x : OptionT m α) (y : OptionT m α) :
     (x <|> y).run = Option.elimM x.run y.run (pure ∘ some) :=
   bind_congr fun | some _ => rfl | none => rfl
 
@@ -240,6 +248,7 @@ instance (m) [Monad m] [LawfulMonad m] : LawfulAlternative (OptionT m) where
   map_orElse x y f := by
     simp only [OptionT.ext_iff, run_map, run_orElse, map_bind, bind_map_left, Option.elimM]
     refine bind_congr fun | some _ => by simp | none => rfl
+  pure_orElse x y := by simp [OptionT.ext_iff]
 
 end OptionT
 
@@ -257,6 +266,7 @@ instance (m) [AlternativeMonad m] [LawfulAlternative m] [LawfulMonad m] :
   failure_orElse _ := StateT.ext fun _ => failure_orElse _
   orElse_assoc _ _ _ := StateT.ext fun _ => orElse_assoc _ _ _
   map_orElse _ _ _ := StateT.ext fun _ => by simp only [run_map, run_orElse, map_orElse]
+  pure_orElse _ _ := StateT.ext fun _ => by simp
 
 instance (m) [AlternativeMonad m] [LawfulAlternative m] [LawfulMonad m] :
     LawfulAlternativeLift m (StateT σ m) where
@@ -278,6 +288,7 @@ instance [AlternativeMonad m] [LawfulAlternative m] : LawfulAlternative (ReaderT
   failure_orElse _ := ReaderT.ext fun _ => failure_orElse _
   orElse_assoc _ _ _ := ReaderT.ext fun _ => orElse_assoc _ _ _
   map_orElse _ _ _ := ReaderT.ext fun _ => by simp only [run_map, run_orElse, map_orElse]
+  pure_orElse _ _ := ReaderT.ext fun _ => by simp only [run_orElse, run_pure, pure_orElse]
 
 instance [AlternativeMonad m] : LawfulAlternativeLift m (ReaderT ρ m) where
   monadLift_failure {α} := ReaderT.ext fun s => by simp
