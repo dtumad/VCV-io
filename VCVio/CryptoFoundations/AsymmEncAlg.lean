@@ -93,14 +93,17 @@ variable [AlternativeMonad m] [LawfulAlternative m] [DecidableEq C]
 /-- Two oracles for IND-CCA Experiment, the first for decrypting ciphertexts, and the second
 for getting a challenge from a pair of messages. -/
 def IND_CCA_oracleSpec (_encAlg : AsymmEncAlg m M PK SK C) :=
-    (C →ₒ M) ++ₒ ((M × M) →ₒ C)
+    (C →ₒ Option M) ++ₒ ((M × M) →ₒ C)
 
+/-- Implement oracles for IND-CCA security game. A state monad is to track the current challenge,
+if it exists, and is set by the adversary calling the second oracle.
+The decryption oracle checks to make sure it doesn't decrypt the challenge. -/
 def IND_CCA_oracleImpl [DecidableEq C] (encAlg : AsymmEncAlg m M PK SK C)
     (pk : PK) (sk : SK) (b : Bool) : QueryImpl (IND_CCA_oracleSpec encAlg)
       (StateT (Option C) m) where impl
   | query (Sum.inl ()) c => do
       guard ((← get) ≠ some c)
-      Option.getM (encAlg.decrypt sk c)
+      return encAlg.decrypt sk c
   | query (Sum.inr ()) (m₁, m₂) => do
       guard (← get).isNone
       let c ← encAlg.encrypt pk (if b then m₁ else m₂)
@@ -108,10 +111,9 @@ def IND_CCA_oracleImpl [DecidableEq C] (encAlg : AsymmEncAlg m M PK SK C)
       return c
 
 structure IND_CCA_Adversary (encAlg : AsymmEncAlg m M PK SK C) where
-    main : PK → OracleComp (encAlg.IND_CCA_oracleSpec) Bool
+    main : PK → OracleComp encAlg.IND_CCA_oracleSpec Bool
 
-def IND_CCA_Game [coinSpec ⊂ₒ spec]
-    (encAlg : AsymmEncAlg m M PK SK C)
+def IND_CCA_Game (encAlg : AsymmEncAlg m M PK SK C)
     (adversary : encAlg.IND_CCA_Adversary) : ProbComp Unit :=
   encAlg.exec do
     let (pk, sk) ← encAlg.keygen
