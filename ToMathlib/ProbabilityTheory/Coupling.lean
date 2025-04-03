@@ -81,7 +81,7 @@ theorem IsCoupling.pure_iff {α β : Type u} {a : α} {b : β} {c : SPMF (α × 
   · intro ⟨h1, h2⟩
     simp [pure_eq_pmf_pure, liftM, monadLift, OptionT.instMonadLift, OptionT.lift, OptionT.mk] at h1 h2
     have : (x : Option α) → (Prod.fst <$> c) x = (some <$> PMF.pure a) x := by
-      rw [h1]; exact fun x => rfl
+      rw [h1]; intro x; congr; simp [Functor.map]
     sorry
   · intro h; constructor <;> simp [h, ← liftM_map]
 
