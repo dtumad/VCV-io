@@ -33,24 +33,24 @@ structure forkInput (spec : OracleSpec ι) (α : Type) where
   /-- Function that picks out an index of where to do the forking. -/
   chooseFork : α → QueryLog spec → Option (Fin (queryBound i + 1))
 
-def fork' (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
-    (js : List ι) (cf : α → Option (Fin (qb i))) :
+def fork' (main : OracleComp spec α) (qb : ι → ℕ)
+    (js : List ι) (i : ι) (cf : α → Option (Fin (qb i))) :
     OracleComp spec (α × α) := do
   let seed : QuerySeed spec ← generateSeed spec qb js
   let x₁ ← (simulateQ seededOracle main).run seed
   let s : Fin (qb i) ← (cf x₁).getM
   let u ←$ᵗ spec.range i
-  guard ((seed i)[s]? ≠ some u)
+  guard ((seed i)[s]? ≠ some u) -- Didn't pick the same output
   let seed' := (seed.takeAtIndex i s).addValue i u
   let x₂ ← (simulateQ seededOracle main).run seed'
-  guard (cf x₂ = some s)
+  guard (cf x₂ = some s) -- New output corresponds to the same fork
   return (x₁, x₂)
 
-theorem le_probFailure_fork' (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
-    (js : List ι) (cf : α → Option (Fin (qb i))) [spec.FiniteRange] :
-    let acc : ℝ≥0∞ := [fun x => (cf x).isSome | main]
+theorem le_probFailure_fork' (main : OracleComp spec α) (qb : ι → ℕ)
+    (js : List ι) (i : ι) (cf : α → Option (Fin (qb i))) [spec.FiniteRange] :
+    let acc : ℝ≥0∞ := [= none | cf <$> main]
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
-    [⊥ | fork' main i qb js cf] ≤ 1 / h + acc ^ 2 / (qb i) := sorry
+    [⊥ | fork' main qb js i cf] ≤ acc * (1 / h + acc / qb i) := sorry
 
 def fork (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
     (js : List ι) (cf : α → QueryLog spec → Option (Fin (qb i + 1))) :
