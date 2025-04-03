@@ -709,6 +709,22 @@ lemma probFailure_bind_eq_sub_mul {oa : OracleComp spec α} {ob : α → OracleC
       refine congr_arg (1 - ·) (tsum_congr λ x ↦ ?_)
       rw [ENNReal.mul_sub (λ _ _ ↦ probOutput_ne_top), mul_one, ← h x]
 
+lemma probFailure_bind_le_of_forall {oa : OracleComp spec α} {s : ℝ≥0∞}
+    -- TODO: this should be a general type of `uniformOutput` computations
+    (h' : [⊥ | oa] = s) (ob : α → OracleComp spec β) {r : ℝ≥0∞}
+    (hr : ∀ x ∈ oa.support, [⊥ | ob x] ≤ r) : [⊥ | oa >>= ob] ≤ s + (1 - s) * r := sorry
+
+/-- Version of `probFailure_bind_le_of_forall` with the `1 - s` factor ommited for convenience. -/
+lemma probFailure_bind_le_of_forall' {oa : OracleComp spec α} {s : ℝ≥0∞}
+    -- TODO: this should be a general type of `uniformOutput` computations
+    (h' : [⊥ | oa] = s) (ob : α → OracleComp spec β) {r : ℝ≥0∞}
+    (hr : ∀ x ∈ oa.support, [⊥ | ob x] ≤ r) : [⊥ | oa >>= ob] ≤ s + r := sorry
+
+/-- Version of `probFailure_bind_le_of_forall` when `oa` never fails. -/
+lemma probFailure_bind_le_of_le_of_neverFails {oa : OracleComp spec α}
+    (h' : oa.neverFails) {ob : α → OracleComp spec β} {r : ℝ≥0∞}
+    (hr : ∀ x ∈ oa.support, [⊥ | ob x] ≤ r) : [⊥ | oa >>= ob] ≤ r := sorry
+
 lemma probFailure_bind_of_neverFails {oa : OracleComp spec α}
     (h : neverFails oa) (ob : α → OracleComp spec β) :
     [⊥ | oa >>= ob] = ∑' x : α, [= x | oa] * [⊥ | ob x] := sorry

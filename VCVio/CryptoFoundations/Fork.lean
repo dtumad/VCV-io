@@ -33,6 +33,8 @@ structure forkInput (spec : OracleSpec ι) (α : Type) where
   /-- Function that picks out an index of where to do the forking. -/
   chooseFork : α → QueryLog spec → Option (Fin (queryBound i + 1))
 
+/-- Version of `fork` that doesn't choose `s` ahead of time.
+Should give better concrete bounds. -/
 def fork' (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι) (cf : α → Option (Fin (qb i))) :
     OracleComp spec (α × α) := do
@@ -50,7 +52,12 @@ theorem le_probFailure_fork' (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι) (cf : α → Option (Fin (qb i))) [spec.FiniteRange] :
     let acc : ℝ≥0∞ := [= none | cf <$> main]
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
-    [⊥ | fork' main qb js i cf] ≤ acc * (1 / h + acc / qb i) := sorry
+    [⊥ | fork' main qb js i cf] ≤ acc * (1 / h + acc / qb i) := by
+  rw [fork']
+  rw [probFailure_bind_of_neverFails]
+  ·
+    sorry
+  sorry
 
 def fork (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
     (js : List ι) (cf : α → QueryLog spec → Option (Fin (qb i + 1))) :
