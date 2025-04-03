@@ -23,7 +23,8 @@ open OracleSpec Prod
 
 universe u v w
 
-variable {ι ιₜ : Type*} {spec : OracleSpec ι} {specₜ : OracleSpec ιₜ}
+variable {ι ι' ιₜ : Type*} {spec : OracleSpec ι}
+    {spec' : OracleSpec ι'} {specₜ : OracleSpec ιₜ}
     {m : Type u → Type v} {α β γ σ : Type u}
 
 /-- Specifies a way to simulate a set of oracles using another set of oracles.

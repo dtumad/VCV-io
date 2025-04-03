@@ -67,8 +67,11 @@ def allWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α
   | query_bind i t oa h => {
     rw [bind_assoc, allWhen_query_bind]
     simp [h, supportWhen]
+
     sorry
   }
+
+-- @[simp] lemma allWhen
 
 end allWhen
 
@@ -96,6 +99,17 @@ def neverFailsWhen (oa : OracleComp spec α)
 /-- `oa` never fails even when queries can output any possible value. -/
 @[reducible, inline] def neverFails (oa : OracleComp spec α) : Prop :=
   oa.neverFailsWhen fun _ => Set.univ
+
+-- TOOD: generalize when `hso` is `neverFailsWhen` for some other `poss`.
+lemma neverFailsWhen_simulate {ι' : Type*} {spec' : OracleSpec ι'}
+    (oa : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
+    (h : neverFailsWhen oa possible_outputs)
+    -- {m : Type v → Type _} [Monad m]
+    (so : QueryImpl spec (OracleComp spec'))
+    (h' : ∀ {α}, ∀ q : OracleQuery spec α, (so.impl q).support ⊆ possible_outputs q)
+    (hso : ∀ {α}, ∀ q : OracleQuery spec α, neverFails (so.impl q)) :
+    neverFails (simulateQ so oa) := sorry
 
 end neverFails
 

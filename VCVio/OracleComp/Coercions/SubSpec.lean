@@ -45,42 +45,38 @@ variable [h : MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
 -- TODO: this may be a good simp lemma for normalization in general?
 -- Guessing the rhs is almost always easier to prove things about
-@[simp]
-lemma liftM_query_eq_liftM_liftM (q : OracleQuery spec α) :
+@[simp] lemma liftM_query_eq_liftM_liftM (q : OracleQuery spec α) :
     (q : OracleComp superSpec α) = ((q : OracleQuery superSpec α) : OracleComp superSpec α) := rfl
 
--- TODO: this version of the lemmas is probably(??) better most of the time
+-- TODO: Nameing
 lemma evalDist_lift_query [superSpec.FiniteRange] [Fintype α] [Nonempty α]
     (q : OracleQuery spec α) :
     evalDist ((q : OracleQuery superSpec α) : OracleComp superSpec α) =
       OptionT.lift (PMF.uniformOfFintype α) := by
   rw [evalDist_liftM]
 
-@[simp]
-lemma evalDist_liftM [superSpec.FiniteRange] [Fintype α] [Nonempty α]
+@[simp] lemma evalDist_liftM [superSpec.FiniteRange] [Fintype α] [Nonempty α]
     (q : OracleQuery spec α) :
     evalDist (q : OracleComp superSpec α) =
       OptionT.lift (PMF.uniformOfFintype α) := by
   rw [liftM_query_eq_liftM_liftM, OracleComp.evalDist_liftM]
 
-@[simp]
-lemma evalDist_monadLift [superSpec.FiniteRange] [Fintype α] [Nonempty α]
-    (q : OracleQuery spec α) :
-    evalDist (h.monadLift q : OracleComp superSpec α) =
-      OptionT.lift (PMF.uniformOfFintype α) := by
-  apply evalDist_liftM
-
+@[simp] lemma supportWhen_monadLift (q : OracleQuery spec α)
+    (poss : {α : Type w} → OracleQuery superSpec α → Set α) :
+    supportWhen (q : OracleComp superSpec α) poss = poss q := by
+  rw [liftM_query_eq_liftM_liftM]
+  simp only [supportWhen_query]
 
 @[simp]
 lemma support_toFun (q : OracleQuery spec α) :
     support (h.monadLift q : OracleComp superSpec α) = Set.univ := by
-  rw [support_liftM]
+  rw [support_query]
 
 @[simp]
 lemma finSupport_toFun [spec.DecidableEq] [superSpec.DecidableEq] [superSpec.FiniteRange]
     [DecidableEq α] [Fintype α] (q : OracleQuery spec α) :
     finSupport (h.monadLift q : OracleComp superSpec α) = Finset.univ := by
-  rw [finSupport_liftM]
+  sorry
 
 @[simp]
 lemma probOutput_toFun [superSpec.FiniteRange] [Fintype α]
@@ -184,6 +180,11 @@ lemma probEvent_liftComp [spec.FiniteRange] [superSpec.FiniteRange]
     (oa : OracleComp spec α) (p : α → Prop) [DecidablePred p] :
     [p | liftComp oa superSpec] = [p | oa] := by
   simp only [probEvent_def, evalDist_liftComp]
+
+@[simp] lemma neverFails_lift_comp_iff (oa : OracleComp spec α) :
+    (liftComp oa superSpec).neverFails ↔ oa.neverFails := by
+  simp [liftComp]
+  sorry
 
 end liftComp
 
