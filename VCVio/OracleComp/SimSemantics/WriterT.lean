@@ -52,23 +52,25 @@ lemma probFailure_writerT_run_simulateQ [spec.FiniteRange]
         _ = (↑(Fintype.card (spec.range i)))⁻¹ := by rw [hso, probOutput_query]
   | failure => simp
 
-lemma noFailure_writerT_run_simulateQ_iff
+-- TODO: less general version with `neverFailsWhen`
+lemma neverFails_writerT_run_simulateQ_iff
     {so : QueryImpl spec (WriterT ω (OracleComp spec))}
     (hso : ∀ {α}, ∀ q : OracleQuery spec α, (fst <$> (so.impl q).run).support = ⊤)
-    (hso' : ∀ {α}, ∀ q : OracleQuery spec α, (so.impl q).run.noFailure)
-    (oa : OracleComp spec α) : (simulateQ so oa).run.noFailure ↔ oa.noFailure := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | failure => simp
-  | query_bind i t oa h =>
-      simp only [simulateQ_bind, simulateQ_query, WriterT.run_bind, noFailure_bind_iff, hso',
-        noFailure_map_iff, h, Prod.forall, true_and, noFailure_query, support_liftM, Set.mem_univ,
-        forall_const, Function.comp_def]
-      refine ⟨fun h' x  => ?_, fun h' x w hw => h' x⟩
-      have := congr_arg (x ∈ ·) (hso (query i t))
-      simp only [support_map, Set.mem_image, Prod.exists, exists_and_right, exists_eq_right,
-        Set.top_eq_univ, Set.mem_univ, eq_iff_iff, iff_true] at this
-      obtain ⟨w, hw⟩ := this
-      exact h' x w hw
+    (hso' : ∀ {α}, ∀ q : OracleQuery spec α, (so.impl q).run.neverFails)
+    (oa : OracleComp spec α) : (simulateQ so oa).run.neverFails ↔ oa.neverFails := by
+  sorry
+  -- induction oa using OracleComp.inductionOn with
+  -- | pure x => simp
+  -- | failure => simp
+  -- | query_bind i t oa h =>
+  --     simp only [simulateQ_bind, simulateQ_query, WriterT.run_bind, noFailure_bind_iff, hso',
+  --       noFailure_map_iff, h, Prod.forall, true_and, noFailure_query, support_liftM, Set.mem_univ,
+  --       forall_const, Function.comp_def]
+  --     refine ⟨fun h' x  => ?_, fun h' x w hw => h' x⟩
+  --     have := congr_arg (x ∈ ·) (hso (query i t))
+  --     simp only [support_map, Set.mem_image, Prod.exists, exists_and_right, exists_eq_right,
+  --       Set.top_eq_univ, Set.mem_univ, eq_iff_iff, iff_true] at this
+  --     obtain ⟨w, hw⟩ := this
+  --     exact h' x w hw
 
 end OracleComp

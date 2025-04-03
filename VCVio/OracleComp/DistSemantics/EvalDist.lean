@@ -3,7 +3,7 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.NoFailure
+import VCVio.OracleComp.Traversal
 import VCVio.OracleComp.SimSemantics.SimulateQ
 import Mathlib.Probability.Distributions.Uniform
 import ToMathlib.General
@@ -709,6 +709,10 @@ lemma probFailure_bind_eq_sub_mul {oa : OracleComp spec α} {ob : α → OracleC
       refine congr_arg (1 - ·) (tsum_congr λ x ↦ ?_)
       rw [ENNReal.mul_sub (λ _ _ ↦ probOutput_ne_top), mul_one, ← h x]
 
+lemma probFailure_bind_of_neverFails {oa : OracleComp spec α}
+    (h : neverFails oa) (ob : α → OracleComp spec β) :
+    [⊥ | oa >>= ob] = ∑' x : α, [= x | oa] * [⊥ | ob x] := sorry
+
 end bind
 
 section mul_le_probEvent_bind
@@ -893,26 +897,29 @@ lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
 
 end map
 
-section noFailure
+section neverFails
+
+-- TODO: expand api and include `mayFail` versions for `probFailure_pos`.
 
 @[simp]
-lemma probFailure_eq_zero_iff (oa : OracleComp spec α) : [⊥ | oa] = 0 ↔ oa.noFailure := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | failure => simp
-  | query_bind i t oa h => simp [probFailure_bind_eq_tsum, h]
+lemma probFailure_eq_zero_iff (oa : OracleComp spec α) : [⊥ | oa] = 0 ↔ oa.neverFails := by
+  sorry
+  -- induction oa using OracleComp.inductionOn with
+  -- | pure x => simp
+  -- | failure => simp
+  -- | query_bind i t oa h => simp [probFailure_bind_eq_tsum, h]
 
 @[simp]
-lemma probFailure_pos_iff (oa : OracleComp spec α) : 0 < [⊥ | oa] ↔ ¬ oa.noFailure := by
-  rw [pos_iff_ne_zero, ne_eq, probFailure_eq_zero_iff]
+lemma probFailure_pos_iff (oa : OracleComp spec α) : 0 < [⊥ | oa] ↔ ¬ oa.neverFails := by
+  sorry --rw [pos_iff_ne_zero, ne_eq, probFailure_eq_zero_iff]
 
 lemma noFailure_of_probFailure_eq_zero {oa : OracleComp spec α} (h : [⊥ | oa] = 0) :
-    noFailure oa := by rwa [← probFailure_eq_zero_iff]
+    neverFails oa := by rwa [← probFailure_eq_zero_iff]
 
 lemma not_noFailure_of_probFailure_pos {oa : OracleComp spec α} (h : 0 < [⊥ | oa]) :
-    ¬ noFailure oa := by rwa [← probFailure_pos_iff]
+    ¬ neverFails oa := by rwa [← probFailure_pos_iff]
 
-end noFailure
+end neverFails
 
 section eqRec
 

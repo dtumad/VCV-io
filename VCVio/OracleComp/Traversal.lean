@@ -86,18 +86,18 @@ def someWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set �
   | failure => exact fail_pred
   | query_bind q _ r => exact query_pred q ∨ ∃ x ∈ possible_outputs q, r x
 
-section neverFail
+section neverFails
 
 /-- `oa` never fails if when responses to queries `q` are in `possible_outputs q`. -/
-def neverFailWhen (oa : OracleComp spec α)
+def neverFailsWhen (oa : OracleComp spec α)
     (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop :=
   oa.allWhen (fun _ => True) False possible_outputs
 
 /-- `oa` never fails even when queries can output any possible value. -/
-@[reducible, inline] def neverFail (oa : OracleComp spec α) : Prop :=
-  oa.neverFailWhen fun _ => Set.univ
+@[reducible, inline] def neverFails (oa : OracleComp spec α) : Prop :=
+  oa.neverFailsWhen fun _ => Set.univ
 
-end neverFail
+end neverFails
 
 section mayFail
 

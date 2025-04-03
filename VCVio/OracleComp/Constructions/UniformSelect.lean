@@ -276,8 +276,8 @@ variable (α : Type) [hα : SelectableType α]
 @[simp] lemma probFailure_uniformOfFintype : [⊥ | $ᵗ α] = 0 :=
   SelectableType.probFailure_selectElem
 
-@[simp] instance : noFailure ($ᵗ α) :=
-  noFailure_of_probFailure_eq_zero (probFailure_uniformOfFintype α)
+@[simp] lemma neverFails_uniformOfFintype : neverFails ($ᵗ α) :=
+  sorry --neverFails_of_probFailure_eq_zero (probFailure_uniformOfFintype α)
 
 @[simp] lemma evalDist_uniformOfFintype [Fintype α] [Inhabited α] :
     evalDist ($ᵗ α) = OptionT.lift (PMF.uniformOfFintype α) := by

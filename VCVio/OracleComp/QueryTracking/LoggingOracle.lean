@@ -64,10 +64,10 @@ lemma probFailure_run_simulateQ [spec.FiniteRange] (oa : OracleComp spec α) :
   probFailure_writerT_run_simulateQ (by simp) (by simp) oa
 
 @[simp]
-lemma noFailure_run_simulateQ_iff (oa : OracleComp spec α) :
-    noFailure (simulateQ loggingOracle oa).run ↔ noFailure oa :=
-  noFailure_writerT_run_simulateQ_iff (by simp) (by simp) oa
+lemma neverFails_run_simulateQ_iff (oa : OracleComp spec α) :
+    neverFails (simulateQ loggingOracle oa).run ↔ neverFails oa :=
+  neverFails_writerT_run_simulateQ_iff (by simp) (by sorry) oa
 
-alias ⟨_, noFailure_simulateQ⟩ := noFailure_run_simulateQ_iff
+alias ⟨_, neverFails_simulateQ⟩ := neverFails_run_simulateQ_iff
 
 end loggingOracle
