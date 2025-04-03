@@ -124,8 +124,9 @@ instance : DecidableEq mock_hmac_sha256_out_type :=
   | isFalse h => isFalse h
 
 -- verify the message by recomputing the franking tag.
--- struggling w/ guard operation https://lean-lang.org/functional_programming_in_lean/functor-applicative-monad/alternative.html?highlight=guard#the-alternative-class
-def verify_message_package (package : MessagePackage) : OracleComp unifSpec (Option SecretMessage) := do
+-- struggling w/ guard operation
+def verify_message_package
+    (package : MessagePackage) : OracleComp unifSpec (Option SecretMessage) := do
   let content := decrypt_message package.encrypted_message package.nonce
   let (msg_bv, _) := serialize_message_data content package.nonce
   let computed_tf := mock_hmac_sha256 package.nonce msg_bv
