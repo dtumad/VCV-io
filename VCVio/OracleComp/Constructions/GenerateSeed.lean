@@ -39,6 +39,10 @@ def generateSeed (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
     seed := seed.addValues (← ($ᵗ spec.range j).replicate (qc j))
   return seed
 
+def generateSingleSeed (spec : OracleSpec ι) (i : ι) [SelectableType (spec.range i)]
+    (n : ℕ) : ProbComp (QuerySeed spec) :=
+  QuerySeed.ofList <$> ($ᵗ spec.range i).replicate n
+
   -- Prod.snd <$> (generateSeedT spec qc activeOracles).run ∅
 -- variable (spec : OracleSpec ι) [∀ i, SelectableType (spec.range i)]
 --   (qc : ι → ℕ) (j : ι) (js : List ι)

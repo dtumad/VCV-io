@@ -332,6 +332,13 @@ lemma eq_takeAtIndex_length_iff (seed seed' : QuerySeed spec) (i : ι) :
 
 end takeAtIndex
 
+section ofList
+
+def ofList [DecidableEq ι] {i : ι} (xs : List (spec.range i)) : QuerySeed spec :=
+  fun j => if h : i = j then h ▸ xs else []
+
+end ofList
+
 -- def nextSeed [DecidableEq ι] {α : Type} :
 --     (q : OracleQuery spec α) → StateT (QuerySeed spec) (OracleComp spec) α
 --   | query i t => do
