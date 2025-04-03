@@ -1,5 +1,18 @@
+/-
+Copyright (c) 2024 Gabriel Becker. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Gabe Robison
+-/
+
 import VCVio
--- set_option diagnostics true
+
+/-!
+# Message Franking Protocol
+
+This file implements a message franking protocol for secure abuse reporting in encrypted
+messaging systems, allowing recipients to verifiably report abusive messages while
+maintaining encryption of legitimate messages.
+-/
 
 -- nonce generation using OracleComp
 def generate_nonce : OracleComp unifSpec (BitVec 256) :=
@@ -85,7 +98,8 @@ def generate_franking_tag (nonce : BitVec 256) (msg : String) : FrankingTag :=
   let tf := mock_hmac_sha256 nonce msg_bv -- TF = HMAC·SHA256(NF, M)
   { tag := tf }
 
-def generate_reporting_tag (franking_tag : FrankingTag) (context : Context) (facebook_key : BitVec 256) : ReportingTag :=
+def generate_reporting_tag (franking_tag : FrankingTag) (context : Context)
+    (facebook_key : BitVec 256) : ReportingTag :=
   -- RF = HMAC·SHA256(KF, TF||context)
   let context_bv := BitVec.ofNat 256 context.timestamp
   let serialized := franking_tag.tag.append (bitvec_to_string context_bv)
@@ -217,26 +231,26 @@ lemma mock_decrypt_mock_encrypt (msg : BitVec 256) :
 -- looking to prove that: "turning in a valid reporting tag always works"
 
 theorem validateAbuseReport_is_sound (message_content : String) :
-  [= true | do
-    -- basically simulation_setup
-    let facebook_key := BitVec.ofNat 256 123456789
-    let context : Context := {
-      sender_id := BitVec.ofNat 256 1001,
-      recipient_id := BitVec.ofNat 256 1002,
-      timestamp := 1730230302,
-      message_id := 123 }
-    -- simulation data
-    let maybeData ← simulation_setup message_content
-    match maybeData with
-    | none => return false
-    | some data =>
-      let valid_abuse_report := {
-        message := data.verified_msg,
-        franking_tag := data.message_package.franking_tag,
-        reporting_tag := data.message_package.reporting_tag,
-        context := data.message_package.context }
-      -- validation result
-      return validate_abuse_report valid_abuse_report data.facebook_key] = 1 := by
+    [= true | do
+      -- basically simulation_setup
+      let facebook_key := BitVec.ofNat 256 123456789
+      let context : Context := {
+        sender_id := BitVec.ofNat 256 1001,
+        recipient_id := BitVec.ofNat 256 1002,
+        timestamp := 1730230302,
+        message_id := 123 }
+      -- simulation data
+      let maybeData ← simulation_setup message_content
+      match maybeData with
+      | none => return false
+      | some data =>
+        let valid_abuse_report := {
+          message := data.verified_msg,
+          franking_tag := data.message_package.franking_tag,
+          reporting_tag := data.message_package.reporting_tag,
+          context := data.message_package.context }
+        -- validation result
+        return validate_abuse_report valid_abuse_report data.facebook_key] = 1 := by
   simp [simulation_setup, validate_abuse_report, verify_message_package,
         generate_franking_tag, prepare_encrypted_message,
         generate_reporting_tag, decrypt_message, generate_nonce]
@@ -245,11 +259,11 @@ theorem validateAbuseReport_is_sound (message_content : String) :
 
 -- valid messages always pass verification
 lemma simulation_setup_succeeds (message_content : String) :
-  [⊥ | do
-    let maybeData ← simulation_setup message_content
-    match maybeData with
-    | none => return true
-    | some _ => return false] = 0 := by
+    [⊥ | do
+      let maybeData ← simulation_setup message_content
+      match maybeData with
+      | none => return true
+      | some _ => return false] = 0 := by
   simp [simulation_setup, verify_message_package,
         generate_franking_tag, prepare_encrypted_message,
         generate_reporting_tag, decrypt_message, generate_nonce]
