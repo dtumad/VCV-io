@@ -48,17 +48,69 @@ def fork' (main : OracleComp spec α) (qb : ι → ℕ)
   guard (cf x₂ = some s) -- New output corresponds to the same fork
   return (x₁, x₂)
 
-theorem le_probFailure_fork' (main : OracleComp spec α) (qb : ι → ℕ)
+lemma probFailure_bind_congr [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : α → OracleComp spec β) (oc : α → OracleComp spec γ)
+    (h : ∀ x ∈ oa.support, [⊥ | ob x] = [⊥ | oc x]) :
+    [⊥ | oa >>= ob] = [⊥ | oa >>= oc] := by
+  sorry
+
+theorem probFailure_fork_le' (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι) (cf : α → Option (Fin (qb i + 1))) [spec.FiniteRange] :
     let acc : ℝ≥0∞ := [= none | cf <$> main]
-    let h : ℝ≥0∞ := Fintype.card (spec.range i)
-    [⊥ | fork' main qb js i cf] ≤ acc * (1 / h + acc / qb i) := by
-  rw [fork']
-  rw [probFailure_bind_of_neverFails]
-  · simp only
-    sorry
-  · simp
-    sorry
+    let h : ℝ≥0∞ := ↑(Fintype.card (spec.range i))
+    let k := qb i + 1
+    [⊥ | fork' main qb js i cf] ≤ acc * (1 / h + acc / k) := by
+  let acc : ℝ≥0∞ := [= none | cf <$> main]
+  let h : ℝ≥0∞ := ↑(Fintype.card (spec.range i))
+  let k := qb i + 1
+  calc [⊥ | fork' main qb js i cf]
+    _ = ([⊥ | do
+      let seed ← liftM (generateSeed spec qb js)
+      let x₁ ← (simulateQ seededOracle main).run seed
+      let s : Fin (qb i + 1) ← (cf x₁).getM
+      let u ←$ᵗ spec.range i
+      guard ((seed i)[s + 1]? ≠ some u)
+      let seed' := (seed.takeAtIndex i s).addValue i u
+      let x₂ ← (simulateQ seededOracle main).run seed'
+      guard (cf x₂ = some s)]) := by
+        sorry
+        -- repeat apply probFailure_bind_congr; intros
+        -- simp only [guard_eq, bind_pure_comp, probFailure_map, probFailure_ite,
+        --   probFailure_pure, probFailure_failure]
+
+    _ = ∑ s : Fin k, ([⊥ | do
+      let seed ← liftM (generateSeed spec qb js)
+      let x₁ ← (simulateQ seededOracle main).run seed
+      guard (cf x₁ = some s)
+      let u ←$ᵗ spec.range i
+      guard ((seed i)[s + 1]? ≠ some u)
+      let seed' := seed.takeAtIndex i s
+      let x₂ ← (simulateQ seededOracle main).run seed'
+      guard (cf x₂ = some s)]) := by sorry
+    _ = ∑ s : Fin k, ([⊥ | do
+      let seed ← liftM (generateSeed spec qb js)
+      let x₁ ← (simulateQ seededOracle main).run seed
+      guard (cf x₁ = some s)
+      let u ←$ᵗ spec.range i
+      guard ((seed i)[s + 1]? ≠ some u)
+      let seed' := seed.takeAtIndex i s
+      let x₂ ← (simulateQ seededOracle main).run seed'
+      guard (cf x₂ = some s)]) := by sorry
+    _ = ∑ s : Fin k, ∑' seed : QuerySeed spec,
+          [= seed | generateSeed spec (Function.update qb i s) js] *
+            [⊥ | do
+              let x₁ ← (simulateQ seededOracle main).run seed
+              guard (cf x₁ = some s)
+              let x₂ ← (simulateQ seededOracle main).run seed
+              guard (cf x₂ = some s)] := sorry
+    _ ≤ acc * (1 / h + acc / k) := sorry
+
+  -- rw [fork']
+  -- rw [probFailure_bind_of_neverFails]
+  -- · simp only
+  --   sorry
+  -- · simp
+  --   sorry
 
 def fork (main : OracleComp spec α) (i : ι) (qb : ι → ℕ)
     (js : List ι) (cf : α → QueryLog spec → Option (Fin (qb i + 1))) :
