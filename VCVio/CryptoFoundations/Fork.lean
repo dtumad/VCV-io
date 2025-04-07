@@ -58,6 +58,13 @@ lemma probFailure_bind_congr' [spec.FiniteRange] (oa : OracleComp spec α)
     (h : ∀ x, [⊥ | ob x] = [⊥ | oc x]) : [⊥ | oa >>= ob] = [⊥ | oa >>= oc] := by
   sorry
 
+lemma probFailure_bind_eq_sum_probFailure [spec.FiniteRange] (oa : OracleComp spec α)
+    {ob : α → OracleComp spec β} {σ : Type _} {s : Finset σ}
+    {oc : σ → α → OracleComp spec γ}
+    :
+    [⊥ | oa >>= ob] = ∑ x ∈ s, [⊥ | oa >>= oc x] :=
+    sorry
+
 theorem probFailure_fork_le' (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι) (cf : α → Option (Fin (qb i + 1))) [spec.FiniteRange] :
     let acc : ℝ≥0∞ := [= none | cf <$> main]
@@ -111,8 +118,6 @@ theorem probFailure_fork_le' (main : OracleComp spec α) (qb : ι → ℕ)
     let seed' := (seed.takeAtIndex i s).addValue i u
     let x₂ ← (simulateQ seededOracle main).run seed'
     guard (cf x₂ = some s)]) := by
-
-
       sorry
 
   _ = ∑ s : Fin k, ([⊥ | do
