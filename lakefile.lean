@@ -27,6 +27,8 @@ package VCVio where
 
 require "leanprover-community" / "mathlib" @ git "v4.18.0-rc1"
 
+require iris from git "https://github.com/leanprover-community/iris-lean"
+
 /-- Main library. -/
 @[default_target] lean_lib VCVio
 /-- Example constructions of cryptographic primitives. -/

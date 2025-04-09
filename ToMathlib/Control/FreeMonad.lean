@@ -27,6 +27,10 @@ variable {f : Type u → Type v} {α β γ : Type u}
 @[always_inline, inline]
 def lift (x : f α) : FreeMonad f α := FreeMonad.roll x FreeMonad.pure
 
+@[simp]
+lemma lift_ne_pure (x : f α) (a : α) : FreeMonad.lift x ≠ FreeMonad.pure a := by
+  simp [lift]
+
 instance : MonadLift f (FreeMonad f) where
   monadLift x := FreeMonad.lift x
 
@@ -53,6 +57,13 @@ lemma bind_roll (x : f α) (r : α → FreeMonad f β) (g : β → FreeMonad f �
 @[simp]
 lemma bind_lift (x : f α) (r : α → FreeMonad f β) :
     FreeMonad.bind (FreeMonad.lift x) r = FreeMonad.roll x r := rfl
+
+@[simp]
+lemma bind_eq_pure_iff (x : FreeMonad f α) (r : α → FreeMonad f β) (b : β) :
+    FreeMonad.bind x r = FreeMonad.pure b ↔ ∃ a, x = FreeMonad.pure a ∧ r a = FreeMonad.pure b := by
+  induction x with
+  | pure a => simp [bind_pure]
+  | roll x r ih => simp [bind_roll]
 
 instance : Monad (FreeMonad f) where
   pure := FreeMonad.pure
@@ -135,7 +146,7 @@ protected def mapM' (m : Type u → Type w) [Monad m] [LawfulMonad m]
   toFun := FreeMonad.mapM_aux s
   toFun_pure' x := rfl
   toFun_bind' x y := by
-    induction x using FreeMonad.inductionOn with
+    induction x with
     | pure x => simp [FreeMonad.mapM_aux]
     | roll x r h => simp at h; simp [FreeMonad.mapM_aux, h]
 
