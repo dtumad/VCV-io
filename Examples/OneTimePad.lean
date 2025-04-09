@@ -32,4 +32,26 @@ namespace oneTimePad
 /-- Encryption and decryption are inverses for any OTP key. -/
 instance complete (n : ℕ) : (oneTimePad n).Complete := ⟨by simp⟩
 
+-- [Pred | Computation]
+example : [fun (x, y) => x + y = 0 | do
+    let x : ℕ ← $[0..9]
+    let y : ℕ ← $[0..9]
+    return (x, y)] = 1 / 100 := sorry
+
+
+example (mx : PMF ℕ) :
+    let comp : PMF ℕ := mx.bind (fun x =>
+      (PMF.bernoulli 2⁻¹ (by simp)).bind fun b =>
+      PMF.pure (if b then 2 * x else 2 * x + 1))
+    comp.toOuterMeasure {n | Even n} = 1 / 2 :=
+  sorry
+
+example (mx : ProbComp ℕ) :
+    let comp : ProbComp ℕ := do
+      let x ← mx
+      return (if (←$ᵗ Bool) then 2 * x else 2 * x + 1)
+    [Even | comp] = (1 - [⊥ | mx]) * 2⁻¹ := by
+  simp [probEvent_bind_eq_tsum, apply_ite,
+    ENNReal.tsum_mul_right, tsum_probOutput_eq_sub]
+
 end oneTimePad
