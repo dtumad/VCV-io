@@ -41,11 +41,11 @@ def fork' (main : OracleComp spec α) (qb : ι → ℕ)
   let seed ← generateSeed spec qb js
   let x₁ ← (simulateQ seededOracle main).run seed
   let s : Fin (qb i + 1) ← (cf x₁).getM
-  let u ←$ᵗ spec.range i
+  let u ←$ᵗ spec.range i -- Choose new output for query
   guard ((seed i)[s + 1]? ≠ some u) -- Didn't pick the same output
   let seed' := (seed.takeAtIndex i s).addValue i u
   let x₂ ← (simulateQ seededOracle main).run seed'
-  guard (cf x₂ = some s) -- New output corresponds to the same fork
+  guard (cf x₂ = some s) -- Choose the same index on this run
   return (x₁, x₂)
 
 lemma probFailure_bind_congr [spec.FiniteRange] (oa : OracleComp spec α)
@@ -84,10 +84,6 @@ theorem probFailure_fork_le' (main : OracleComp spec α) (qb : ι → ℕ)
     let seed' := (seed.takeAtIndex i s).addValue i u
     let x₂ ← (simulateQ seededOracle main).run seed'
     guard (cf x₂ = some s)]) := by
-      -- acc + (1 - acc) / h + (1 - acc) * (1 - 1 / h) * (acc / k)
-      -- = acc + 1/h - acc/h + (1 + acc / h - acc - 1/h)*(acc / k)
-      -- = acc * (1 + 1/h + 1/k + acc/kh - acc/k - 1/hk) + 1 / h
-      -- =
       -- repeat refine probFailure_bind_congr' _ fun _ => ?_
       refine probFailure_bind_congr' _ fun _ =>
         probFailure_bind_congr' _ fun _ =>
@@ -98,18 +94,8 @@ theorem probFailure_fork_le' (main : OracleComp spec α) (qb : ι → ℕ)
       simp only [guard_eq, bind_pure_comp, probFailure_map, probFailure_ite,
         probFailure_pure, probFailure_failure]
 
-  -- _ = ∑ s : Fin k, ([= (some s, some s) | do
-  --   let seed ← liftM (generateSeed spec qb js)
-  --   let x₁ ← (simulateQ seededOracle main).run seed
-  --   let u ←$ᵗ spec.range i
-  --   guard ((seed i)[s + 1]? ≠ some u)
-  --   let seed' := (seed.takeAtIndex i s).addValue i u
-  --   let x₂ ← (simulateQ seededOracle main).run seed'
-  --   return (cf x₁, cf x₂)]) := by
-
-  --     sorry
-
-  _ = ∑ s : Fin k, ([⊥ | do
+  -- Sum over possible `s = cf x` values to share
+  _ = [= none | cf <$> main] + ∑ s : Fin k, ([⊥ | do
     let seed ← liftM (generateSeed spec qb js)
     let x₁ ← (simulateQ seededOracle main).run seed
     guard (cf x₁ = some s)
@@ -120,25 +106,58 @@ theorem probFailure_fork_le' (main : OracleComp spec α) (qb : ι → ℕ)
     guard (cf x₂ = some s)]) := by
       sorry
 
-  _ = ∑ s : Fin k, ([⊥ | do
-    let seed ← liftM (generateSeed spec qb js)
+  -- Generate only the shared portion of the seed
+  _ = [= none | cf <$> main] + ∑ s : Fin k, ([⊥ | do
+    let seed ← liftM (generateSeed spec (Function.update qb i s) js)
     let x₁ ← (simulateQ seededOracle main).run seed
     guard (cf x₁ = some s)
-    guard ((← $ᵗ spec.range i) ≠ (← $ᵗ spec.range i))
-    let seed' := seed.takeAtIndex i s
+    let u ←$ᵗ spec.range i
+    guard (some (←$ᵗ spec.range i) ≠ some u)
+    let seed' := seed.addValue i u
     let x₂ ← (simulateQ seededOracle main).run seed'
-    guard (cf x₂ = some s)]) := by sorry
+    guard (cf x₂ = some s)]) := by
+      sorry
 
-  _ = ∑ s : Fin k, ([⊥ | do
-    let seed ← liftM (generateSeed spec qb js)
+  -- Don't add the extra value `u`
+  _ = [= none | cf <$> main] + ∑ s : Fin k, ([⊥ | do
+    let seed ← liftM (generateSeed spec (Function.update qb i s) js)
     let x₁ ← (simulateQ seededOracle main).run seed
     guard (cf x₁ = some s)
-    guard ((← $ᵗ spec.range i) ≠ (← $ᵗ spec.range i))
-    let seed' := seed.takeAtIndex i s
-    let x₂ ← (simulateQ seededOracle main).run seed'
-    guard (cf x₂ = some s)]) := by sorry
+    guard ((←$ᵗ spec.range i) ≠ (←$ᵗ spec.range i))
+    let x₂ ← (simulateQ seededOracle main).run seed
+    guard (cf x₂ = some s)]) := by
+      sorry
 
-  _ ≤ [= none | cf <$> main] * (1 / h + [= none | cf <$> main] / k)  := sorry
+  -- Pull out the odds of getting a duplicate query output
+  _ = [= none | cf <$> main] + ∑ s : Fin k, ([⊥ | do
+    let seed ← liftM (generateSeed spec (Function.update qb i s) js)
+    let x₁ ← (simulateQ seededOracle main).run seed
+    guard (cf x₁ = some s)
+    let x₂ ← (simulateQ seededOracle main).run seed
+    guard (cf x₂ = some s)] - 1 / h) := by
+      sorry
+
+  -- Convert failure to getting specific outputs
+  _ = [= none | cf <$> main] + ∑ s : Fin k, ((1 - [= (some s, some s) | do
+    let seed ← liftM (generateSeed spec (Function.update qb i s) js)
+    let s₁ ← cf <$> (simulateQ seededOracle main).run seed
+    let s₂ ← cf <$> (simulateQ seededOracle main).run seed
+    return (s₁, s₂)]) - 1 / h) := by
+      sorry
+
+  -- Convert failure to getting specific outputs
+  _ ≤ [= none | cf <$> main] + ∑ s : Fin k, ((1 - [= some s | do
+    let seed ← liftM (generateSeed spec (Function.update qb i s) js)
+    let s₁ ← cf <$> (simulateQ seededOracle main).run seed
+    return s₁] ^ 2 / k)) - k / h := by
+      sorry
+
+  -- Simplify with only one run of the computation
+  _ ≤ [= none | cf <$> main] + (∑ s : Fin k, (1 - [= some s | cf <$> main] ^ 2 / k)) - k / h := by
+      sorry
+
+  -- _ = [= none | cf <$> main] +
+
   _ ≤ acc * (1 / h + acc / k) := sorry
 
   -- rw [fork']
