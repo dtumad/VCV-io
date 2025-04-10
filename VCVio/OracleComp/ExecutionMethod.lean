@@ -36,17 +36,4 @@ namespace ExecutionMethod
   lift_probComp := id
   exec_lift_probComp _ := rfl
 
--- /-- Run a computation `oa` using a given implementation `impl` of its oracles -/
--- def exec [AlternativeMonad m] [LawfulAlternative m] {α : Type v}
---     (impl : ExecutionMethod spec m) (oa : OracleComp spec α) : ProbComp α :=
---   impl.exec_as_probComp (simulateQ impl.toQueryImpl oa)
-
--- @[simp] lemma exec_def [AlternativeMonad m] [LawfulAlternative m] {α : Type v}
---     (impl : ExecutionMethod spec m) (oa : OracleComp spec α) :
---     impl.exec oa = impl.exec_as_probComp (simulateQ impl.toQueryImpl oa) := rfl
-
--- @[simp] lemma exec_default {α : Type} [AlternativeMonad m] [LawfulAlternative m]
---     (oa : OracleComp unifSpec α) : ExecutionMethod.default.exec oa = oa := by
---   simp only [ExecutionMethod.default, exec_def, idOracle.simulateQ_eq, id_eq]
-
 end ExecutionMethod
