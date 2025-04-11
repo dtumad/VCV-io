@@ -358,6 +358,77 @@ instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
   probOutput_selectElem_eq x y := by simp [probOutput_eqRec]
   probFailure_selectElem := by simp
 
+/-- Select a uniform element from `Vector α n` by independently selecting `α` at each index. -/
+instance (α : Type) (n : ℕ) [SelectableType α] : SelectableType (Vector α n) where
+  selectElem := by induction n with
+  | zero => exact pure #v[]
+  | succ m ih => exact Vector.push <$> ih <*> ($ᵗ α)
+  mem_support_selectElem x := by induction n with
+  | zero => simp
+  | succ m ih =>
+    simp [ih]
+    use x.pop, x.back
+    apply Vector.push_pop_back
+  probOutput_selectElem_eq x y := by induction n with
+  | zero =>
+    have : x=y := by
+      apply Vector.ext
+      rintro i hi
+      linarith
+    simp [this]
+    -- have : Subsingleton (Vector α 0) := by
+    --   apply Vector.ext
+    --   rintro i hi
+    --   linarith
+    -- Subsingleton
+    -- simp [this]
+  | succ m ih =>
+    rw [← Vector.push_pop_back x, ← Vector.push_pop_back y]
+    simp [probOutput_seq_map_vec_push_eq_mul, -Vector.push_pop_back]
+    unfold uniformOfFintype
+    rw [SelectableType.probOutput_selectElem_eq x.back y.back]
+    exact congrFun (congrArg HMul.hMul (ih x.pop y.pop)) [=y.back|SelectableType.selectElem]
+  probFailure_selectElem := by induction n with
+  | zero => simp
+  | succ m ih => simp [ih, probFailure_seq]
+
+/-- Select a uniform element from `Matrix α n` by independently selecting `α` at each index. -/
+instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (Fin n) (Fin m) α) where
+  -- selectElem := (fun x ↦ (fun i j ↦ x)) <$> ($ᵗ α)
+  selectElem := by induction n with
+  | zero => exact pure (Matrix.of ![])
+  | succ n ihn => exact do
+    let top ← $ᵗ Vector α m
+    let bot ← ihn
+    -- return Matrix.of (Fin.snoc top bot.get)
+    return Fin.cons top.get bot
+    -- return (Matrix.of (fun i j ↦ if h : i ≠ Fin.last n then top (Fin.castPred i h) j else bot[j]))
+  mem_support_selectElem x := by induction n with
+  | zero =>
+    apply Matrix.ext
+    rintro i j
+    exact False.elim (IsEmpty.false i)
+  | succ p ih =>
+    simp at *
+    use Vector.ofFn (x 0), (Fin.tail x); constructor
+    simp [ih]
+    have : (Vector.ofFn (x 0)).get = x 0 := by
+      ext i
+      simp [Vector.get]
+    simp [Fin.cons_self_tail, this]
+  probOutput_selectElem_eq x y := by induction n with
+  | zero =>
+    sorry
+  | succ m ih =>
+    sorry
+  probFailure_selectElem := by induction n with
+  | zero => simp
+  | succ m ih =>
+    simp [ih, probFailure_seq, probFailure_pure, probFailure_ite]
+    constructor
+    . sorry
+    . sorry
+
 end instances
 
 end SelectableType
