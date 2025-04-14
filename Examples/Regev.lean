@@ -28,11 +28,11 @@ variable (n m χ p : ℕ) (h: NeZero p) (herr: p > 2*χ) (hp2 : p > 1)
 
 section sound
 
-theorem isSound : (regevAsymmEnc n m χ p h herr hp2).isSound := by
-  suffices h : ∀ sp (m x : P sp) (g₁ g₂ : G sp), m * (g₂ +ᵥ (g₁ +ᵥ x)) / (g₁ +ᵥ (g₂ +ᵥ x)) = m
-    by simp [AsymmEncAlg.sound_iff, h]
-  intros m x g₁ g₂
-  rw [vadd_comm, mul_div_cancel_right]
+theorem isSound : (regevAsymmEnc n m χ p h herr hp2).IsSound := by
+  rintro msg
+  simp
+
+  sorry
 
 end sound
 
