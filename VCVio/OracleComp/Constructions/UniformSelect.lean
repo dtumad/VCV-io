@@ -408,9 +408,7 @@ instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (F
   | zero => simp
   | succ m ih =>
     simp [ih, probFailure_seq, probFailure_pure, probFailure_ite]
-    constructor
-    . sorry
-    . sorry
+    sorry
 
 end instances
 
