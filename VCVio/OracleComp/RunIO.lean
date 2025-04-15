@@ -39,6 +39,13 @@ protected def runIO {α : Type} (oa : ProbComp α) : IO α :=
 instance : MonadLift ProbComp IO where
   monadLift := OracleComp.runIO
 
+example : IO (ℕ × ℕ) := do
+  let x ← IO.rand 0 1618
+  let y ← IO.rand 0 3141
+  let z := x + y
+  IO.println z
+  return (x, y)
+
 -- #eval Nat.add <$> $[0..10] <*> $[0..10]
 
 end OracleComp
