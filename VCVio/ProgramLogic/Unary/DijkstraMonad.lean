@@ -116,12 +116,12 @@ instance instOfMonadMorphism {m n} [Monad m] [Monad n] [h : MonadLiftT m n]
       DijkstraMonad n (fun na => { ma : m _ // monadLift ma = na }) :=
   @instOfMonadRelation m n _ _ (@instOfMonadLiftT m n h) (@instOfLawfulMonadLiftT m n _ _ h h')
 
-instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
-    [LawfulMonadRelation m n] :
-    LawfulDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
-  dPure_dBind x f := by sorry
-  dBind_dPure x := by sorry
-  dBind_assoc x f g := by sorry
+-- instance [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n] [MonadRelation m n]
+--     [LawfulMonadRelation m n] :
+--     LawfulDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
+--   dPure_dBind x f := by sorry
+--   dBind_dPure x := by sorry
+--   dBind_assoc x f g := by sorry
 
 /-- A Dijkstra monad `d` on a monad `w` can be seen as a monad on the dependent pair `(w, d)`. -/
 instance instMonadSigma {w d} [Monad w] [DijkstraMonad w d] :
@@ -161,17 +161,17 @@ instance {w d} [Monad w] [DijkstraMonad w d] : MonadRelation (fun α => (w : w �
 
 /-! The ordered setting -/
 
-def quotientDijkstraMonadOfOrderedMonadRelation {m n} [Monad m] [OrderedMonad n]
-    [MonadRelation m n] [LawfulMonad m] [LawfulMonad n] [MonadRelation.IsUpperClosed m n] :
-    {α : Type u} → n α → Type _ := sorry
+-- def quotientDijkstraMonadOfOrderedMonadRelation {m n} [Monad m] [OrderedMonad n]
+--     [MonadRelation m n] [LawfulMonad m] [LawfulMonad n] [MonadRelation.IsUpperClosed m n] :
+--     {α : Type u} → n α → Type _ := sorry
 
-instance [Monad m] [OrderedMonad n] [MonadRelation m n]
-    [LawfulMonad m] [LawfulMonad n] [LawfulMonadRelation m n] :
-    OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
-  dWeaken x h := ⟨x.1, by simp_all [monadRel]; sorry⟩
-  dWeaken_refl x := by simp
-  dWeaken_trans x h1 h2 := by simp
-  dWeaken_dBind x g ha hf := by simp; sorry
+-- instance [Monad m] [OrderedMonad n] [MonadRelation m n]
+--     [LawfulMonad m] [LawfulMonad n] [LawfulMonadRelation m n] :
+--     OrderedDijkstraMonad n (fun na => { ma : m _ // monadRel ma na}) where
+--   dWeaken x h := ⟨x.1, by simp_all [monadRel]; sorry⟩
+--   dWeaken_refl x := by simp
+--   dWeaken_trans x h1 h2 := by simp
+--   dWeaken_dBind x g ha hf := by simp; sorry
 
 end DijkstraMonad
 

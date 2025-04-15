@@ -7,7 +7,6 @@ import ToMathlib.Control.Lawful.MonadFunctor
 import ToMathlib.Control.Lawful.MonadLift
 import ToMathlib.Control.Lawful.MonadReader
 import ToMathlib.Control.Lawful.MonadState
-import ToMathlib.Control.LawfulFailure
 import ToMathlib.Control.MonadAlgebra
 import ToMathlib.Control.MonadHom
 import ToMathlib.Control.MonadRelation
@@ -18,4 +17,5 @@ import ToMathlib.Control.RelativeMonad
 import ToMathlib.Control.StateT
 import ToMathlib.Control.WriterT
 import ToMathlib.General
+import ToMathlib.OrderEnrichedCategory
 import ToMathlib.ProbabilityTheory.Coupling
