@@ -24,18 +24,19 @@ and secret part in `SC`. Only the commitment in `PC` is revealed to the verifier
 but the `prove` function may still use `SC` in generating a proof.
 
 We leave properties like special soundness as seperate definitions for better modularity. -/
-structure SigmaAlg {ι : Type} (spec : OracleSpec ι) (m : Type → Type)
-    (S W : Type) (p : S → W → Bool) (PC SC Ω P : Type) extends ExecutionMethod m where
+structure SigmaAlg (m : Type _ → Type _)
+    (S W : Type _) (p : S → W → Bool)
+    (PC SC Ω P : Type _) extends ExecutionMethod m where
   /-- Given a statement `s`, make a commitment to prove that you have a valid witness `w`. -/
-  commit (s : S) (w : W) : OracleComp spec (PC × SC)
+  commit (s : S) (w : W) : m (PC × SC)
   /-- Given a previous secret commitment `sc`, repond to the challenge `ω`-/
-  respond (s : S) (w : W) (sc : SC) (ω : Ω) : OracleComp spec P
+  respond (s : S) (w : W) (sc : SC) (ω : Ω) : m P
   /-- Deterministic function to check that the proof `p` satisfies the challenge `ω`. -/
   verify (s : S) (pc : PC) (ω : Ω) (p : P) : Bool
   /-- Simulate public commitment generation while only knowing the statement. -/
-  sim (s : S) : OracleComp spec PC
+  sim (s : S) : m PC
   /-- Extract a witness to the statement from two proofs. -/
-  extract (ω₁ : Ω) (p₁ : P) (ω₂ : Ω) (p₂ : P) : OracleComp spec W
+  extract (ω₁ : Ω) (p₁ : P) (ω₂ : Ω) (p₂ : P) : m W
 
 namespace SigmaAlg
 

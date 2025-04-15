@@ -27,7 +27,7 @@ structure SignatureAlg (m : Type → Type v) (M PK SK S : Type)
     extends ExecutionMethod m where
   keygen : m (PK × SK)
   sign (pk : PK) (sk : SK) (msg : M) : m S
-  verify (pk : PK) (msg : M) (σ : S) : Bool
+  verify (pk : PK) (msg : M) (σ : S) : m Bool
 
 namespace SignatureAlg
 
@@ -50,7 +50,7 @@ def PerfectlyComplete (sigAlg : SignatureAlg m M PK SK S) : Prop :=
   ∀ msg : M, [= true | sigAlg.exec do
     let (pk, sk) ← sigAlg.keygen
     let sig ← sigAlg.sign pk sk msg
-    return sigAlg.verify pk msg sig] = 1
+    sigAlg.verify pk msg sig] = 1
 
 end sound
 
@@ -76,7 +76,7 @@ def unforgeableExp {sigAlg : SignatureAlg (OracleComp spec) M PK SK S}
       simulateQ (idOracle ++ₛₒ sigAlg.signingOracle pk sk) (adv.main pk)
     -- Run the adversary and check that they successfully forged a signature
     let ((m, σ), log) ← sim_adv.run
-    return !(log.wasQueried () m) && sigAlg.verify pk m σ
+    return !(log.wasQueried () m) && (← sigAlg.verify pk m σ)
 
 /-- Advantage -/
 noncomputable def unforgeableAdv.advantage
