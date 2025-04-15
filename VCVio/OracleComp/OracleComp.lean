@@ -433,8 +433,10 @@ def defaultResult [spec.FiniteRange] (oa : OracleComp spec α) : Option α :=
 Can be a helpful alternative to `sizeOf` when proving recursive calls terminate. -/
 def totalQueries [FiniteRange spec] {α : Type v} (oa : OracleComp spec α) : ℕ := by
   induction oa using OracleComp.construct' with
-  | query_bind i t _ n => exact 1 + ∑ x, n x
-  | _ => exact 0
+  | pure x => exact 0
+  | failure => exact 0
+  | query_bind i t oa rec_n =>
+    exact 1 + ∑ x, rec_n x
 
 section inj
 

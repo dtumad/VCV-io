@@ -25,7 +25,10 @@ variable {m : Type u → Type v} [Monad m]
 /-- Add logging to an existing query implementation, using `StateT` to extend the final monad. -/
 def withLogging (so : QueryImpl spec m) :
     QueryImpl spec (WriterT (QueryLog spec) m) where
-  impl | q => do let x ← liftM (so.impl q); tell (QueryLog.singleton q x); return x
+  impl | q => do
+    let x ← liftM (so.impl q)
+    tell (QueryLog.singleton q x)
+    return x
 
 @[simp] lemma withLogging_apply {α} (so : QueryImpl spec m) (q : OracleQuery spec α) :
     so.withLogging.impl q =

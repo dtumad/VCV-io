@@ -41,6 +41,12 @@ variable {ι : Type u} {spec : OracleSpec ι} {ι' : Type v} {spec' : OracleSpec
 
 section evalDist
 
+noncomputable def evalDistWhen (oa : OracleComp spec α)
+    (query_dist : {α : Type _} →
+      OracleQuery spec α → OptionT PMF α) :
+    OptionT PMF α :=
+  oa.simulateQ ⟨query_dist⟩
+
 /-- Associate a probability mass function to a computation, where the probability is the odds of
 getting a given output assuming all oracles responded uniformly at random.
 Implemented by simulating queries in the `PMF` monad. -/
