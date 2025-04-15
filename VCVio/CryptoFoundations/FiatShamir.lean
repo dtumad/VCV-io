@@ -43,17 +43,13 @@ variable {ι : Type} {spec : OracleSpec ι} {m : Type → Type v} {σ X W : Type
 --     (M : Type) :
 --     SignatureAlg spec σ M X W (PC × P) := sorry
 
-structure GenerableRelation (m : Type → Type u) [Monad m]
+structure GenerableRelation
     (X W : Type) (r : X → W → Bool)
-    [SelectableType X] [SelectableType W]
-    extends ExecutionMethod m where
-  gen : m (X × W)
-  gen_sound (x : X) (w : W) :
-    (x, w) ∈ (exec gen).support → r x w
-  gen_uniform_right :
-    exec (Prod.fst <$> gen) = $ᵗ X
-  gen_uniform_left :
-    exec (Prod.snd <$> gen) = $ᵗ W
+    [SelectableType X] [SelectableType W] where
+  gen : ProbComp (X × W)
+  gen_sound (x : X) (w : W) : (x, w) ∈ gen.support → r x w
+  gen_uniform_right (x : X) : [= x | Prod.fst <$> gen] = [= x | $ᵗ X]
+  gen_uniform_left (w : W) : [= w | Prod.snd <$> gen] = [= w | $ᵗ W]
 
 end genrel
 
@@ -61,25 +57,26 @@ variable {ι : Type} {spec : OracleSpec ι} {σ X W PC SC Ω P : Type}
     {p : X → W → Bool} [SelectableType X] [SelectableType W]
     [DecidableEq PC] [DecidableEq Ω] [SelectableType Ω]
 
-def FiatShamir (sigmaAlg : SigmaAlg ProbComp X W PC SC Ω P p)
-    (hr : GenerableRelation ProbComp X W p) (M : Type) [DecidableEq M] :
+def FiatShamir (sigmaAlg : SigmaAlg X W PC SC Ω P p)
+    (hr : GenerableRelation X W p) (M : Type) [DecidableEq M] :
     SignatureAlg (OracleComp (unifSpec ++ₒ (M × PC →ₒ Ω)))
       (M := M) (PK := X) (SK := W) (S := PC × P) where
-  -- Use the existing algorithm for generating relation members
   keygen := hr.gen
-  -- Sign by running the sigma protocol using a hash as the challenge
   sign := fun pk sk m => do
     let (c, e) ← sigmaAlg.commit pk sk
-    let r : Ω ← (query () (m, c) : OracleQuery (M × PC →ₒ Ω) Ω)
+    let r ← query (spec := (M × PC →ₒ Ω)) () (m, c)
     let s ← sigmaAlg.respond pk sk e r
     return (c, s)
-  -- Verify a signature by checking the challenge returned by the random oracle
   verify := fun pk m (c, s) => do
-    let r' ← (query () (m, c) : OracleQuery (M × PC →ₒ Ω) Ω)
+    let r' ← query (spec := (M × PC →ₒ Ω)) () (m, c)
     return sigmaAlg.verify pk c r' s
-  exec comp := sigmaAlg.exec sorry
-  lift_probComp := sorry
-  exec_lift_probComp := sorry
+  exec comp :=
+    let so : QueryImpl (unifSpec ++ₒ (M × PC →ₒ Ω))
+      (StateT ((M × PC →ₒ Ω).QueryCache) ProbComp) :=
+      idOracle ++ₛₒ randomOracle
+    StateT.run' (simulateQ so comp) ∅
+  lift_probComp := monadLift
+  exec_lift_probComp c := by sorry --simp
 
 namespace FiatShamir
 
