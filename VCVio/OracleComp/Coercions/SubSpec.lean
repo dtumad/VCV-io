@@ -92,11 +92,10 @@ lemma probEvent_toFun [superSpec.FiniteRange] [Fintype α]
       (Finset.univ.filter p).card / Fintype.card α := by
   rw [probEvent_liftM_eq_div]
 
-
-/-- The empty set of oracles is a subspec of any other oracle set.
-We require `ι` to be inhabited to prevent the reflexive case.  -/
-instance [Inhabited ι] : []ₒ ⊂ₒ spec where
-  monadLift | query i _ => i.elim
+-- /-- The empty set of oracles is a subspec of any other oracle set.
+-- We require `ι` to be inhabited to prevent the reflexive case.  -/
+-- instance [Inhabited ι] : []ₒ ⊂ₒ spec where
+--   monadLift | query i _ => i.elim
 
 end SubSpec
 

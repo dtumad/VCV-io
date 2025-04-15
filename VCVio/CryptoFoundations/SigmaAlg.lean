@@ -11,6 +11,8 @@ import VCVio.OracleComp.ExecutionMethod
 This file defines a structure type for Σ-protocols.
 -/
 
+universe u v
+
 open OracleSpec OracleComp
 
 /-- A sigma protocol for statements in `S` and witnesses in `W`,
@@ -24,9 +26,9 @@ and secret part in `SC`. Only the commitment in `PC` is revealed to the verifier
 but the `prove` function may still use `SC` in generating a proof.
 
 We leave properties like special soundness as seperate definitions for better modularity. -/
-structure SigmaAlg (m : Type _ → Type _)
-    (S W : Type _) (p : S → W → Bool)
-    (PC SC Ω P : Type _) extends ExecutionMethod m where
+structure SigmaAlg (m : Type → Type v)
+    (S W PC SC Ω P : Type) (p : S → W → Bool)
+    extends ExecutionMethod m where
   /-- Given a statement `s`, make a commitment to prove that you have a valid witness `w`. -/
   commit (s : S) (w : W) : m (PC × SC)
   /-- Given a previous secret commitment `sc`, repond to the challenge `ω`-/
