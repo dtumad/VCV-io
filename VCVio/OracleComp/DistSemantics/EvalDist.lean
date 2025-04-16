@@ -247,7 +247,7 @@ lemma mem_support_evalDist_iff (oa : OracleComp spec α) (x : α) :
     some x ∈ (evalDist oa).run.support ↔ x ∈ oa.support := by
   induction oa using OracleComp.inductionOn with
   | pure => simp
-  | query_bind i t oa hoa => simp [hoa, OptionT.lift]
+  | query_bind i t oa hoa => simp [hoa, OptionT.lift, elimM]
   | failure => simp
 alias ⟨mem_support_of_mem_support_evalDist, mem_support_evalDist⟩ := mem_support_evalDist_iff
 
@@ -621,16 +621,16 @@ variable (oa : OracleComp spec α) (ob : α → OracleComp spec β)
 
 lemma probOutput_bind_eq_tsum (y : β) :
     [= y | oa >>= ob] = ∑' x : α, [= x | oa] * [= y | ob x] := by
-  simp [probOutput, evalDist_bind, tsum_option _ ENNReal.summable]
+  simp [probOutput, evalDist_bind, tsum_option _ ENNReal.summable, elimM]
 
 lemma probFailure_bind_eq_tsum :
     [⊥ | oa >>= ob] = [⊥ | oa] + ∑' x : α, [= x | oa] * [⊥ | ob x] := by
-  simp [probFailure, evalDist_bind, tsum_option _ ENNReal.summable, ← probOutput_def]
+  simp [probFailure, evalDist_bind, tsum_option _ ENNReal.summable, ← probOutput_def, elimM]
 
 lemma probEvent_bind_eq_tsum (q : β → Prop) :
     [q | oa >>= ob] = ∑' x : α, [= x | oa] * [q | ob x] := by
   simp [probEvent_def, evalDist_bind, PMF.toOuterMeasure_bind_apply,
-    tsum_option _ ENNReal.summable, evalDist_apply_some]
+    tsum_option _ ENNReal.summable, evalDist_apply_some, elimM]
 
 /-- Version of `probOutput_bind_eq_tsum` that sums only over the subtype given by the support
 of the first computation. This can be useful to avoid looking at edge cases that can't actually
