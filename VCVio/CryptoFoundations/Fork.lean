@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.CryptoFoundations.SecExp
-import VCVio.OracleComp.Constructions.GenerateSeed
+import VCVio.OracleComp.QueryTracking.SeededOracle
 import VCVio.OracleComp.QueryTracking.LoggingOracle
 import VCVio.OracleComp.Coercions.Append
 
@@ -17,11 +17,11 @@ open OracleSpec OracleComp Option ENNReal Function
 
 section scratch
 
-variable {ι : Type _} {spec : OracleSpec ι} {α β γ : Type _}
+universe u v w
 
 section bind_congr -- TODO: we should have tactics for this kind of thing
 
-variable [spec.FiniteRange]
+variable {ι : Type v} {spec : OracleSpec ι} {α β γ δ : Type u} [spec.FiniteRange]
 
 lemma probFailure_bind_congr (oa : OracleComp spec α)
     {ob : α → OracleComp spec β} {oc : α → OracleComp spec γ}
@@ -55,7 +55,7 @@ lemma probOutput_bind_congr_div_const {oa : OracleComp spec α}
     [= y | oa >>= ob₁] = [= y | oa >>= ob₂] / r := by
   sorry
 
-lemma probOutput_bind_congr_eq_add {γ₁ γ₂ : Type _}
+lemma probOutput_bind_congr_eq_add {γ₁ γ₂ : Type u}
     {oa : OracleComp spec α} {ob : α → OracleComp spec β}
       {oc₁ : α → OracleComp spec γ₁} {oc₂ : α → OracleComp spec γ₂}
     {y : β} {z₁ : γ₁} {z₂ : γ₂}
@@ -67,7 +67,7 @@ lemma probOutput_bind_congr_eq_add {γ₁ γ₂ : Type _}
   · simp [h x hx, left_distrib]
   · simp [probOutput_eq_zero _ _ hx]
 
-lemma probOutput_bind_congr_le_add {γ₁ γ₂ : Type _}
+lemma probOutput_bind_congr_le_add {γ₁ γ₂ : Type u}
     {oa : OracleComp spec α} {ob : α → OracleComp spec β}
       {oc₁ : α → OracleComp spec γ₁} {oc₂ : α → OracleComp spec γ₂}
     {y : β} {z₁ : γ₁} {z₂ : γ₂}
@@ -75,7 +75,7 @@ lemma probOutput_bind_congr_le_add {γ₁ γ₂ : Type _}
     [= y | oa >>= ob] ≤ [= z₁ | oa >>= oc₁] + [= z₂ | oa >>= oc₂] := by
   sorry
 
-lemma probOutput_bind_congr_add_le {γ₁ γ₂ : Type _}
+lemma probOutput_bind_congr_add_le {γ₁ γ₂ : Type u}
     {oa : OracleComp spec α} {ob : α → OracleComp spec β}
       {oc₁ : α → OracleComp spec γ₁} {oc₂ : α → OracleComp spec γ₂}
     {y : β} {z₁ : γ₁} {z₂ : γ₂}
@@ -83,7 +83,7 @@ lemma probOutput_bind_congr_add_le {γ₁ γ₂ : Type _}
     [= z₁ | oa >>= oc₁] + [= z₂ | oa >>= oc₂] ≤ [= y | oa >>= ob] := by
   sorry
 
-lemma probOutput_bind_congr_le_sub {γ₁ γ₂ : Type _}
+lemma probOutput_bind_congr_le_sub {γ₁ γ₂ : Type u}
     {oa : OracleComp spec α} {ob : α → OracleComp spec β}
       {oc₁ : α → OracleComp spec γ₁} {oc₂ : α → OracleComp spec γ₂}
     {y : β} {z₁ : γ₁} {z₂ : γ₂}
@@ -91,7 +91,7 @@ lemma probOutput_bind_congr_le_sub {γ₁ γ₂ : Type _}
     [= y | oa >>= ob] ≤ [= z₁ | oa >>= oc₁] - [= z₂ | oa >>= oc₂] := by
   sorry
 
-lemma probOutput_bind_congr_sub_le {γ₁ γ₂ : Type _}
+lemma probOutput_bind_congr_sub_le {γ₁ γ₂ : Type u}
     {oa : OracleComp spec α} {ob : α → OracleComp spec β}
       {oc₁ : α → OracleComp spec γ₁} {oc₂ : α → OracleComp spec γ₂}
     {y : β} {z₁ : γ₁} {z₂ : γ₂}
@@ -101,12 +101,49 @@ lemma probOutput_bind_congr_sub_le {γ₁ γ₂ : Type _}
 
 end bind_congr
 
+variable {ι : Type u} {spec : OracleSpec ι} {α β γ δ : Type v}
+
+lemma probOutput_prod_mk_seq_map_eq_mul [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : OracleComp spec β) (z : α × β) :
+    [= z | ((·, ·) <$> oa <*> ob : OracleComp spec (α × β))] = [= z.1 | oa] * [= z.2 | ob] := by
+  sorry
+
+lemma probOutput_prod_mk_seq_map_eq_mul' [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : OracleComp spec β) (x : α) (y : β) :
+    [= (x, y) | ((·, ·) <$> oa <*> ob : OracleComp spec (α × β))] = [= x | oa] * [= y | ob] := by
+  sorry
+
+lemma probOutput_prod_mk_apply_seq_map_eq_mul [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : OracleComp spec β)
+    (f : α → γ) (g : β → δ) (z : γ × δ) :
+    [= z | (f ·, g ·) <$> oa <*> ob] = [= z.1 | f <$> oa] * [= z.2 | g <$> ob] := by
+  sorry
+
+lemma probOutput_prod_mk_apply_seq_map_eq_mul' [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : OracleComp spec β)
+    (f : α → γ) (g : β → δ) (x : γ) (y : δ) :
+    [= (x, y) | (f ·, g ·) <$> oa <*> ob] = [= x | f <$> oa] * [= y | g <$> ob] := by
+  sorry
+
+lemma probOutput_bind_bind_prod_mk_eq_mul [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : OracleComp spec β) (f : α → γ) (g : β → δ) (z : γ × δ) :
+    [= z | do let x ← oa; let y ← ob; return (f x, g y)] =
+      [= z.1 | f <$> oa] * [= z.2 | g <$> ob] := by
+  sorry
+
+@[simp]
+lemma probOutput_bind_bind_prod_mk_eq_mul' [spec.FiniteRange] (oa : OracleComp spec α)
+    (ob : OracleComp spec β) (f : α → γ) (g : β → δ) (x : γ) (y : δ) :
+    [= (x, y) | do let x ← oa; let y ← ob; return (f x, g y)] =
+      [= x | f <$> oa] * [= y | g <$> ob] := by
+  sorry
+
 lemma map_ite (oa₁ oa₂ : OracleComp spec α) (f : α → β) (p : Prop) [Decidable p] :
     f <$> (if p then oa₁ else oa₂) = if p then (f <$> oa₁) else (f <$> oa₂) :=
   apply_ite _ _ _ _
 
 lemma probFailure_bind_eq_sum_probFailure [spec.FiniteRange] (oa : OracleComp spec α)
-    {ob : α → OracleComp spec β} {σ : Type _} {s : Finset σ}
+    {ob : α → OracleComp spec β} {σ : Type u} {s : Finset σ}
     {oc : σ → α → OracleComp spec γ} :
     [⊥ | oa >>= ob] = ∑ x ∈ s, [⊥ | oa >>= oc x] := by
   sorry
@@ -153,6 +190,8 @@ lemma probOutput_bind_ite_failure_eq_tsum [spec.FiniteRange] [DecidableEq β]
   rw [probOutput_bind_eq_tsum]
   simp [probEvent_eq_tsum_ite, ite_and]
 
+-- lemma probOutput_eq
+
 end scratch
 
 namespace OracleComp
@@ -187,8 +226,6 @@ def fork (main : OracleComp spec α)
 
 variable (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι) (cf : α → Option (Fin (qb i + 1))) [spec.FiniteRange]
-
--- open Classical
 
 lemma le_probOutput_fork (s : Fin (qb i + 1)) :
     let h : ℝ≥0∞ := ↑(Fintype.card (spec.range i))
@@ -288,8 +325,7 @@ lemma le_probOutput_fork (s : Fin (qb i + 1)) :
           let x₁ ← (simulateQ seededOracle main).run seed
           return (cf x₁)] / h := by {
         congr 1
-        ·
-          sorry
+        · sorry
         · refine probOutput_bind_congr_div_const fun seed hseed => ?_
           have : (↑(s + 1) : ℕ) < (seed i).length := sorry
           let u : spec.range i := ((seed i)[↑(s + 1)])
@@ -304,8 +340,13 @@ lemma le_probOutput_fork (s : Fin (qb i + 1)) :
       }
     _ ≥ [= s | cf <$> main] ^ 2 - [= s | cf <$> main] / h := by {
         refine tsub_le_tsub ?_ ?_
-        · sorry
-        · sorry
+        · rw [pow_two]
+          rw [← probOutput_bind_bind_prod_mk_eq_mul']
+
+          sorry
+        · rw [ENNReal.div_eq_inv_mul, ENNReal.div_eq_inv_mul]
+          refine le_of_eq <| (ENNReal.mul_right_inj (by simp [h]) (by simp [h])).2 ?_
+          simp
       }
 
 theorem probFailure_fork_le :
