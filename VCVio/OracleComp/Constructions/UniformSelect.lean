@@ -401,6 +401,7 @@ instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (F
     simp [Fin.cons_self_tail, this]
   probOutput_selectElem_eq x y := by induction n with
   | zero =>
+    simp
     sorry
   | succ m ih =>
     sorry

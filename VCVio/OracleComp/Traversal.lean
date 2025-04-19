@@ -137,6 +137,11 @@ alias ⟨neverFails_query_bind, _⟩ := neverFails_query_bind_iff
 lemma not_neverFails_failure : ¬ neverFails (failure : OracleComp spec α) := fun h => h
 
 @[simp]
+lemma neverFails_guard (p : Prop) [Decidable p] (oa : OracleComp spec α) (h: oa.neverFails) :
+    neverFails (if p then oa else failure) ↔ p := by
+  split <;> simp [h] <;> trivial
+
+@[simp]
 lemma neverFails_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     (oa >>= ob).neverFails ↔ oa.neverFails ∧ ∀ x ∈ oa.support, (ob x).neverFails := by
   induction oa using OracleComp.inductionOn with
