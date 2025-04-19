@@ -37,6 +37,12 @@ variable {P : PFunctor.{u}} {α β γ : Type u}
 @[always_inline, inline]
 def lift (x : P.Obj α) : FreeM P α := FreeM.roll x.1 (fun y ↦ FreeM.pure (x.2 y))
 
+instance : MonadLift P (FreeM P) where
+  monadLift x := FreeM.lift x
+
+@[simp]
+lemma monadLift_eq_lift (x : P.Obj α) : (x : FreeM P α) = FreeM.lift x := rfl
+
 /-- Bind operator on `FreeM P` operation used in the monad definition. -/
 @[always_inline, inline]
 protected def bind : FreeM P α → (α → FreeM P β) → FreeM P β
@@ -122,11 +128,6 @@ variable {m : Type u → Type w}
 protected def mapM [Pure m] [Bind m] (s : (a : P.A) → m (P.B a)) : FreeM P α → m α
   | .pure a => Pure.pure a
   | .roll a r => (s a) >>= (λ u ↦ (r u).mapM s)
-
--- protected def mapMHom [inst : Pure m] [Bind m] (s : (a : P.A) → m (P.B a)) :
---     (oa : FreeM P α) → m α
---   | FreeM.pure a => inst.pure a
---   | FreeM.roll a r => (s a) >>= (λ u ↦ (r u).mapM_aux s)
 
 /-- `FreeM.mapM` as a monad homomorphism. -/
 protected def mapMHom [Monad m] [LawfulMonad m] (s : (a : P.A) → m (P.B a)) : FreeM P →ᵐ m where
