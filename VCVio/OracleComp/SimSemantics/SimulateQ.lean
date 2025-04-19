@@ -61,7 +61,7 @@ variable [LawfulMonad m]
   simp [simulateQ, Option.getM]
 
 @[simp] lemma simulateQ_query (q : OracleQuery spec α) : simulateQ so q = so.impl q := by
-  simp [simulateQ, Option.getM]
+  simp [simulateQ, Option.getM, ← bind_pure_comp]
 
 @[simp] lemma simulateQ_pure (x : α) : simulateQ so (pure x) = pure x :=
   by simp [simulateQ, Option.getM]
