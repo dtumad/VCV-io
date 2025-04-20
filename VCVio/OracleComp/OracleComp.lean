@@ -9,6 +9,7 @@ import ToMathlib.Control.AlternativeMonad
 import ToMathlib.Control.OptionT
 import Mathlib.Control.Lawful
 import VCVio.OracleComp.OracleSpec
+import ToMathlib.PFunctor.Free
 
 /-!
 # Computations with Oracle Access
@@ -39,38 +40,50 @@ universe u v w z
 
 namespace OracleSpec
 
-/-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
-use for querying that oracle, implemented as a dependent pair.
-Implemented as a functor with the oracle output type as the constructor result. -/
-inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) : Type v → Type (max u v)
-  | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
+/-- An `OracleQuery` to one of the oracles in `spec : OracleSpec ι`, bundling an index and the input
+to use for querying that oracle.
+
+Implemented as a polynomial functor with the "positions" as the tuple `(index, input)` and the
+"directions" as the map `(index, input) ↦ spec.range index`. -/
+def OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) : PFunctor where
+  A := Σ i : ι, spec.domain i
+  B := fun q => ULift (spec.range q.1)
 
 namespace OracleQuery
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
 
-def defaultOutput [∀ i, Inhabited (spec.range i)] : (q : OracleQuery spec α) → α
-  | query i t => default
+/-- Bundling an index `i` and an input `t` to form a position tuple `(i, t)`. -/
+def query (i : ι) (t : spec.domain i) : (OracleQuery spec).A :=
+  ⟨i, t⟩
 
-def index : (q : OracleQuery spec α) → ι | query i t => i
+/-- Embedding a function from indices to oracle ranges into  -/
+def cont (f : (i : ι) → spec.range i) : (q : (OracleQuery spec).A) → (OracleQuery spec).B q :=
+  fun q => ULift.up (f q.1)
 
-@[simp] lemma index_query (i : ι) (t : spec.domain i) : (query i t).index = i := rfl
+def defaultOutput [∀ i, Inhabited (spec.range i)] (q : OracleQuery spec α) : α :=
+  q.2 (ULift.up default)
 
-def input : (q : OracleQuery spec α) → spec.domain q.index | query i t => t
+def index (q : OracleQuery spec α) : ι := q.1.1
+
+@[simp] lemma index_query (i : ι) (t : spec.domain i) : index (query i t) = i := rfl
+
+def input (q : OracleQuery spec α) : spec.domain (index q) := q.1.2
 
 @[simp] lemma input_query (i : ι) (t : spec.domain i) : (query i t).input = t := rfl
 
 @[simp]
-lemma range_index : (q : OracleQuery spec α) → spec.range q.index = α | query i t => rfl
+lemma range_index (q : OracleQuery spec α) : spec.range (index q) = α := rfl
 
 lemma eq_query_index_input : (q : OracleQuery spec α) →
     q = q.range_index ▸ OracleQuery.query q.index q.input | query i t => rfl
 
-def rangeDecidableEq [spec.DecidableEq] : OracleQuery spec α → DecidableEq α
-  | query i t => inferInstance
+instance instRangeDecidableEq [spec.DecidableEq] (q : OracleQuery spec α) :
+    DecidableEq (spec.range (index q)) :=
+  inferInstance
 
-def rangeFintype [spec.FiniteRange] : OracleQuery spec α → Fintype α
-  | query i t => inferInstance
+def rangeFintype [spec.FiniteRange] (q : OracleQuery spec) : ∀ i, Fintype (q i) :=
+  inferInstance
 
 def rangeInhabited [spec.FiniteRange] : OracleQuery spec α → Inhabited α
   | query i t => inferInstance

@@ -1,11 +1,16 @@
+/-
+Copyright (c) 2024 Devon Tuma. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Quang Dao
+-/
+
 import Mathlib.Data.PFunctor.Multivariate.Basic
 
 /-!
-  # Polynomial Functors
+  # Polynomial Functors, Lens, and Charts
 
-  We want to define a bunch of missing definitions for polynomial functors, with a view towards
-  defining the free monad on a polynomial functor (which does not raise the universe level), and
-  also to model interactive protocols.
+  This file defines polynomial functors, lenses, and charts. The goal is to provide basic
+  definitions, with their properties and categories defined in later files.
 -/
 
 universe u v
