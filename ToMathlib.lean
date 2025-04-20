@@ -15,3 +15,8 @@ import ToMathlib.Control.WriterT
 import ToMathlib.General
 import ToMathlib.OrderEnrichedCategory
 import ToMathlib.ProbabilityTheory.Coupling
+import ToMathlib.PFunctor.Basic
+import ToMathlib.PFunctor.Chart
+import ToMathlib.PFunctor.Free
+import ToMathlib.PFunctor.Lens
+import ToMathlib.PFunctor.Category
