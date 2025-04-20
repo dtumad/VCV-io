@@ -57,7 +57,7 @@ def purePower (B : Type u) : PFunctor.{u} :=
 /-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
 alias representable := purePower
 
-section Product
+section Prod
 
 /-- Product of polynomial functors `P * Q` -/
 def prod (P Q : PFunctor.{u}) : PFunctor.{u} :=
@@ -72,7 +72,7 @@ alias prodUnit := one
 def pi {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
   ⟨(i : I) → (F i).A, fun f => Σ i, (F i).B (f i)⟩
 
-end Product
+end Prod
 
 section Coprod
 
@@ -153,7 +153,7 @@ def comp {P Q R : PFunctor.{u}} (l : Lens Q R) (l' : Lens P Q) : Lens P R where
   mapPos := l.mapPos ∘ l'.mapPos
   mapDir := fun i => (l'.mapDir i) ∘ l.mapDir (l'.mapPos i)
 
-@[inherit_doc] infixl:25 " ∘ₚ " => comp
+@[inherit_doc] infixl:25 " ∘ₗ " => comp
 
 /-- An equivalence between two polynomial functors `P` and `Q`, using lenses.
     This corresponds to an isomorphism in the category `PFunctor` with `Lens` morphisms. -/
@@ -161,10 +161,28 @@ def comp {P Q R : PFunctor.{u}} (l : Lens Q R) (l' : Lens P Q) : Lens P R where
 structure Equiv (P Q : PFunctor.{u}) where
   toLens : Lens P Q
   invLens : Lens Q P
-  to_inv : comp invLens toLens = Lens.id P
-  inv_to : comp toLens invLens = Lens.id Q
+  left_inv : comp invLens toLens = Lens.id P
+  right_inv : comp toLens invLens = Lens.id Q
 
 @[inherit_doc] infix:25 " ≃ₗ " => Equiv
+
+namespace Equiv
+
+@[refl]
+def refl (P : PFunctor.{u}) : P ≃ₗ P :=
+  ⟨Lens.id P, Lens.id P, rfl, rfl⟩
+
+@[symm]
+def symm {P Q : PFunctor.{u}} (e : P ≃ₗ Q) : Q ≃ₗ P :=
+  ⟨e.invLens, e.toLens, e.right_inv, e.left_inv⟩
+
+@[trans]
+def trans {P Q R : PFunctor.{u}} (e₁ : P ≃ₗ Q) (e₂ : Q ≃ₗ R) : P ≃ₗ R :=
+  ⟨e₂.toLens ∘ₗ e₁.toLens, e₁.invLens ∘ₗ e₂.invLens, by
+    sorry,
+    sorry⟩
+
+end Equiv
 
 /-- The (unique) initial lens from the zero functor to any functor `P`. -/
 def initial {P : PFunctor.{u}} : Lens 0 P :=
@@ -178,11 +196,11 @@ alias fromZero := initial
 alias toOne := terminal
 
 /-- Projection lens `π₁ : P * Q → P` -/
-def pi1 {P Q : PFunctor.{u}} : Lens (P * Q) P :=
+def fst {P Q : PFunctor.{u}} : Lens (P * Q) P :=
   Prod.fst ⇆ (fun _ => Sum.inl)
 
 /-- Projection lens `π₂ : P * Q → Q` -/
-def pi2 {P Q : PFunctor.{u}} : Lens (P * Q) Q :=
+def snd {P Q : PFunctor.{u}} : Lens (P * Q) Q :=
   Prod.snd ⇆ (fun _ => Sum.inr)
 
 /-- Pairing of lenses `⟨l₁, l₂⟩ : P → Q * R` -/
@@ -258,7 +276,7 @@ def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◂ selfMonomi
 /-- The `speedup` lens operation: `Lens (S y^S) P → Lens (S y^S) (P ◂ P)` -/
 def speedup {S : Type u} {P : PFunctor.{u}} (l : Lens (selfMonomial S) P) :
     Lens (selfMonomial S) (P ◂ P) :=
-  (l ⟨◂⟩ l) ∘ₚ fixState
+  (l ⟨◂⟩ l) ∘ₗ fixState
 
 end Lens
 
@@ -282,7 +300,8 @@ def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R whe
   mapPos := c'.mapPos ∘ c.mapPos
   mapDir := fun i => c'.mapDir (c.mapPos i) ∘ c.mapDir i
 
--- Equivalence / isomorphism of two polynomial functors (with charts for morphisms)
+/-- Infix notation for chart composition `c' ∘c c` -/
+infixl:25 " ∘c " => comp
 
 /-- An equivalence between two polynomial functors `P` and `Q`, using charts.
     This corresponds to an isomorphism in the category `PFunctor` with `Chart` morphisms. -/
@@ -290,14 +309,28 @@ def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R whe
 structure Equiv (P Q : PFunctor.{u}) where
   toChart : Chart P Q
   invChart : Chart Q P
-  to_inv : comp invChart toChart = Chart.id P
-  inv_to : comp toChart invChart = Chart.id Q
+  left_inv : comp invChart toChart = Chart.id P
+  right_inv : comp toChart invChart = Chart.id Q
 
 /-- Infix notation for chart equivalence `P ≃c Q` -/
 infix:25 " ≃c " => Equiv
 
-/-- Infix notation for chart composition `c' ∘c c` -/
-infixl:25 " ∘c " => comp
+namespace Equiv
+
+@[refl]
+def refl (P : PFunctor.{u}) : P ≃c P :=
+  ⟨Chart.id P, Chart.id P, rfl, rfl⟩
+
+@[symm]
+def symm {P Q : PFunctor.{u}} (e : P ≃c Q) : Q ≃c P :=
+  ⟨e.invChart, e.toChart, e.right_inv, e.left_inv⟩
+
+def trans {P Q R : PFunctor.{u}} (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R :=
+  ⟨e₂.toChart ∘c e₁.toChart, e₁.invChart ∘c e₂.invChart,
+    sorry,
+    sorry⟩
+
+end Equiv
 
 /-- The (unique) initial chart from the zero functor to any functor `P`. -/
 def initial {P : PFunctor.{u}} : Chart 0 P :=
@@ -360,28 +393,33 @@ theorem Chart.ext {P Q : PFunctor.{u}} (c₁ c₂ : Chart P Q)
 lemma y_eq_linear_pUnit : y = linear PUnit := rfl
 lemma y_eq_purePower_pUnit : y = purePower PUnit := rfl
 
-section Product
+section Prod
+
+namespace Lens.Equiv
 
 /-- Commutativity of product -/
-def prodComm {P Q : PFunctor.{u}} : P * Q ≃ₗ Q * P where
+def prodComm (P Q : PFunctor.{u}) : P * Q ≃ₗ Q * P where
   toLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
   invLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
-  to_inv := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
-  inv_to := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
+  left_inv := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
+  right_inv := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
+
+@[simp]
+theorem prodComm_symm {P Q : PFunctor.{u}} : (prodComm P Q).symm = prodComm Q P := rfl
 
 /-- Associativity of product -/
 def prodAssoc {P Q R : PFunctor.{u}} : (P * Q) * R ≃ₗ P * (Q * R) where
-  toLens := (Equiv.prodAssoc P.A Q.A R.A).toFun ⇆
+  toLens := (_root_.Equiv.prodAssoc P.A Q.A R.A).toFun ⇆
               (fun _ d => (Equiv.sumAssoc _ _ _).invFun d)
-  invLens := (Equiv.prodAssoc P.A Q.A R.A).invFun ⇆
+  invLens := (_root_.Equiv.prodAssoc P.A Q.A R.A).invFun ⇆
                (fun _ d => Equiv.sumAssoc _ _ _ d)
-  to_inv := by
+  left_inv := by
     ext _ b
     · rfl
     · rcases b with b | _
       · cases b <;> rfl
       · rfl
-  inv_to := by
+  right_inv := by
     ext _ b
     · rfl
     · rcases b with _ | b
@@ -392,32 +430,31 @@ def prodAssoc {P Q R : PFunctor.{u}} : (P * Q) * R ≃ₗ P * (Q * R) where
 def prodOne {P : PFunctor.{u}} : P * 1 ≃ₗ P where
   toLens := Prod.fst ⇆ (fun _ => Sum.inl)
   invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ => Sum.elim id PEmpty.elim)
-  to_inv := sorry
-  inv_to := sorry
+  left_inv := sorry
+  right_inv := sorry
 
 /-- Product with `1` is identity (left) -/
 def oneProd {P : PFunctor.{u}} : 1 * P ≃ₗ P where
   toLens := Prod.snd ⇆ (fun _ => Sum.inr)
   invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ => Sum.elim PEmpty.elim id)
-  to_inv := sorry
-  inv_to := sorry
+  left_inv := sorry
+  right_inv := sorry
 
 /-- Product with `0` is zero (right) -/
 def prodZero {P : PFunctor.{u}} : P * 0 ≃ₗ 0 where
   toLens := (fun ⟨_, pa⟩ => PEmpty.elim pa) ⇆ (fun pe _ => sorry)
   invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
-  to_inv := sorry
-  inv_to := sorry
+  left_inv := sorry
+  right_inv := sorry
 
 /-- Product with `0` is zero (left) -/
 def zeroProd {P : PFunctor.{u}} : 0 * P ≃ₗ 0 where
   toLens := (fun ⟨pa, _⟩ => PEmpty.elim pa) ⇆ (fun pe _ => sorry)
   invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
-  to_inv := sorry
-  inv_to := sorry
+  left_inv := sorry
+  right_inv := sorry
 
 /-- Product distributes over coproduct (sum) -/
-@[simps] -- Might need refinement
 def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P * R) where
   toLens := (fun ⟨p, qr⟩ => match qr with | Sum.inl q => Sum.inl (p, q) | Sum.inr r => Sum.inr (p, r)) ⇆
             (fun ⟨p, qr⟩ => match qr with
@@ -427,10 +464,12 @@ def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P *
              (fun pq_pr => match pq_pr with
               | Sum.inl ⟨p, q⟩ => fun s => match s with | Sum.inl pb => Sum.inl pb | Sum.inr qb => Sum.inr (sorry)
               | Sum.inr ⟨p, r⟩ => fun s => match s with | Sum.inl pb => Sum.inl pb | Sum.inr rb => Sum.inr (sorry))
-  to_inv := sorry
-  inv_to := sorry
+  left_inv := sorry
+  right_inv := sorry
 
-end Product
+end Lens.Equiv
+
+end Prod
 
 end Lemmas
 
