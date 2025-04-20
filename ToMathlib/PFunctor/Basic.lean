@@ -37,25 +37,22 @@ def y : PFunctor.{u} :=
 def monomial (A B : Type u) : PFunctor.{u} :=
   ⟨A, fun _ => B⟩
 
-/-- Infix notation for monomial `A y^B` -/
-infixr:80 " y^" => monomial
+@[inherit_doc] infixr:80 " y^" => monomial
 
 /-- The constant functor `P(y) = A` -/
 def C (A : Type u) : PFunctor.{u} :=
-  monomial A PEmpty
+  A y^ PEmpty
 
-@[simp]
-theorem C_zero : C PEmpty = 0 := rfl
-
-@[simp]
-theorem C_one : C PUnit = 1 := rfl
+/-- The linear functor `P(y) = A y` -/
+def linear (A : Type u) : PFunctor.{u} :=
+  A y^ PUnit
 
 /-- The self monomial functor `P(y) = S y^S` -/
 def selfMonomial (S : Type u) : PFunctor.{u} := S y^S
 
 /-- The pure power functor `P(y) = y^B` -/
 def purePower (B : Type u) : PFunctor.{u} :=
-  monomial PUnit B
+  PUnit y^ B
 
 /-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
 alias representable := purePower
@@ -95,10 +92,6 @@ def sigma {I : Type u} (F : I → PFunctor.{u}) : PFunctor.{u} :=
 end Coprod
 
 section Comp
-
-/-- The linear functor `P(y) = A y` -/
-def linear (A : Type u) : PFunctor.{u} :=
-  monomial A PUnit
 
 /-- Infix notation for `PFunctor.comp P Q` -/
 infixl:80 " ◂ " => PFunctor.comp
@@ -159,6 +152,19 @@ protected def id (P : PFunctor.{u}) : Lens P P where
 def comp {P Q R : PFunctor.{u}} (l : Lens Q R) (l' : Lens P Q) : Lens P R where
   mapPos := l.mapPos ∘ l'.mapPos
   mapDir := fun i => (l'.mapDir i) ∘ l.mapDir (l'.mapPos i)
+
+@[inherit_doc] infixl:25 " ∘ₚ " => comp
+
+/-- An equivalence between two polynomial functors `P` and `Q`, using lenses.
+    This corresponds to an isomorphism in the category `PFunctor` with `Lens` morphisms. -/
+@[ext]
+structure Equiv (P Q : PFunctor.{u}) where
+  toLens : Lens P Q
+  invLens : Lens Q P
+  to_inv : comp invLens toLens = Lens.id P
+  inv_to : comp toLens invLens = Lens.id Q
+
+@[inherit_doc] infix:25 " ≃ₗ " => Equiv
 
 /-- The (unique) initial lens from the zero functor to any functor `P`. -/
 def initial {P : PFunctor.{u}} : Lens 0 P :=
@@ -232,7 +238,6 @@ def tildeR {P : PFunctor.{u}} : Lens P (P ◂ y) :=
 def tildeL {P : PFunctor.{u}} : Lens P (y ◂ P) :=
   (fun a => ⟨PUnit.unit, fun _ => a⟩) ⇆ (fun _a => fun ⟨_, b⟩ => b)
 
-@[inherit_doc] infixl:25 " ∘ₚ " => comp
 @[inherit_doc] infixl:75 " ⟨◂⟩ " => compMap
 @[inherit_doc] infixl:75 " ⟨×⟩ " => prodMap
 @[inherit_doc] infixl:75 " ⟨×⟩ " => prodMap
@@ -242,8 +247,7 @@ notation "~ᴿ" => tildeR
 notation "~ᴸ" => tildeL
 notation "[" l₁ "," l₂ "]ₚ" => coprodPair l₁ l₂
 
-
-/-- The type of lenses from P to Y -/
+/-- The type of lenses from a polynomial functor `P` to `y` -/
 def enclose (P : PFunctor.{u}) : Type u :=
   Lens P y
 
@@ -278,6 +282,20 @@ def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R whe
   mapPos := c'.mapPos ∘ c.mapPos
   mapDir := fun i => c'.mapDir (c.mapPos i) ∘ c.mapDir i
 
+-- Equivalence / isomorphism of two polynomial functors (with charts for morphisms)
+
+/-- An equivalence between two polynomial functors `P` and `Q`, using charts.
+    This corresponds to an isomorphism in the category `PFunctor` with `Chart` morphisms. -/
+@[ext]
+structure Equiv (P Q : PFunctor.{u}) where
+  toChart : Chart P Q
+  invChart : Chart Q P
+  to_inv : comp invChart toChart = Chart.id P
+  inv_to : comp toChart invChart = Chart.id Q
+
+/-- Infix notation for chart equivalence `P ≃c Q` -/
+infix:25 " ≃c " => Equiv
+
 /-- Infix notation for chart composition `c' ∘c c` -/
 infixl:25 " ∘c " => comp
 
@@ -294,8 +312,126 @@ alias toOne := terminal
 
 end Chart
 
+section Lemmas
+
+-- We can now prove basic properties about the operations on `PFunctor`s
+
+@[ext (iff := false)]
+theorem ext {P Q : PFunctor.{u}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸ a)) : P = Q := by
+  cases P; cases Q; simp at h h' ⊢; subst h; simp_all; funext; exact h' _
+
+@[ext (iff := false)]
+theorem Lens.ext {P Q : PFunctor.{u}} (l₁ l₂ : Lens P Q)
+    (h₁ : l₁.mapPos = l₂.mapPos) (h₂ : l₁.mapDir = h₁ ▸ l₂.mapDir) : l₁ = l₂ := by
+  cases l₁; cases l₂
+  simp only at h₁
+  subst h₁
+  simp_all
+
+@[ext (iff := false)]
+theorem Chart.ext {P Q : PFunctor.{u}} (c₁ c₂ : Chart P Q)
+    (h₁ : c₁.mapPos = c₂.mapPos) (h₂ : c₁.mapDir = h₁ ▸ c₂.mapDir) : c₁ = c₂ := by
+  cases c₁; cases c₂
+  simp only at h₁
+  subst h₁
+  simp_all
+
+@[simp] theorem C_zero : C PEmpty = 0 := rfl
+@[simp] theorem C_one : C PUnit = 1 := rfl
+
+@[simp] lemma zero_A : zero.A = PEmpty := rfl
+@[simp] lemma zero_B (a : zero.A) : zero.B a = PEmpty := PEmpty.elim a
+
+@[simp] lemma one_A : one.A = PUnit := rfl
+@[simp] lemma one_B (a : one.A) : one.B a = PEmpty := rfl
+
+@[simp] lemma y_A : y.A = PUnit := rfl
+@[simp] lemma y_B (a : y.A) : y.B a = PUnit := rfl
+
+@[simp] lemma C_A (A : Type u) : (C A).A = A := rfl
+@[simp] lemma C_B (A : Type u) (a : (C A).A) : (C A).B a = PEmpty := rfl
+
+@[simp] lemma linear_A (A : Type u) : (linear A).A = A := rfl
+@[simp] lemma linear_B (A : Type u) (a : (linear A).A) : (linear A).B a = PUnit := rfl
+
+@[simp] lemma purePower_A (B : Type u) : (purePower B).A = PUnit := rfl
+@[simp] lemma purePower_B (B : Type u) (a : (purePower B).A) : (purePower B).B a = B := rfl
+
+lemma y_eq_linear_pUnit : y = linear PUnit := rfl
+lemma y_eq_purePower_pUnit : y = purePower PUnit := rfl
+
+section Product
+
+/-- Commutativity of product -/
+def prodComm {P Q : PFunctor.{u}} : P * Q ≃ₗ Q * P where
+  toLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
+  invLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
+  to_inv := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
+  inv_to := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
+
+/-- Associativity of product -/
+def prodAssoc {P Q R : PFunctor.{u}} : (P * Q) * R ≃ₗ P * (Q * R) where
+  toLens := (Equiv.prodAssoc P.A Q.A R.A).toFun ⇆
+              (fun _ d => (Equiv.sumAssoc _ _ _).invFun d)
+  invLens := (Equiv.prodAssoc P.A Q.A R.A).invFun ⇆
+               (fun _ d => Equiv.sumAssoc _ _ _ d)
+  to_inv := by
+    ext _ b
+    · rfl
+    · rcases b with b | _
+      · cases b <;> rfl
+      · rfl
+  inv_to := by
+    ext _ b
+    · rfl
+    · rcases b with _ | b
+      · rfl
+      · cases b <;> rfl
+
+/-- Product with `1` is identity (right) -/
+def prodOne {P : PFunctor.{u}} : P * 1 ≃ₗ P where
+  toLens := Prod.fst ⇆ (fun _ => Sum.inl)
+  invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ => Sum.elim id PEmpty.elim)
+  to_inv := sorry
+  inv_to := sorry
+
+/-- Product with `1` is identity (left) -/
+def oneProd {P : PFunctor.{u}} : 1 * P ≃ₗ P where
+  toLens := Prod.snd ⇆ (fun _ => Sum.inr)
+  invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ => Sum.elim PEmpty.elim id)
+  to_inv := sorry
+  inv_to := sorry
+
+/-- Product with `0` is zero (right) -/
+def prodZero {P : PFunctor.{u}} : P * 0 ≃ₗ 0 where
+  toLens := (fun ⟨_, pa⟩ => PEmpty.elim pa) ⇆ (fun pe _ => sorry)
+  invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
+  to_inv := sorry
+  inv_to := sorry
+
+/-- Product with `0` is zero (left) -/
+def zeroProd {P : PFunctor.{u}} : 0 * P ≃ₗ 0 where
+  toLens := (fun ⟨pa, _⟩ => PEmpty.elim pa) ⇆ (fun pe _ => sorry)
+  invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
+  to_inv := sorry
+  inv_to := sorry
+
+/-- Product distributes over coproduct (sum) -/
+@[simps] -- Might need refinement
+def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P * R) where
+  toLens := (fun ⟨p, qr⟩ => match qr with | Sum.inl q => Sum.inl (p, q) | Sum.inr r => Sum.inr (p, r)) ⇆
+            (fun ⟨p, qr⟩ => match qr with
+              | Sum.inl q => Sum.elim (Sum.inl ∘ sorry) (Sum.inl ∘ sorry)
+              | Sum.inr r => Sum.elim (Sum.inr ∘ sorry) (Sum.inr ∘ sorry))
+  invLens := (Sum.elim (fun ⟨p, q⟩ => (p, Sum.inl q)) (fun ⟨p, r⟩ => (p, Sum.inr r))) ⇆
+             (fun pq_pr => match pq_pr with
+              | Sum.inl ⟨p, q⟩ => fun s => match s with | Sum.inl pb => Sum.inl pb | Sum.inr qb => Sum.inr (sorry)
+              | Sum.inr ⟨p, r⟩ => fun s => match s with | Sum.inl pb => Sum.inl pb | Sum.inr rb => Sum.inr (sorry))
+  to_inv := sorry
+  inv_to := sorry
+
+end Product
+
+end Lemmas
+
 end PFunctor
-
--- TODO: how is the free monad itself a PFunctor?
-
--- Prove theorems about the interaction between operations on `PFunctor`s

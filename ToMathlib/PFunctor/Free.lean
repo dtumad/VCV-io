@@ -153,3 +153,5 @@ end mapM
 end FreeM
 
 end PFunctor
+
+-- TODO: how is the free monad itself a PFunctor?
