@@ -29,6 +29,10 @@ namespace FreeM
 
 variable {P : PFunctor.{u}} {α β γ : Type u}
 
+/-- Lift a position of the base polynomial functor into the free monad. -/
+@[always_inline, inline]
+def liftPos (a : P.A) : FreeM P (P.B a) := FreeM.roll a FreeM.pure
+
 /-- Lift an object of the base polynomial functor into the free monad. -/
 @[always_inline, inline]
 def lift (x : P.Obj α) : FreeM P α := FreeM.roll x.1 (fun y ↦ FreeM.pure (x.2 y))
