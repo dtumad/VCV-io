@@ -347,8 +347,6 @@ end Chart
 
 section Lemmas
 
--- We can now prove basic properties about the operations on `PFunctor`s
-
 @[ext (iff := false)]
 theorem ext {P Q : PFunctor.{u}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸ a)) : P = Q := by
   cases P; cases Q; simp at h h' ⊢; subst h; simp_all; funext; exact h' _
@@ -401,8 +399,14 @@ namespace Lens.Equiv
 def prodComm (P Q : PFunctor.{u}) : P * Q ≃ₗ Q * P where
   toLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
   invLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
-  left_inv := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
-  right_inv := sorry -- by apply Lens.ext; simp; funext a d; simp; cases d <;> rfl
+  left_inv := by
+    ext _ b
+    · rfl
+    · cases b <;> rfl
+  right_inv := by
+    ext _ b
+    · rfl
+    · cases b <;> rfl
 
 @[simp]
 theorem prodComm_symm {P Q : PFunctor.{u}} : (prodComm P Q).symm = prodComm Q P := rfl
@@ -430,29 +434,45 @@ def prodAssoc {P Q R : PFunctor.{u}} : (P * Q) * R ≃ₗ P * (Q * R) where
 def prodOne {P : PFunctor.{u}} : P * 1 ≃ₗ P where
   toLens := Prod.fst ⇆ (fun _ => Sum.inl)
   invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ => Sum.elim id PEmpty.elim)
-  left_inv := sorry
-  right_inv := sorry
+  left_inv := by
+    ext _ b
+    · rfl
+    · rcases b with _ | b
+      · rfl
+      · cases b
+  right_inv := by
+    ext <;> rfl
 
 /-- Product with `1` is identity (left) -/
 def oneProd {P : PFunctor.{u}} : 1 * P ≃ₗ P where
   toLens := Prod.snd ⇆ (fun _ => Sum.inr)
   invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ => Sum.elim PEmpty.elim id)
-  left_inv := sorry
-  right_inv := sorry
+  left_inv := by
+    ext _ b
+    · rfl
+    · rcases b with b | _
+      · cases b
+      · rfl
+  right_inv := by
+    ext <;> rfl
 
 /-- Product with `0` is zero (right) -/
 def prodZero {P : PFunctor.{u}} : P * 0 ≃ₗ 0 where
-  toLens := (fun ⟨_, pa⟩ => PEmpty.elim pa) ⇆ (fun pe _ => sorry)
+  toLens := (fun a => PEmpty.elim a.2) ⇆ (fun _ x => PEmpty.elim x)
   invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
-  left_inv := sorry
-  right_inv := sorry
+  left_inv := by
+    ext ⟨_, a⟩ _ <;> exact PEmpty.elim a
+  right_inv := by
+    ext ⟨_, _⟩
 
 /-- Product with `0` is zero (left) -/
 def zeroProd {P : PFunctor.{u}} : 0 * P ≃ₗ 0 where
-  toLens := (fun ⟨pa, _⟩ => PEmpty.elim pa) ⇆ (fun pe _ => sorry)
+  toLens := (fun ⟨pa, _⟩ => PEmpty.elim pa) ⇆ (fun _ x => PEmpty.elim x)
   invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
-  left_inv := sorry
-  right_inv := sorry
+  left_inv := by
+    ext ⟨a, _⟩ _ <;> exact PEmpty.elim a
+  right_inv := by
+    ext ⟨_, _⟩
 
 /-- Product distributes over coproduct (sum) -/
 def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P * R) where
@@ -470,6 +490,16 @@ def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P *
 end Lens.Equiv
 
 end Prod
+
+section Coprod
+
+namespace Lens.Equiv
+
+
+
+end Lens.Equiv
+
+end Coprod
 
 end Lemmas
 
