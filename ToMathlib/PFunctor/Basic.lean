@@ -12,8 +12,6 @@ universe u v
 
 namespace PFunctor
 
--- Define operations on `PFunctor`s: sum, product, composition, tensor product, function space (lolli), etc.
-
 /-- The zero polynomial functor -/
 def zero : PFunctor.{u} := ⟨PEmpty, fun _ => PEmpty⟩
 
@@ -57,6 +55,42 @@ def purePower (B : Type u) : PFunctor.{u} :=
 /-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
 alias representable := purePower
 
+section Product
+
+/-- Product of polynomial functors `P * Q` -/
+def prod (P Q : PFunctor.{u}) : PFunctor.{u} :=
+  ⟨P.A × Q.A, fun ab => P.B ab.1 ⊕ Q.B ab.2⟩
+
+instance : Mul PFunctor.{u} where
+  mul := prod
+
+alias prodUnit := one
+
+/-- Generalized product (pi type) of an indexed family of polynomial functors -/
+def pi {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
+  ⟨(i : I) → (F i).A, fun f => Σ i, (F i).B (f i)⟩
+
+end Product
+
+section Coprod
+
+/-- Coprod (sum) of polynomial functors `P + Q` -/
+def coprod (P Q : PFunctor.{u}) : PFunctor.{u} :=
+  ⟨P.A ⊕ Q.A, Sum.elim P.B Q.B⟩
+
+instance : Add PFunctor.{u} where
+  add := coprod
+
+alias coprodUnit := zero
+
+/-- Generalized coproduct (sigma type) of an indexed family of polynomial functors -/
+def sigma {I : Type u} (F : I → PFunctor.{u}) : PFunctor.{u} :=
+  ⟨Σ i, (F i).A, fun ⟨i, a⟩ => (F i).B a⟩
+
+end Coprod
+
+section Comp
+
 /-- The linear functor `P(y) = A y` -/
 def linear (A : Type u) : PFunctor.{u} :=
   monomial A PUnit
@@ -65,14 +99,39 @@ def linear (A : Type u) : PFunctor.{u} :=
 infixl:80 " ◂ " => PFunctor.comp
 
 /-- The unit for composition `Y` -/
-@[reducible]
-def compositionUnit : PFunctor.{u} := y
+alias compUnit := y
 
 /-- Repeated composition `P ◂ P ◂ ... ◂ P` (n times). -/
 @[simp]
-def compositePower (P : PFunctor.{u}) : Nat → PFunctor.{u}
-  | 0 => compositionUnit
-  | n + 1 => P ◂ compositePower P n
+def compNth (P : PFunctor.{u}) : Nat → PFunctor.{u}
+  | 0 => y
+  | Nat.succ n => P ◂ compNth P n
+
+instance : NatPow PFunctor.{u} where
+  pow := compNth
+
+end Comp
+
+/-- Exponential of polynomial functors `P ^ Q` -/
+def exp (P Q : PFunctor.{u}) : PFunctor.{u} :=
+  pi (fun a => P ◂ (y + C (Q.B a)))
+
+instance : Pow PFunctor.{u} PFunctor.{u} where
+  pow := exp
+
+section Tensor
+
+/-- Tensor or parallel prod of polynomial functors -/
+def tensor (P Q : PFunctor.{u}) : PFunctor.{u} :=
+  ⟨P.A × Q.A, fun ab => P.B ab.1 × Q.B ab.2⟩
+
+/-- Infix notation for tensor prod `P ⊗ₚ Q` -/
+infixl:70 " ⊗ₚ " => tensor
+
+/-- The unit for the tensor prod `Y` -/
+alias tensorUnit := y
+
+end Tensor
 
 /-- A lens between two polynomial functors `P` and `Q` is a pair of a function:
 - `mapPos : P.A → Q.A`
@@ -96,32 +155,92 @@ def comp {P Q R : PFunctor.{u}} (l : Lens Q R) (l' : Lens P Q) : Lens P R where
   mapPos := l.mapPos ∘ l'.mapPos
   mapDir := fun i => (l'.mapDir i) ∘ l.mapDir (l'.mapPos i)
 
-/-- Infix notation for lens composition `l' ∘ₚ l` -/
-infixl:25 " ∘ₚ " => comp
-
-/-- The unique lens from the zero functor to any functor `P`. -/
-def zero {P : PFunctor.{u}} : Lens 0 P :=
+/-- The (unique) initial lens from the zero functor to any functor `P`. -/
+def initial {P : PFunctor.{u}} : Lens 0 P :=
   PEmpty.elim ⇆ fun a => PEmpty.elim a
 
-/-- Apply lenses to both sides of a composition: `(P → R) → (Q → W) → (P ◂ Q → R ◂ W)` -/
+/-- The (unique) terminal lens from any functor `P` to the unit functor `1`. -/
+def terminal {P : PFunctor.{u}} : Lens P 1 :=
+  (fun _ => PUnit.unit) ⇆ (fun _ => PEmpty.elim)
+
+alias fromZero := initial
+alias toOne := terminal
+
+/-- Projection lens `π₁ : P * Q → P` -/
+def pi1 {P Q : PFunctor.{u}} : Lens (P * Q) P :=
+  Prod.fst ⇆ (fun _ => Sum.inl)
+
+/-- Projection lens `π₂ : P * Q → Q` -/
+def pi2 {P Q : PFunctor.{u}} : Lens (P * Q) Q :=
+  Prod.snd ⇆ (fun _ => Sum.inr)
+
+/-- Pairing of lenses `⟨l₁, l₂⟩ : P → Q * R` -/
+def prodPair {P Q R : PFunctor.{u}} (l₁ : Lens P Q) (l₂ : Lens P R) : Lens P (Q * R) :=
+  (fun p => (l₁.mapPos p, l₂.mapPos p)) ⇆
+    (fun p => Sum.elim (l₁.mapDir p) (l₂.mapDir p))
+
+/-- Parallel application of lenses for prod `⟨l₁ × l₂⟩ : P * Q → R * W` -/
+def prodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P * Q) (R * W) :=
+  (fun pq => (l₁.mapPos pq.1, l₂.mapPos pq.2)) ⇆
+    (fun pq => Sum.elim (Sum.inl ∘ l₁.mapDir pq.1) (Sum.inr ∘ l₂.mapDir pq.2))
+
+/-- Left injection lens `i₁ : P → P + Q` -/
+def inl {P Q : PFunctor.{u}} : Lens P (P + Q) :=
+  Sum.inl ⇆ (fun _ d => d)
+
+/-- Right injection lens `i₂ : Q → P + Q` -/
+def inr {P Q : PFunctor.{u}} : Lens Q (P + Q) :=
+  Sum.inr ⇆ (fun _ d => d)
+
+/-- Copairing of lenses `[l₁, l₂]ₚ : P + Q → R` -/
+def coprodPair {P Q R : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q R) : Lens (P + Q) R :=
+  (Sum.elim l₁.mapPos l₂.mapPos) ⇆
+    (fun a d => match a with
+      | Sum.inl pa => l₁.mapDir pa d
+      | Sum.inr qa => l₂.mapDir qa d)
+
+/-- Parallel application of lenses for coprod `⟨l₁ ⊎ l₂⟩ : P + Q → R + W` -/
+def coprodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P + Q) (R + W) :=
+  (Sum.map l₁.mapPos l₂.mapPos) ⇆
+    (fun psum => match psum with
+      | Sum.inl pa => l₁.mapDir pa
+      | Sum.inr qa => l₂.mapDir qa)
+
+/-- Apply lenses to both sides of a composition: `(P ⇆ R) → (Q ⇆ W) → (P ◂ Q ⇆ R ◂ W)` -/
 def compMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ◂ Q) (R ◂ W) :=
-  Lens.mk
-    (fun ⟨pa, pq⟩ => ⟨l₁.mapPos pa, fun rb' => l₂.mapPos (pq (l₁.mapDir pa rb'))⟩)
+  (fun ⟨pa, pq⟩ => ⟨l₁.mapPos pa, fun rb' => l₂.mapPos (pq (l₁.mapDir pa rb'))⟩) ⇆
     (fun ⟨pa, pq⟩ ⟨rb, wc⟩ =>
       let pb := l₁.mapDir pa rb
       let qc := l₂.mapDir (pq pb) wc
       ⟨pb, qc⟩)
 
-/-- Infix notation for `compMap` -/
-infixl:75 " ⟨◂⟩ " => compMap
+/-- Apply lenses to both sides of a tensor prod: `(P ⇆ R) → (Q ⇆ W) → (P ⊗ₚ Q ⇆ R ⊗ₚ W)` -/
+def tensorMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ⊗ₚ Q) (R ⊗ₚ W) :=
+  (fun ⟨pa, qa⟩ => (l₁.mapPos pa, l₂.mapPos qa)) ⇆
+    (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.mapDir _pa rb, l₂.mapDir qa wb))
 
 /-- Lens to introduce `Y` on the right: `C → C ◂ Y` -/
-def tilde_r {P : PFunctor.{u}} : Lens P (P ◂ y) :=
+def tildeR {P : PFunctor.{u}} : Lens P (P ◂ y) :=
   (fun a => ⟨a, fun _ => PUnit.unit⟩) ⇆ (fun _a => fun ⟨b, _⟩ => b)
 
 /-- Lens to introduce `Y` on the left: `C → Y ◂ C` -/
-def tilde_l {P : PFunctor.{u}} : Lens P (y ◂ P) :=
+def tildeL {P : PFunctor.{u}} : Lens P (y ◂ P) :=
   (fun a => ⟨PUnit.unit, fun _ => a⟩) ⇆ (fun _a => fun ⟨_, b⟩ => b)
+
+@[inherit_doc] infixl:25 " ∘ₚ " => comp
+@[inherit_doc] infixl:75 " ⟨◂⟩ " => compMap
+@[inherit_doc] infixl:75 " ⟨×⟩ " => prodMap
+@[inherit_doc] infixl:75 " ⟨×⟩ " => prodMap
+@[inherit_doc] infixl:75 " ⟨⊎⟩ " => coprodMap
+@[inherit_doc] infixl:75 " ⟨⊗⟩ " => tensorMap
+notation "~ᴿ" => tildeR
+notation "~ᴸ" => tildeL
+notation "[" l₁ "," l₂ "]ₚ" => coprodPair l₁ l₂
+
+
+/-- The type of lenses from P to Y -/
+def enclose (P : PFunctor.{u}) : Type u :=
+  Lens P y
 
 /-- Helper lens for `speedup` -/
 def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◂ selfMonomial S) :=
@@ -130,8 +249,7 @@ def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◂ selfMonomi
 /-- The `speedup` lens operation: `Lens (S y^S) P → Lens (S y^S) (P ◂ P)` -/
 def speedup {S : Type u} {P : PFunctor.{u}} (l : Lens (selfMonomial S) P) :
     Lens (selfMonomial S) (P ◂ P) :=
-  let dup := l ⟨◂⟩ l
-  Lens.comp dup fixState
+  (l ⟨◂⟩ l) ∘ₚ fixState
 
 end Lens
 
@@ -158,9 +276,16 @@ def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R whe
 /-- Infix notation for chart composition `c' ∘c c` -/
 infixl:25 " ∘c " => comp
 
-/-- The unique chart from the zero functor to any functor `P`. -/
-def zero {P : PFunctor.{u}} : Chart 0 P :=
+/-- The (unique) initial chart from the zero functor to any functor `P`. -/
+def initial {P : PFunctor.{u}} : Chart 0 P :=
   PEmpty.elim ⇉ fun _ => PEmpty.elim
+
+/-- The (unique) terminal chart from any functor `P` to the functor `Y`. -/
+def terminal {P : PFunctor.{u}} : Chart P y :=
+  (fun _ => PUnit.unit) ⇉ (fun _ _ => PUnit.unit)
+
+alias fromZero := initial
+alias toOne := terminal
 
 end Chart
 
