@@ -27,7 +27,6 @@ import VCVio.OracleComp.DistSemantics.Prod
 import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Simulate
 import VCVio.OracleComp.ExecutionMethod
-import VCVio.OracleComp.NoFailure
 import VCVio.OracleComp.OracleComp
 import VCVio.OracleComp.OracleSpec
 import VCVio.OracleComp.QueryBound

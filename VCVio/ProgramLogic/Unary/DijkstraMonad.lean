@@ -6,7 +6,7 @@ Authors: Quang Dao
 import Mathlib.Control.Monad.Basic
 import Mathlib.Control.Monad.Cont
 import Mathlib.CategoryTheory.Monad.Basic
-import ToMathlib.Control
+import ToMathlib.Control.OrderedMonad
 import ToMathlib.Control.FreeMonad
 
 /-!

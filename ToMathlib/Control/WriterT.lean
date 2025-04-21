@@ -4,7 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import Mathlib.Control.Monad.Writer
-import ToMathlib.Control.AlternativeMonad
+import Batteries.Control.AlternativeMonad
+import Batteries.Control.Lawful.MonadLift
 
 /-!
 # Laws for well behaved monadic `failure` operation

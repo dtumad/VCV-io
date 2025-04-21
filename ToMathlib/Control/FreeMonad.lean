@@ -2,12 +2,20 @@
 /-
 Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Devon Tuma
+Authors: Devon Tuma, Quang Dao
 -/
+
 import ToMathlib.Control.MonadHom
+import Mathlib.Data.PFunctor.Univariate.Basic
 
 /-!
-# Free Monad of a Functor
+# Free Monads
+
+This file defines the free monad on an _arbitrary_ mapping `f : Type u → Type v`.
+This has the undesirable property of raising the universe level by 1, which means we can't pass
+a `FreeMonad f` object as a continuation into an interactive protocol.
+
+See `PFunctor.FreeM` for the free monad of a polynomial functor, which does not raise the universe level.
 -/
 
 universe u v w
