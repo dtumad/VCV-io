@@ -13,7 +13,7 @@ import Mathlib.Data.PFunctor.Multivariate.Basic
   definitions, with their properties and categories defined in later files.
 -/
 
-universe u v
+universe u v w x y z
 
 namespace PFunctor
 
@@ -73,13 +73,27 @@ section Coprod
 def coprod (P Q : PFunctor.{u}) : PFunctor.{u} :=
   ⟨P.A ⊕ Q.A, Sum.elim P.B Q.B⟩
 
+/-- Coprod (sum) of polynomial functors `P + Q`,
+  where `P` and `Q` are in potentially different universes. -/
+def coprodULift (P : PFunctor.{u}) (Q : PFunctor.{v}) : PFunctor.{max u v} :=
+  ⟨P.A ⊕ Q.A, Sum.elim (fun a => ULift (P.B a)) (fun a => ULift (Q.B a))⟩
+
+-- theorem coprodULift_eq_coprod_ulift (P : PFunctor.{u}) (Q : PFunctor.{v}) :
+--     coprodULift P Q = (coprod P.ulift Q.ulift) := rfl
+
 instance : Add PFunctor.{u} where
   add := coprod
 
 alias coprodUnit := zero
 
-/-- Generalized coproduct (sigma type) of an indexed family of polynomial functors -/
-def sigma {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
+/-- Generalized coproduct (sigma type) of an `I`-indexed family of polynomial functors -/
+def sigma {I : Type u} (F : I → PFunctor.{u}) : PFunctor.{u} :=
+  ⟨Σ i, (F i).A, fun ⟨i, a⟩ => (F i).B a⟩
+
+/-- Generalized coproduct (sigma type) of an `I`-indexed family of polynomial functors
+
+This is the version of `sigma` with index type `I` in a potentially different universe. -/
+def sigmaULift {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
   ⟨Σ i, (F i).A, fun ⟨i, a⟩ => ULift ((F i).B a)⟩
 
 -- macro "Σₚ" xs:Lean.explicitBinders ", " b:term : term => Lean.expandExplicitBinders ``sigma xs b
@@ -89,7 +103,7 @@ end Coprod
 section Prod
 
 /-- Product of polynomial functors `P * Q` -/
-def prod (P Q : PFunctor.{u}) : PFunctor.{u} :=
+def prod (P : PFunctor.{u}) (Q : PFunctor.{v}) : PFunctor.{max u v} :=
   ⟨P.A × Q.A, fun ab => P.B ab.1 ⊕ Q.B ab.2⟩
 
 instance : Mul PFunctor.{u} where
@@ -97,13 +111,19 @@ instance : Mul PFunctor.{u} where
 
 alias prodUnit := one
 
-/-- Generalized product (pi type) of an indexed family of polynomial functors -/
+/-- Generalized product (pi type) of an `I`-indexed family of polynomial functors -/
 def pi {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
   ⟨(i : I) → (F i).A, fun f => Σ i, (F i).B (f i)⟩
 
 end Prod
 
 section Comp
+
+/-- Function composition for polynomial functors of different universe levels.
+
+TODO: replace the definition in mathlib with this more general one -/
+def comp' (P₂ : PFunctor.{u}) (P₁ : PFunctor.{v}) : PFunctor.{max u v} :=
+  ⟨Σ a₂ : P₂.1, P₂.2 a₂ → P₁.1, fun a₂a₁ => Σ u : P₂.2 a₂a₁.1, P₁.2 (a₂a₁.2 u)⟩
 
 /-- Infix notation for `PFunctor.comp P Q` -/
 infixl:80 " ◂ " => PFunctor.comp
@@ -132,7 +152,7 @@ instance : Pow PFunctor.{u} PFunctor.{u} where
 section Tensor
 
 /-- Tensor or parallel product of polynomial functors -/
-def tensor (P Q : PFunctor.{u}) : PFunctor.{u} :=
+def tensor (P : PFunctor.{u}) (Q : PFunctor.{v}) : PFunctor.{max u v} :=
   ⟨P.A × Q.A, fun ab => P.B ab.1 × Q.B ab.2⟩
 
 /-- Infix notation for tensor product `P ⊗ₚ Q` -/
@@ -146,7 +166,7 @@ end Tensor
 /-- A **lens** between two polynomial functors `P` and `Q` is a pair of a function:
 - `mapPos : P.A → Q.A`
 - `mapDir : ∀ a, Q.B (mapPos a) → P.B a` -/
-structure Lens (P Q : PFunctor.{u}) where
+structure Lens (P : PFunctor.{u}) (Q : PFunctor.{v}) where
   mapPos : P.A → Q.A
   mapDir : ∀ a, Q.B (mapPos a) → P.B a
 
@@ -161,25 +181,27 @@ protected def id (P : PFunctor.{u}) : Lens P P where
   mapDir := fun _ b => b
 
 /-- Composition of lenses -/
-def comp {P Q R : PFunctor.{u}} (l : Lens Q R) (l' : Lens P Q) : Lens P R where
+def comp {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}}
+    (l : Lens Q R) (l' : Lens P Q) : Lens P R where
   mapPos := l.mapPos ∘ l'.mapPos
   mapDir := fun i => (l'.mapDir i) ∘ l.mapDir (l'.mapPos i)
 
 @[inherit_doc] infixl:75 " ∘ₗ " => comp
 
 @[simp]
-theorem id_comp {P Q : PFunctor.{u}} (f : Lens P Q) : (Lens.id Q) ∘ₗ f = f := rfl
+theorem id_comp {P : PFunctor.{u}} {Q : PFunctor.{v}} (f : Lens P Q) : (Lens.id Q) ∘ₗ f = f := rfl
 
 @[simp]
-theorem comp_id {P Q : PFunctor.{u}} (f : Lens P Q) : f ∘ₗ (Lens.id P) = f := rfl
+theorem comp_id {P : PFunctor.{u}} {Q : PFunctor.{v}} (f : Lens P Q) : f ∘ₗ (Lens.id P) = f := rfl
 
-theorem comp_assoc {P Q R S : PFunctor.{u}} (l : Lens R S) (l' : Lens Q R) (l'' : Lens P Q) :
+theorem comp_assoc {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}} {S : PFunctor.{x}}
+    (l : Lens R S) (l' : Lens Q R) (l'' : Lens P Q) :
     (l ∘ₗ l') ∘ₗ l'' = l ∘ₗ (l' ∘ₗ l'') := rfl
 
 /-- An equivalence between two polynomial functors `P` and `Q`, using lenses.
     This corresponds to an isomorphism in the category `PFunctor` with `Lens` morphisms. -/
 @[ext]
-structure Equiv (P Q : PFunctor.{u}) where
+structure Equiv (P : PFunctor.{u}) (Q : PFunctor.{v}) where
   toLens : Lens P Q
   invLens : Lens Q P
   left_inv : comp invLens toLens = Lens.id P
@@ -194,11 +216,12 @@ def refl (P : PFunctor.{u}) : P ≃ₗ P :=
   ⟨Lens.id P, Lens.id P, rfl, rfl⟩
 
 @[symm]
-def symm {P Q : PFunctor.{u}} (e : P ≃ₗ Q) : Q ≃ₗ P :=
+def symm {P : PFunctor.{u}} {Q : PFunctor.{v}} (e : P ≃ₗ Q) : Q ≃ₗ P :=
   ⟨e.invLens, e.toLens, e.right_inv, e.left_inv⟩
 
 @[trans]
-def trans {P Q R : PFunctor.{u}} (e₁ : P ≃ₗ Q) (e₂ : Q ≃ₗ R) : P ≃ₗ R :=
+def trans {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}}
+    (e₁ : P ≃ₗ Q) (e₂ : Q ≃ₗ R) : P ≃ₗ R :=
   ⟨e₂.toLens ∘ₗ e₁.toLens, e₁.invLens ∘ₗ e₂.invLens,
     by
       rw [comp_assoc]
@@ -226,9 +249,17 @@ alias toOne := terminal
 def inl {P Q : PFunctor.{u}} : Lens P (P + Q) :=
   Sum.inl ⇆ (fun _ d => d)
 
+/-- Left injection lens `inl : P → P + Q`, when `P` and `Q` are in different universes. -/
+def inlULift {P : PFunctor.{u}} {Q : PFunctor.{v}} : Lens P (P.coprodULift Q) :=
+  Sum.inl ⇆ (fun _ d => d.down)
+
 /-- Right injection lens `inr : Q → P + Q` -/
 def inr {P Q : PFunctor.{u}} : Lens Q (P + Q) :=
   Sum.inr ⇆ (fun _ d => d)
+
+/-- Right injection lens `inr : Q → P + Q`, when `P` and `Q` are in different universes. -/
+def inrULift {P : PFunctor.{u}} {Q : PFunctor.{v}} : Lens Q (P.coprodULift Q) :=
+  Sum.inr ⇆ (fun _ d => d.down)
 
 /-- Copairing of lenses `[l₁, l₂]ₗ : P + Q → R` -/
 def coprodPair {P Q R : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q R) : Lens (P + Q) R :=
@@ -244,9 +275,17 @@ def coprodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Len
       | Sum.inl pa => l₁.mapDir pa
       | Sum.inr qa => l₂.mapDir qa)
 
+/-- Generalized copairing of lenses for sigma types.
+    Given a family of lenses `lᵢ : Fᵢ → R`, constructs a lens `(Σᵢ Fᵢ) → R`. -/
+def sigmaRec {I : Type u} {F : I → PFunctor.{u}} {P : PFunctor.{u}}
+    (l : (i : I) → Lens (F i) P) : Lens (sigma F) P :=
+  (fun ⟨i, fa⟩ => (l i).mapPos fa) ⇆ (fun ⟨i, fa⟩ rb => (l i).mapDir fa rb)
 
--- def sigmaExists
--- def sigmaMap
+/-- Parallel application of a family of lenses for sigma types.
+    Given a family of lenses `lᵢ : Fᵢ → Gᵢ`, constructs a lens `(Σᵢ Fᵢ) → (Σᵢ Gᵢ)`. -/
+def sigmaMap {I : Type u} {F G : I → PFunctor.{u}} (ls : (i : I) → Lens (F i) (G i)) :
+    Lens (sigma F) (sigma G) :=
+  (fun ⟨i, fa⟩ => ⟨i, (ls i).mapPos fa⟩) ⇆ (fun ⟨i, ga⟩ gb => (ls i).mapDir ga gb)
 
 /-- Projection lens `fst : P * Q → P` -/
 def fst {P Q : PFunctor.{u}} : Lens (P * Q) P :=
@@ -266,10 +305,29 @@ def prodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens 
   (fun pq => (l₁.mapPos pq.1, l₂.mapPos pq.2)) ⇆
     (fun pq => Sum.elim (Sum.inl ∘ l₁.mapDir pq.1) (Sum.inr ∘ l₂.mapDir pq.2))
 
--- def piForall
--- def piMap
+/-- Generalized pairing of lenses for pi types.
+    Given a family of lenses `lᵢ : P → Fᵢ`, constructs a lens `P → (Πᵢ Fᵢ)`. -/
+def piRec {I : Type u} {P : PFunctor.{u}} {F : I → PFunctor.{u}}
+    (l : (i : I) → Lens P (F i)) : Lens P (pi F) :=
+  (fun pa i => (l i).mapPos pa) ⇆ (fun pa sfi => (l sfi.1).mapDir pa sfi.2)
 
-/-- Apply lenses to both sides of a composition: `l₁ ◂ₗ l₂ : (P ◂ Q ⇆ R ◂ W)` -/
+/-- Generalized pairing of lenses for pi types.
+    Given a family of lenses `lᵢ : P → Fᵢ`, constructs a lens `P → (Πᵢ Fᵢ)`. -/
+def piRecULift {I : Type v} {P : PFunctor.{u}} {F : I → PFunctor.{u}}
+    (l : (i : I) → Lens P (F i)) : Lens P.ulift (pi F) :=
+  (fun pa i => (l i).mapPos (pa.down)) ⇆
+    (fun ⟨pa⟩ sfi => ⟨(l sfi.1).mapDir pa sfi.2⟩)
+
+/-- Parallel application of a family of lenses for pi types.
+    Given `lᵢ : Fᵢ → Gᵢ`, constructs `(Πᵢ Fᵢ) → (Πᵢ Gᵢ)`. -/
+def piMap {I : Type v} {F G : I → PFunctor.{u}} (l : (i : I) → Lens (F i) (G i)) :
+    Lens (pi F) (pi G) :=
+  (fun fa i => (l i).mapPos (fa i)) ⇆ (fun ga sgb => ⟨sgb.1, (l sgb.1).mapDir (ga sgb.1) sgb.2⟩)
+
+/-- Apply lenses to both sides of a composition: `l₁ ◂ₗ l₂ : (P ◂ Q ⇆ R ◂ W)`
+
+TODO: state this with different universe levels once we change `PFunctor.comp` to support the same
+-/
 def compMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ◂ Q) (R ◂ W) :=
   (fun ⟨pa, pq⟩ => ⟨l₁.mapPos pa, fun rb' => l₂.mapPos (pq (l₁.mapDir pa rb'))⟩) ⇆
     (fun ⟨pa, pq⟩ ⟨rb, wc⟩ =>
@@ -278,7 +336,8 @@ def compMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens 
       ⟨pb, qc⟩)
 
 /-- Apply lenses to both sides of a tensor / parallel product: `l₁ ⊗ₗ l₂ : (P ⊗ₚ Q ⇆ R ⊗ₚ W)` -/
-def tensorMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ⊗ₚ Q) (R ⊗ₚ W) :=
+def tensorMap {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}} {W : PFunctor.{x}}
+    (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ⊗ₚ Q) (R ⊗ₚ W) :=
   (fun ⟨pa, qa⟩ => (l₁.mapPos pa, l₂.mapPos qa)) ⇆
     (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.mapDir _pa rb, l₂.mapDir qa wb))
 
@@ -323,7 +382,7 @@ end Lens
 /-- A chart between two polynomial functors `P` and `Q` is a pair of a function:
 - `mapPos : P.A → Q.A`
 - `mapDir : ∀ a, P.B a → Q.B (mapPos a)` -/
-structure Chart (P Q : PFunctor.{u}) where
+structure Chart (P : PFunctor.{u}) (Q : PFunctor.{v}) where
   mapPos : P.A → Q.A
   mapDir : ∀ a, P.B a → Q.B (mapPos a)
 
@@ -336,7 +395,8 @@ namespace Chart
 protected def id (P : PFunctor.{u}) : Chart P P := id ⇉ fun _ => id
 
 /-- Composition of charts -/
-def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R where
+def comp {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}}
+    (c' : Chart Q R) (c : Chart P Q) : Chart P R where
   mapPos := c'.mapPos ∘ c.mapPos
   mapDir := fun i => c'.mapDir (c.mapPos i) ∘ c.mapDir i
 
@@ -344,18 +404,19 @@ def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R whe
 infixl:75 " ∘c " => comp
 
 @[simp]
-theorem id_comp {P Q : PFunctor.{u}} (f : Chart P Q) : (Chart.id Q) ∘c f = f := rfl
+theorem id_comp {P : PFunctor.{u}} {Q : PFunctor.{v}} (f : Chart P Q) : (Chart.id Q) ∘c f = f := rfl
 
 @[simp]
-theorem comp_id {P Q : PFunctor.{u}} (f : Chart P Q) : f ∘c (Chart.id P) = f := rfl
+theorem comp_id {P : PFunctor.{u}} {Q : PFunctor.{v}} (f : Chart P Q) : f ∘c (Chart.id P) = f := rfl
 
-theorem comp_assoc {P Q R S : PFunctor.{u}} (c : Chart R S) (c' : Chart Q R) (c'' : Chart P Q) :
+theorem comp_assoc {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}} {S : PFunctor.{x}}
+    (c : Chart R S) (c' : Chart Q R) (c'' : Chart P Q) :
     (c ∘c c') ∘c c'' = c ∘c (c' ∘c c'') := rfl
 
 /-- An equivalence between two polynomial functors `P` and `Q`, using charts.
     This corresponds to an isomorphism in the category `PFunctor` with `Chart` morphisms. -/
 @[ext]
-structure Equiv (P Q : PFunctor.{u}) where
+structure Equiv (P : PFunctor.{u}) (Q : PFunctor.{v}) where
   toChart : Chart P Q
   invChart : Chart Q P
   left_inv : comp invChart toChart = Chart.id P
@@ -371,10 +432,11 @@ def refl (P : PFunctor.{u}) : P ≃c P :=
   ⟨Chart.id P, Chart.id P, rfl, rfl⟩
 
 @[symm]
-def symm {P Q : PFunctor.{u}} (e : P ≃c Q) : Q ≃c P :=
+def symm {P : PFunctor.{u}} {Q : PFunctor.{v}} (e : P ≃c Q) : Q ≃c P :=
   ⟨e.invChart, e.toChart, e.right_inv, e.left_inv⟩
 
-def trans {P Q R : PFunctor.{u}} (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R :=
+def trans {P : PFunctor.{u}} {Q : PFunctor.{v}} {R : PFunctor.{w}}
+    (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R :=
   ⟨e₂.toChart ∘c e₁.toChart, e₁.invChart ∘c e₂.invChart,
     by
       rw [comp_assoc]
@@ -407,7 +469,7 @@ theorem ext {P Q : PFunctor.{u}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸
   cases P; cases Q; simp at h h' ⊢; subst h; simp_all; funext; exact h' _
 
 @[ext (iff := false)]
-theorem Lens.ext {P Q : PFunctor.{u}} (l₁ l₂ : Lens P Q)
+theorem Lens.ext {P : PFunctor.{u}} {Q : PFunctor.{v}} (l₁ l₂ : Lens P Q)
     (h₁ : ∀ a, l₁.mapPos a = l₂.mapPos a) (h₂ : ∀ a, l₁.mapDir a = (h₁ a) ▸ l₂.mapDir a) :
     l₁ = l₂ := by
   rcases l₁ with ⟨mapPos₁, _⟩
@@ -418,7 +480,7 @@ theorem Lens.ext {P Q : PFunctor.{u}} (l₁ l₂ : Lens P Q)
   exact funext h₂
 
 @[ext (iff := false)]
-theorem Chart.ext {P Q : PFunctor.{u}} (c₁ c₂ : Chart P Q)
+theorem Chart.ext {P : PFunctor.{u}} {Q : PFunctor.{v}} (c₁ c₂ : Chart P Q)
     (h₁ : ∀ a, c₁.mapPos a = c₂.mapPos a) (h₂ : ∀ a, c₁.mapDir a = (h₁ a) ▸ c₂.mapDir a) :
     c₁ = c₂ := by
   rcases c₁ with ⟨mapPos₁, _⟩
@@ -909,39 +971,39 @@ section Sigma
 
 variable {I : Type v}
 
-instance [IsEmpty I] {F : I → PFunctor.{u}} : IsEmpty (sigma F).A := by
-  simp [sigma]
-instance [IsEmpty I] {F : I → PFunctor.{u}} {a : (sigma F).A} : IsEmpty ((sigma F).B a) :=
+instance [IsEmpty I] {F : I → PFunctor.{u}} : IsEmpty (sigmaULift F).A := by
+  simp [sigmaULift]
+instance [IsEmpty I] {F : I → PFunctor.{u}} {a : (sigmaULift F).A} : IsEmpty ((sigmaULift F).B a) :=
   isEmptyElim a
 
 /-- Sigma of an empty family is the zero functor. -/
-def sigmaEmpty [IsEmpty I] {F : I → PFunctor.{u}} : sigma F ≃ₗ 0 where
+def sigmaULiftEmpty [IsEmpty I] {F : I → PFunctor.{u}} : sigmaULift F ≃ₗ 0 where
   toLens := isEmptyElim ⇆ (fun a _ => isEmptyElim a)
   invLens := isEmptyElim ⇆ (fun a _ => isEmptyElim a)
   left_inv := by ext a <;> exact isEmptyElim a
   right_inv := by ext a <;> exact isEmptyElim a
 
 /-- Sigma of a `PUnit`-indexed family is equivalent to the functor itself. -/
-def sigmaUnit {F : PUnit → PFunctor.{u}} : sigma F ≃ₗ (F PUnit.unit).ulift where
+def sigmaULiftUnit {F : PUnit → PFunctor.{u}} : sigmaULift F ≃ₗ (F PUnit.unit).ulift where
   toLens := (fun ⟨_, a⟩ => ULift.up a) ⇆ (fun _ b => b)
   invLens := (fun a => ⟨PUnit.unit, ULift.down a⟩) ⇆ (fun _ b => b)
   left_inv := rfl
   right_inv := rfl
 
 /-- Sigma of an `I`-indexed family, where `I` is unique, is equivalent to the functor itself. -/
-def sigmaOfUnique [Unique I] {F : I → PFunctor.{u}} : sigma F ≃ₗ (F default).ulift where
+def sigmaULiftOfUnique [Unique I] {F : I → PFunctor.{u}} : sigmaULift F ≃ₗ (F default).ulift where
   toLens := (fun ⟨_, a⟩ => (Unique.uniq _ _) ▸ ULift.up a) ⇆
             (fun ⟨i, a⟩ b => (Unique.uniq _ i) ▸ b)
   invLens := (fun a => ⟨default, ULift.down a⟩) ⇆ (fun _ b => b)
   left_inv := by
-    ext ⟨i, a⟩ b <;> simp [sigma, Lens.id, comp]
+    ext ⟨i, a⟩ b <;> simp [sigmaULift, Lens.id, comp]
     · generalize_proofs h; subst h; simp
     · generalize_proofs _ h; subst h; simp
   right_inv := rfl
 
-/-- Left distributivity of product over sigma. -/
+/-- Left distributivity of product over sigmaULift. -/
 def prodSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    P * sigma F ≃ₗ sigma (fun i => P * F i) where
+    P * sigmaULift F ≃ₗ sigmaULift (fun i => P * F i) where
   toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
             (fun _ b => match ULift.down b with
               | Sum.inl p => Sum.inl p
@@ -959,9 +1021,9 @@ def prodSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
     · rfl
     · rcases b with _ | _ <;> rfl
 
-/-- Right distributivity of product over sigma. -/
-def sigmaProdDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    sigma F * P ≃ₗ sigma (fun i => F i * P) where
+/-- Right distributivity of product over sigmaULift. -/
+def sigmaULiftProdDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+    sigmaULift F * P ≃ₗ sigmaULift (fun i => F i * P) where
   toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
             (fun _ b => match ULift.down b with
               | Sum.inl p => Sum.inl (ULift.up p)
@@ -979,9 +1041,9 @@ def sigmaProdDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
     · rfl
     · rcases b with _ | _ <;> rfl
 
-/-- Left distributivity of tensor product over sigma. -/
+/-- Left distributivity of tensor product over sigmaULift. -/
 def tensorSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    P ⊗ₚ sigma F ≃ₗ sigma (fun i => P ⊗ₚ F i) where
+    P ⊗ₚ sigmaULift F ≃ₗ sigmaULift (fun i => P ⊗ₚ F i) where
   toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
             (fun _ ⟨pb, fib⟩ => ⟨pb, ULift.up fib⟩)
   invLens := (fun ⟨i, ⟨pa, fia⟩⟩ => ⟨pa, ⟨i, fia⟩⟩) ⇆
@@ -989,9 +1051,9 @@ def tensorSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} 
   left_inv := rfl
   right_inv := rfl
 
-/-- Right distributivity of tensor product over sigma. -/
-def sigmaTensorDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    sigma F ⊗ₚ P ≃ₗ sigma (fun i => F i ⊗ₚ P) where
+/-- Right distributivity of tensor product over sigmaULift. -/
+def sigmaULiftTensorDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+    sigmaULift F ⊗ₚ P ≃ₗ sigmaULift (fun i => F i ⊗ₚ P) where
   toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
             (fun _ ⟨fib, pb⟩ => ⟨ULift.up fib, pb⟩)
   invLens := (fun ⟨i, ⟨fia, pa⟩⟩ => ⟨⟨i, fia⟩, pa⟩) ⇆
@@ -999,9 +1061,9 @@ def sigmaTensorDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} 
   left_inv := rfl
   right_inv := rfl
 
--- /-- Right distributivity of composition over sigma. -/
--- def sigmaCompDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
---     (sigma F) ◂ P ≃ₗ sigma (fun i => F i ◂ P) where
+-- /-- Right distributivity of composition over sigmaULift. -/
+-- def sigmaULiftCompDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+--     (sigmaULift F) ◂ P ≃ₗ sigmaULift (fun i => F i ◂ P) where
 --   toLens := (fun ⟨⟨i, fia⟩, pf⟩ => ⟨i, ⟨fia, pf⟩⟩) ⇆
 --             (fun _ b => match ULift.down b with
 --               | Sum.inl p => Sum.inl (ULift.up p)
