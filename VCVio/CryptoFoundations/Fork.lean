@@ -235,6 +235,7 @@ lemma le_probOutput_fork (s : Fin (qb i + 1)) :
   let h : ℝ≥0∞ := ↑(Fintype.card (spec.range i))
   let q := qb i + 1
   have : DecidableEq α := Classical.decEq α -- :(
+  have : DecidableEq spec.QuerySeed := Classical.decEq _
   calc [fun (x₁, x₂) => cf x₁ = s ∧ cf x₂ = s | fork main qb js i cf]
     _ = [= (s, s) | Prod.map cf cf <$> fork main qb js i cf] := by {
         simp [probOutput_map_eq_probEvent, Prod.eq_iff_fst_eq_snd_eq]
@@ -316,7 +317,7 @@ lemma le_probOutput_fork (s : Fin (qb i + 1)) :
         · simp [hcfx₁]
       }
     _ = [= (s, s) | do
-          let shared_seed ← liftM (generateSeed spec (Function.update qb i q) js)
+          let shared_seed ← liftM (generateSeed spec (Function.update qb i s) js)
           let x₁ ← (simulateQ seededOracle main).run shared_seed
           let x₂ ← (simulateQ seededOracle main).run shared_seed
           return (cf x₁, cf x₂)] -
@@ -338,15 +339,66 @@ lemma le_probOutput_fork (s : Fin (qb i + 1)) :
             simp [hu'.symm]
           · simp [h]
       }
-    _ ≥ [= s | cf <$> main] ^ 2 - [= s | cf <$> main] / h := by {
-        refine tsub_le_tsub ?_ ?_
-        · rw [pow_two]
-          rw [← probOutput_bind_bind_prod_mk_eq_mul']
-
-          sorry
+    _ = ∑ seed ∈ (generateSeed spec (Function.update qb i s) js).finSupport,
+          ((generateSeed spec (Function.update qb i s) js).finSupport.card : ℝ≥0∞)⁻¹ * [= (s, s) | do
+            let x₁ ← (simulateQ seededOracle main).run seed
+            let x₂ ← (simulateQ seededOracle main).run seed
+            return (cf x₁, cf x₂)] - [= s | cf <$> main] / h := by {
+        congr 1
+        · rw [probOutput_bind_eq_sum_finSupport]
+          simp only [liftM_eq_liftComp, finSupport_liftComp, probOutput_liftComp, bind_pure_comp, h]
+          refine Finset.sum_congr rfl fun seed hseed => ?_
+          congr 1
+          apply probOutput_generateSeed'
+          refine mem_support_of_mem_finSupport _ hseed
         · rw [ENNReal.div_eq_inv_mul, ENNReal.div_eq_inv_mul]
-          refine le_of_eq <| (ENNReal.mul_right_inj (by simp [h]) (by simp [h])).2 ?_
+          refine (ENNReal.mul_right_inj (by simp [h]) (by simp [h])).2 ?_
           simp
+      }
+    _ = ((generateSeed spec (Function.update qb i s) js).finSupport.card : ℝ≥0∞)⁻¹ *
+          ∑ seed ∈ (generateSeed spec (Function.update qb i s) js).finSupport,
+            [= s | cf <$> (simulateQ seededOracle main).run seed] ^ 2 - [= s | cf <$> main] / h := by {
+        rw [Finset.mul_sum]
+        congr 2
+        simp only [probOutput_bind_bind_prod_mk_eq_mul', pow_two]
+      }
+    _ ≥ ((generateSeed spec (Function.update qb i s) js).finSupport.card : ℝ≥0∞)⁻¹ ^ 2 *
+          (∑ seed ∈ (generateSeed spec (Function.update qb i s) js).finSupport,
+            [= s | cf <$> (simulateQ seededOracle main).run seed]) ^ 2 - [= s | cf <$> main] / h := by {
+        refine tsub_le_tsub ?_ le_rfl
+        have := ENNReal.rpow_sum_le_const_mul_sum_rpow
+          ((generateSeed spec (Function.update qb i s) js).finSupport)
+          (fun seed => [= s | cf <$> (simulateQ seededOracle main).run seed])
+          (one_le_two)
+        simp only [] at this
+        have hc : ((finSupport (generateSeed spec (update qb i ↑s) js)).card : ℝ≥0∞)⁻¹ ^ 2 ≠ 0 := by {
+          simp
+        }
+        have := ((ENNReal.mul_le_mul_left hc (by simp)).2 this)
+        simp only [rpow_two] at this
+        refine le_trans this ?_
+        rw [← mul_assoc]
+        refine le_of_eq ?_
+        refine congr_arg (· * _) ?_
+        norm_num
+        rw [pow_two, mul_assoc, ENNReal.inv_mul_cancel, mul_one]
+        · simp
+        · simp
+      }
+    _ = [= s | do
+          let seed ← liftM (generateSeed spec ((Function.update qb i s)) js)
+          cf <$> (simulateQ seededOracle main).run seed] ^ 2 - [= s | cf <$> main] / h := by {
+        rw [probOutput_bind_eq_sum_finSupport]
+        congr 1
+        rw [← mul_pow, Finset.mul_sum]
+        refine congr_arg (· ^ 2) ?_
+        refine Finset.sum_congr (finSupport_liftComp _ _).symm fun seed hseed => ?_
+        rw [liftM_eq_liftComp, probOutput_liftComp, probOutput_generateSeed']
+        refine mem_support_of_mem_finSupport _ ?_
+        simpa using hseed
+      }
+    _ = [= s | cf <$> main] ^ 2 - [= s | cf <$> main] / h := by {
+        simp only [liftM_eq_liftComp, seededOracle.probOutput_generateSeed_bind_map_simulateQ, h]
       }
 
 theorem probFailure_fork_le :
