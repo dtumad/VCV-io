@@ -182,17 +182,17 @@ end IND_CPA
 
 variable {m n p χ : ℕ} (adv : Matrix (Fin m) (Fin n) (Fin p) × Vector (Fin p) n → ProbComp Bool)
 
-def LWE_Exp : ProbComp Unit := do
-    let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
-    let s ←$ᵗ Vector (Fin p) m
-    let e ←$ᵗ Vector (Fin p) m
-    let u ←$ᵗ Vector (Fin p) n
-    let b ←$ᵗ Bool
-    let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
-    let b' ← adv dist
-    guard (b = b')
+-- def LWE_Exp : ProbComp Unit := do
+--     let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
+--     let s ←$ᵗ Vector (Fin p) m
+--     let e ←$ᵗ Vector (Fin p) m
+--     let u ←$ᵗ Vector (Fin p) n
+--     let b ←$ᵗ Bool
+--     let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
+--     let b' ← adv dist
+--     guard (b = b')
 
-noncomputable def LWE_Advantage : ℝ := abs (1 / 2 - ([⊥ | LWE_Exp adv]).toReal)
+-- noncomputable def LWE_Advantage : ℝ := abs (1 / 2 - ([⊥ | LWE_Exp adv]).toReal)
 
 variable [DecidableEq ι]
 
@@ -213,8 +213,8 @@ def Regev_Hybrid_1 : ProbComp Unit := do sorry
 
 def Regev_Hybrid_2 : ProbComp Unit := do sorry
 
-theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
-    {adv : IND_CPA_Adv (spec := spec) encAlg} :
-    IND_CPA_Advantage adv ≤ LWE_Advantage adv := by
+-- theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
+--     {adv : IND_CPA_Adv (spec := spec) encAlg} :
+--     IND_CPA_Advantage adv ≤ LWE_Advantage adv := by
 
 end AsymmEncAlg
