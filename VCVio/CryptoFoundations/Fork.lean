@@ -477,6 +477,7 @@ theorem probFailure_fork_le :
       · refine le_trans this ?_
         simp [q]
       · simp [q]
+      · simp [q]
     _ = 1 - acc ^ 2 / q + acc / h := rfl
     _ = 1 - acc * (acc / q - h⁻¹) := by
       rw [ENNReal.mul_sub]
