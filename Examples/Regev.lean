@@ -80,10 +80,8 @@ lemma Fin_bound_zero {n : ℕ} (x : Fin n) : Fin_Bound x 0 ↔ x.val = 0:= by
   . rcases h with h | h
     . omega
     . simp at h
-      have : x.val < n := by apply Fin.val_lt_of_le x (le_refl n)
-      linarith
-  . left
-    linarith
+      linarith [x.isLt]
+  . left; linarith
 
 @[simp]
 lemma Fin_Bound_add {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
@@ -96,8 +94,7 @@ lemma Fin_Bound_add {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
     . by_cases h : n ≤ x.val + y.val
       . left
         simp [Fin.val_add_eq_ite, h]
-        have := Fin.val_lt_of_le y (le_refl n)
-        omega
+        linarith [y.isLt]
       . right
         simp [Fin.val_add_eq_ite, h]
         omega
@@ -105,11 +102,10 @@ lemma Fin_Bound_add {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
     . by_cases h : n ≤ x.val + y.val
       . left
         simp [Fin.val_add_eq_ite, h]
-        have := Fin.val_lt_of_le x (le_refl n)
-        omega
+        linarith [x.isLt]
       . right
         simp [Fin.val_add_eq_ite, h]
-        omega
+        linarith [x.isLt]
     . right
       rw [Fin.val_add_eq_ite]
       by_cases h : n ≤ x.val + y.val <;> simp [h] <;> omega
@@ -120,16 +116,15 @@ lemma Fin_bound_mul_helper {n b₁ b₂ : ℕ} {x y : Fin n} (h : b₁ * b₂ < 
   . left; simp [Fin.val_mul, g]
   right
   rw [Fin.val_mul]
-  have hy : y.val < n := by apply Fin.val_lt_of_le y (le_refl n)
+  have hy : y.val < n := y.isLt
   have hc : ∃ c ≤ b₂, y.val + c = n := by
     use n - y.val; constructor <;> omega
   rcases hc with ⟨c, hc1, hc2⟩
   have h3 : x.val * y.val + x.val * c = n * x.val := by
     rw [← mul_add, hc2]; apply mul_comm
   calc x.val * y.val % n + b₁ * b₂ ≥ x.val * y.val % n + b₁ * b₂ := by rfl
-    _ ≥ x.val * y.val % n + b₁ * c := by
-      apply Nat.mul_le_mul_left b₁ at hc1
-      exact Nat.add_le_add_left hc1 (↑x * ↑y % n)
+    _ ≥ x.val * y.val % n + b₁ * c :=
+      Nat.add_le_add_left (Nat.mul_le_mul_left b₁ hc1) _
     _ ≥ x.val * y.val % n + x.val * c := by
       apply Nat.mul_le_mul_left c at h₁
       apply Nat.add_le_add_left
@@ -283,10 +278,7 @@ lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m}
       simp [hv]
       rw [Fin.le_def] at hv ⊢
       trans ↑v[i] <;> simp at *
-      rw [Nat.mod_eq_of_lt] at hv ⊢
-      trivial
-      omega
-      omega
+      rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
     simp at this
     simp [this]
     trans 2 * χ
