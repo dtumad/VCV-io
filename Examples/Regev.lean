@@ -208,6 +208,24 @@ lemma Fin_Bound_mul {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
         simp
         linarith
 
+@[simp]
+lemma Fin_bound_neg {n b : ℕ} {x : Fin n} (h : Fin_Bound x b) :
+  Fin_Bound (-x) b := by
+  by_cases h0 : n = 0
+  . rw [h0] at x
+    apply x.elim0
+  have nnz : NeZero n := ⟨by omega⟩
+  have : Fin_Bound (-(Fin.ofNat' n 1)) 1 := by
+    right
+    simp [Fin.coe_neg]
+    by_cases h1 : n = 1
+    . simp [h1]
+    push_neg at h0 h1
+    rw [Nat.one_mod_eq_one.mpr h1]
+    rw [Nat.mod_eq_of_lt] <;> omega
+  rw [← one_mul b, ← neg_one_mul x]
+  apply Fin_Bound_mul this h
+
 lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
 (h1 : Fin_Bound_vec v₁ b₁) (h2 : Fin_Bound_vec v₂ b₂) (Nez : NeZero p) :
   Fin_Bound (dotProduct v₁.get v₂.get) (b₁ * b₂ * m) := by
@@ -239,9 +257,13 @@ lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
     simp at hl
     linarith
 
+@[simp]
 lemma Fin_bound_castLE {n m : ℕ} {x : Fin n} {h : n ≤ m} :
   Fin_Bound (Fin.castLE h x) n := by
   left; simp
+
+lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by
+  omega
 
 lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m}
  {hne : NeZero p} (h : p > 2*χ) : Fin_Bound_vec (v.map (fun t ↦ (Fin.castLE h t) - (Fin.ofNat' p χ))) χ := by
@@ -254,36 +276,47 @@ lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m}
   by_cases hv : v[i] ≥ χ
   . left
     simp at *
-    sorry
-  . sorry
-  --   have : NeZero χ := ⟨by omega⟩
-  --   have : χ < p := by omega
-  --   conv =>
-  --     rhs
-  --     rw [← (Nat.mod_eq_of_lt this), ← Fin.val_ofNat']
-  --   apply Fin.natCast_le_natCast
-  --   . simp
-
-  --   apply Fin.val_lt_of_le (Fin.castLE h (v.get i))
-  --   simp [hv]
-  --   apply Fin.val_lt_of_le (Fin.castLE h (v.get i))
-  --   apply Fin.sub_lt
-  --   . apply Fin.val_lt_of_le (Fin.castLE h (v.get i))
-  --   . simp [Fin.ofNat', Fin.castLE]
-  --     apply Nat.le_sub_left_iff_add_le.mpr
-  --     apply Nat.le_sub_left_iff_add_le.mp
-  --     apply Nat.add_le_add_right hv χ
-  -- . right
-  --   apply Fin.val_lt_of_le (Fin.castLE h (v.get i))
-  --   apply Fin.sub_lt
-  --   . simp [Fin.ofNat', Fin.castLE]
-  --     apply Nat.le_sub_left_iff_add_le.mpr
-  --     apply Nat.le_sub_left_iff_add_le.mp
-  --     apply Nat.add_le_add_right hv χ
-  --   . simp [Fin.ofNat', Fin.castLE]
-  --     apply Nat.le_sub_left_iff_add_le.mpr
-  --     apply Nat.le_sub_left_iff_add_le.mp
-  --     apply Nat.add_le_add_right hv χ
+    apply IntLE_imp_NatLE
+    rw [Fin.intCast_val_sub_eq_sub_add_ite]
+    simp
+    have : ↑χ ≤ Fin.castLE h v[↑i] := by
+      simp [hv]
+      rw [Fin.le_def] at hv ⊢
+      trans ↑v[i] <;> simp at *
+      rw [Nat.mod_eq_of_lt] at hv ⊢
+      trivial
+      omega
+      omega
+    simp at this
+    simp [this]
+    trans 2 * χ
+    . norm_cast
+      have g := Fin.val_lt_of_le v[↑i] (le_refl (2*χ + 1))
+      omega
+    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt]
+      linarith
+      linarith
+  . right
+    simp at *
+    apply IntLE_imp_NatLE; simp
+    rw [Fin.intCast_val_sub_eq_sub_add_ite]; simp
+    have : ↑χ > Fin.castLE h v[↑i] := by
+      simp [hv]
+      rw [Fin.lt_def] at hv ⊢
+      apply lt_of_le_of_lt
+      simp at *
+      apply le_refl
+      simp at *
+      rw [Nat.mod_eq_of_lt] at hv ⊢
+      trivial
+      omega
+      omega
+    rw [ite_cond_eq_false]
+    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt]
+      linarith
+      linarith
+    simp at this
+    simp [this]
 
 end useful_lemmas
 
@@ -297,16 +330,26 @@ theorem isCorrect : (regevAsymmEnc n m χ p herr hp2).PerfectlyCorrect := by
   rintro msg
   simp [CorrectExp, regevAsymmEnc]
   rintro A s e r
-  generalize h1 : (Vector.map (Fin.castLE hp2) r).get = rv
+  generalize h1 : (Vector.map (Fin.castLE hp2) r) = rv
   have pne0 : NeZero p := ⟨by omega⟩
   simp
   rw [← Matrix.dotProduct_mulVec]
+  generalize h2 : (Vector.map (fun t ↦ Fin.castLE herr t - ↑χ) e) = err
+  generalize h3 : -(err.get ⬝ᵥ rv.get) = mask
+  have mask_bound : Fin_Bound mask (χ*2*m) := by
+    rw [← h3, ← h2, ← h1]
+    apply Fin_bound_neg
+    apply Fin_bound_dotprod
+    . apply Fin_bound_shift_cast_vec
+    . intro i
+      simp [Vector.get]
   cases msg <;> simp
-  . constructor
-    . ring_nf
+  . constructor <;> ring_nf <;> rw [h3]
+    .
       sorry
     . sorry
-  . sorry
+  . rw [h3]
+    sorry
 
 end sound
 
