@@ -227,16 +227,49 @@ def fork (main : OracleComp spec α)
 variable (main : OracleComp spec α) (qb : ι → ℕ)
     (js : List ι) (i : ι) (cf : α → Option (Fin (qb i + 1))) [spec.FiniteRange]
 
+@[simp] lemma support_map_prod_map_fork : (Prod.map cf cf <$> main.fork qb js i cf).support =
+    (fun s => (s, s)) '' (cf <$> main).support := by
+  sorry
+
+@[simp] lemma finSupport_map_prod_map_fork : (Prod.map cf cf <$> main.fork qb js i cf).finSupport =
+    (cf <$> main).finSupport.image fun s => (s, s) := by
+  sorry
+
+lemma apply_eq_apply_of_mem_support_fork (x₁ x₂ : α)
+    (h : (x₁, x₂) ∈ (fork main qb js i cf).support) : cf x₁ = cf x₂ := by
+  sorry
+
+@[simp] lemma probOutput_none_map_fork_left (s : Option (Fin (qb i + 1))) :
+    [= (none, s) | Prod.map cf cf <$> main.fork qb js i cf] = 0 := by
+  sorry
+
+@[simp] lemma probOutput_none_map_fork_right (s : Option (Fin (qb i + 1))) :
+    [= (s, none) | Prod.map cf cf <$> main.fork qb js i cf] = 0 := by
+  sorry
+
+theorem exists_log_of_mem_support_fork (x₁ x₂ : α)
+    (h : (x₁, x₂) ∈ (fork main qb js i cf).support) :
+      ∃ s, cf x₁ = some s ∧ cf x₂ = some s ∧
+      ∃ log₁ : QueryLog spec, ∃ hcf₁ : ↑s < log₁.countQ i,
+      ∃ log₂ : QueryLog spec, ∃ hcf₁ : ↑s < log₂.countQ i,
+      (log₁.getQ i)[s].1 = (log₂.getQ i)[s].1 ∧
+      (log₁.getQ i)[s].2 ≠ (log₂.getQ i)[s].2 ∧
+      (x₁, log₁) ∈ (simulateQ loggingOracle main).run.support ∧
+      (x₂, log₂) ∈ (simulateQ loggingOracle main).run.support :=
+  sorry
+
 lemma le_probOutput_fork (s : Fin (qb i + 1)) :
     let h : ℝ≥0∞ := ↑(Fintype.card (spec.range i))
-    let q := qb i + 1
     [= s | cf <$> main] ^ 2 - [= s | cf <$> main] / h
-      ≤ [fun (x₁, x₂) => cf x₁ = s ∧ cf x₂ = s | fork main qb js i cf] :=
+      ≤ [= (s, s) | Prod.map cf cf <$> fork main qb js i cf] :=
   let h : ℝ≥0∞ := ↑(Fintype.card (spec.range i))
-  let q := qb i + 1
   have : DecidableEq α := Classical.decEq α -- :(
   have : DecidableEq spec.QuerySeed := Classical.decEq _
-  calc [fun (x₁, x₂) => cf x₁ = s ∧ cf x₂ = s | fork main qb js i cf]
+  calc [= (s, s) | Prod.map cf cf <$> fork main qb js i cf]
+    _ = [fun (x₁, x₂) => cf x₁ = s ∧ cf x₂ = s | fork main qb js i cf] := by {
+      simp [probOutput_map_eq_tsum_ite, probEvent_eq_tsum_ite,
+        Prod.eq_iff_fst_eq_snd_eq, @eq_comm _ (some s)]
+    }
     _ = [= (s, s) | Prod.map cf cf <$> fork main qb js i cf] := by {
         simp [probOutput_map_eq_probEvent, Prod.eq_iff_fst_eq_snd_eq]
       }
@@ -402,36 +435,55 @@ lemma le_probOutput_fork (s : Fin (qb i + 1)) :
       }
 
 theorem probFailure_fork_le :
-    let acc : ℝ≥0∞ := 1 - [= none | cf <$> main]
+    let acc : ℝ≥0∞ := ∑ s, [= some s | cf <$> main]
     let h : ℝ≥0∞ := Fintype.card (spec.range i)
     let q := qb i + 1
     [⊥ | fork main qb js i cf] ≤ 1 - acc * (acc / q - h⁻¹) := by
-  let acc : ℝ≥0∞ := 1 - [= none | cf <$> main]
+  let acc : ℝ≥0∞ := ∑ s, [= some s | cf <$> main]
   let h : ℝ≥0∞ := Fintype.card (spec.range i)
   let q := qb i + 1
   calc [⊥ | fork main qb js i cf]
-    _ = 1 - ∑ s, [= (s, s) | Prod.map cf cf <$> fork main qb js i cf] := by
-      sorry
-    _ ≤ 1 - ∑ s, ([= s | cf <$> main] ^ 2 - [= s | cf <$> main] / h) := by
-      sorry
-    _ = 1 - (∑ s, [= s | cf <$> main] ^ 2) - (∑ s, [= s | cf <$> main] / h) := by
-      sorry
-    _ ≤ 1 - (∑ s, [= s | cf <$> main]) ^ 2 / q - (∑ s, [= s | cf <$> main]) / h := by
-      sorry
-    _ ≤ 1 - acc ^ 2 / q + acc / h := by
-      sorry
+    _ = 1 - ∑ s, [= (some s, some s) | Prod.map cf cf <$> fork main qb js i cf] := by
+      have := (probFailure_eq_sub_sum_probOutput_map (fork main qb js i cf) (Prod.map cf cf))
+      rw [this]
+      refine congr_arg (_ - ·) ?_ --
+      rw [Fintype.sum_prod_type]
+      rw [Fintype.sum_option]
+      simp
+      refine (Finset.sum_congr rfl fun s hs => ?_)
+      refine Finset.sum_eq_single _ ?_ (by simp)
+      simp
+      tauto
+    _ ≤ 1 - ∑ s, ([= some s | cf <$> main] ^ 2 - [= some s | cf <$> main] / h) := by
+      refine tsub_le_tsub le_rfl ?_
+      refine Finset.sum_le_sum fun s _ => ?_
+      have := le_probOutput_fork main qb js i cf s
+      exact this
+    _ ≤ 1 - ((∑ s, [= some s | cf <$> main] ^ 2) - (∑ s, [= some s | cf <$> main] / h)) := by
+      refine tsub_le_tsub le_rfl ?_
+      sorry -- Hypothesis that `h` is sufficiently large
+    _ = 1 - (∑ s, [= some s | cf <$> main] ^ 2) + (∑ s, [= some s | cf <$> main] / h) := by
+      sorry -- Hypothesis that `h` is sufficiently large
+    _ ≤ 1 - (∑ s, [= some s | cf <$> main]) ^ 2 / q + (∑ s, [= some s | cf <$> main]) / h := by
+      simp only [div_eq_mul_inv]
+      refine add_le_add ?_ (by simp [Finset.sum_mul])
+      refine tsub_le_tsub le_rfl ?_
+      have := ENNReal.rpow_sum_le_const_mul_sum_rpow
+          (Finset.univ : Finset (Fin (qb i + 1)))
+          (fun s => [= s | cf <$> main])
+          (one_le_two)
+      norm_num at this
+      rw [mul_comm, ENNReal.inv_mul_le_iff]
+      · refine le_trans this ?_
+        simp [q]
+      · simp [q]
+    _ = 1 - acc ^ 2 / q + acc / h := rfl
     _ = 1 - acc * (acc / q - h⁻¹) := by
-      sorry
+      rw [ENNReal.mul_sub]
+      · simp [div_eq_mul_inv]
+        ring_nf
+        sorry -- Hypothesis that `h` is sufficiently large
+      · simp [acc]
 
-theorem exists_log_of_mem_support_fork (x₁ x₂ : α)
-    (h : (x₁, x₂) ∈ (fork main qb js i cf).support) :
-      ∃ s, cf x₁ = some s ∧ cf x₂ = some s ∧
-      ∃ log₁ : QueryLog spec, ∃ hcf₁ : ↑s < log₁.countQ i,
-      ∃ log₂ : QueryLog spec, ∃ hcf₁ : ↑s < log₂.countQ i,
-      (log₁.getQ i)[s].1 = (log₂.getQ i)[s].1 ∧
-      (log₁.getQ i)[s].2 ≠ (log₂.getQ i)[s].2 ∧
-      (x₁, log₁) ∈ (simulateQ loggingOracle main).run.support ∧
-      (x₂, log₂) ∈ (simulateQ loggingOracle main).run.support :=
-  sorry
 
 end OracleComp
