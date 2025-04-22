@@ -9,6 +9,7 @@ import ToMathlib.Control.AlternativeMonad
 import ToMathlib.Control.OptionT
 import Mathlib.Control.Lawful
 import VCVio.OracleComp.OracleSpec
+import ToMathlib.PFunctor.Basic
 
 /-!
 # Computations with Oracle Access
@@ -36,6 +37,11 @@ such as calling a computation with `spec` as part of a computation with `spec ++
 -/
 
 universe u v w z
+
+open PFunctor
+
+protected def PFunctor.OracleQuery {ι : Type u} (spec : OracleSpec.{u,u} ι) : PFunctor :=
+  PFunctor.sigma (fun i ↦ (spec.domain i) y^ (spec.range i))
 
 namespace OracleSpec
 
