@@ -29,21 +29,19 @@ theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
 end vectorAdd
 
 -- #check AtLeastTwo
--- p > 4χm
+lemma relax_p_bound {p χ m: ℕ} (h : p > 4 * (χ * m + 1)) (hm : 1 ≤ m) : p > 2 * χ := by
+  calc p > 4 * (χ * m + 1) := h
+  _ ≥ 4 * (χ * m) := by ring_nf; omega
+  _ ≥ 2 * (χ * m) := by ring_nf; omega
+  _ ≥ 2 * χ := by
+    apply Nat.mul_le_mul_left (2*χ) at hm
+    ring_nf at hm ⊢; omega
 
-def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*χ*m) (hm: 1 ≤ m) (hp2 : p > 1) : AsymmEncAlg ProbComp
+def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*(χ*m + 1)) (hm: 1 ≤ m) (hp2 : p > 1) : AsymmEncAlg ProbComp
     (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m) (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
   keygen := do
     have : NeZero p := ⟨by omega⟩
-    have herr: p > 2*χ := by
-      by_cases h : χ = 0
-      . omega
-      calc p > 4*χ*m := he
-        _ ≥ 2*χ*m := by ring_nf; omega
-        _ ≥ 2*χ := by
-          apply Nat.mul_le_mul_left (2*χ) at hm
-          simp at *
-          trivial
+    have herr: p > 2*χ := (relax_p_bound he hm)
     let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
     let s ←$ᵗ Vector (Fin p) n
     let e ←$ᵗ Vector (Fin (2*χ + 1)) m
@@ -265,9 +263,7 @@ lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
 @[simp]
 lemma Fin_bound_castLE {n m : ℕ} {x : Fin (n + 1)} {h : n < m} :
   Fin_Bound (Fin.castLE h x) n := by
-  left; simp
-  have := Fin.val_lt_of_le x (le_refl (n + 1))
-  omega
+  left; simp; omega
 
 lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by
   omega
@@ -326,7 +322,7 @@ end useful_lemmas
 
 namespace Regev
 
-variable (n m χ p : ℕ) (h: NeZero p) (he: p > 4*χ*m) (hp2 : p > 1) (hm : 1 ≤ m)
+variable (n m χ p : ℕ) (h: NeZero p) (he: p > 4*(χ*m + 1)) (hp2 : p > 1) (hm : 1 ≤ m)
 
 section sound
 
@@ -336,34 +332,45 @@ theorem isCorrect : (regevAsymmEnc n m χ p he hm hp2).PerfectlyCorrect := by
   rintro A s e r
   generalize h1 : (Vector.map (Fin.castLE hp2) r) = rv
   have pne0 : NeZero p := ⟨by omega⟩
-  have herr: p > 2*χ := by
-      by_cases h : χ = 0
-      . omega
-      calc p > 4*χ*m := he
-        _ ≥ 2*χ*m := by ring_nf; omega
-        _ ≥ 2*χ := by
-          apply Nat.mul_le_mul_left (2*χ) at hm
-          simp at *
-          trivial
+  have herr: p > 2*χ := (relax_p_bound he hm)
   simp
   rw [← Matrix.dotProduct_mulVec]
   generalize h2 : (Vector.map (fun t ↦ Fin.castLE herr t - ↑χ) e) = err
   generalize h3 : -(err.get ⬝ᵥ rv.get) = mask
-  have mask_bound : Fin_Bound mask (χ*m) := by
+  have : χ * m ≤ p / 4 - 1:= by
+    simp at he
+    rw [mul_comm] at he
+    apply le_of_lt at he
+    have : 0 < 4 := by linarith
+    apply (Nat.le_div_iff_mul_le this).2 at he
+    omega
+  have mask_bound : Fin_Bound mask (χ * m) := by
     rw [← mul_one χ, ← h3, ← h2, ← h1]
     apply Fin_bound_neg
     apply Fin_bound_dotprod
     . apply Fin_bound_shift_cast_vec
     . intro i
       simp [Vector.get]
+  apply Fin_Bound_ge mask_bound at this
   cases msg <;> simp
-  . constructor <;> ring_nf <;> rw [h3]
-    . rcases mask_bound with h | h
-      . sorry
-      . sorry
-    . sorry
+  . constructor <;> ring_nf <;> rw [h3] <;>
+    rcases this with h | h <;> rw [Fin.sub_def, Fin.val] <;> simp
+    . rw [Nat.mod_eq_of_lt]
+      . rw [Nat.mod_eq_of_lt] <;> omega
+      rw [Nat.mod_eq_of_lt] <;> omega
+    . rw [Nat.mod_eq_sub_mod]
+      . rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
+      rw [Nat.mod_eq_of_lt] <;> omega
+    . rw [Nat.mod_eq_of_lt]
+      . rw [Nat.mod_eq_of_lt] <;> omega
+      rw [Nat.mod_eq_of_lt] <;> omega
+    . rw [Nat.mod_eq_sub_mod]
+      . rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
+      rw [Nat.mod_eq_of_lt] <;> omega
   . rw [h3]
-    sorry
+    rcases this with h | h
+    . left; omega
+    . right; omega
 
 end sound
 
