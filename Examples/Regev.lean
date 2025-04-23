@@ -29,11 +29,21 @@ theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
 end vectorAdd
 
 -- #check AtLeastTwo
+-- p > 4χm
 
-def regevAsymmEnc (n m χ p : ℕ) (herr: p > 2*χ) (hp2 : p > 1) : AsymmEncAlg ProbComp
+def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*χ*m) (hm: 1 ≤ m) (hp2 : p > 1) : AsymmEncAlg ProbComp
     (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m) (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
   keygen := do
     have : NeZero p := ⟨by omega⟩
+    have herr: p > 2*χ := by
+      by_cases h : χ = 0
+      . omega
+      calc p > 4*χ*m := he
+        _ ≥ 2*χ*m := by ring_nf; omega
+        _ ≥ 2*χ := by
+          apply Nat.mul_le_mul_left (2*χ) at hm
+          simp at *
+          trivial
     let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
     let s ←$ᵗ Vector (Fin p) n
     let e ←$ᵗ Vector (Fin (2*χ + 1)) m
@@ -258,9 +268,11 @@ lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
     linarith
 
 @[simp]
-lemma Fin_bound_castLE {n m : ℕ} {x : Fin n} {h : n ≤ m} :
+lemma Fin_bound_castLE {n m : ℕ} {x : Fin (n + 1)} {h : n < m} :
   Fin_Bound (Fin.castLE h x) n := by
   left; simp
+  have := Fin.val_lt_of_le x (le_refl (n + 1))
+  omega
 
 lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by
   omega
@@ -322,22 +334,31 @@ end useful_lemmas
 
 namespace Regev
 
-variable (n m χ p : ℕ) (h: NeZero p) (herr: p > 2*χ) (hp2 : p > 1)
+variable (n m χ p : ℕ) (h: NeZero p) (he: p > 4*χ*m) (hp2 : p > 1) (hm : 1 ≤ m)
 
 section sound
 
-theorem isCorrect : (regevAsymmEnc n m χ p herr hp2).PerfectlyCorrect := by
+theorem isCorrect : (regevAsymmEnc n m χ p he hm hp2).PerfectlyCorrect := by
   rintro msg
   simp [CorrectExp, regevAsymmEnc]
   rintro A s e r
   generalize h1 : (Vector.map (Fin.castLE hp2) r) = rv
   have pne0 : NeZero p := ⟨by omega⟩
+  have herr: p > 2*χ := by
+      by_cases h : χ = 0
+      . omega
+      calc p > 4*χ*m := he
+        _ ≥ 2*χ*m := by ring_nf; omega
+        _ ≥ 2*χ := by
+          apply Nat.mul_le_mul_left (2*χ) at hm
+          simp at *
+          trivial
   simp
   rw [← Matrix.dotProduct_mulVec]
   generalize h2 : (Vector.map (fun t ↦ Fin.castLE herr t - ↑χ) e) = err
   generalize h3 : -(err.get ⬝ᵥ rv.get) = mask
-  have mask_bound : Fin_Bound mask (χ*2*m) := by
-    rw [← h3, ← h2, ← h1]
+  have mask_bound : Fin_Bound mask (χ*m) := by
+    rw [← mul_one χ, ← h3, ← h2, ← h1]
     apply Fin_bound_neg
     apply Fin_bound_dotprod
     . apply Fin_bound_shift_cast_vec
@@ -345,8 +366,9 @@ theorem isCorrect : (regevAsymmEnc n m χ p herr hp2).PerfectlyCorrect := by
       simp [Vector.get]
   cases msg <;> simp
   . constructor <;> ring_nf <;> rw [h3]
-    .
-      sorry
+    . rcases mask_bound with h | h
+      . sorry
+      . sorry
     . sorry
   . rw [h3]
     sorry
