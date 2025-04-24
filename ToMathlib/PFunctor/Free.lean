@@ -31,7 +31,7 @@ deriving Inhabited
 
 namespace FreeM
 
-variable {P : PFunctor.{u}} {α β γ : Type u}
+variable {P : PFunctor.{u}} {α β γ : Type v}
 
 /-- Lift a position of the base polynomial functor into the free monad. -/
 @[always_inline, inline]
@@ -126,7 +126,7 @@ end construct
 
 section mapM
 
-variable {m : Type u → Type v}
+variable {m : Type u → Type v} {α : Type u}
 
 /-- Canonical mapping of `FreeM P` into any other monad, given a map `s : (a : P.A) → m (P.B a)`. -/
 protected def mapM [Pure m] [Bind m] (s : (a : P.A) → m (P.B a)) : FreeM P α → m α
