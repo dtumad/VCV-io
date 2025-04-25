@@ -122,6 +122,8 @@ noncomputable def IND_CPA_advantage {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ℝ≥0∞ :=
   [= () | IND_CPA_experiment adversary] - 1 / 2
 
+/-- The probability of the IND-CPA experiment is the average of the probability of the experiment
+with the challenge being true and the probability of the experiment with the challenge being false. -/
 lemma probOutput_IND_CPA_experiment_eq_add {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) :
     [= () | IND_CPA_experiment adversary] =
@@ -132,8 +134,11 @@ lemma probOutput_IND_CPA_experiment_eq_add {encAlg : AsymmEncAlg ProbComp M PK S
       [= () | do
         let (pk, _sk) ← encAlg.keygen
         let b ← (simulateQ (encAlg.IND_CPA_queryImpl' pk false) (adversary pk)).run' ∅
-        guard ¬b] / 2 :=
-  sorry
+        guard ¬b] / 2 := by
+  unfold IND_CPA_experiment
+  rw [probOutput_bind_eq_sum_finSupport]
+  have {x : ℝ≥0∞} : 2⁻¹ * x = x / 2 := by field_simp; rw [mul_comm, mul_div, mul_one]
+  simp [this]
 
 end IND_CPA
 
