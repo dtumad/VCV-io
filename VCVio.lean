@@ -23,6 +23,7 @@ import VCVio.OracleComp.DistSemantics.BitVec
 import VCVio.OracleComp.DistSemantics.EvalDist
 import VCVio.OracleComp.DistSemantics.HEq
 import VCVio.OracleComp.DistSemantics.List
+import VCVio.OracleComp.DistSemantics.Monad
 import VCVio.OracleComp.DistSemantics.Prod
 import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Simulate
