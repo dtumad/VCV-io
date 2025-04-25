@@ -3,10 +3,11 @@ Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.OracleComp.QueryTracking.SeededOracle
+-- import VCVio.OracleComp.QueryTracking.SeededOracle
 import VCVio.OracleComp.Constructions.Replicate
 import VCVio.OracleComp.Constructions.UniformSelect
 import Mathlib.Data.List.Basic
+import VCVio.OracleComp.QueryTracking.Structures
 
 /-!
 # Counting Queries Made by a Computation
@@ -17,7 +18,7 @@ which
 
 -/
 
-open OracleSpec BigOperators
+open OracleSpec BigOperators ENNReal
 
 namespace OracleComp
 
@@ -110,6 +111,11 @@ lemma support_generateSeed : (generateSeed spec qc js).support =
 --           simp [h, mul_add_one]
 --   }
 
+@[simp]
+lemma finSupport_generateSeed_ne_empty [DecidableEq spec.QuerySeed] :
+    (generateSeed spec qc js).finSupport ≠ ∅ := by
+  sorry
+
 lemma probOutput_generateSeed [spec.FiniteRange] (seed : QuerySeed spec)
     (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
     1 / (js.map (λ j ↦ (Fintype.card (spec.range j)) ^ qc j)).prod := by
@@ -127,6 +133,12 @@ lemma probOutput_generateSeed [spec.FiniteRange] (seed : QuerySeed spec)
     -- rw [Array.forIn_toList]
     sorry
   }
+
+lemma probOutput_generateSeed' [spec.FiniteRange]
+    [DecidableEq spec.QuerySeed] (seed : QuerySeed spec)
+    (h : seed ∈ (generateSeed spec qc js).support) : [= seed | generateSeed spec qc js] =
+    ((generateSeed spec qc js).finSupport.card : ℝ≥0∞)⁻¹ := by
+  sorry
 
   -- sorry
 --   revert seed

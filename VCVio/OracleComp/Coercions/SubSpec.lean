@@ -20,7 +20,7 @@ where the non-inclusive subset symbol reflects that we avoid defining this insta
 
 open OracleSpec OracleComp BigOperators ENNReal
 
-universe u v w
+universe u v w w'
 
 variable {ι : Type u} {τ : Type v}
   {spec : OracleSpec ι} {superSpec : OracleSpec τ} {α β γ : Type w}
@@ -34,7 +34,7 @@ it can be perfectly simulated by a computation using the oracles of `superSpec`.
 
 We avoid implementing this via the built-in subset notation as we care about the actual data
 of the mapping rather than just its existence, which is needed when defining type coercions. -/
-class SubSpec (spec : OracleSpec ι) (superSpec : OracleSpec τ)
+class SubSpec (spec : OracleSpec.{u,w} ι) (superSpec : OracleSpec τ)
   extends MonadLift (OracleQuery spec) (OracleQuery superSpec) where
 
 infix : 50 " ⊂ₒ " => SubSpec

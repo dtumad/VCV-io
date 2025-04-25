@@ -238,7 +238,7 @@ end QueryLog
 
 /-- Type to represent a store of seed values to use in a computation, represented as a function.
 Updates to individual seed lists are performed via continuation passing. -/
-def QuerySeed (spec : OracleSpec ι) : Type u :=
+def QuerySeed (spec : OracleSpec ι) : Type _ :=
   (i : ι) → List (spec.range i)
 
 namespace QuerySeed
