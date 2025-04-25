@@ -281,8 +281,15 @@ def Regev_Hybrid_1 : ProbComp Unit := do sorry
 
 def Regev_Hybrid_2 : ProbComp Unit := do sorry
 
+-- def IND_CPA_regev_lwe_reduction
+--     (adversary : (elgamalAsymmEnc G P).IND_CPA_adversary) :
+--     parallelTestingAdversary G P := fun x x₁ x₂ x₃ => do
+--   let so : QueryImpl (P × P →ₒ P × P) ProbComp := ⟨fun (query () (m₁, _m₂)) =>
+--     return (x₂, m₁ * x₃)⟩
+--   simulateQ (idOracle ++ₛₒ so) (adversary (x, x₁))
+
 -- theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
 --     {adv : IND_CPA_Adv (spec := spec) encAlg} :
---     IND_CPA_Advantage adv ≤ LWE_Advantage adv := by
+--     IND_CPA_Advantage adv ≤ LWE_Advantage (Reduction adv) := by sorry
 
 end AsymmEncAlg

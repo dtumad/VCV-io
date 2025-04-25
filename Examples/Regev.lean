@@ -13,7 +13,8 @@ lemma relax_p_bound {p χ m: ℕ} (h : p > 4 * (χ * m + 1)) (hm : 1 ≤ m) : p 
     ring_nf at hm ⊢; omega
 
 def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*(χ*m + 1)) (hm: 1 ≤ m) (hp2 : p > 1) : AsymmEncAlg ProbComp
-    (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m) (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
+    (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m)
+     (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
   keygen := do
     have : NeZero p := ⟨by omega⟩
     have herr: p > 2*χ := (relax_p_bound he hm)
@@ -351,9 +352,33 @@ end sound
 
 section security
 
--- theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
---     {adv : IND_CPA_Adv (spec := spec) encAlg} :
---     IND_CPA_Advantage adv ≤ LWE_Advantage adv := by
+-- Original hybrid (hybrid 0) is the IND-CPA experiment
+
+-- Want to show:
+-- ∀ adv in hybrid 0,
+  -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
+-- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
+
+def Regev_Hybrid_1 : ProbComp Unit := do sorry
+    -- let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
+    -- let s ←$ᵗ Vector (Fin p) m
+    -- let e ←$ᵗ Vector (Fin p) m
+    -- let u ←$ᵗ Vector (Fin p) n
+    -- let b ←$ᵗ Bool
+    -- let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
+
+def Regev_Hybrid_2 : ProbComp Unit := do sorry
+
+def IND_CPA_regev_lwe_reduction (b : Bool)
+    (adversary : (regevAsymmEnc n m χ p he hm hp2).IND_CPA_Adv (spec := unifSpec)) :
+    Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool := fun ⟨A, v⟩ => do
+  let so : QueryImpl (Bool × Bool →ₒ (Vector (Fin p) n) × (Fin p)) ProbComp := ⟨fun (query () (m₁, m₂)) =>
+    (regevAsymmEnc n m χ p he hm hp2).encrypt ⟨A, v⟩ (if b then m₁ else m₂)⟩
+  simulateQ (idOracle ++ₛₒ so) (adversary.distinguish (⟨A, v⟩))
+
+theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
+    {adv : IND_CPA_Adv (spec := spec) encAlg} :
+    IND_CPA_Advantage adv ≤ LWE_Advantage (Reduction adv) := by sorry
 
 end security
 
