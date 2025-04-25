@@ -68,21 +68,29 @@ def IND_CPA_oracleSpec (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
   unifSpec ++ₒ (M × M →ₒ C) -- Second oracle for adversary to request challenge
 
 def IND_CPA_adversary (encAlg : AsymmEncAlg ProbComp M PK SK C) :=
-  OracleComp encAlg.IND_CPA_oracleSpec Bool
+  PK → OracleComp encAlg.IND_CPA_oracleSpec Bool
   -- with poly functors: `ProbComp ((M × M) × (C → ProbComp Bool))`
+
+/-- Can be shown this is equivalent. -/
+def IND_CPA_queryImpl' (encAlg : AsymmEncAlg ProbComp M PK SK C)
+    (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
+      (StateT (M × M →ₒ C).QueryCache ProbComp) :=
+  have so : QueryImpl (M × M →ₒ C) ProbComp := ⟨fun (query () (m₁, m₂)) =>
+    encAlg.encrypt pk (if b then m₁ else m₂)⟩
+  idOracle ++ₛₒ so.withCaching
 
 def IND_CPA_queryImpl (encAlg : AsymmEncAlg ProbComp M PK SK C)
     (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
       (StateT (M × M →ₒ C).QueryCache ProbComp) :=
   have so : QueryImpl (M × M →ₒ C) ProbComp := ⟨fun (query () (m₁, m₂)) =>
     encAlg.encrypt pk (if b then m₁ else m₂)⟩
-  idOracle ++ₛₒ so.withCaching -- Cache the first challenge to adversary
+  idOracle ++ₛₒ so
 
 def IND_CPA_experiment {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ProbComp Unit := do
   let b ← $ᵗ Bool
   let (pk, _sk) ← encAlg.keygen
-  let b' ← (simulateQ (encAlg.IND_CPA_queryImpl pk b) adversary).run' ∅
+  let b' ← (simulateQ (encAlg.IND_CPA_queryImpl pk b) (adversary pk)).run' ∅
   guard (b = b')
 
 noncomputable def IND_CPA_advantage {encAlg : AsymmEncAlg ProbComp M PK SK C}
