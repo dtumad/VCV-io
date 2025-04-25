@@ -3,31 +3,6 @@ import Mathlib.Tactic.Common
 
 open Mathlib OracleSpec OracleComp AsymmEncAlg
 
-section vectorAdd
--- Define vector addition more generally
-
-instance {α : Type} {n : ℕ} [Add α] : Add (Vector α n) where
-  add v1 v2 := Vector.ofFn (v1.get + v2.get)
-
-instance {α : Type} {n : ℕ} [Zero α] : Zero (Vector α n) where
-  zero := Vector.ofFn (0)
-
--- theorem addInst
-
-@[simp]
-theorem vectorofFn_get {α : Type} {n : ℕ} (v : Fin n → α) : (Vector.ofFn v).get = v := by
-  ext i
-  apply Vector.getElem_ofFn
-
-@[simp]
-theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
- (vx : Vector α n) (vy : Vector α n)
- : (vx + vy).get = vx.get + vy.get := by
-  show (Vector.ofFn (vx.get + vy.get)).get = vx.get + vy.get
-  simp
-
-end vectorAdd
-
 -- #check AtLeastTwo
 lemma relax_p_bound {p χ m: ℕ} (h : p > 4 * (χ * m + 1)) (hm : 1 ≤ m) : p > 2 * χ := by
   calc p > 4 * (χ * m + 1) := h
@@ -373,5 +348,13 @@ theorem isCorrect : (regevAsymmEnc n m χ p he hm hp2).PerfectlyCorrect := by
     . right; omega
 
 end sound
+
+section security
+
+-- theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
+--     {adv : IND_CPA_Adv (spec := spec) encAlg} :
+--     IND_CPA_Advantage adv ≤ LWE_Advantage adv := by
+
+end security
 
 end Regev

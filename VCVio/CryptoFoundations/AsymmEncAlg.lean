@@ -16,6 +16,31 @@ for asymmetric encryption using oracles in `spec`, with message space `M`,
 public/secret keys `PK` and `SK`, and ciphertext space `C`.
 -/
 
+section vectorAdd
+-- Define vector addition more generally
+
+instance {α : Type} {n : ℕ} [Add α] : Add (Vector α n) where
+  add v1 v2 := Vector.ofFn (v1.get + v2.get)
+
+instance {α : Type} {n : ℕ} [Zero α] : Zero (Vector α n) where
+  zero := Vector.ofFn (0)
+
+-- theorem addInst
+
+@[simp]
+theorem vectorofFn_get {α : Type} {n : ℕ} (v : Fin n → α) : (Vector.ofFn v).get = v := by
+  ext i
+  apply Vector.getElem_ofFn
+
+@[simp]
+theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
+ (vx : Vector α n) (vy : Vector α n)
+ : (vx + vy).get = vx.get + vy.get := by
+  show (Vector.ofFn (vx.get + vy.get)).get = vx.get + vy.get
+  simp
+
+end vectorAdd
+
 open OracleSpec OracleComp ENNReal
 
 universe u v w
@@ -180,19 +205,20 @@ end IND_CPA
 
 -- (A, As + e) ≈ (A, u)
 
-variable {m n p χ : ℕ} (adv : Matrix (Fin m) (Fin n) (Fin p) × Vector (Fin p) n → ProbComp Bool)
+variable {m n p χ : ℕ} (hp : NeZero p) (herr : p > 2 * χ) (adv : Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool)
 
--- def LWE_Exp : ProbComp Unit := do
---     let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
---     let s ←$ᵗ Vector (Fin p) m
---     let e ←$ᵗ Vector (Fin p) m
---     let u ←$ᵗ Vector (Fin p) n
---     let b ←$ᵗ Bool
---     let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
---     let b' ← adv dist
---     guard (b = b')
+def LWE_Exp : ProbComp Unit := do
+    let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
+    let s ←$ᵗ Vector (Fin p) n
+    let u ←$ᵗ Vector (Fin p) m
+    let e ←$ᵗ Vector (Fin (2*χ + 1)) m
+    let err := e.map (fun t ↦ (Fin.castLE herr t) - χ)
+    let b ←$ᵗ Bool
+    let dist := if b then (A, Vector.ofFn (Matrix.vecMul s.get A) + err) else (A, u)
+    let b' ← adv dist
+    guard (b = b')
 
--- noncomputable def LWE_Advantage : ℝ := abs (1 / 2 - ([⊥ | LWE_Exp adv]).toReal)
+noncomputable def LWE_Advantage : ℝ := abs (1 / 2 - ([⊥ | LWE_Exp hp herr adv]).toReal)
 
 variable [DecidableEq ι]
 
