@@ -123,6 +123,12 @@ def IND_CCA_Game (encAlg : AsymmEncAlg m M PK SK C)
 
 end IND_CCA
 
+section IND_CPA
+
+
+
+end IND_CPA
+
 -- section IND_CPA
 
 -- -- variable [DecidableEq ι]
