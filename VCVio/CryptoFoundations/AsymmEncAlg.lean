@@ -71,7 +71,7 @@ def IND_CPA_adversary (encAlg : AsymmEncAlg ProbComp M PK SK C) :=
   PK → OracleComp encAlg.IND_CPA_oracleSpec Bool
   -- with poly functors: `ProbComp ((M × M) × (C → ProbComp Bool))`
 
-/-- Can be shown this is equivalent. -/
+/-- Can be shown this is equivalent to below definition for asymptotic security. -/
 def IND_CPA_queryImpl' (encAlg : AsymmEncAlg ProbComp M PK SK C)
     (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
       (StateT (M × M →ₒ C).QueryCache ProbComp) :=
@@ -90,12 +90,25 @@ def IND_CPA_experiment {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ProbComp Unit := do
   let b ← $ᵗ Bool
   let (pk, _sk) ← encAlg.keygen
-  let b' ← (simulateQ (encAlg.IND_CPA_queryImpl pk b) (adversary pk)).run' ∅
+  let b' ← (simulateQ (encAlg.IND_CPA_queryImpl' pk b) (adversary pk)).run' ∅
   guard (b = b')
 
 noncomputable def IND_CPA_advantage {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ℝ≥0∞ :=
   [= () | IND_CPA_experiment adversary] - 1 / 2
+
+lemma probOutput_IND_CPA_experiment_eq_add {encAlg : AsymmEncAlg ProbComp M PK SK C}
+    (adversary : encAlg.IND_CPA_adversary) :
+    [= () | IND_CPA_experiment adversary] =
+      [= () | do
+        let (pk, _sk) ← encAlg.keygen
+        let b ← (simulateQ (encAlg.IND_CPA_queryImpl' pk true) (adversary pk)).run' ∅
+        guard b] / 2 +
+      [= () | do
+        let (pk, _sk) ← encAlg.keygen
+        let b ← (simulateQ (encAlg.IND_CPA_queryImpl' pk false) (adversary pk)).run' ∅
+        guard ¬b] / 2 :=
+  sorry
 
 end IND_CPA
 
