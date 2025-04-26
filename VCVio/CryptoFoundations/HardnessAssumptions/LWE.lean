@@ -24,13 +24,13 @@ This file gives a general definition of the LWE problem. It is parameterized by 
 
 We define the (decision) LWE problem as a security experiment on an oracle that takes as input:
 - A matrix `A : Fin m → Fin n → Fin p`
-- A vector `b : Fin m → Fin p`, either sampled uniformly at random, or sampled from the LWE
+- A vector `u : Fin m → Fin p`, either sampled uniformly at random, or sampled from the LWE
   distribution `s * A + e`, where `s : Fin n → Fin p` is the secret and `e : Fin m → Fin p` has
   every entry sampled from `errSamp`.
 
 The adversary wins if it can correctly guess which case the distribution is.
 
-The search LWE problem instead asks that the adversary given `A` and `b = s * A + e` outputs the
+The search LWE problem instead asks that the adversary given `A` and `u = s * A + e` outputs the
 secret `s`.
 -/
 
@@ -45,8 +45,8 @@ def LWE_Distr (n m p : ℕ) [NeZero p] (errSamp : ProbComp (Fin p)) :
   let s ←$ᵗ Vector (Fin p) n
   -- Sampled each entry of `e` independently using `errSamp`
   let e ← (Vector.range m).mapM (fun _ ↦ errSamp)
-  let b := A.vecMul s.get + e.get
-  return (A, Vector.ofFn b)
+  let u := A.vecMul s.get + e.get
+  return (A, Vector.ofFn u)
 
 /-- The uniform distribution `(A, u)` -/
 def LWE_Uniform_Distr (n m p : ℕ) [NeZero p] :

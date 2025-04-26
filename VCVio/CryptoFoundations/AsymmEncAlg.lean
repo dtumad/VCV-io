@@ -227,9 +227,9 @@ Experiment for *one-time* IND-CPA security of an asymmetric encryption algorithm
 -/
 def IND_CPA_OneTime_Game : ProbComp Unit :=
   encAlg.exec do
+    let b : Bool ← encAlg.lift_probComp ($ᵗ Bool)
     let (pk, _) ← encAlg.keygen
     let (m₁, m₂, state) ← adv.chooseMessages pk
-    let b : Bool ← encAlg.lift_probComp ($ᵗ Bool)
     let m := if b then m₁ else m₂
     let c ← encAlg.encrypt pk m
     let b' ← adv.distinguish state c

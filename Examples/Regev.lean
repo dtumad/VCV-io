@@ -11,6 +11,12 @@ lemma relax_p_bound {p χ m: ℕ} (h : p > 4 * (χ * m + 1)) (hm : 1 ≤ m) : p 
     apply Nat.mul_le_mul_left (2*χ) at hm
     ring_nf at hm ⊢; omega
 
+/-- The uniform error sampling distribution, from the range `[-χ, χ]` inside `Fin p` -/
+def uniformErrSamp {p : ℕ} [NeZero p] (χ : ℕ) (herr : p > 2*χ) : ProbComp (Fin p) := do
+  let e ←$ᵗ Fin (2*χ + 1)
+  return (Fin.castLE herr e) - χ
+
+-- TODO: refactor the error sampling to use `uniformErrSamp` instead
 def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*(χ*m + 1)) (hm: 1 ≤ m) (hp2 : p > 1) : AsymmEncAlg ProbComp
     (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m)
      (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
@@ -351,27 +357,66 @@ section security
 
 -- Original hybrid (hybrid 0) is the IND-CPA experiment
 
-variable {m n p χ : ℕ} [hp : NeZero p] (herr : 2 * χ < p) (adv : Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool)
+variable {n m χ p} {he hp2 hm}
+  -- (lwe_adv : Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool)
+  (adv : IND_CPA_Adv (regevAsymmEnc n m χ p he hm hp2))
 
-/-- The uniform error sampling distribution, from the range `[-χ, χ]` inside `Fin p` -/
-def uniformErrSamp (χ : ℕ) : ProbComp (Fin p) := do
-  let e ←$ᵗ Fin (2*χ + 1)
-  return (Fin.castLE herr e) - χ
-
-noncomputable def LWE_Advantage : ℝ := (LWE_Experiment n m p (uniformErrSamp herr χ) adv).advantage
+-- noncomputable def LWE_Advantage : ℝ :=
+--   (LWE_Experiment n m p (uniformErrSamp χ (by sorry)) adv).advantage
 
 -- Want to show:
 -- ∀ adv in hybrid 0,
   -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
 -- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
 
-def Regev_Hybrid_1 : ProbComp Unit := do sorry
-    -- let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
-    -- let s ←$ᵗ Vector (Fin p) m
-    -- let e ←$ᵗ Vector (Fin p) m
-    -- let u ←$ᵗ Vector (Fin p) n
-    -- let b ←$ᵗ Bool
-    -- let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
+def Regev_Hybrid_0 : ProbComp Unit := IND_CPA_OneTime_Game (encAlg := regevAsymmEnc n m χ p he hm hp2) adv
+
+example : Regev_Hybrid_0 adv = IND_CPA_OneTime_Game (encAlg := regevAsymmEnc n m χ p he hm hp2) adv := by
+  rfl
+  -- simp [IND_CPA_OneTime_Game, regevAsymmEnc]
+
+-- What Hybrid 0 looks like:
+-- do
+--   let b ← $ᵗBool
+--   let x ← $ᵗMatrix (Fin n) (Fin m) (Fin p)
+--   let x_1 ← $ᵗVector (Fin p) n
+--   let a ← $ᵗVector (Fin (2 * χ + 1)) m
+--   let __discr ←
+--     adv.chooseMessages (x, Vector.ofFn (Matrix.vecMul x_1.get x) + Vector.map (fun t ↦ Fin.castLE ⋯ t - ↑χ) a)
+--   let a_1 ← $ᵗVector (Fin 2) m
+--   let b' ←
+--     adv.distinguish __discr.2.2
+--         (Vector.ofFn (x.mulVec (Vector.map (Fin.castLE hp2) a_1).get),
+--           Matrix.vecMul x_1.get x ⬝ᵥ (Vector.map (Fin.castLE hp2) a_1).get +
+--               (Vector.map (fun t ↦ Fin.castLE ⋯ t - ↑χ) a).get ⬝ᵥ (Vector.map (Fin.castLE hp2) a_1).get +
+--             if if b = true then __discr.1 = true else __discr.2.1 = true then 0 else ↑(p / 2))
+--   if b = b' then pure () else failure
+
+-- In Hybrid 1, we sample u = A s + e randomly instead
+def Regev_Hybrid_1 : ProbComp Unit := do
+  let b ←$ᵗ Bool
+  let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
+  let u ←$ᵗ Vector (Fin p) m
+  let ⟨m₁, m₂, st⟩ ← adv.chooseMessages (A, u)
+  let c ← if b then (regevAsymmEnc n m χ p he hm hp2).encrypt (A, u) m₁
+    else (regevAsymmEnc n m χ p he hm hp2).encrypt (A, u) m₂
+  let b' ← adv.distinguish st c
+  guard (b = b')
+
+-- Hybrid 0 and Hybrid 1 are indistinguishable due to decisional LWE
+
+def Regev_Hybrid_2 : ProbComp Unit := do
+  let b ←$ᵗ Bool
+  let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
+  let u ←$ᵗ Vector (Fin p) m
+  let ⟨_, _, st⟩ ← adv.chooseMessages (A, u)
+  -- Don't know why have to sample `c₁` and `c₂` separately
+  let c₁ ←$ᵗ Vector (Fin p) n
+  let c₂ ←$ᵗ Fin p
+  let b' ← adv.distinguish st (c₁, c₂)
+  guard (b = b')
+
+-- Hybrid 1 and Hybrid 2 are indistinguishable due to the leftover hash lemma (or LWE itself)
 
 -- def IND_CPA_regev_lwe_reduction (b : Bool)
 --     (adversary : (regevAsymmEnc n m χ p he hm hp2).IND_CPA_Adv) :
@@ -384,22 +429,10 @@ def Regev_Hybrid_1 : ProbComp Unit := do sorry
 --     {adv : IND_CPA_Adv (spec := spec) encAlg} :
 --     IND_CPA_Advantage adv ≤ LWE_Advantage (Reduction adv) := by sorry
 
-def Regev_Hybrid_2 : ProbComp Unit := do sorry
-
--- Original hybrid (hybrid 0) is the IND-CPA experiment
-
 -- Want to show:
 -- ∀ adv in hybrid 0,
   -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
 -- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
-
-    -- let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
-    -- let s ←$ᵗ Vector (Fin p) m
-    -- let e ←$ᵗ Vector (Fin p) m
-    -- let u ←$ᵗ Vector (Fin p) n
-    -- let b ←$ᵗ Bool
-    -- let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
-
 
 end security
 
