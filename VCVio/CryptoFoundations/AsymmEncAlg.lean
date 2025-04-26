@@ -17,6 +17,31 @@ for asymmetric encryption using oracles in `spec`, with message space `M`,
 public/secret keys `PK` and `SK`, and ciphertext space `C`.
 -/
 
+section vectorAdd
+-- Define vector addition more generally
+
+instance {α : Type} {n : ℕ} [Add α] : Add (Vector α n) where
+  add v1 v2 := Vector.ofFn (v1.get + v2.get)
+
+instance {α : Type} {n : ℕ} [Zero α] : Zero (Vector α n) where
+  zero := Vector.ofFn (0)
+
+-- theorem addInst
+
+@[simp]
+theorem vectorofFn_get {α : Type} {n : ℕ} (v : Fin n → α) : (Vector.ofFn v).get = v := by
+  ext i
+  apply Vector.getElem_ofFn
+
+@[simp]
+theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
+ (vx : Vector α n) (vy : Vector α n)
+ : (vx + vy).get = vx.get + vy.get := by
+  show (Vector.ofFn (vx.get + vy.get)).get = vx.get + vy.get
+  simp
+
+end vectorAdd
+
 open OracleSpec OracleComp ENNReal
 
 universe u v w
@@ -97,6 +122,8 @@ noncomputable def IND_CPA_advantage {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ℝ≥0∞ :=
   [= () | IND_CPA_experiment adversary] - 1 / 2
 
+/-- The probability of the IND-CPA experiment is the average of the probability of the experiment
+with the challenge being true and the probability of the experiment with the challenge being false. -/
 lemma probOutput_IND_CPA_experiment_eq_add {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) :
     [= () | IND_CPA_experiment adversary] =
@@ -107,8 +134,11 @@ lemma probOutput_IND_CPA_experiment_eq_add {encAlg : AsymmEncAlg ProbComp M PK S
       [= () | do
         let (pk, _sk) ← encAlg.keygen
         let b ← (simulateQ (encAlg.IND_CPA_queryImpl' pk false) (adversary pk)).run' ∅
-        guard ¬b] / 2 :=
-  sorry
+        guard ¬b] / 2 := by
+  unfold IND_CPA_experiment
+  rw [probOutput_bind_eq_sum_finSupport]
+  have {x : ℝ≥0∞} : 2⁻¹ * x = x / 2 := by field_simp; rw [mul_comm, mul_div, mul_one]
+  simp [this]
 
 end IND_CPA
 
@@ -164,5 +194,49 @@ def IND_CCA_Game (encAlg : AsymmEncAlg m M PK SK C)
     guard (b = b')
 
 end IND_CCA
+
+section IND_CPA
+
+variable [DecidableEq ι]
+
+variable [AlternativeMonad m] [LawfulAlternative m] [DecidableEq ι]
+
+/--
+`IND_CPA_adv M PK C` is an adversary for IND-CPA security game on an
+asymmetric encryption with public keys in `PK`, messages in `M`, and ciphertexts in `C`.
+The adversary consists of two functions:
+* `chooseMessages`: given a public key, returns a pair of messages that it thinks
+it can distinguish the encryption of, and a private state.
+* `distinguish`: given a private state and an encryption, returns whether it is an encryption of
+the first message or the second message -/
+structure IND_CPA_Adv (encAlg : AsymmEncAlg m M PK SK C) where
+  State : Type
+  chooseMessages : PK → m (M × M × State)
+  distinguish : State → C → m Bool
+
+variable {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
+  (adv : IND_CPA_Adv encAlg)
+
+/--
+Experiment for *one-time* IND-CPA security of an asymmetric encryption algorithm:
+1. Run `keygen` to get a public key and a private key.
+2. Run `adv.chooseMessages` on `pk` to get a pair of messages and a private state.
+3. The challenger then tosses a coin and encrypts one of the messages, returning the ciphertext `c`.
+4. Run `adv.distinguish` on the private state and the ciphertext to get a boolean.
+5. Check that the boolean is correct.
+-/
+def IND_CPA_OneTime_Game : ProbComp Unit :=
+  encAlg.exec do
+    let b : Bool ← encAlg.lift_probComp ($ᵗ Bool)
+    let (pk, _) ← encAlg.keygen
+    let (m₁, m₂, state) ← adv.chooseMessages pk
+    let m := if b then m₁ else m₂
+    let c ← encAlg.encrypt pk m
+    let b' ← adv.distinguish state c
+    guard (b = b')
+
+-- TODO: prove one-time security implies general IND-CPA security
+
+end IND_CPA
 
 end AsymmEncAlg

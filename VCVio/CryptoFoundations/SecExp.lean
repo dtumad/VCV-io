@@ -27,6 +27,41 @@ universe u v w
 
 open OracleComp OracleSpec ENNReal Polynomial Prod
 
+/-- The **advantage** of a game `p`, assumed to be a probabilistic computation ending with a `guard`
+  statement, is the absolute difference between the probability of success and 1/2. -/
+noncomputable def ProbComp.advantage (p : ProbComp Unit) : ℝ := |1 / 2 - ([⊥ | p]).toReal|
+
+/-- The advantage doesn't change if we replace `⊥` with `= ()` (i.e. swap the probability of success
+  and failure). -/
+lemma ProbComp.advantage_eq_advantage_eq_unit (p : ProbComp Unit) :
+    p.advantage = |1 / 2 - ([= () | p]).toReal| := by
+  simp [advantage, probFailure_eq_sub_sum]
+  rw [← abs_neg]
+  congr; ring
+
+/-- The **advantage** between two games `p` and `q`, modeled as probabilistic computations returning
+  `Unit`, is the absolute difference between their probabilities of success. -/
+noncomputable def ProbComp.advantage₂ (p q : ProbComp Unit) : ℝ :=
+  |([= () | p]).toReal - ([= () | q]).toReal|
+
+/-- The advantage between a game and itself is zero (i.e. it is reflexive). -/
+@[simp]
+lemma ProbComp.advantage₂_self (p : ProbComp Unit) : p.advantage₂ p = 0 := by
+  simp [ProbComp.advantage₂]
+
+/-- The advantage between two games is symmetric. -/
+lemma ProbComp.advantage₂_comm (p q : ProbComp Unit) : p.advantage₂ q = q.advantage₂ p := by
+  simp [ProbComp.advantage₂]
+  rw [abs_sub_comm]
+
+/-- The advantage between two games is the same as the absolute difference between their
+    probabilities of failure. -/
+lemma ProbComp.advantage₂_eq_abs_sub_probFailure (p q : ProbComp Unit) :
+    p.advantage₂ q = |([⊥ | p]).toReal - ([⊥ | q]).toReal| := by
+  simp [ProbComp.advantage₂, probFailure_eq_sub_sum]
+  rw [← abs_neg]
+  congr; ring
+
 /-- A security adversary bundling a computation with a bound on the number of queries it makes,
 where the bound must be shown to satisfy `IsQueryBound`.
 We also require an explicit list of all oracles used in the computation,

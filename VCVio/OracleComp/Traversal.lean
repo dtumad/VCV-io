@@ -169,4 +169,9 @@ instance [spec.FiniteRange] : DecidablePred (@OracleComp.neverFails _ spec α) :
       simpa only [Function.const_apply, neverFails_bind_iff, neverFails_query, support_query,
         Set.mem_univ, forall_const, true_and] using Fintype.decidableForallFintype
 
+@[simp]
+lemma neverFails_guard (p : Prop) [Decidable p] (oa : OracleComp spec α) (h: oa.neverFails) :
+    neverFails (if p then oa else failure) ↔ p := by
+  split <;> simp [h] <;> trivial
+
 end OracleComp

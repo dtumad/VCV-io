@@ -6,6 +6,7 @@ import VCVio.CryptoFoundations.Fork
 import VCVio.CryptoFoundations.HardnessAssumptions.DiffieHellman
 import VCVio.CryptoFoundations.HardnessAssumptions.HardHomogeneousSpace
 import VCVio.CryptoFoundations.HardnessAssumptions.HardRelation
+import VCVio.CryptoFoundations.HardnessAssumptions.LWE
 import VCVio.CryptoFoundations.KeyEncapMech
 import VCVio.CryptoFoundations.SecExp
 import VCVio.CryptoFoundations.SigmaAlg
