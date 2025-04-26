@@ -1,5 +1,4 @@
 import VCVio
-import Mathlib.Tactic.Common
 
 open Mathlib OracleSpec OracleComp AsymmEncAlg
 
@@ -22,8 +21,6 @@ def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*(χ*m + 1)) (hm: 1 ≤ m) (hp2 : p
     let s ←$ᵗ Vector (Fin p) n
     let e ←$ᵗ Vector (Fin (2*χ + 1)) m
     let err := e.map (fun t ↦ (Fin.castLE herr t) - χ)
-    -- let ecast := e.map (Fin.castLE herr)
-    -- let err := ecast.map (Fin.sub χ)
     return ((A, Vector.ofFn (Matrix.vecMul s.get A) + err), s)
   encrypt := λ (A, y) msg ↦ do
     have : NeZero p := ⟨by omega⟩
@@ -300,7 +297,7 @@ namespace Regev
 
 variable (n m χ p : ℕ) (h: NeZero p) (he: p > 4*(χ*m + 1)) (hp2 : p > 1) (hm : 1 ≤ m)
 
-section sound
+section correct
 
 theorem isCorrect : (regevAsymmEnc n m χ p he hm hp2).PerfectlyCorrect := by
   rintro msg
@@ -348,11 +345,20 @@ theorem isCorrect : (regevAsymmEnc n m χ p he hm hp2).PerfectlyCorrect := by
     . left; omega
     . right; omega
 
-end sound
+end correct
 
 section security
 
 -- Original hybrid (hybrid 0) is the IND-CPA experiment
+
+variable {m n p χ : ℕ} [hp : NeZero p] (herr : 2 * χ < p) (adv : Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool)
+
+/-- The uniform error sampling distribution, from the range `[-χ, χ]` inside `Fin p` -/
+def uniformErrSamp (χ : ℕ) : ProbComp (Fin p) := do
+  let e ←$ᵗ Fin (2*χ + 1)
+  return (Fin.castLE herr e) - χ
+
+noncomputable def LWE_Advantage : ℝ := (LWE_Experiment n m p (uniformErrSamp herr χ) adv).advantage
 
 -- Want to show:
 -- ∀ adv in hybrid 0,
@@ -367,18 +373,33 @@ def Regev_Hybrid_1 : ProbComp Unit := do sorry
     -- let b ←$ᵗ Bool
     -- let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
 
+-- def IND_CPA_regev_lwe_reduction (b : Bool)
+--     (adversary : (regevAsymmEnc n m χ p he hm hp2).IND_CPA_Adv) :
+--     Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool := fun ⟨A, v⟩ => do
+--   let so : QueryImpl (Bool × Bool →ₒ (Vector (Fin p) n) × (Fin p)) ProbComp := ⟨fun (query () (m₁, m₂)) =>
+--     (regevAsymmEnc n m χ p he hm hp2).encrypt ⟨A, v⟩ (if b then m₁ else m₂)⟩
+--   simulateQ (idOracle ++ₛₒ so) (adversary.distinguish (⟨A, v⟩))
+
+-- theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
+--     {adv : IND_CPA_Adv (spec := spec) encAlg} :
+--     IND_CPA_Advantage adv ≤ LWE_Advantage (Reduction adv) := by sorry
+
 def Regev_Hybrid_2 : ProbComp Unit := do sorry
 
-def IND_CPA_regev_lwe_reduction (b : Bool)
-    (adversary : (regevAsymmEnc n m χ p he hm hp2).IND_CPA_Adv (spec := unifSpec)) :
-    Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool := fun ⟨A, v⟩ => do
-  let so : QueryImpl (Bool × Bool →ₒ (Vector (Fin p) n) × (Fin p)) ProbComp := ⟨fun (query () (m₁, m₂)) =>
-    (regevAsymmEnc n m χ p he hm hp2).encrypt ⟨A, v⟩ (if b then m₁ else m₂)⟩
-  simulateQ (idOracle ++ₛₒ so) (adversary.distinguish (⟨A, v⟩))
+-- Original hybrid (hybrid 0) is the IND-CPA experiment
 
-theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
-    {adv : IND_CPA_Adv (spec := spec) encAlg} :
-    IND_CPA_Advantage adv ≤ LWE_Advantage (Reduction adv) := by sorry
+-- Want to show:
+-- ∀ adv in hybrid 0,
+  -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
+-- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
+
+    -- let A ←$ᵗ Matrix (Fin m) (Fin n) (Fin p)
+    -- let s ←$ᵗ Vector (Fin p) m
+    -- let e ←$ᵗ Vector (Fin p) m
+    -- let u ←$ᵗ Vector (Fin p) n
+    -- let b ←$ᵗ Bool
+    -- let dist := if b then (A, (A.vecMul s.get) + e) else (A, u)
+
 
 end security
 
