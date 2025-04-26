@@ -128,9 +128,16 @@ lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
 instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :=
   ⟨id, Function.bijective_id⟩
 
--- Induction principles for vectors
 
 namespace Vector
+
+@[simp]
+lemma heq_of_toArray_eq_of_size_eq {α} {m n : ℕ} {a : Vector α m} {b : Vector α n}
+    (h : a.toArray = b.toArray) (h' : m = n) : HEq a b := by
+  subst h'
+  simp_all only [Vector.toArray_inj, heq_eq_eq]
+
+-- Induction principles for vectors
 
 def cases {α} {motive : {n : ℕ} → Vector α n → Sort*} (v_empty : motive #v[])
   (v_insert : {n : ℕ} → (hd : α) → (tl : Vector α n) → motive (tl.insertIdx 0 hd)) {m : ℕ} :

@@ -245,58 +245,53 @@ lemma Fin_bound_castLE {n m : ℕ} {x : Fin (n + 1)} {h : n < m} :
   Fin_Bound (Fin.castLE h x) n := by
   left; simp; omega
 
-lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by
-  omega
+lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by omega
 
-lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m}
- {hne : NeZero p} (h : p > 2*χ) : Fin_Bound_vec (v.map (fun t ↦ (Fin.castLE h t) - (Fin.ofNat' p χ))) χ := by
-  intro i
-  simp [Vector.get]
+lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ) :
+    Fin_Bound (Fin.castLE h a - (Fin.ofNat' p χ)) χ := by
   by_cases n0 : χ = 0
-  . have := Fin.le_val_last (v[i])
+  . have := Fin.le_val_last a
     simp [n0] at *
     trivial
-  by_cases hv : v[i] ≥ χ
+  by_cases hv : a ≥ χ
   . left
     simp at *
     apply IntLE_imp_NatLE
     rw [Fin.intCast_val_sub_eq_sub_add_ite]
     simp
-    have : ↑χ ≤ Fin.castLE h v[↑i] := by
+    have : ↑χ ≤ Fin.castLE h a := by
       simp [hv]
       rw [Fin.le_def] at hv ⊢
-      trans ↑v[i] <;> simp at *
+      trans ↑a <;> simp at *
       rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
-    simp at this
-    simp [this]
+    simp_all [this]
     trans 2 * χ
     . norm_cast
-      have g := Fin.val_lt_of_le v[↑i] (le_refl (2*χ + 1))
+      have g := Fin.val_lt_of_le a (le_refl (2*χ + 1))
       omega
-    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt]
-      linarith
-      linarith
+    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
   . right
     simp at *
     apply IntLE_imp_NatLE; simp
     rw [Fin.intCast_val_sub_eq_sub_add_ite]; simp
-    have : ↑χ > Fin.castLE h v[↑i] := by
+    have : ↑χ > Fin.castLE h a := by
       simp [hv]
       rw [Fin.lt_def] at hv ⊢
       apply lt_of_le_of_lt
       simp at *
       apply le_refl
       simp at *
-      rw [Nat.mod_eq_of_lt] at hv ⊢
-      trivial
-      omega
-      omega
+      rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
     rw [ite_cond_eq_false]
-    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt]
-      linarith
-      linarith
-    simp at this
-    simp [this]
+    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
+    simp_all [this]
+
+-- This lemma is no longer needed
+lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m} [NeZero p] (h : p > 2*χ) :
+    Fin_Bound_vec (v.map (fun t ↦ (Fin.castLE h t) - (Fin.ofNat' p χ))) χ := by
+  intro i
+  simp [Vector.get]
+  apply Fin_bound_shift_cast h
 
 end useful_lemmas
 
@@ -318,11 +313,8 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
   generalize h1 : (Vector.map (Fin.castLE hp2.one_lt) r) = rv
   have pne0 : NeZero p := ⟨by omega⟩
   have herr: p > 2*χ := (relax_p_bound (hm := hm) he)
-  -- simp at h'
-  -- simp
   rw [← Matrix.dotProduct_mulVec]
-  -- generalize h2 : (Vector.map (fun t ↦ Fin.castLE herr t - ↑χ) e) = err
-  generalize h3 : -(err.get ⬝ᵥ rv.get) = mask
+  generalize h2 : -(err.get ⬝ᵥ rv.get) = mask
   have : χ * m ≤ p / 4 - 1:= by
     simp at he
     rw [mul_comm] at he
@@ -331,16 +323,23 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
     apply (Nat.le_div_iff_mul_le this).2 at he
     omega
   have mask_bound : Fin_Bound mask (χ * m) := by
-    rw [← mul_one χ, ← h3, ← h1]
+    rw [← mul_one χ, ← h2, ← h1]
     apply Fin_bound_neg
     apply Fin_bound_dotprod
-    . sorry
-      -- apply Fin_bound_shift_cast_vec
+    . intro i
+      apply mem_support_vector_mapM.mp at h'
+      have : err.get i = err[i.1] := by aesop
+      rw [this]
+      have := h' i
+      simp [mem_support_map] at this
+      obtain ⟨y, hy⟩ := this
+      rw [← hy]
+      exact Fin_bound_shift_cast herr
     . intro i
       simp [Vector.get]
   apply Fin_Bound_ge mask_bound at this
   cases msg <;> simp
-  . constructor <;> ring_nf <;> rw [h3] <;>
+  . constructor <;> ring_nf <;> rw [h2] <;>
     rcases this with h | h <;> rw [Fin.sub_def, Fin.val] <;> simp
     . rw [Nat.mod_eq_of_lt]
       . rw [Nat.mod_eq_of_lt] <;> omega
@@ -354,7 +353,7 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
     . rw [Nat.mod_eq_sub_mod]
       . rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
       rw [Nat.mod_eq_of_lt] <;> omega
-  . rw [h3]
+  . rw [h2]
     rcases this with h | h
     . left; omega
     . right; omega

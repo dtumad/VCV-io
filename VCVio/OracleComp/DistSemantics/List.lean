@@ -104,6 +104,14 @@ end append
 
 section mapM
 
+-- @[simp]
+-- lemma mem_support_list_mapM {f : α → OracleComp spec β} {as : List α}
+--     (x : List β) : x ∈ (List.mapM f as).support ↔ ∀ i : Fin x.length, x[i] ∈ (f (as[i]'(by simp))).support := by
+--   induction as with
+--   | nil => simp [neverFails_pure]
+--   | cons a as ih =>
+--     simp [List.mapM_cons, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff, Vector.insertIdx]
+
 @[simp]
 lemma probFailure_list_mapM_loop {α β : Type*} [spec.FiniteRange]
     (xs : List α) (f : α → OracleComp spec β) (ys : List β) :
@@ -310,23 +318,29 @@ end Array
 
 section Vector -- TODO: seperate file for vectors
 
+lemma mem_support_vector_mapM {n} {f : α → OracleComp spec β} {as : Vector α n} {x : Vector β n} :
+    x ∈ (Vector.mapM f as).support ↔ ∀ i : Fin n, x[i] ∈ (f as[i]).support := by
+  induction as using Vector.induction with
+  | v_empty => simp [neverFails_pure]
+  | v_insert hd tl ih =>
+    simp [Vector.mapM_append, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff, Vector.insertIdx]
+    sorry
+
 @[simp] lemma neverFails_vector_mapM {n} {f : α → OracleComp spec β} {as : Vector α n}
     (h : ∀ x ∈ as.toList, neverFails (f x)) : neverFails (Vector.mapM f as) := by
   induction as using Vector.induction with
   | v_empty => simp [neverFails_pure]
   | v_insert hd tl ih =>
     simp_all [Vector.mapM_append, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff, Vector.insertIdx]
-    suffices hnew : (Vector.mapM f (Vector.append #v[hd] tl)).neverFails by
-      simp [Vector.append] at hnew
+    suffices hnew : (Vector.mapM f (#v[hd] ++ tl)).neverFails by
+      simp only [HAppend.hAppend, Append.append, Vector.append] at hnew
       convert hnew using 2
       · exact Nat.add_comm _ _
       · exact Nat.add_comm _ _
-      · rename_i h1 h2; sorry
-    -- simp_rw [Vector.mapM_append f]
-    -- rw [Vector.mapM, Vector.mapM.go]
-    -- refine ⟨h.1, fun x hx => ?_⟩
-    -- exact ⟨h hd (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
-    sorry
+      · rename_i h1 h2; exact Vector.heq_of_toArray_eq_of_size_eq rfl (Nat.add_comm _ _)
+    rw [Vector.mapM_append]
+    simp
+    exact ⟨by simpa [Vector.mapM, Vector.mapM.go] using h.1, fun _ _ => ih⟩
 
 end Vector
 
