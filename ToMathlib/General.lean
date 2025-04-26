@@ -16,13 +16,16 @@ in general mathlib than in the project itself.
 
 universe u v w
 
-open List (Vector)
 open BigOperators ENNReal
 
 lemma Fintype.sum_inv_card (α : Type*) [Fintype α] [Nonempty α] :
   Finset.sum Finset.univ (λ _ ↦ (Fintype.card α)⁻¹ : α → ℝ≥0∞) = 1 := by
   rw [Finset.sum_eq_card_nsmul (λ _ _ ↦ rfl), Finset.card_univ,
     nsmul_eq_mul, ENNReal.mul_inv_cancel] <;> simp
+
+section List.Vector
+
+open List (Vector)
 
 @[simp] -- mathlib?
 lemma vector_eq_nil {α : Type*} (xs : List.Vector α 0) : xs = Vector.nil :=
@@ -34,6 +37,12 @@ lemma List.injective2_cons {α : Type*} : Function.Injective2 (List.cons (α := 
 lemma Vector.injective2_cons {α : Type*} {n : ℕ} :
     Function.Injective2 (Vector.cons : α → List.Vector α n → List.Vector α (n + 1)) := by
   simp [Function.Injective2, Vector.eq_cons_iff]
+
+@[simp]
+lemma Vector.getElem_eq_get {α n} (xs : List.Vector α n) (i : ℕ) (h : i < n) :
+  xs[i]'h = xs.get ⟨i, h⟩ := rfl
+
+end List.Vector
 
 lemma Prod.mk.injective2 {α β : Type*} :
     Function.Injective2 (Prod.mk : α → β → α × β) := by
@@ -67,10 +76,6 @@ lemma List.card_filter_getElem_eq {α : Type*} [DecidableEq α]
       xs.count x := by
   rw [List.count, ← List.countP_eq_sum_fin_ite]
   simp only [Fin.getElem_fin, beq_iff_eq, Finset.sum_boole, Nat.cast_id]
-
-@[simp]
-lemma Vector.getElem_eq_get {α n} (xs : List.Vector α n) (i : ℕ) (h : i < n) :
-  xs[i]'h = xs.get ⟨i, h⟩ := rfl
 
 @[simp] lemma Finset.sum_boole' {ι β : Type*} [AddCommMonoid β] (r : β)
     (p) [DecidablePred p] (s : Finset ι) :
@@ -122,6 +127,54 @@ lemma BitVec.xor_self_xor {n : ℕ} (x y : BitVec n) : x ^^^ (x ^^^ y) = y := by
 
 instance (α : Type) [Inhabited α] : Inhabited {f : α → α // f.Bijective} :=
   ⟨id, Function.bijective_id⟩
+
+-- Induction principles for vectors
+
+namespace Vector
+
+def cases {α} {motive : {n : ℕ} → Vector α n → Sort*} (v_empty : motive #v[])
+  (v_insert : {n : ℕ} → (hd : α) → (tl : Vector α n) → motive (tl.insertIdx 0 hd)) {m : ℕ} :
+    (v : Vector α m) → motive v := match hm : m with
+  | 0 => fun v => match v with | ⟨⟨[]⟩, rfl⟩ => v_empty
+  | n + 1 => fun v => match hv : v with
+    | ⟨⟨hd :: tl⟩, hSize⟩ => by
+      simpa [Vector.insertIdx] using v_insert hd ⟨⟨tl⟩, by simpa using hSize⟩
+
+@[elab_as_elim]
+def induction {α} {motive : {n : ℕ} → Vector α n → Sort*} (v_empty : motive #v[])
+  (v_insert : {n : ℕ} → (hd : α) → (tl : Vector α n) → motive tl → motive (tl.insertIdx 0 hd))
+    {m : ℕ} : (v : Vector α m) → motive v := by induction m with
+  | zero => exact fun v => match v with | ⟨⟨[]⟩, rfl⟩ => v_empty
+  | succ n ih => exact fun v => match v with
+    | ⟨⟨hd :: tl⟩, hSize⟩ => by
+      simpa [Vector.insertIdx] using
+        v_insert hd ⟨⟨tl⟩, by simpa using hSize⟩ (ih ⟨⟨tl⟩, by simpa using hSize⟩)
+
+def cases₂ {α β} {motive : {n : ℕ} → Vector α n → Vector β n → Sort*}
+  (v_empty : motive #v[] #v[])
+  (v_insert : {n : ℕ} → (hd : α) → (tl : Vector α n) → (hd' : β) → (tl' : Vector β n) →
+    motive (tl.insertIdx 0 hd) (tl'.insertIdx 0 hd')) {m : ℕ} :
+    (v : Vector α m) → (v' : Vector β m) → motive v v' := match hm : m with
+  | 0 => fun v v' => match v, v' with | ⟨⟨[]⟩, rfl⟩, ⟨⟨[]⟩, rfl⟩ => v_empty
+  | n + 1 => fun v v' => match hv : v, hv' : v' with
+    | ⟨⟨hd :: tl⟩, hSize⟩, ⟨⟨hd' :: tl'⟩, hSize'⟩ => by
+      simpa [Vector.insertIdx] using
+        v_insert hd ⟨⟨tl⟩, by simpa using hSize⟩ hd' ⟨⟨tl'⟩, by simpa using hSize'⟩
+
+@[elab_as_elim]
+def induction₂ {α β} {motive : {n : ℕ} → Vector α n → Vector β n → Sort*}
+  (v_empty : motive #v[] #v[])
+  (v_insert : {n : ℕ} → (hd : α) → (tl : Vector α n) → (hd' : β) → (tl' : Vector β n) →
+    motive tl tl' → motive (tl.insertIdx 0 hd) (tl'.insertIdx 0 hd')) {m : ℕ} :
+    (v : Vector α m) → (v' : Vector β m) → motive v v' := by induction m with
+  | zero => exact fun v v' => match v, v' with | ⟨⟨[]⟩, rfl⟩, ⟨⟨[]⟩, rfl⟩ => v_empty
+  | succ n ih => exact fun v v' => match hv : v, hv' : v' with
+    | ⟨⟨hd :: tl⟩, hSize⟩, ⟨⟨hd' :: tl'⟩, hSize'⟩ => by
+      simpa [Vector.insertIdx] using
+        v_insert hd ⟨⟨tl⟩, by simpa using hSize⟩ hd' ⟨⟨tl'⟩, by simpa using hSize'⟩
+        (ih ⟨⟨tl⟩, by simpa using hSize⟩ ⟨⟨tl'⟩, by simpa using hSize'⟩)
+
+end Vector
 
 open Classical
 

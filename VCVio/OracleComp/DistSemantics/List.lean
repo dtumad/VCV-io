@@ -13,7 +13,7 @@ This file contains lemmas for `probEvent` and `probOutput` of computations invol
 We also include `Vector` as a related case.
 -/
 
-open OracleSpec OracleComp List
+open OracleSpec OracleComp
 
 universe u v w
 
@@ -23,14 +23,16 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type v}
 
 section List
 
+open List
+
 variable (oa : OracleComp spec α) (ob : OracleComp spec (List α))
 
-lemma mem_support_seq_map_cons_iff' (xs : List α) : xs ∈ (cons <$> oa <*> ob).support ↔
+lemma mem_support_seq_map_cons_iff' (xs : List α) : xs ∈ (List.cons <$> oa <*> ob).support ↔
     xs.recOn False (λ x xs _ ↦ x ∈ oa.support ∧ xs ∈ ob.support) := by
   cases xs <;> simp
 
 lemma mem_support_seq_map_cons_iff (xs : List α) (h : xs ≠ []) :
-    xs ∈ (cons <$> oa <*> ob).support ↔
+    xs ∈ (List.cons <$> oa <*> ob).support ↔
       xs.head h ∈ oa.support ∧ xs.tail ∈ ob.support := by
   obtain ⟨x, xs, rfl⟩ := List.exists_cons_of_ne_nil h
   simp [h]
@@ -181,44 +183,7 @@ lemma probOutput_list_mapM {α β : Type*} [spec.FiniteRange] (xs : List α)
 
 end mapM
 
-end List
-
-section List.Vector
-
-variable {n : ℕ} (oa : OracleComp spec α) (ob : OracleComp spec (List.Vector α n))
-
-@[simp]
-lemma support_seq_map_vector_cons : ((· ::ᵥ ·) <$> oa <*> ob).support =
-    {xs | xs.head ∈ oa.support ∧ xs.tail ∈ ob.support} := by
-  refine Set.ext (λ xs ↦ ?_)
-  simp [Set.ext_iff, @eq_comm _ _ xs, List.Vector.eq_cons_iff]
-
-@[simp]
-lemma probOutput_seq_map_vector_cons_eq_mul [spec.FiniteRange] [spec.DecidableEq]
-    (xs : List.Vector α (n + 1)) :
-    [= xs | (· ::ᵥ ·) <$> oa <*> ob] = [= xs.head | oa] * [= xs.tail | ob] := by
-  rw [← probOutput_seq_map_eq_mul_of_injective2 oa ob _ Vector.injective2_cons,
-    List.Vector.cons_head_tail]
-
-@[simp]
-lemma probOutput_seq_map_vector_cons_eq_mul' [spec.FiniteRange] [spec.DecidableEq]
-    (xs : List.Vector α (n + 1)) :
-    [= xs | (λ xs x ↦ x ::ᵥ xs) <$> ob <*> oa] = [= xs.head | oa] * [= xs.tail | ob] :=
-  (probOutput_seq_map_swap oa ob (· ::ᵥ ·) (xs)).trans
-    (probOutput_seq_map_vector_cons_eq_mul oa ob xs)
-
-@[simp]
-lemma probOutput_vector_toList [spec.FiniteRange] [spec.DecidableEq]
-    {n : ℕ} (oa : OracleComp spec (List.Vector α n))
-    (xs : List α) : [= xs | List.Vector.toList <$> oa] =
-      if h : xs.length = n then [= ⟨xs, h⟩ | oa] else 0 := by
-  split_ifs with h
-  · refine probOutput_map_eq_single _ (λ _ _ h' ↦ List.Vector.eq ⟨xs, h⟩ _ h') rfl
-  · simp only [probOutput_eq_zero_iff, support_map, Set.mem_image, not_exists, not_and]
-    exact λ ys _ h' ↦ h (h' ▸ ys.toList_length)
-
-end List.Vector
-
+section neverFails
 
 /-- If each element of a list is mapped to a computation that never fails, then the computation
   obtained by monadic mapping over the list also never fails. -/
@@ -270,6 +235,45 @@ variable {s : Type v}
       simp only [foldrM_cons, neverFails_bind_iff]
       exact ⟨ih (fun i x hx => h i x (by simp [hx])), fun y _ => h y b (by simp)⟩
 
+end neverFails
+
+end List
+
+section List.Vector
+
+variable {n : ℕ} (oa : OracleComp spec α) (ob : OracleComp spec (List.Vector α n))
+
+@[simp]
+lemma support_seq_map_vector_cons : ((· ::ᵥ ·) <$> oa <*> ob).support =
+    {xs | xs.head ∈ oa.support ∧ xs.tail ∈ ob.support} := by
+  refine Set.ext (λ xs ↦ ?_)
+  simp [Set.ext_iff, @eq_comm _ _ xs, List.Vector.eq_cons_iff]
+
+@[simp]
+lemma probOutput_seq_map_vector_cons_eq_mul [spec.FiniteRange] [spec.DecidableEq]
+    (xs : List.Vector α (n + 1)) :
+    [= xs | (· ::ᵥ ·) <$> oa <*> ob] = [= xs.head | oa] * [= xs.tail | ob] := by
+  rw [← probOutput_seq_map_eq_mul_of_injective2 oa ob _ Vector.injective2_cons,
+    List.Vector.cons_head_tail]
+
+@[simp]
+lemma probOutput_seq_map_vector_cons_eq_mul' [spec.FiniteRange] [spec.DecidableEq]
+    (xs : List.Vector α (n + 1)) :
+    [= xs | (λ xs x ↦ x ::ᵥ xs) <$> ob <*> oa] = [= xs.head | oa] * [= xs.tail | ob] :=
+  (probOutput_seq_map_swap oa ob (· ::ᵥ ·) (xs)).trans
+    (probOutput_seq_map_vector_cons_eq_mul oa ob xs)
+
+@[simp]
+lemma probOutput_vector_toList [spec.FiniteRange] [spec.DecidableEq]
+    {n : ℕ} (oa : OracleComp spec (List.Vector α n))
+    (xs : List α) : [= xs | List.Vector.toList <$> oa] =
+      if h : xs.length = n then [= ⟨xs, h⟩ | oa] else 0 := by
+  split_ifs with h
+  · refine probOutput_map_eq_single _ (λ _ _ h' ↦ List.Vector.eq ⟨xs, h⟩ _ h') rfl
+  · simp only [probOutput_eq_zero_iff, support_map, Set.mem_image, not_exists, not_and]
+    exact λ ys _ h' ↦ h (h' ▸ ys.toList_length)
+
+end List.Vector
 
 section List.Vector -- TODO: seperate file for vectors?
 
@@ -303,5 +307,27 @@ open Array
     sorry
 
 end Array
+
+section Vector -- TODO: seperate file for vectors
+
+@[simp] lemma neverFails_vector_mapM {n} {f : α → OracleComp spec β} {as : Vector α n}
+    (h : ∀ x ∈ as.toList, neverFails (f x)) : neverFails (Vector.mapM f as) := by
+  induction as using Vector.induction with
+  | v_empty => simp [neverFails_pure]
+  | v_insert hd tl ih =>
+    simp_all [Vector.mapM_append, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff, Vector.insertIdx]
+    suffices hnew : (Vector.mapM f (Vector.append #v[hd] tl)).neverFails by
+      simp [Vector.append] at hnew
+      convert hnew using 2
+      · exact Nat.add_comm _ _
+      · exact Nat.add_comm _ _
+      · rename_i h1 h2; sorry
+    -- simp_rw [Vector.mapM_append f]
+    -- rw [Vector.mapM, Vector.mapM.go]
+    -- refine ⟨h.1, fun x hx => ?_⟩
+    -- exact ⟨h hd (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
+    sorry
+
+end Vector
 
 end OracleComp
