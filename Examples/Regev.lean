@@ -2,48 +2,46 @@ import VCVio
 
 open Mathlib OracleSpec OracleComp AsymmEncAlg
 
--- #check AtLeastTwo
-lemma relax_p_bound {p χ m: ℕ} (h : p > 4 * (χ * m + 1)) (hm : 1 ≤ m) : p > 2 * χ := by
-  calc p > 4 * (χ * m + 1) := h
-  _ ≥ 4 * (χ * m) := by ring_nf; omega
-  _ ≥ 2 * (χ * m) := by ring_nf; omega
-  _ ≥ 2 * χ := by
-    apply Nat.mul_le_mul_left (2*χ) at hm
-    ring_nf at hm ⊢; omega
-
 /-- The uniform error sampling distribution, from the range `[-χ, χ]` inside `Fin p` -/
-def uniformErrSamp {p : ℕ} [NeZero p] (χ : ℕ) (herr : p > 2*χ) : ProbComp (Fin p) := do
+def uniformErrSamp {p : ℕ} (χ : ℕ) (hχ : p > 2*χ) : ProbComp (Fin p) := do
   let e ←$ᵗ Fin (2*χ + 1)
-  return (Fin.castLE herr e) - χ
+  haveI : NeZero p := ⟨by omega⟩
+  return (Fin.castLE hχ e) - χ
 
--- TODO: refactor the error sampling to use `uniformErrSamp` instead
-def regevAsymmEnc (n m χ p : ℕ) (he: p > 4*(χ*m + 1)) (hm: 1 ≤ m) (hp2 : p > 1) : AsymmEncAlg ProbComp
-    (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m)
+/-- General form of the Regev encryption scheme, with a custom error sampling distribution -/
+def regevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] (errSampKG : ProbComp (Fin p)) :
+    AsymmEncAlg ProbComp (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m)
      (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
   keygen := do
-    have : NeZero p := ⟨by omega⟩
-    have herr: p > 2*χ := (relax_p_bound he hm)
     let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
     let s ←$ᵗ Vector (Fin p) n
-    let e ←$ᵗ Vector (Fin (2*χ + 1)) m
-    let err := e.map (fun t ↦ (Fin.castLE herr t) - χ)
-    return ((A, Vector.ofFn (Matrix.vecMul s.get A) + err), s)
+    let e ← (Vector.range m).mapM (fun _ ↦ errSampKG)
+    return ((A, Vector.ofFn (Matrix.vecMul s.get A) + e), s)
   encrypt := λ (A, y) msg ↦ do
-    have : NeZero p := ⟨by omega⟩
     let r2 ←$ᵗ Vector (Fin 2) m
-    let r := (r2.map (Fin.castLE hp2)).get
+    let r := (r2.map (Fin.castLE hp2.one_lt)).get
     let yr := dotProduct y.get r
     let signal := if msg then 0 else p / 2
     return (Vector.ofFn (Matrix.mulVec A r), yr + signal)
   decrypt := λ s (a, b) ↦ do
-    have : NeZero p := ⟨by omega⟩
     let sa := dotProduct s.get a.get
     let val := Fin.val (sa - b)
     return if val < p/4 then true else val > 3*p/4
   __ := ExecutionMethod.default
 
+-- Note: we want to defer the condition `p > 4*(χ*m + 1)` until the proof of correctness
+
 section useful_lemmas
 -- Useful lemmas for the proof
+
+lemma relax_p_bound {p χ m: ℕ} [hm : NeZero m] (h : p > 4 * (χ * m + 1)) : p > 2 * χ := by
+  calc p > 4 * (χ * m + 1) := h
+  _ ≥ 4 * (χ * m) := by omega
+  _ ≥ 2 * (χ * m) := by omega
+  _ ≥ 2 * χ := by
+    rw [← mul_assoc]
+    exact Nat.le_mul_of_pos_right (2 * χ) hm.one_le
+
 def Fin_Bound {n : ℕ} (x : Fin n) (b : ℕ) : Prop :=
   x.val ≤ b ∨ x.val + b ≥ n
 
@@ -301,15 +299,20 @@ end useful_lemmas
 
 namespace Regev
 
-variable (n m χ p : ℕ) (h: NeZero p) (he: p > 4*(χ*m + 1)) (hp2 : p > 1) (hm : 1 ≤ m)
+variable {n m p : ℕ} [hp2 : p.AtLeastTwo]
 
 section correct
 
-theorem isCorrect : (regevAsymmEnc n m χ p he hm hp2).PerfectlyCorrect := by
+/-- Correctness of the Regev encryption scheme, with respect to the uniform error sampling
+  distribution in `[-χ, χ]`.
+
+  This is where we add the extra parameter `χ`, and the conditions `m > 0` and `p > 4*(χ*m + 1)` -/
+theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m + 1)) :
+    (regevAsymmEnc n m p (uniformErrSamp χ (relax_p_bound he))).PerfectlyCorrect := by
   rintro msg
-  simp [CorrectExp, regevAsymmEnc]
-  rintro A s e r
-  generalize h1 : (Vector.map (Fin.castLE hp2) r) = rv
+  simp [CorrectExp, regevAsymmEnc, uniformErrSamp]
+  rintro A s e he r
+  -- generalize h1 : (Vector.map (Fin.castLE hp2) r) = rv
   have pne0 : NeZero p := ⟨by omega⟩
   have herr: p > 2*χ := (relax_p_bound he hm)
   simp
@@ -357,9 +360,9 @@ section security
 
 -- Original hybrid (hybrid 0) is the IND-CPA experiment
 
-variable {n m χ p} {he hp2 hm}
+variable {χ}
   -- (lwe_adv : Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool)
-  (adv : IND_CPA_Adv (regevAsymmEnc n m χ p he hm hp2))
+  (adv : IND_CPA_Adv (regevAsymmEnc n m p (uniformErrSamp χ (by sorry))))
 
 -- noncomputable def LWE_Advantage : ℝ :=
 --   (LWE_Experiment n m p (uniformErrSamp χ (by sorry)) adv).advantage
