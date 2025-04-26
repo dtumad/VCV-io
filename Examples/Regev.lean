@@ -29,11 +29,6 @@ def regevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] (errSampKG : ProbComp (Fin 
     return if val < p/4 then true else val > 3*p/4
   __ := ExecutionMethod.default
 
--- Note: we want to defer the condition `p > 4*(χ*m + 1)` until the proof of correctness
-
-section useful_lemmas
--- Useful lemmas for the proof
-
 lemma relax_p_bound {p χ m: ℕ} [hm : NeZero m] (h : p > 4 * (χ * m + 1)) : p > 2 * χ := by
   calc p > 4 * (χ * m + 1) := h
   _ ≥ 4 * (χ * m) := by omega
@@ -41,6 +36,14 @@ lemma relax_p_bound {p χ m: ℕ} [hm : NeZero m] (h : p > 4 * (χ * m + 1)) : p
   _ ≥ 2 * χ := by
     rw [← mul_assoc]
     exact Nat.le_mul_of_pos_right (2 * χ) hm.one_le
+
+def uniformRegevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] [NeZero m] (χ : ℕ) (he : p > 4*(χ*m + 1)) :=
+  regevAsymmEnc n m p (uniformErrSamp χ (relax_p_bound he))
+
+-- Note: we want to defer the condition `p > 4*(χ*m + 1)` until the proof of correctness
+
+section useful_lemmas
+-- Useful lemmas for the proof
 
 def Fin_Bound {n : ℕ} (x : Fin n) (b : ℕ) : Prop :=
   x.val ≤ b ∨ x.val + b ≥ n
@@ -311,13 +314,14 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
     (regevAsymmEnc n m p (uniformErrSamp χ (relax_p_bound he))).PerfectlyCorrect := by
   rintro msg
   simp [CorrectExp, regevAsymmEnc, uniformErrSamp]
-  rintro A s e he r
-  -- generalize h1 : (Vector.map (Fin.castLE hp2) r) = rv
+  rintro A s err h' r
+  generalize h1 : (Vector.map (Fin.castLE hp2.one_lt) r) = rv
   have pne0 : NeZero p := ⟨by omega⟩
-  have herr: p > 2*χ := (relax_p_bound he hm)
-  simp
+  have herr: p > 2*χ := (relax_p_bound (hm := hm) he)
+  -- simp at h'
+  -- simp
   rw [← Matrix.dotProduct_mulVec]
-  generalize h2 : (Vector.map (fun t ↦ Fin.castLE herr t - ↑χ) e) = err
+  -- generalize h2 : (Vector.map (fun t ↦ Fin.castLE herr t - ↑χ) e) = err
   generalize h3 : -(err.get ⬝ᵥ rv.get) = mask
   have : χ * m ≤ p / 4 - 1:= by
     simp at he
@@ -327,10 +331,11 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
     apply (Nat.le_div_iff_mul_le this).2 at he
     omega
   have mask_bound : Fin_Bound mask (χ * m) := by
-    rw [← mul_one χ, ← h3, ← h2, ← h1]
+    rw [← mul_one χ, ← h3, ← h1]
     apply Fin_bound_neg
     apply Fin_bound_dotprod
-    . apply Fin_bound_shift_cast_vec
+    . sorry
+      -- apply Fin_bound_shift_cast_vec
     . intro i
       simp [Vector.get]
   apply Fin_Bound_ge mask_bound at this
@@ -360,9 +365,9 @@ section security
 
 -- Original hybrid (hybrid 0) is the IND-CPA experiment
 
-variable {χ}
+variable [NeZero m] {χ} {he: p > 4*(χ*m + 1)}
   -- (lwe_adv : Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool)
-  (adv : IND_CPA_Adv (regevAsymmEnc n m p (uniformErrSamp χ (by sorry))))
+  (adv : IND_CPA_Adv (uniformRegevAsymmEnc n m p χ he))
 
 -- noncomputable def LWE_Advantage : ℝ :=
 --   (LWE_Experiment n m p (uniformErrSamp χ (by sorry)) adv).advantage
@@ -372,9 +377,10 @@ variable {χ}
   -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
 -- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
 
-def Regev_Hybrid_0 : ProbComp Unit := IND_CPA_OneTime_Game (encAlg := regevAsymmEnc n m χ p he hm hp2) adv
+def Regev_Hybrid_0 : ProbComp Unit :=
+  IND_CPA_OneTime_Game (encAlg := uniformRegevAsymmEnc n m p χ he) adv
 
-example : Regev_Hybrid_0 adv = IND_CPA_OneTime_Game (encAlg := regevAsymmEnc n m χ p he hm hp2) adv := by
+example : Regev_Hybrid_0 adv = IND_CPA_OneTime_Game (encAlg := uniformRegevAsymmEnc n m p χ he) adv := by
   rfl
   -- simp [IND_CPA_OneTime_Game, regevAsymmEnc]
 
@@ -401,8 +407,8 @@ def Regev_Hybrid_1 : ProbComp Unit := do
   let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
   let u ←$ᵗ Vector (Fin p) m
   let ⟨m₁, m₂, st⟩ ← adv.chooseMessages (A, u)
-  let c ← if b then (regevAsymmEnc n m χ p he hm hp2).encrypt (A, u) m₁
-    else (regevAsymmEnc n m χ p he hm hp2).encrypt (A, u) m₂
+  let c ← if b then (uniformRegevAsymmEnc n m p χ he).encrypt (A, u) m₁
+    else (uniformRegevAsymmEnc n m p χ he).encrypt (A, u) m₂
   let b' ← adv.distinguish st c
   guard (b = b')
 
