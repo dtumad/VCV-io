@@ -16,6 +16,30 @@ in general mathlib than in the project itself.
 
 universe u v w
 
+section abs
+
+lemma mul_abs_of_nonneg {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : 0 ≤ a) :
+    a * |b| = |a * b| := by
+  rw [abs_mul, abs_of_nonneg h]
+
+lemma abs_mul_of_nonneg {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : 0 ≤ b) :
+    |a| * b = |a * b| := by
+  rw [abs_mul, abs_of_nonneg h]
+
+lemma mul_abs_of_nonpos {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : a < 0) :
+    a * |b| = - |a * b| := by
+  rw (occs := [1]) [← sign_mul_abs a]
+  rw [abs_mul, neg_eq_neg_one_mul, mul_assoc]
+  congr; simp [h]
+
+lemma abs_mul_of_nonpos {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : b < 0) :
+    |a| * b = - |a * b| := by
+  rw (occs := [1]) [← sign_mul_abs b]
+  rw [abs_mul, neg_eq_neg_one_mul, ← mul_assoc, mul_comm |a| _, mul_assoc]
+  congr; simp [h]
+
+end abs
+
 open BigOperators ENNReal
 
 lemma Fintype.sum_inv_card (α : Type*) [Fintype α] [Nonempty α] :
@@ -180,6 +204,30 @@ def induction₂ {α β} {motive : {n : ℕ} → Vector α n → Vector β n →
       simpa [Vector.insertIdx] using
         v_insert hd ⟨⟨tl⟩, by simpa using hSize⟩ hd' ⟨⟨tl'⟩, by simpa using hSize'⟩
         (ih ⟨⟨tl⟩, by simpa using hSize⟩ ⟨⟨tl'⟩, by simpa using hSize'⟩)
+
+
+section add
+-- Define vector addition more generally
+
+instance {α : Type} {n : ℕ} [Add α] : Add (Vector α n) where
+  add v1 v2 := Vector.ofFn (v1.get + v2.get)
+
+instance {α : Type} {n : ℕ} [Zero α] : Zero (Vector α n) where
+  zero := Vector.ofFn (0)
+
+@[simp]
+theorem vectorofFn_get {α : Type} {n : ℕ} (v : Fin n → α) : (Vector.ofFn v).get = v := by
+  ext i
+  apply Vector.getElem_ofFn
+
+@[simp]
+theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
+ (vx : Vector α n) (vy : Vector α n)
+ : (vx + vy).get = vx.get + vy.get := by
+  show (Vector.ofFn (vx.get + vy.get)).get = vx.get + vy.get
+  simp
+
+end add
 
 end Vector
 

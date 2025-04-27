@@ -17,31 +17,6 @@ for asymmetric encryption using oracles in `spec`, with message space `M`,
 public/secret keys `PK` and `SK`, and ciphertext space `C`.
 -/
 
-section vectorAdd
--- Define vector addition more generally
-
-instance {α : Type} {n : ℕ} [Add α] : Add (Vector α n) where
-  add v1 v2 := Vector.ofFn (v1.get + v2.get)
-
-instance {α : Type} {n : ℕ} [Zero α] : Zero (Vector α n) where
-  zero := Vector.ofFn (0)
-
--- theorem addInst
-
-@[simp]
-theorem vectorofFn_get {α : Type} {n : ℕ} (v : Fin n → α) : (Vector.ofFn v).get = v := by
-  ext i
-  apply Vector.getElem_ofFn
-
-@[simp]
-theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
- (vx : Vector α n) (vy : Vector α n)
- : (vx + vy).get = vx.get + vy.get := by
-  show (Vector.ofFn (vx.get + vy.get)).get = vx.get + vy.get
-  simp
-
-end vectorAdd
-
 open OracleSpec OracleComp ENNReal
 
 universe u v w
@@ -223,9 +198,12 @@ Experiment for *one-time* IND-CPA security of an asymmetric encryption algorithm
 2. Run `adv.chooseMessages` on `pk` to get a pair of messages and a private state.
 3. The challenger then tosses a coin and encrypts one of the messages, returning the ciphertext `c`.
 4. Run `adv.distinguish` on the private state and the ciphertext to get a boolean.
-5. Check that the boolean is correct.
+5. Return a Boolean indicating whether the adversary's guess is correct.
+
+Note: we do _not_ want to end with a `guard` statement, as this can be biased by the adversary
+potentially always failing.
 -/
-def IND_CPA_OneTime_Game : ProbComp Unit :=
+def IND_CPA_OneTime_Game : ProbComp Bool :=
   encAlg.exec do
     let b : Bool ← encAlg.lift_probComp ($ᵗ Bool)
     let (pk, _) ← encAlg.keygen
@@ -233,7 +211,11 @@ def IND_CPA_OneTime_Game : ProbComp Unit :=
     let m := if b then m₁ else m₂
     let c ← encAlg.encrypt pk m
     let b' ← adv.distinguish state c
-    guard (b = b')
+    return b = b'
+
+noncomputable def IND_CPA_OneTime_Advantage (encAlg : AsymmEncAlg (OracleComp spec) M PK SK C)
+    (adv : IND_CPA_Adv encAlg) : ℝ :=
+  (IND_CPA_OneTime_Game (encAlg := encAlg) adv).advantage'
 
 -- TODO: prove one-time security implies general IND-CPA security
 

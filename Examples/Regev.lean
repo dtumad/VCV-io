@@ -59,49 +59,49 @@ lemma Fin_Bound_modulus {n : ℕ} (x : Fin n) : Fin_Bound x n := by
 lemma Fin_Bound_ge {n b₁ b₂ : ℕ} {x : Fin n} (h : Fin_Bound x b₁)
  (g : b₁ ≤ b₂) : Fin_Bound x b₂ := by
   cases h
-  . left; omega
-  . right; omega
+  · left; omega
+  · right; omega
 
 @[simp]
 lemma Fin_bound_zero {n : ℕ} (x : Fin n) : Fin_Bound x 0 ↔ x.val = 0:= by
   constructor <;> intro h
-  . rcases h with h | h
-    . omega
-    . simp at h
+  · rcases h with h | h
+    · omega
+    · simp at h
       linarith [x.isLt]
-  . left; linarith
+  · left; linarith
 
 @[simp]
 lemma Fin_Bound_add {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
  (h₂ : Fin_Bound y b₂) : Fin_Bound (x + y) (b₁ + b₂) := by
   rcases h₁ with h₁ | h₁
-  . rcases h₂ with h₂ | h₂
-    . left
+  · rcases h₂ with h₂ | h₂
+    · left
       rw [Fin.val_add_eq_ite]
       by_cases h : n ≤ x.val + y.val <;> simp [h] <;> linarith
-    . by_cases h : n ≤ x.val + y.val
-      . left
+    · by_cases h : n ≤ x.val + y.val
+      · left
         simp [Fin.val_add_eq_ite, h]
         linarith [y.isLt]
-      . right
+      · right
         simp [Fin.val_add_eq_ite, h]
         omega
-  . rcases h₂ with h₂ | h₂
-    . by_cases h : n ≤ x.val + y.val
-      . left
+  · rcases h₂ with h₂ | h₂
+    · by_cases h : n ≤ x.val + y.val
+      · left
         simp [Fin.val_add_eq_ite, h]
         linarith [x.isLt]
-      . right
+      · right
         simp [Fin.val_add_eq_ite, h]
         linarith [x.isLt]
-    . right
+    · right
       rw [Fin.val_add_eq_ite]
       by_cases h : n ≤ x.val + y.val <;> simp [h] <;> omega
 
 lemma Fin_bound_mul_helper {n b₁ b₂ : ℕ} {x y : Fin n} (h : b₁ * b₂ < n)
   (h₁ : x.val ≤ b₁) (h₂ : y.val + b₂ ≥ n) : Fin_Bound (x * y) (b₁ * b₂) := by
   by_cases g : x.val = 0
-  . left; simp [Fin.val_mul, g]
+  · left; simp [Fin.val_mul, g]
   right
   rw [Fin.val_mul]
   have hy : y.val < n := y.isLt
@@ -142,25 +142,25 @@ lemma Fin_bound_mul_helper {n b₁ b₂ : ℕ} {x y : Fin n} (h : b₁ * b₂ < 
 lemma Fin_Bound_mul {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
  (h₂ : Fin_Bound y b₂) : Fin_Bound (x * y) (b₁ * b₂) := by
   by_cases h : (b₁ * b₂) ≥ n
-  . apply Fin_Bound_ge (Fin_Bound_modulus (x * y)) h
+  · apply Fin_Bound_ge (Fin_Bound_modulus (x * y)) h
   simp at h
   rcases h₁ with h₁ | h₁
-  . rcases h₂ with h₂ | h₂
-    . left
+  · rcases h₂ with h₂ | h₂
+    · left
       rw [Fin.val_mul]
       apply le_trans (Nat.mod_le (x.val * y.val) n)
       trans x.val * b₂
-      . apply mul_le_mul_left' h₂
-      . apply mul_le_mul_right' h₁
-    . apply Fin_bound_mul_helper h h₁ h₂
-  . rcases h₂ with h₂ | h₂
-    . nth_rw 2 [mul_comm]
+      · apply mul_le_mul_left' h₂
+      · apply mul_le_mul_right' h₁
+    · apply Fin_bound_mul_helper h h₁ h₂
+  · rcases h₂ with h₂ | h₂
+    · nth_rw 2 [mul_comm]
       rw [mul_comm]
       rw [mul_comm] at h
       apply Fin_bound_mul_helper h h₂ h₁
-    . left
+    · left
       by_cases g : n = 0
-      . omega
+      · omega
       have g : NeZero n := ⟨by omega⟩
       generalize hx : Fin.sub n x = x'
       generalize hy : Fin.sub n y = y'
@@ -180,12 +180,12 @@ lemma Fin_Bound_mul {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
       rw [h5, Fin.val_mul]
       apply le_trans (Nat.mod_le (x'.val * y'.val) n)
       trans x'.val * b₂
-      . apply mul_le_mul_left'
+      · apply mul_le_mul_left'
         rw [←hy, Fin.sub, Fin.val]; simp
         apply le_trans (Nat.mod_le (n - ↑y) n)
         simp
         linarith
-      . apply mul_le_mul_right'
+      · apply mul_le_mul_right'
         rw [←hx, Fin.sub, Fin.val]; simp
         apply le_trans (Nat.mod_le (n - ↑x) n)
         simp
@@ -195,14 +195,14 @@ lemma Fin_Bound_mul {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
 lemma Fin_bound_neg {n b : ℕ} {x : Fin n} (h : Fin_Bound x b) :
   Fin_Bound (-x) b := by
   by_cases h0 : n = 0
-  . rw [h0] at x
+  · rw [h0] at x
     apply x.elim0
   have nnz : NeZero n := ⟨by omega⟩
   have : Fin_Bound (-(Fin.ofNat' n 1)) 1 := by
     right
     simp [Fin.coe_neg]
     by_cases h1 : n = 1
-    . simp [h1]
+    · simp [h1]
     push_neg at h0 h1
     rw [Nat.one_mod_eq_one.mpr h1]
     rw [Nat.mod_eq_of_lt] <;> omega
@@ -227,13 +227,13 @@ lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
     rw [Fin.univ_castSuccEmb]
     simp
     rw [Finset.sum_insert, add_comm]
-    . apply Fin_Bound_add
-      . simp
+    · apply Fin_Bound_add
+      · simp
         apply ih
         intro i
         rw [Fin.castLE]
         apply this
-      . apply this
+      · apply this
     simp
     intro ⟨i, hi⟩ hl
     rw [Fin.castLE, Fin.last] at hl
@@ -250,11 +250,11 @@ lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by 
 lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ) :
     Fin_Bound (Fin.castLE h a - (Fin.ofNat' p χ)) χ := by
   by_cases n0 : χ = 0
-  . have := Fin.le_val_last a
+  · have := Fin.le_val_last a
     simp [n0] at *
     trivial
   by_cases hv : a ≥ χ
-  . left
+  · left
     simp at *
     apply IntLE_imp_NatLE
     rw [Fin.intCast_val_sub_eq_sub_add_ite]
@@ -266,11 +266,11 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
       rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
     simp_all [this]
     trans 2 * χ
-    . norm_cast
+    · norm_cast
       have g := Fin.val_lt_of_le a (le_refl (2*χ + 1))
       omega
-    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
-  . right
+    · rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
+  · right
     simp at *
     apply IntLE_imp_NatLE; simp
     rw [Fin.intCast_val_sub_eq_sub_add_ite]; simp
@@ -283,7 +283,7 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
       simp at *
       rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
     rw [ite_cond_eq_false]
-    . rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
+    · rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
     simp_all [this]
 
 -- This lemma is no longer needed
@@ -326,7 +326,7 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
     rw [← mul_one χ, ← h2, ← h1]
     apply Fin_bound_neg
     apply Fin_bound_dotprod
-    . intro i
+    · intro i
       apply mem_support_vector_mapM.mp at h'
       have : err.get i = err[i.1] := by aesop
       rw [this]
@@ -335,28 +335,28 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
       obtain ⟨y, hy⟩ := this
       rw [← hy]
       exact Fin_bound_shift_cast herr
-    . intro i
+    · intro i
       simp [Vector.get]
   apply Fin_Bound_ge mask_bound at this
   cases msg <;> simp
-  . constructor <;> ring_nf <;> rw [h2] <;>
+  · constructor <;> ring_nf <;> rw [h2] <;>
     rcases this with h | h <;> rw [Fin.sub_def, Fin.val] <;> simp
-    . rw [Nat.mod_eq_of_lt]
-      . rw [Nat.mod_eq_of_lt] <;> omega
+    · rw [Nat.mod_eq_of_lt]
+      · rw [Nat.mod_eq_of_lt] <;> omega
       rw [Nat.mod_eq_of_lt] <;> omega
-    . rw [Nat.mod_eq_sub_mod]
-      . rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
+    · rw [Nat.mod_eq_sub_mod]
+      · rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
+      · rw [Nat.mod_eq_of_lt] <;> omega
+    · rw [Nat.mod_eq_of_lt]
+      · rw [Nat.mod_eq_of_lt] <;> omega
       rw [Nat.mod_eq_of_lt] <;> omega
-    . rw [Nat.mod_eq_of_lt]
-      . rw [Nat.mod_eq_of_lt] <;> omega
+    · rw [Nat.mod_eq_sub_mod]
+      · rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
       rw [Nat.mod_eq_of_lt] <;> omega
-    . rw [Nat.mod_eq_sub_mod]
-      . rw [Nat.mod_eq_of_lt] <;> rw [Nat.mod_eq_of_lt] <;> omega
-      rw [Nat.mod_eq_of_lt] <;> omega
-  . rw [h2]
+  · rw [h2]
     rcases this with h | h
-    . left; omega
-    . right; omega
+    · left; omega
+    · right; omega
 
 end correct
 
@@ -376,10 +376,10 @@ variable [NeZero m] {χ} {he: p > 4*(χ*m + 1)}
   -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
 -- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
 
-def Regev_Hybrid_0 : ProbComp Unit :=
+def Hybrid_0 : ProbComp Bool :=
   IND_CPA_OneTime_Game (encAlg := uniformRegevAsymmEnc n m p χ he) adv
 
-example : Regev_Hybrid_0 adv = IND_CPA_OneTime_Game (encAlg := uniformRegevAsymmEnc n m p χ he) adv := by
+example : Hybrid_0 adv = IND_CPA_OneTime_Game adv := by
   rfl
   -- simp [IND_CPA_OneTime_Game, regevAsymmEnc]
 
@@ -401,7 +401,7 @@ example : Regev_Hybrid_0 adv = IND_CPA_OneTime_Game (encAlg := uniformRegevAsymm
 --   if b = b' then pure () else failure
 
 -- In Hybrid 1, we sample u = A s + e randomly instead
-def Regev_Hybrid_1 : ProbComp Unit := do
+def Hybrid_1 : ProbComp Bool := do
   let b ←$ᵗ Bool
   let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
   let u ←$ᵗ Vector (Fin p) m
@@ -409,11 +409,29 @@ def Regev_Hybrid_1 : ProbComp Unit := do
   let c ← if b then (uniformRegevAsymmEnc n m p χ he).encrypt (A, u) m₁
     else (uniformRegevAsymmEnc n m p χ he).encrypt (A, u) m₂
   let b' ← adv.distinguish st c
-  guard (b = b')
+  return b = b'
 
 -- Hybrid 0 and Hybrid 1 are indistinguishable due to decisional LWE
 
-def Regev_Hybrid_2 : ProbComp Unit := do
+def Hybrid_01_Reduction : LWE_Adversary n m p := fun Au => do
+  let b ←$ᵗ Bool
+  let ⟨m₁, m₂, st⟩ ← adv.chooseMessages Au
+  let c ← if b then (uniformRegevAsymmEnc n m p χ he).encrypt Au m₁
+  else (uniformRegevAsymmEnc n m p χ he).encrypt Au m₂
+  let b' ← adv.distinguish st c
+  return b'
+
+/-- From an adversary that can distinguish between Hybrid 0 and Hybrid 1, we can construct an
+adversary that can distinguish between LWE and the uniform distribution. -/
+theorem Hybrid_0_ind_Hybrid_1 :
+    (Hybrid_0 adv).advantage' ≤ (Hybrid_1 adv).advantage'
+      + (LWE_Advantage n m p (uniformErrSamp χ (relax_p_bound he)) (Hybrid_01_Reduction adv)) := by
+  unfold LWE_Advantage ProbComp.advantage' Hybrid_0 Hybrid_1 Hybrid_01_Reduction
+    IND_CPA_OneTime_Game LWE_Experiment uniformRegevAsymmEnc
+  -- An absolute mess, need to refactor games
+  sorry
+
+def Hybrid_2 : ProbComp Bool := do
   let b ←$ᵗ Bool
   let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
   let u ←$ᵗ Vector (Fin p) m
@@ -422,25 +440,84 @@ def Regev_Hybrid_2 : ProbComp Unit := do
   let c₁ ←$ᵗ Vector (Fin p) n
   let c₂ ←$ᵗ Fin p
   let b' ← adv.distinguish st (c₁, c₂)
-  guard (b = b')
+  return b = b'
 
 -- Hybrid 1 and Hybrid 2 are indistinguishable due to the leftover hash lemma (or LWE itself)
 
--- def IND_CPA_regev_lwe_reduction (b : Bool)
---     (adversary : (regevAsymmEnc n m χ p he hm hp2).IND_CPA_Adv) :
---     Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m → ProbComp Bool := fun ⟨A, v⟩ => do
---   let so : QueryImpl (Bool × Bool →ₒ (Vector (Fin p) n) × (Fin p)) ProbComp := ⟨fun (query () (m₁, m₂)) =>
---     (regevAsymmEnc n m χ p he hm hp2).encrypt ⟨A, v⟩ (if b then m₁ else m₂)⟩
---   simulateQ (idOracle ++ₛₒ so) (adversary.distinguish (⟨A, v⟩))
+-- In other words, we will reduce to the fact that `(A.mulVec x, dotProd u x)` is statistically indistinguishable from random
 
--- theorem Regev_IND_CPA {encAlg : AsymmEncAlg (OracleComp spec) M PK SK C}
---     {adv : IND_CPA_Adv (spec := spec) encAlg} :
---     IND_CPA_Advantage adv ≤ LWE_Advantage (Reduction adv) := by sorry
+section LHL
 
--- Want to show:
--- ∀ adv in hybrid 0,
-  -- advantage (hybrid 0, adv) ≤ advantage (hybrid 1, reduction1 (adv)) + advantage (LWE game, ...)
--- ∀ adv in hybrid 1, advantage (hybrid 1, adv) ≤ advantage (hybrid 2, reduction2 (adv))
+-- TODO: define & prove the leftover hash lemma in the most generality
+-- For now, just state the downstream consequence that we will need
+
+def LHL_Consequence_Adv (n p : ℕ) := (Vector (Fin p) n) × (Fin p) → ProbComp Bool
+
+def LHL_Consequence_Game_0 (adv : LHL_Consequence_Adv n p) : ProbComp Bool := do
+  let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
+  let u ←$ᵗ Vector (Fin p) m
+  let r2 ←$ᵗ Vector (Fin 2) m
+  let r := (r2.map (Fin.castLE hp2.one_lt)).get
+  adv (Vector.ofFn (Matrix.mulVec A r), dotProduct u.get r)
+
+def LHL_Consequence_Game_1 (adv : LHL_Consequence_Adv n p) : ProbComp Bool := do
+  let x ←$ᵗ Vector (Fin p) n
+  let y ←$ᵗ Fin p
+  adv (x, y)
+
+noncomputable def LHL_Consequence_Advantage (adv : LHL_Consequence_Adv n p) : ℝ :=
+  (LHL_Consequence_Game_0 (m := m) adv).advantage₂' (LHL_Consequence_Game_1 adv)
+
+end LHL
+
+def Hybrid_12_Reduction : LHL_Consequence_Adv n p := fun x => do
+  let b ←$ᵗ Bool
+  let A ←$ᵗ Matrix (Fin n) (Fin m) (Fin p)
+  let u ←$ᵗ Vector (Fin p) m
+  let ⟨_, _, st⟩ ← adv.chooseMessages (A, u)
+  let b' ← adv.distinguish st x
+  return b = b'
+
+theorem Hybrid_1_ind_Hybrid_2 :
+    (Hybrid_1 adv).advantage' ≤ (Hybrid_2 adv).advantage'
+      + (LHL_Consequence_Advantage (m := m) (Hybrid_12_Reduction adv)) := by
+  unfold LHL_Consequence_Advantage Hybrid_1 Hybrid_2 Hybrid_12_Reduction
+    LHL_Consequence_Game_0 LHL_Consequence_Game_1 ProbComp.advantage' ProbComp.advantage₂'
+    uniformRegevAsymmEnc regevAsymmEnc
+  simp
+  -- rw [probOutput_false_eq_probOutput_true_not]
+  conv_lhs =>
+    rw [probOutput_bind_eq_sum_fintype, probOutput_bind_eq_sum_fintype]
+    simp
+  -- Still a mess...
+  sorry
+
+-- Finally, Hybrid 2's advantage is zero, since `b` is uniform and have nothing to do with other variables
+theorem Hybrid_2_advantage_zero : (Hybrid_2 adv).advantage' = 0 := by
+  unfold ProbComp.advantage' Hybrid_2
+  simp [sub_eq_zero, probOutput_false_eq_probOutput_true_not, probOutput_bind_eq_sum_fintype]
+  rw [add_comm]
+
+-- Putting everything together, we get that the IND-CPA advantage of Regev is at most the sum of:
+-- (1) the LWE advantage
+-- (2) the LHL consequence advantage
+
+theorem IND_CPA_advantage_le :
+  IND_CPA_OneTime_Advantage (encAlg := uniformRegevAsymmEnc n m p χ he) adv ≤
+    (LWE_Advantage n m p (uniformErrSamp χ (relax_p_bound he)) (Hybrid_01_Reduction adv))
+      + (LHL_Consequence_Advantage (m := m) (Hybrid_12_Reduction adv)) := by
+  calc
+    _ = (Hybrid_0 adv).advantage' := rfl
+    _ ≤ (Hybrid_1 adv).advantage' +
+          (LWE_Advantage n m p (uniformErrSamp χ (relax_p_bound he)) (Hybrid_01_Reduction adv)) :=
+        Hybrid_0_ind_Hybrid_1 adv
+    _ ≤ (Hybrid_2 adv).advantage' +
+          (LHL_Consequence_Advantage (m := m) (Hybrid_12_Reduction adv)) +
+          (LWE_Advantage n m p (uniformErrSamp χ (relax_p_bound he)) (Hybrid_01_Reduction adv)) := by
+        gcongr
+        exact Hybrid_1_ind_Hybrid_2 adv
+    _ = _ := by
+        rw [Hybrid_2_advantage_zero, zero_add, add_comm]
 
 end security
 

@@ -413,6 +413,21 @@ instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (F
 
 end instances
 
+section bool
+
+-- TODO: generalize this lemma
+/--
+Given an independent probabilistic computation `ob : ProbComp Bool`, the probability that its
+output `b'` differs from a uniformly chosen boolean `b` is the same as the probability that they
+are equal. In other words, `P(b ≠ b') = P(b = b')` where `b` is uniform.
+-/
+lemma probOutput_uniformBool_not_decide_eq_decide {ob : ProbComp Bool} :
+    [= true | do let b ←$ᵗ Bool; let b' ← ob; return !decide (b = b')] =
+      [= true | do let b ←$ᵗ Bool; let b' ← ob; return decide (b = b')] := by
+  simp [probOutput_bind_eq_sum_fintype, add_comm]
+
+end bool
+
 end SelectableType
 
 end OracleComp
