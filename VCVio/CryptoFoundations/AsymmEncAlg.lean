@@ -223,9 +223,12 @@ Experiment for *one-time* IND-CPA security of an asymmetric encryption algorithm
 2. Run `adv.chooseMessages` on `pk` to get a pair of messages and a private state.
 3. The challenger then tosses a coin and encrypts one of the messages, returning the ciphertext `c`.
 4. Run `adv.distinguish` on the private state and the ciphertext to get a boolean.
-5. Check that the boolean is correct.
+5. Return a Boolean indicating whether the adversary's guess is correct.
+
+Note: we do _not_ want to end with a `guard` statement, as this can be biased by the adversary
+potentially always failing.
 -/
-def IND_CPA_OneTime_Game : ProbComp Unit :=
+def IND_CPA_OneTime_Game : ProbComp Bool :=
   encAlg.exec do
     let b : Bool ← encAlg.lift_probComp ($ᵗ Bool)
     let (pk, _) ← encAlg.keygen
@@ -233,7 +236,11 @@ def IND_CPA_OneTime_Game : ProbComp Unit :=
     let m := if b then m₁ else m₂
     let c ← encAlg.encrypt pk m
     let b' ← adv.distinguish state c
-    guard (b = b')
+    return b = b'
+
+noncomputable def IND_CPA_OneTime_Advantage (encAlg : AsymmEncAlg (OracleComp spec) M PK SK C)
+    (adv : IND_CPA_Adv encAlg) : ℝ :=
+  (IND_CPA_OneTime_Game (encAlg := encAlg) adv).advantage'
 
 -- TODO: prove one-time security implies general IND-CPA security
 
