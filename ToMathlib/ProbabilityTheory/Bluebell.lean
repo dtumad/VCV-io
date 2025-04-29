@@ -65,8 +65,34 @@ example : valid x → equiv x (y₁ * y₂) → ∃ z₁ z₂, equiv x (z₁ * z
 
 end DiscreteCMRA
 
--- /-- A discrete CMRA can be converted to a regular CMRA -/
-instance DiscreteCMRA.instCMRA (α : Type*) [DiscreteCMRA α] : CMRA α := sorry
+instance DiscreteCMRA.instOFE (α : Type*) [DiscreteCMRA α] : OFE α where
+  Equiv := equiv
+  Dist := fun _ ↦ equiv
+  dist_eqv := by simp [DiscreteCMRA.is_equiv]
+  equiv_dist := by simp
+  dist_lt := fun h _ ↦ h
+
+/-- A discrete CMRA can be converted to a regular CMRA -/
+instance DiscreteCMRA.instCMRA {α : Type*} [DiscreteCMRA α] : CMRA α :=
+  { 
+    pcore := pcore
+    op := (·*·)
+    validN := fun _ x ↦ valid x
+    valid := valid
+    op_ne := ⟨fun _ _ _ h ↦ mul_equiv h⟩
+    pcore_ne := pcore_equiv
+    validN_ne := valid_equiv
+    valid_validN := by simp
+    validN_succ := by simp
+    assoc := by simp [mul_assoc]
+    comm := by simp [mul_comm]
+    pcore_l := pcore_left
+    pcore_idem := λ h ↦ by obtain ⟨_, h₁, h₂⟩ := pcore_equiv (pcore_idem h) h
+                           exact h₁ ▸ OFE.Equiv.symm h₂
+    pcore_mono' := pcore_mono'
+    validN_op_l := valid_mul
+    extend {_ _ y₁ y₂ _ _} := by use y₁, y₂; simpa
+  }
 
 -- class DiscreteUnitalCMRA (α : Type*) extends DiscreteCMRA α, One α where
 
