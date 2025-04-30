@@ -40,6 +40,8 @@ lean_lib LibSodium
 /-- Main function for testing -/
 lean_exe test where root := `Test
 
+lean_exe regev_bench where root := `RegevBench
+
 -- /-- Runnable implementations of specific cryptographic algorithms.
 -- Set `precompileModules` in order to allow execution of external code. -/
 -- lean_lib Implementations where
