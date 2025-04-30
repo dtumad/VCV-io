@@ -45,10 +45,54 @@ class DiscreteCMRA (α : Type*) extends CommSemigroup α, Valid α where
   -- TODO: check whether these are stated correctly
   valid_equiv {x y} : equiv x y → valid x → valid y
   valid_mul {x y} : valid (x * y) → valid x
-  valid_extend {x y₁ y₂} : valid x → equiv x (y₁ * y₂) → ∃ z₁ z₂, equiv x (z₁ * z₂) ∧ valid z₁ ∧ valid z₂
 
--- /-- A discrete CMRA can be converted to a regular CMRA -/
-instance DiscreteCMRA.instCMRA (α : Type*) [DiscreteCMRA α] : CMRA α := sorry
+section DiscreteCMRA
+
+variable {α : Type*} [DiscreteCMRA α] {x y₁ y₂ : α}
+open DiscreteCMRA
+
+lemma valid_extend : valid x → equiv x (y₁ * y₂) → ∃ z₁ z₂, equiv x (z₁ * z₂) := by tauto
+
+lemma valid_l_of_equiv_mul (h₁ : valid x) (h₂ : equiv x (y₁ * y₂)) : valid y₁ :=
+                           valid_mul (valid_equiv h₂ h₁)
+
+lemma valid_r_of_equiv_mul (h₁ : valid x) (h₂ : equiv x (y₁ * y₂)) : valid y₂ :=
+                           valid_mul (valid_equiv (mul_comm y₁ y₂ ▸ h₂) h₁)
+
+example : valid x → equiv x (y₁ * y₂) → ∃ z₁ z₂, equiv x (z₁ * z₂) ∧ valid z₁ ∧ valid z₂ :=
+  λ h₁ h₂ ↦ let ⟨z₁, z₂, h⟩ := valid_extend h₁ h₂
+            ⟨z₁, z₂, h, valid_l_of_equiv_mul h₁ h, valid_r_of_equiv_mul h₁ h⟩
+
+end DiscreteCMRA
+
+instance DiscreteCMRA.instOFE (α : Type*) [DiscreteCMRA α] : OFE α where
+  Equiv := equiv
+  Dist := fun _ ↦ equiv
+  dist_eqv := by simp [DiscreteCMRA.is_equiv]
+  equiv_dist := by simp
+  dist_lt := fun h _ ↦ h
+
+/-- A discrete CMRA can be converted to a regular CMRA -/
+instance DiscreteCMRA.instCMRA {α : Type*} [DiscreteCMRA α] : CMRA α :=
+  { 
+    pcore := pcore
+    op := (·*·)
+    validN := fun _ x ↦ valid x
+    valid := valid
+    op_ne := ⟨fun _ _ _ h ↦ mul_equiv h⟩
+    pcore_ne := pcore_equiv
+    validN_ne := valid_equiv
+    valid_validN := by simp
+    validN_succ := by simp
+    assoc := by simp [mul_assoc]
+    comm := by simp [mul_comm]
+    pcore_l := pcore_left
+    pcore_idem := λ h ↦ by obtain ⟨_, h₁, h₂⟩ := pcore_equiv (pcore_idem h) h
+                           exact h₁ ▸ OFE.Equiv.symm h₂
+    pcore_mono' := pcore_mono'
+    validN_op_l := valid_mul
+    extend {_ _ y₁ y₂ _ _} := by use y₁, y₂; simpa
+  }
 
 -- class DiscreteUnitalCMRA (α : Type*) extends DiscreteCMRA α, One α where
 
