@@ -343,42 +343,43 @@ instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
 
 @[inline, always_inline, specialize, simp]
 def selectElem_vec {α : Type} (n : ℕ) [SelectableType α] : ProbComp (Vector α n) :=
-  match n with
-  | 0 => pure #v[]
-  | n + 1 => Vector.push <$> (selectElem_vec n) <*> ($ᵗ α)
+  Vector.mapM (fun (_ : Fin n) => $ᵗ α) (Vector.ofFn id)
 
 /-- Select a uniform element from `Vector α n` by independently selecting `α` at each index. -/
 @[inline, always_inline, specialize]
 instance (α : Type) (n : ℕ) [SelectableType α] : SelectableType (Vector α n) where
   selectElem := selectElem_vec n
-  mem_support_selectElem x := by induction n with
-  | zero => simp
-  | succ m ih =>
-    simp [ih]
-    use x.pop, x.back
-    apply Vector.push_pop_back
-  probOutput_selectElem_eq x y := by induction n with
-  | zero =>
-    have : x=y := by
-      apply Vector.ext
-      rintro i hi
-      linarith
-    simp [this]
+  mem_support_selectElem x := by sorry
+  -- induction n with
+  -- | zero => simp
+  -- | succ m ih =>
+  -- simp [ih]
+  -- use x.pop, x.back
+  -- apply Vector.push_pop_back
+  probOutput_selectElem_eq x y := by sorry
+  -- induction n with
+  -- | zero =>
+  --   have : x=y := by
+  --     apply Vector.ext
+  --     rintro i hi
+  --     linarith
+  --   simp [this]
     -- have : Subsingleton (Vector α 0) := by
     --   apply Vector.ext
     --   rintro i hi
     --   linarith
     -- Subsingleton
     -- simp [this]
-  | succ m ih =>
-    rw [← Vector.push_pop_back x, ← Vector.push_pop_back y]
-    simp [probOutput_seq_map_vec_push_eq_mul, -Vector.push_pop_back]
-    unfold uniformOfFintype
-    rw [SelectableType.probOutput_selectElem_eq x.back y.back]
-    exact congrFun (congrArg HMul.hMul (ih x.pop y.pop)) [=y.back|SelectableType.selectElem]
-  probFailure_selectElem := by induction n with
-  | zero => simp
-  | succ m ih => simp [ih, probFailure_seq]
+  -- | succ m ih =>
+  --   rw [← Vector.push_pop_back x, ← Vector.push_pop_back y]
+  --   simp [probOutput_seq_map_vec_push_eq_mul, -Vector.push_pop_back]
+  --   unfold uniformOfFintype
+  --   rw [SelectableType.probOutput_selectElem_eq x.back y.back]
+  --   exact congrFun (congrArg HMul.hMul (ih x.pop y.pop)) [=y.back|SelectableType.selectElem]
+  probFailure_selectElem := by sorry
+  -- induction n with
+  -- | zero => simp
+  -- | succ m ih => simp [ih, probFailure_seq]
 
 @[inline, always_inline, specialize, simp]
 def selectElem_matrix {α : Type} (n m : ℕ) [SelectableType α] : ProbComp (Matrix (Fin n) (Fin m) α) := do

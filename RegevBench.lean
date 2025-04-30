@@ -13,12 +13,43 @@ def main : IO Unit := do
   have hp2 : Nat.Prime p := by native_decide -- Assuming p is prime for Fin p field/ring ops if needed
   have he : p > 4 * (χ * m + 1) := by norm_num
   have hχ : p > 2 * χ := relax_p_bound he
+  have p_atleasttwo : Nat.AtLeastTwo p := ⟨by simp [p]⟩
 
   -- Extract the error sampling function from the scheme definition if needed
   -- Or define a compatible one here for benchmarking
   let errSampKG : ProbComp (Fin p) := uniformErrSamp χ hχ -- Assuming this is the error sampler used in uniformRegevAsymmEnc
 
-  let iterations := 10
+  -- -- *** Vector/Matrix Sampling Benchmark ***
+  -- IO.println "--- Running Sampling Benchmark ---"
+  -- IO.println s!"Parameters: n={n}, m={m}, n*m={n*m}, p={p}"
+
+  -- -- 1. Time Vector sampling (size m)
+  -- let vec_m_start ← IO.monoNanosNow
+  -- let _v_m ← $ᵗ Vector (Fin p) m
+  -- let vec_m_end ← IO.monoNanosNow
+  -- let vec_m_time_ns := vec_m_end - vec_m_start
+  -- IO.println s!"Time to sample Vector ({m} elements): {vec_m_time_ns / 1000} µs"
+
+  -- -- 2. Time Vector sampling (size n * m)
+  -- let vec_nm_start ← IO.monoNanosNow
+  -- let _v_nm ← $ᵗ Vector (Fin p) (n * m)
+  -- let vec_nm_end ← IO.monoNanosNow
+  -- let vec_nm_time_ns := vec_nm_end - vec_nm_start
+  -- IO.println s!"Time to sample Vector ({n*m} elements): {vec_nm_time_ns / 1000} µs"
+
+  -- -- 3. Time Matrix sampling (size n x m)
+  -- let mat_nm_start ← IO.monoNanosNow
+  -- let _mat_nm ← $ᵗ Matrix (Fin n) (Fin m) (Fin p)
+  -- let mat_nm_end ← IO.monoNanosNow
+  -- let mat_nm_time_ns := mat_nm_end - mat_nm_start
+  -- IO.println s!"Time to sample Matrix ({n}x{m} = {n*m} elements): {mat_nm_time_ns / 1000} µs"
+
+  -- IO.println "--- Sampling Benchmark Complete. Exiting. ---"
+  -- IO.Process.exit 0 -- Exit after the sampling benchmark
+
+  -- The rest of the original Regev benchmark code is below but will not be reached.
+
+  let iterations := 5
   let mut keygen_A_time := 0
   let mut keygen_s_time := 0
   let mut keygen_e_time := 0
@@ -63,7 +94,6 @@ def main : IO Unit := do
 
     let enc_r_start ← IO.monoNanosNow
     let r_fin2 ← $ᵗ Vector (Fin 2) m
-    have p_atleasttwo : Nat.AtLeastTwo p := ⟨by simp [p]⟩
     let r := r_fin2.map (Fin.castLE p_atleasttwo.one_lt)
     let enc_r_end ← IO.monoNanosNow
     encrypt_r_time := encrypt_r_time + (enc_r_end - enc_r_start)
