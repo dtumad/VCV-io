@@ -9,6 +9,7 @@ def uniformErrSamp {p : ℕ} (χ : ℕ) (hχ : p > 2*χ) : ProbComp (Fin p) := d
   return (Fin.castLE hχ e) - χ
 
 /-- General form of the Regev encryption scheme, with a custom error sampling distribution -/
+@[inline, always_inline, specialize]
 def regevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] (errSampKG : ProbComp (Fin p)) :
     AsymmEncAlg ProbComp (M := Bool) (PK := Matrix (Fin n) (Fin m) (Fin p) × Vector (Fin p) m)
      (SK := Vector (Fin p) n) (C := Vector (Fin p) n × Fin p) where
@@ -37,6 +38,7 @@ lemma relax_p_bound {p χ m: ℕ} [hm : NeZero m] (h : p > 4 * (χ * m + 1)) : p
     rw [← mul_assoc]
     exact Nat.le_mul_of_pos_right (2 * χ) hm.one_le
 
+@[inline, always_inline, specialize]
 def uniformRegevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] [NeZero m] (χ : ℕ) (he : p > 4*(χ*m + 1)) :=
   regevAsymmEnc n m p (uniformErrSamp χ (relax_p_bound he))
 

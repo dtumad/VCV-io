@@ -341,11 +341,16 @@ instance (n : ℕ) [hn : NeZero n] : SelectableType (Fin n) where
   probOutput_selectElem_eq x y := by simp [probOutput_eqRec]
   probFailure_selectElem := by simp
 
+@[inline, always_inline, specialize, simp]
+def selectElem_vec {α : Type} (n : ℕ) [SelectableType α] : ProbComp (Vector α n) :=
+  match n with
+  | 0 => pure #v[]
+  | n + 1 => Vector.push <$> (selectElem_vec n) <*> ($ᵗ α)
+
 /-- Select a uniform element from `Vector α n` by independently selecting `α` at each index. -/
+@[inline, always_inline, specialize]
 instance (α : Type) (n : ℕ) [SelectableType α] : SelectableType (Vector α n) where
-  selectElem := by induction n with
-  | zero => exact pure #v[]
-  | succ m ih => exact Vector.push <$> ih <*> ($ᵗ α)
+  selectElem := selectElem_vec n
   mem_support_selectElem x := by induction n with
   | zero => simp
   | succ m ih =>
@@ -375,17 +380,19 @@ instance (α : Type) (n : ℕ) [SelectableType α] : SelectableType (Vector α n
   | zero => simp
   | succ m ih => simp [ih, probFailure_seq]
 
-/-- Select a uniform element from `Matrix α n` by independently selecting `α` at each index. -/
-instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (Fin n) (Fin m) α) where
-  -- selectElem := (fun x ↦ (fun i j ↦ x)) <$> ($ᵗ α)
-  selectElem := by induction n with
-  | zero => exact pure (Matrix.of ![])
-  | succ n ihn => exact do
+@[inline, always_inline, specialize, simp]
+def selectElem_matrix {α : Type} (n m : ℕ) [SelectableType α] : ProbComp (Matrix (Fin n) (Fin m) α) :=
+  match n with
+  | 0 => pure (Matrix.of ![])
+  | n + 1 => do
     let top ← $ᵗ Vector α m
-    let bot ← ihn
-    -- return Matrix.of (Fin.snoc top bot.get)
+    let bot ← selectElem_matrix n m
     return Fin.cons top.get bot
-    -- return (Matrix.of (fun i j ↦ if h : i ≠ Fin.last n then top (Fin.castPred i h) j else bot[j]))
+
+/-- Select a uniform element from `Matrix α n` by independently selecting `α` at each index. -/
+@[inline, always_inline, specialize]
+instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (Fin n) (Fin m) α) where
+  selectElem := selectElem_matrix n m
   mem_support_selectElem x := by induction n with
   | zero =>
     apply Matrix.ext
