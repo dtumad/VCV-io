@@ -6,7 +6,6 @@ Authors: Quang Dao
 
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import ToMathlib.Control.MonadTransformer
-import ToMathlib.Control.LawfulFailure
 
 /-!
 # Coupling for probability distributions

@@ -1,13 +1,9 @@
-import ToMathlib.Control
 import ToMathlib.Control.AlternativeMonad
 import ToMathlib.Control.FreeMonad
-import ToMathlib.Control.Lawful
 import ToMathlib.Control.Lawful.MonadControl
 import ToMathlib.Control.Lawful.MonadFunctor
-import ToMathlib.Control.Lawful.MonadLift
 import ToMathlib.Control.Lawful.MonadReader
 import ToMathlib.Control.Lawful.MonadState
-import ToMathlib.Control.LawfulFailure
 import ToMathlib.Control.MonadAlgebra
 import ToMathlib.Control.MonadHom
 import ToMathlib.Control.MonadRelation
@@ -18,5 +14,11 @@ import ToMathlib.Control.RelativeMonad
 import ToMathlib.Control.StateT
 import ToMathlib.Control.WriterT
 import ToMathlib.General
+import ToMathlib.OrderEnrichedCategory
+import ToMathlib.PFunctor.Basic
+import ToMathlib.PFunctor.Category
+import ToMathlib.PFunctor.Chart
+import ToMathlib.PFunctor.Free
+import ToMathlib.PFunctor.Lens
 import ToMathlib.ProbabilityTheory.Bluebell
 import ToMathlib.ProbabilityTheory.Coupling

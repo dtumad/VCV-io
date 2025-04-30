@@ -25,7 +25,7 @@ package VCVio where
     ++ vcvLinters.map fun s ↦
       { s with name := `weak ++ s.name }
 
-require "leanprover-community" / "mathlib" @ git "v4.18.0-rc1"
+require "leanprover-community" / "mathlib" @ git "v4.18.0"
 
 require iris from git "https://github.com/leanprover-community/iris-lean"
 

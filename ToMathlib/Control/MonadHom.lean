@@ -5,13 +5,19 @@ Authors: Devon Tuma
 -/
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import ToMathlib.Control.MonadAlgebra
-import ToMathlib.Control.Lawful.MonadLift
+import Batteries.Control.Lawful.MonadLift
 
 /-!
 # Morphisms Between Monads
 -/
 
 universe u v w
+
+class IsMonadHom (m : Type u → Type v) [Pure m] [Bind m]
+    (n : Type u → Type w) [Pure n] [Bind n]
+    (f : {α : Type u} → m α → n α) where
+  map_pure {α} (x : α) : f (pure x) = pure x
+  map_bind {α β} (x : m α) (y : α → m β) : f (x >>= y) = f x >>= f ∘ y
 
 /-- Structure to represent a well-behaved mapping between computations in two monads `m` and `n`.
 This is similar to `MonadLift` but isn't a type-class but rather an actual object.
@@ -25,6 +31,12 @@ structure MonadHom (m : Type u → Type v) [Pure m] [Bind m]
     toFun (x >>= y) = toFun x >>= (fun a => toFun (y a))
 
 infixr:25 " →ᵐ " => MonadHom
+
+instance (m : Type u → Type v) [Pure m] [Bind m]
+    (n : Type u → Type w) [Pure n] [Bind n] (F : m →ᵐ n) :
+    IsMonadHom m n F.toFun where
+  map_pure := F.toFun_pure'
+  map_bind := F.toFun_bind'
 
 /-- View a monad map as a function between computations. Note we can't have a full
 `FunLike` instance because the type parameter `α` isn't constrained by the types. -/

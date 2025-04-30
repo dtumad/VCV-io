@@ -2,12 +2,21 @@
 /-
 Copyright (c) 2024 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Devon Tuma
+Authors: Devon Tuma, Quang Dao
 -/
+
 import ToMathlib.Control.MonadHom
+import Mathlib.Data.PFunctor.Univariate.Basic
+import Mathlib.Data.ENat.Lattice
 
 /-!
-# Free Monad of a Functor
+# Free Monads
+
+This file defines the free monad on an _arbitrary_ mapping `f : Type u → Type v`.
+This has the undesirable property of raising the universe level by 1, which means we can't pass
+a `FreeMonad f` object as a continuation into an interactive protocol.
+
+See `PFunctor.FreeM` for the free monad of a polynomial functor, which does not raise the universe level.
 -/
 
 universe u v w
@@ -157,10 +166,10 @@ lemma mapM'_lift [Monad m] [LawfulMonad m]
   simp [FreeMonad.mapM', FreeMonad.lift, FreeMonad.mapM_aux]
 
 /-- Canonical mapping of a free monad into any other monad, given a map on the base functor, -/
-protected def mapM [Pure m] [Bind m] (s : {α : Type u} → f α → m α) :
-    (oa : FreeMonad f α) → m α
-  | .pure x => pure x
-  | .roll x r => s x >>= λ u ↦ (r u).mapM s
+protected def mapM [Pure m] [Bind m] :
+    (oa : FreeMonad f α) → (s : {α : Type u} → f α → m α) → m α
+  | .pure x, _ => pure x
+  | .roll x r, s => s x >>= λ u ↦ (r u).mapM s
 
 variable [Monad m]
 
@@ -184,5 +193,77 @@ end mapM
 -- def prePostFree {f} {α β} (pre : α → Prop) (post : α × β → Prop) : FreeMonad f Prop → Prop
 --   | FreeMonad.pure x => x
 --   | FreeMonad.roll x r => ∃ inp, pre inp ∧ ∀ out, post (inp, out) → prePostFree pre post (r out)
+
+section depth
+
+/-- The depth of a free monad as a potentially infinite natural number, defined recursively as the
+  maximum depth of its children. -/
+noncomputable def depth : FreeMonad f α → ℕ∞
+  | .pure _ => 0
+  | .roll _ r => 1 + iSup (λ u ↦ depth (r u))
+
+@[simp]
+lemma depth_pure {x : α} : depth (pure x : FreeMonad f α) = 0 := rfl
+
+@[simp]
+lemma depth_pure' {x : α} : depth (FreeMonad.pure x : FreeMonad f α) = 0 := rfl
+
+@[simp]
+lemma depth_roll {x : f α} {r : α → FreeMonad f β} :
+    depth (roll x r : FreeMonad f β) = 1 + iSup (λ u ↦ depth (r u)) := rfl
+
+@[simp]
+noncomputable def depthBindAux {f : Type u → Type v} {α β : Type u} :
+    FreeMonad f α → (α → FreeMonad f β) → ℕ∞
+  | .pure x, g => depth (g x)
+  | .roll _ r, g => 1 + iSup (λ u ↦ depthBindAux (r u) g)
+
+/-- The depth of a bind computation can be defined _exactly_ using the definition of bind (but might not be very revealing) -/
+lemma depth_bind_eq {x : FreeMonad f α} {g : α → FreeMonad f β} :
+    depth (x >>= g) = depthBindAux x g := by
+  induction x using FreeMonad.inductionOn with
+  | pure x => simp [depthBindAux]
+  | roll x r hr => simp_all [depthBindAux, FreeMonad.monad_bind_def]
+
+lemma depth_bind_le {x : FreeMonad f α} {g : α → FreeMonad f β} :
+    depth (x >>= g) ≤ depth x + iSup (λ u ↦ depth (g u)) := by
+  induction x using FreeMonad.inductionOn with
+  | pure x => simp; exact le_iSup_iff.mpr fun b a ↦ a x
+  | roll x r hr =>
+    simp_all
+    calc
+      _ ≤ 1 + ⨆ u, (r u).depth + ⨆ v, (g v).depth := by
+        gcongr; exact hr _
+      _ ≤ 1 + (⨆ u, (r u).depth) + ⨆ v, (g v).depth := by
+        rw [add_assoc]
+        gcongr; simp; intro b; gcongr; exact le_iSup_iff.mpr fun b_1 a ↦ a b
+
+lemma depth_eq_zero_iff {x : FreeMonad f α} : depth x = 0 ↔ ∃ y, x = pure y := by
+  induction x using FreeMonad.inductionOn with
+  | pure y => simp
+  | roll x r hr => simp [hr]
+
+lemma depth_eq_one_iff {x : FreeMonad f α} : depth x = 1 ↔
+    (∃ (β : Type u) (y : f β) (r : β → FreeMonad f α), x = roll y r ∧ ∀ u, depth (r u) = 0) := by
+  induction x using FreeMonad.inductionOn with
+  | pure x' => simp
+  | roll y r _hr =>
+    rename_i β
+    simp
+    constructor <;> intro h
+    -- Why is this so painful?
+    · have hNeTop : ⨆ u, (r u).depth ≠ ⊤ := by
+        have : ⨆ u, (r u).depth ≤ 1 := le_of_add_le_right (le_of_eq h)
+        exact ne_top_of_le_ne_top (by simp) this
+      have : (1 + ⨆ u, (r u).depth).toNat = 1 := by exact
+        (ENat.toNat_eq_iff_eq_coe (1 + ⨆ u, (r u).depth) 1).mpr h
+      rw [ENat.toNat_add (by simp) hNeTop] at this
+      simp [hNeTop] at this
+      refine ⟨β, y, r, ⟨⟨rfl, by simp, by simp⟩, this⟩⟩
+    · obtain ⟨β', y_1, r_1, ⟨⟨hβ, hy, hr⟩, hr'⟩⟩ := h
+      subst hβ hy hr
+      simp [hr']
+
+end depth
 
 end FreeMonad
