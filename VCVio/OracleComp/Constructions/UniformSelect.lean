@@ -381,42 +381,47 @@ instance (α : Type) (n : ℕ) [SelectableType α] : SelectableType (Vector α n
   | succ m ih => simp [ih, probFailure_seq]
 
 @[inline, always_inline, specialize, simp]
-def selectElem_matrix {α : Type} (n m : ℕ) [SelectableType α] : ProbComp (Matrix (Fin n) (Fin m) α) :=
-  match n with
-  | 0 => pure (Matrix.of ![])
-  | n + 1 => do
-    let top ← $ᵗ Vector α m
-    let bot ← selectElem_matrix n m
-    return Fin.cons top.get bot
+def selectElem_matrix {α : Type} (n m : ℕ) [SelectableType α] : ProbComp (Matrix (Fin n) (Fin m) α) := do
+  let flatten ← $ᵗ Vector α (n * m)
+  return Matrix.of (fun i j ↦ flatten[i * m + j]'(by sorry))
+  -- match n with
+  -- | 0 => pure (Matrix.of ![])
+  -- | n + 1 => do
+  --   let top ← $ᵗ Vector α m
+  --   let bot ← selectElem_matrix n m
+  --   return Fin.cons top.get bot
 
 /-- Select a uniform element from `Matrix α n` by independently selecting `α` at each index. -/
 @[inline, always_inline, specialize]
 instance (α : Type) (n m : ℕ) [SelectableType α] : SelectableType (Matrix (Fin n) (Fin m) α) where
   selectElem := selectElem_matrix n m
-  mem_support_selectElem x := by induction n with
-  | zero =>
-    apply Matrix.ext
-    rintro i j
-    exact False.elim (IsEmpty.false i)
-  | succ p ih =>
-    simp at *
-    use Vector.ofFn (x 0), (Fin.tail x); constructor
-    simp [ih]
-    have : (Vector.ofFn (x 0)).get = x 0 := by
-      ext i
-      simp [Vector.get]
-    simp [Fin.cons_self_tail, this]
-  probOutput_selectElem_eq x y := by induction n with
-  | zero =>
-    simp
-    sorry
-  | succ m ih =>
-    sorry
-  probFailure_selectElem := by induction n with
-  | zero => simp
-  | succ m ih =>
-    simp [ih, probFailure_seq, probFailure_pure, probFailure_ite]
-    sorry
+  mem_support_selectElem x := by sorry
+  -- induction n with
+  -- | zero =>
+  --   apply Matrix.ext
+  --   rintro i j
+  --   exact False.elim (IsEmpty.false i)
+  -- | succ p ih =>
+  --   simp at *
+  --   use Vector.ofFn (x 0), (Fin.tail x); constructor
+  --   simp [ih]
+  --   have : (Vector.ofFn (x 0)).get = x 0 := by
+  --     ext i
+  --     simp [Vector.get]
+  --   simp [Fin.cons_self_tail, this]
+  probOutput_selectElem_eq x y := by sorry
+  -- induction n with
+  -- | zero =>
+  --   simp
+  --   sorry
+  -- | succ m ih =>
+  --   sorry
+  probFailure_selectElem := by sorry
+  -- induction n with
+  -- | zero => simp
+  -- | succ m ih =>
+  --   simp [ih, probFailure_seq, probFailure_pure, probFailure_ite]
+  --   sorry
 
 end instances
 

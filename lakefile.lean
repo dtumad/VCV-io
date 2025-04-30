@@ -51,7 +51,10 @@ lean_exe regev_bench where root := `RegevBench
 target libsodium.o pkg : System.FilePath := do
   let oFile := pkg.buildDir / "c" / "libsodium.o"
   let srcJob ← inputTextFile <| pkg.dir / "LibSodium" / "c" / "libsodium.cpp"
-  let weakArgs := #["-I", (← getLeanIncludeDir).toString]
+  let weakArgs := #[
+    "-I", (← getLeanIncludeDir).toString,
+    "-I", "/opt/homebrew/include"  -- Add Homebrew include path for libsodium
+  ]
   buildO oFile srcJob weakArgs #["-fPIC"] "c++" getLeanTrace
 extern_lib libleanffi pkg := do
   let ffiO ← libsodium.o.fetch
