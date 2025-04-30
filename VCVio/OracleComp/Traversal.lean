@@ -25,7 +25,7 @@ namespace OracleComp
 
 variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type v}
 
-section allWhen
+section When
 
 variable (Q : {α : Type v} → OracleQuery spec α → Prop)
     (F : Prop) (oa : OracleComp spec α)
@@ -40,8 +40,20 @@ def allWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α
   | failure => exact F
   | query_bind q _ r => exact Q q ∧ ∀ x ∈ possible_outputs q, r x
 
-@[simp] lemma allWhen_pure_iff (x : α) :
+/-- One of the given predicates hold on a computation when queries respond with
+elements of `possible_outputs q` for every query `q` -/
+def someWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
+    (oa : OracleComp spec α) : Prop := by
+  induction oa using OracleComp.construct with
+  | pure x => exact True
+  | failure => exact F
+  | query_bind q _ r => exact Q q ∨ ∃ x ∈ possible_outputs q, r x
+
+@[simp] lemma allWhen_pure (x : α) :
     (pure x : OracleComp spec α).allWhen Q F possible_outputs := True.intro
+
+@[simp] lemma someWhen_pure (x : α) :
+    (pure x : OracleComp spec α).someWhen Q F possible_outputs := True.intro
 
 @[simp] lemma allWhen_failure_iff :
     (failure : OracleComp spec α).allWhen Q F possible_outputs ↔ F := Iff.rfl
@@ -73,23 +85,7 @@ def allWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α
 
 -- @[simp] lemma allWhen
 
-end allWhen
-
-variable (pure_pred : {α : Type v} → α → Prop)
-    (query_pred : {α : Type v} → OracleQuery spec α → Prop)
-    (fail_pred : Prop) (oa : OracleComp spec α)
-    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
-
-/-- One of the given predicates hold on a computation when queries respond with
-elements of `possible_outputs q` for every query `q` -/
-def someWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
-    (oa : OracleComp spec α) : Prop := by
-  induction oa using OracleComp.construct with
-  | pure x => exact pure_pred x
-  | failure => exact fail_pred
-  | query_bind q _ r => exact query_pred q ∨ ∃ x ∈ possible_outputs q, r x
-
-section neverFails
+end When
 
 /-- `oa` never fails if when responses to queries `q` are in `possible_outputs q`. -/
 def neverFailsWhen (oa : OracleComp spec α)
@@ -99,6 +95,15 @@ def neverFailsWhen (oa : OracleComp spec α)
 /-- `oa` never fails even when queries can output any possible value. -/
 @[reducible, inline] def neverFails (oa : OracleComp spec α) : Prop :=
   oa.neverFailsWhen fun _ => Set.univ
+
+/-- `oa` might fail when responses to queries `q` are in `possible_outputs q`-/
+def mayFailWhen (oa : OracleComp spec α)
+    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop :=
+  oa.someWhen (fun _ => False) True possible_outputs
+
+/-- `oa` might fail if queries can output any possible value. -/
+@[reducible, inline] def mayFail (oa : OracleComp spec α) : Prop :=
+  mayFailWhen oa fun _ => Set.univ
 
 -- TOOD: generalize when `hso` is `neverFailsWhen` for some other `poss`.
 lemma neverFailsWhen_simulate {ι' : Type*} {spec' : OracleSpec ι'}
@@ -110,9 +115,6 @@ lemma neverFailsWhen_simulate {ι' : Type*} {spec' : OracleSpec ι'}
     (h' : ∀ {α}, ∀ q : OracleQuery spec α, (so.impl q).support ⊆ possible_outputs q)
     (hso : ∀ {α}, ∀ q : OracleQuery spec α, neverFails (so.impl q)) :
     neverFails (simulateQ so oa) := sorry
-
--- TODO: reprove the below lemmas (ported from `NoFailure`) using generic lemmas about `allWhen`
--- This is just a stopgap for now so that we don't break downstream proofs.
 
 lemma neverFails_eq_oracleComp_construct (oa : OracleComp spec α) :
     oa.neverFails = OracleComp.construct
@@ -167,112 +169,9 @@ instance [spec.FiniteRange] : DecidablePred (@OracleComp.neverFails _ spec α) :
       simpa only [Function.const_apply, neverFails_bind_iff, neverFails_query, support_query,
         Set.mem_univ, forall_const, true_and] using Fintype.decidableForallFintype
 
-section List
-
-open List
-
-/-- If each element of a list is mapped to a computation that never fails, then the computation
-  obtained by monadic mapping over the list also never fails. -/
-@[simp] lemma neverFails_list_mapM {f : α → OracleComp spec β} {as : List α}
-    (h : ∀ x ∈ as, neverFails (f x)) : neverFails (mapM f as) := by
-  induction as with
-  | nil => simp only [mapM, mapM.loop, reverse_nil, neverFails_pure]
-  | cons a as ih =>
-    simp [mapM_cons, h]
-    exact fun _ _ => ih (by simp at h; exact h.2)
-
-@[simp] lemma neverFails_list_mapM' {f : α → OracleComp spec β} {as : List α}
-    (h : ∀ x ∈ as, neverFails (f x)) : neverFails (mapM' f as) := by
-  rw [mapM'_eq_mapM]
-  exact neverFails_list_mapM h
-
-@[simp] lemma neverFails_list_flatMapM {f : α → OracleComp spec (List β)} {as : List α}
-    (h : ∀ x ∈ as, neverFails (f x)) : neverFails (flatMapM f as) := by
-  induction as with
-  | nil => simp only [flatMapM_nil, neverFails_pure]
-  | cons a as ih =>
-    simp only [flatMapM_cons, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff]
-    exact ⟨h a (by simp), fun y hy => ih (fun x hx => h x (by simp [hx]))⟩
-
-@[simp] lemma neverFails_list_filterMapM {f : α → OracleComp spec (Option β)} {as : List α}
-    (h : ∀ x ∈ as, neverFails (f x)) : neverFails (filterMapM f as) := by
-  induction as with
-  | nil => simp only [filterMapM_nil, neverFails_pure]
-  | cons a as ih =>
-    simp only [filterMapM_cons, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff]
-    refine ⟨h a (by simp), fun y hy => ?_⟩
-    rcases y with _ | y <;> simp <;> exact ih (fun x hx => h x (by simp [hx]))
-
-variable {s : Type v}
-
-@[simp] lemma neverFails_list_foldlM {f : s → α → OracleComp spec s} {init : s} {as : List α}
-    (h : ∀ i, ∀ x ∈ as, neverFails (f i x)) : neverFails (foldlM f init as) := by
-  induction as generalizing init with
-  | nil => simp only [foldlM, reverse_nil, neverFails_pure]
-  | cons b bs ih =>
-      simp only [foldlM_cons, neverFails_bind_iff, mem_cons, true_or, h, true_and]
-      exact fun _ _ => ih (fun i x hx' => h i x (by simp [hx']))
-
-@[simp] lemma neverFails_list_foldrM {f : α → s → OracleComp spec s} {init : s} {as : List α}
-    (h : ∀ i, ∀ x ∈ as, neverFails (f x i)) : neverFails (foldrM f init as) := by
-  induction as generalizing init with
-  | nil => simp only [foldrM, reverse_nil, foldlM_nil, neverFails_pure]
-  | cons b bs ih =>
-      simp only [foldrM_cons, neverFails_bind_iff]
-      exact ⟨ih (fun i x hx => h i x (by simp [hx])), fun y _ => h y b (by simp)⟩
-
--- TODO: add lemmas for more monadic list operations
-
-end List
-
-section List.Vector
-
-variable {n : ℕ}
-
-@[simp] lemma neverFails_list_vector_mmap {f : α → OracleComp spec β} {as : List.Vector α n}
-    (h : ∀ x ∈ as.toList, neverFails (f x)) : neverFails (List.Vector.mmap f as) := by
-  induction as with
-  | nil => simp only [List.Vector.mmap, neverFails_pure]
-  | @cons n x xs ih =>
-    simp only [List.Vector.mmap_cons, bind_pure_comp, neverFails_bind_iff, neverFails_map_iff]
-    exact ⟨h x (by simp), fun y hy => ih (fun x' hx' => h x' (by simp [hx']))⟩
-
-end List.Vector
-
-section Array
-
-open Array
-
-@[simp] lemma neverFails_array_mapM {f : α → OracleComp spec β} {as : Array α}
-    (h : ∀ x ∈ as, neverFails (f x)) : neverFails (mapM f as) := by
-  induction ha : as.toList generalizing as with
-  | nil => simp_all [h, Array.mapM, mapM.map, neverFails_pure]
-  | cons x xs ih =>
-    rw [mapM_eq_mapM_toList, neverFails_map_iff]
-
-    simp_rw [mapM_eq_mapM_toList, ha] at ih ⊢
-    simp at ih ⊢
-    specialize ih h
-    -- boring case analysis
-    sorry
-
-end Array
-
-end neverFails
-
-section mayFail
-
-/-- `oa` might fail when responses to queries `q` are in `possible_outputs q`-/
-def mayFailWhen (oa : OracleComp spec α)
-    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Prop :=
-  oa.someWhen (fun _ => False) (fun _ => False) True possible_outputs
-
--- lemma mayFailWhen_iff_not_neverFailWhen
-
-/-- `oa` might fail if queries can output any possible value. -/
-@[reducible, inline] def mayFail (oa : OracleComp spec α) : Prop :=
-  mayFailWhen oa fun _ => Set.univ
-
-end mayFail
+@[simp]
+lemma neverFails_guard (p : Prop) [Decidable p] (oa : OracleComp spec α) (h: oa.neverFails) :
+    neverFails (if p then oa else failure) ↔ p := by
+  split <;> simp [h] <;> trivial
 
 end OracleComp

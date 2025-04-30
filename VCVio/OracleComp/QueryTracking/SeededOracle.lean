@@ -5,6 +5,9 @@ Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.Constructions
 import VCVio.OracleComp.QueryTracking.Structures
+import VCVio.OracleComp.Constructions.GenerateSeed
+import VCVio.OracleComp.Coercions.SubSpec
+
 
 /-!
 # Pre-computing Results of Oracle Queries
@@ -57,5 +60,28 @@ lemma apply_eq {α} (q : OracleQuery spec α) :
       do match seed i with
         | u :: us => ReaderT.adapt (fun seed => seed.update i us) (return u)
         | [] => query i t) := rfl
+
+@[simp]
+lemma probOutput_generateSeed_bind_simulateQ_bind {ι : Type _} {spec : OracleSpec ι}
+    {α β : Type _} [DecidableEq ι]
+    [∀ i, SelectableType (spec.range i)] [unifSpec ⊂ₒ spec] [spec.FiniteRange]
+    (qc : ι → ℕ) (js : List ι)
+    (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
+    [= y | do
+      let seed ← liftComp (generateSeed spec qc js) spec
+      let x ← (simulateQ seededOracle oa).run seed
+      ob x] = [= y | oa >>= ob] := by
+  sorry
+
+@[simp]
+lemma probOutput_generateSeed_bind_map_simulateQ {ι : Type _} {spec : OracleSpec ι}
+    {α β : Type _} [DecidableEq ι]
+    [∀ i, SelectableType (spec.range i)] [unifSpec ⊂ₒ spec] [spec.FiniteRange]
+    (qc : ι → ℕ) (js : List ι)
+    (oa : OracleComp spec α) (f : α → β) (y : β) :
+    [= y | do
+      let seed ← liftComp (generateSeed spec qc js) spec
+      f <$> (simulateQ seededOracle oa).run seed] = [= y | f <$> oa] := by
+  sorry
 
 end seededOracle

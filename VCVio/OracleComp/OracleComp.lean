@@ -218,7 +218,7 @@ example : OracleComp probSpec ℕ := do
   return x + 2 * y
 
 @[simp] -- NOTE: debatable if this should be simp
-lemma guard_eq (p : Prop) [Decidable p] :
+lemma guard_eq {ι : Type} {spec : OracleSpec ι} (p : Prop) [Decidable p] :
     (guard p : OracleComp spec Unit) = if p then pure () else failure := rfl
 
 -- NOTE: This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
