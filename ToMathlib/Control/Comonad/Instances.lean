@@ -154,31 +154,31 @@ end NonEmptyList
 namespace Stream'
 variable {α β γ : Type u}
 
-instance : Functor Stream' where -- Use Stream'
+instance : Functor Stream' where
   map := Stream'.map
 
-instance : Extract Stream' where -- Use Stream'
+instance : Extract Stream' where
   extract := Stream'.head
 
-instance : Extend Stream' where -- Use Stream'
+instance : Extend Stream' where
   extend s f := fun n => f (Stream'.drop n s) -- Correct definition
 
-instance : Coseq Stream' where -- Use Stream'
+instance : Coseq Stream' where
   coseq := Stream'.zip Prod.mk -- Provide Prod.mk
 
-instance : CoseqLeft Stream' where -- Use Stream'
+instance : CoseqLeft Stream' where
   coseqLeft s₁ _ := s₁
 
-instance : CoseqRight Stream' where -- Use Stream'
+instance : CoseqRight Stream' where
   coseqRight _ s₂ := s₂
 
-instance : Coapplicative Stream' where -- Use Stream'
+instance : Coapplicative Stream' where
 
-instance : Comonad Stream' where -- Use Stream'
+instance : Comonad Stream' where
 
 -- Lawfulness Proofs for Stream'
 
-instance : LawfulFunctor Stream' where -- Use Stream'
+instance : LawfulFunctor Stream' where
   id_map := by
     intros α s; apply Stream'.ext; intro n
     simp [Functor.map, Stream'.map, Stream'.get, id_def]
@@ -189,7 +189,7 @@ instance : LawfulFunctor Stream' where -- Use Stream'
     intros
     simp [Functor.mapConst, Functor.map, Stream'.map, Stream'.get, Function.const_apply]
 
-instance : LawfulCoapplicative Stream' where -- Use Stream'
+instance : LawfulCoapplicative Stream' where
   coseqLeft_eq := by
     intros α β s₁ s₂; apply Stream'.ext; intro n
     -- Explicitly state the default definition in simp
@@ -202,7 +202,7 @@ instance : LawfulCoapplicative Stream' where -- Use Stream'
     intros α β γ s₁ s₂ s₃; apply Stream'.ext; intro n
     simp only [Functor.map, coseq, Stream'.map, Stream'.get, Stream'.zip, Equiv.prodAssoc_apply]
 
-instance : LawfulComonad Stream' where -- Use Stream'
+instance : LawfulComonad Stream' where
   map_eq_extend_extract := by
     intros α β f s; apply Stream'.ext; intro n
     simp [Functor.map, extend, extract, Stream'.map, Stream'.get, Stream'.head, Stream'.drop, Stream'.get_drop, Nat.add_zero, Function.comp_apply]
@@ -222,7 +222,7 @@ instance : LawfulComonad Stream' where -- Use Stream'
     simp [drop]
     sorry
 
-end Stream' -- Use Stream'
+end Stream'
 
 -- Define instances for NonEmptyList
 namespace NonEmptyList
@@ -264,9 +264,16 @@ instance : LawfulFunctor NonEmptyList where
     simp [Functor.map, Functor.mapConst, NonEmptyList.map, List.map_const]
 
 instance : LawfulCoapplicative NonEmptyList where
-  coseqLeft_eq := sorry -- by intros; simp [CoseqLeft.coseqLeft, Coapplicative.coseqLeft, Functor.map, coseq, zip, NonEmptyList.map, Prod.fst]
-  coseqRight_eq := sorry -- by intros; simp [CoseqRight.coseqRight, Coapplicative.coseqRight, Functor.map, coseq, zip, NonEmptyList.map, Prod.snd]
-  coseq_assoc := sorry -- by intros; simp [Functor.map, coseq, zip, NonEmptyList.map, Equiv.prodAssoc, List.zip_zipWith, List.map_map] -- Complex proof
+  coseqLeft_eq := by
+    intros
+    simp [CoseqLeft.coseqLeft, Functor.map, coseq, zip, NonEmptyList.map, Prod.fst]
+  coseqRight_eq := by
+    intros
+    simp [CoseqRight.coseqRight, Functor.map, coseq, zip, NonEmptyList.map, Prod.snd]
+  coseq_assoc := by
+    intros
+    simp [Functor.map, coseq, zip, NonEmptyList.map, Equiv.prodAssoc, List.map_map, List.map]
+    sorry
 
 instance : LawfulComonad NonEmptyList where
   map_eq_extend_extract := sorry -- by intros; simp [Functor.map, extend, extract, NonEmptyList.map_map, NonEmptyList.map_cons, tails, head_tails] -- Needs careful proof
@@ -348,3 +355,207 @@ instance : LawfulComonad Zipper where
   extend_assoc          := sorry -- Relates map and duplicate associativity
 
 end List.Zipper
+
+/-! ## Comonad Transformers -/
+
+-- Declare universes such that the arguments to w fit its expected input type
+universe u₁ u₂ v₂
+
+/-- The Environment Comonad Transformer `EnvT`.
+    Adds a static environment `e` to a base comonad `w`. -/
+-- Here, `a` must fit into w's input universe `u₂`.
+structure EnvT (e : Type u₁) (w : Type u₂ → Type v₂) (a : Type u₂) where
+  /-- The underlying comonadic value, potentially dependent on the environment (though often not directly). -/
+  runEnvT : w a
+  /-- The environment value. Stored alongside, but conceptually outside the base comonad `w`. -/
+  env : e
+
+namespace EnvT
+
+variable {e : Type u₁} {w : Type u₂ → Type v₂}
+
+-- Functor instance
+instance instFunctor [Functor w] : Functor (EnvT e w) where
+  map f envt := { runEnvT := Functor.map f envt.runEnvT, env := envt.env }
+
+-- Extract instance
+instance instExtract [Extract w] : Extract (EnvT e w) where
+  extract envt := Extract.extract envt.runEnvT
+
+-- Extend instance
+instance instExtend [Extend w] : Extend (EnvT e w) where
+  extend envt k := { runEnvT := Extend.extend envt.runEnvT (fun w'a => k { runEnvT := w'a, env := envt.env }), env := envt.env }
+
+-- Duplicate definition (derived from extend)
+def duplicate [Extend w] {a : Type u₂} (envt : EnvT e w a) : EnvT e w (EnvT e w a) :=
+  extend envt id
+
+-- Coseq instance (Requires Coseq w)
+-- Note: This assumes the environments are the same, which is typical usage.
+-- A stricter version might require envt_a.env = envt_b.env.
+instance instCoseq [Coseq w] : Coseq (EnvT e w) where
+  coseq envt_a envt_b := { runEnvT := Coseq.coseq envt_a.runEnvT envt_b.runEnvT, env := envt_a.env }
+
+-- Coapplicative instance
+instance instCoapplicative [Coapplicative w] : Coapplicative (EnvT e w) where
+  -- Uses instFunctor, instExtract, instCoseq defined above
+  -- coseqLeft and coseqRight use default implementations
+
+-- Comonad instance
+instance instComonad [Comonad w] : Comonad (EnvT e w) where
+  -- Uses instCoapplicative and instExtend defined above
+  -- map uses default implementation: extend envt (fun wa => f (extract wa))
+
+-- Lawfulness (Sketch - requires proofs based on w's lawfulness)
+
+instance instLawfulFunctor [Comonad w] [LawfulFunctor w] : LawfulFunctor (EnvT e w) where
+  id_map := by intros α wa; cases wa; simp [Functor.map, id_map]
+  comp_map := by intros α β γ g h wa; cases wa; simp [Functor.map, comp_map]
+  map_const := by intros; rfl
+
+instance instLawfulCoapplicative [Comonad w] [LawfulCoapplicative w] : LawfulCoapplicative (EnvT e w) where
+  -- Requires LawfulFunctor w
+  coseqLeft_eq := by intros α β wa wb; cases wa; cases wb; simp [coseqLeft, Functor.map, Coseq.coseq, coseqLeft_eq]
+  coseqRight_eq := by intros α β wa wb; cases wa; cases wb; simp [coseqRight, Functor.map, Coseq.coseq, coseqRight_eq]
+  coseq_assoc := sorry -- Requires underlying coseq_assoc proof for w
+
+instance instLawfulComonad [Comonad w] [LawfulComonad w] : LawfulComonad (EnvT e w) where
+  -- Requires LawfulCoapplicative w
+  map_eq_extend_extract := by intros α β f wa; cases wa; simp [Functor.map, extend, extract, map_eq_extend_extract, Function.comp_apply]
+  extend_extract := by intros α wa; cases wa; simp [extend, extract, extend_extract]
+  extract_extend := by intros α β wa f; cases wa; simp [extend, extract, extract_extend]
+  extend_assoc := sorry -- Requires underlying extend_assoc proof for w, very complex
+
+end EnvT
+
+/-- The Store Comonad Transformer `StoreT`.
+    Adds a positional state `s` to a base comonad `w`, where `w` contains a function
+    that depends on the state `s` to produce the value `a`. -/
+-- Here, `s → a` must fit into w's input universe `u₂`. This requires both `s` and `a` to be in `u₂`.
+structure StoreT (s : Type u₂) (w : Type u₂ → Type v₂) (a : Type u₂) where
+  /-- The underlying comonadic value, which contains the function to produce `a` from `s`. -/
+  runStoreT : w (s → a)
+  /-- The current state or position. -/
+  pos : s
+
+namespace StoreT
+
+variable {s : Type u₂} {w : Type u₂ → Type v₂}
+
+-- Functor instance
+instance instFunctor [Functor w] : Functor (StoreT s w) where
+  map f storet := { runStoreT := Functor.map (fun g => f ∘ g) storet.runStoreT, pos := storet.pos }
+
+-- Extract instance
+instance instExtract [Comonad w] : Extract (StoreT s w) where
+  extract storet := Extract.extract storet.runStoreT storet.pos
+
+-- Extend instance
+instance instExtend [Comonad w] : Extend (StoreT s w) where
+  extend storet k := { runStoreT := Extend.extend storet.runStoreT (fun w'sa s' => k { runStoreT := w'sa, pos := s' }), pos := storet.pos }
+
+-- Duplicate definition (derived from extend)
+def duplicate [Comonad w] {a : Type u₂} (storet : StoreT s w a) : StoreT s w (StoreT s w a) :=
+  extend storet id
+
+-- Coseq instance (Requires Comonad w for map/coseq)
+instance instCoseq [Comonad w] : Coseq (StoreT s w) where
+  coseq storet_a storet_b :=
+    let run_ab := Coseq.coseq storet_a.runStoreT storet_b.runStoreT -- w ((s → a) × (s → b))
+    let run_prod_s := Functor.map (fun (f, g) s' => (f s', g s')) run_ab -- w (s → a × b)
+    { runStoreT := run_prod_s, pos := storet_a.pos } -- Keep first position? Or combine? Let's keep first.
+
+-- Coapplicative instance
+instance instCoapplicative [Comonad w] : Coapplicative (StoreT s w) where
+  -- Uses instFunctor, instExtract, instCoseq defined above
+
+-- Comonad instance
+instance instComonad [Comonad w] : Comonad (StoreT s w) where
+  -- Uses instCoapplicative and instExtend defined above
+
+-- Lawfulness (Sketch - requires proofs based on w's lawfulness)
+
+instance instLawfulFunctor [Comonad w] [LawfulFunctor w] : LawfulFunctor (StoreT s w) where
+  id_map := by intros α wa; cases wa; simp [Functor.map, id_map, Function.comp_assoc]
+  comp_map := by intros α β γ g h wa; cases wa; simp [Functor.map, comp_map, Function.comp_assoc]
+  map_const := by intros; rfl
+
+instance instLawfulCoapplicative [Comonad w] [LawfulCoapplicative w] : LawfulCoapplicative (StoreT s w) where
+  coseqLeft_eq := sorry -- Proof involves map/coseq interaction
+  coseqRight_eq := sorry -- Proof involves map/coseq interaction
+  coseq_assoc := sorry -- Requires underlying coseq_assoc proof for w and map properties
+
+instance instLawfulComonad [Comonad w] [LawfulComonad w] : LawfulComonad (StoreT s w) where
+  map_eq_extend_extract := sorry -- Complex proof involving extend/extract interaction
+  extend_extract := sorry -- Complex proof involving extend/extract interaction
+  extract_extend := by intros α β wa f; cases wa; simp [extend, extract, extract_extend]
+  extend_assoc := sorry -- Requires underlying extend_assoc proof for w, very complex
+
+end StoreT
+
+/-! ## Day Convolution -/
+
+-- Reuse universes declared for transformers. Add v₁ and u₃.
+universe v₁ u₃
+
+/-- The Day convolution of two functors `f` and `g`.
+    It captures an operation combining elements from `f α` and `g β`
+    to produce a result of type `a`, where `α` and `β` are existentially quantified. -/
+structure Day (f : Type u₁ → Type v₁) (g : Type u₂ → Type v₂) (a : Type u₃) where
+  /-- The underlying type for the first functor component. -/
+  {α : Type u₁}
+  /-- The underlying type for the second functor component. -/
+  {β : Type u₂}
+  /-- The function combining elements from the underlying types. -/
+  map' : α → β → a
+  /-- The value from the first functor. -/
+  fa : f α
+  /-- The value from the second functor. -/
+  gb : g β
+
+namespace Day
+
+variable {f : Type u₁ → Type v₁} {g : Type u₂ → Type v₂}
+
+-- Need Functor f and Functor g constraints for Comonad instance later
+instance instFunctor [Functor f] [Functor g] : Functor (Day f g) where
+  map {a b : Type u₃} (k : a → b) (day : Day f g a) : Day f g b :=
+    -- Access fields using dot notation
+    ⟨fun (x : day.α) (y : day.β) => k (day.map' x y), day.fa, day.gb⟩
+
+@[simp]
+theorem map_mk [Functor f] [Functor g] {α : Type u₁} {β : Type u₂} {a b : Type u₃} (k : a → b) (map' : α → β → a) (fa : f α) (gb : g β) :
+  k <$> (⟨map', fa, gb⟩ : Day f g a) = ⟨fun x y => k (map' x y), fa, gb⟩ := rfl
+
+/-- Define `extract` for the Day comonad. -/
+def extract [Extract f] [Extract g] {a : Type u₃} (day : Day f g a) : a :=
+  -- Access fields using dot notation
+  day.map' (Extract.extract day.fa) (Extract.extract day.gb)
+
+/-- Define `duplicate` for the Day comonad. -/
+def duplicate [Comonad f] [Comonad g] {a : Type u₃} (day : Day f g a) : Day f g (Day f g a) :=
+  sorry -- Proof is complex and encountering type/universe issues
+  -- let map_dup : f day.α → g day.β → Day f g a := fun fa' gb' => @Day.mk f g a day.α day.β day.map' fa' gb'
+  -- ⟨map_dup, duplicate day.fa, duplicate day.gb⟩
+
+/-- Define `coseq` for the Day comonad. -/
+def coseq [Comonad f] [Comonad g] {a b : Type u₃} (day_a : Day f g a) (day_b : Day f g b) : Day f g (a × b) :=
+  -- New map function combines results using the original maps
+  let map_c := fun (x : day_a.α × day_b.α) (y : day_a.β × day_b.β) =>
+                 (day_a.map' x.1 y.1, day_b.map' x.2 y.2)
+  -- Combine underlying functor values using their coseq
+  ⟨map_c, Coseq.coseq day_a.fa day_b.fa, Coseq.coseq day_a.gb day_b.gb⟩
+
+instance instCoseq [Comonad f] [Comonad g] : Coseq (Day f g) where
+  coseq := coseq
+
+-- Requires Functor f/g because Comonad extends Functor
+-- Also requires Coseq f/g for the Day coseq definition
+instance [Comonad f] [Comonad g] : Comonad (Day f g) where
+  extract {a : Type u₃} := extract
+  extend {a b : Type u₃} (day : Day f g a) (k : Day f g a → b) : Day f g b :=
+    sorry -- Proof encountering universe issues
+    -- Functor.map k (duplicate day)
+  coseq {a b : Type u₃} := coseq -- Provide the coseq field
+
+end Day
