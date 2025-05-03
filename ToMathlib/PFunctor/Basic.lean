@@ -143,6 +143,27 @@ alias tensorUnit := y
 
 end Tensor
 
+section Fintype
+
+/-- A polynomial functor is finitely branching if each of its branches is a finite type. -/
+protected class Fintype (P : PFunctor.{u}) where
+  fintype_B : ∀ a, Fintype (P.B a)
+
+instance {P : PFunctor.{u}} [inst : P.Fintype] : PFunctor.Fintype (PFunctor.ulift P) where
+  fintype_B := fun a => by
+    unfold PFunctor.ulift
+    haveI : Fintype (P.B (ULift.down a)) := inst.fintype_B (ULift.down a)
+    infer_instance
+
+@[simp]
+instance {P : PFunctor.{u}} [inst : P.Fintype] : ∀ a, Fintype (P.B a) := fun a => inst.fintype_B a
+
+end Fintype
+
+
+
+
+
 /-- A **lens** between two polynomial functors `P` and `Q` is a pair of a function:
 - `mapPos : P.A → Q.A`
 - `mapDir : ∀ a, Q.B (mapPos a) → P.B a` -/

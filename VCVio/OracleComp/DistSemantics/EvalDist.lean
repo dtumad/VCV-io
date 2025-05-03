@@ -228,10 +228,6 @@ lemma probFailure_eq_sub_sum [Fintype α] (oa : OracleComp spec α) :
     [⊥ | oa] = 1 - ∑ x : α, [= x | oa] := by
   rw [← tsum_fintype, probFailure_eq_sub_tsum]
 
-lemma probFailure_eq_sub_sum_probOutput_map [Fintype β] (oa : OracleComp spec α) (f : α → β) :
-    [⊥ | oa] = 1 - ∑ y : β, [= y | f <$> oa] := by
-  sorry
-
 lemma tsum_probOutput_eq_one (oa : OracleComp spec α) (h : [⊥ | oa] = 0) :
     ∑' x : α, [= x | oa] = 1 := by
   rw [tsum_probOutput_eq_sub, h, tsub_zero]
@@ -921,6 +917,10 @@ lemma probOutput_map_eq_probOutput_inverse (f : α → β) (g : β → α)
     exact (λ h ↦ hx ((congr_arg g h).trans (hr x)).symm)
   · simp [hl y]
 
+lemma probFailure_eq_sub_sum_probOutput_map [Fintype β] (oa : OracleComp spec α) (f : α → β) :
+    [⊥ | oa] = 1 - ∑ y : β, [= y | f <$> oa] := by
+  rw [← probFailure_map (f := f), probFailure_eq_sub_tsum, tsum_fintype]
+
 end map
 
 section neverFails
@@ -946,6 +946,44 @@ lemma not_noFailure_of_probFailure_pos {oa : OracleComp spec α} (h : 0 < [⊥ |
     ¬ neverFails oa := by rwa [← probFailure_pos_iff]
 
 end neverFails
+
+section unit
+
+@[simp]
+lemma probOutput_guard {p : Prop} [Decidable p] :
+    [= () | (guard p : OracleComp spec _)] = if p then 1 else 0 := by
+  by_cases h : p <;> simp [h]
+
+@[simp]
+lemma probFailure_guard {p : Prop} [Decidable p] :
+    [⊥ | (guard p : OracleComp spec _)] = if p then 0 else 1 := by
+  by_cases h : p <;> simp [h]
+
+lemma probOutput_eq_sub_probFailure_of_unit {oa : OracleComp spec PUnit} :
+    [= () | oa] = 1 - [⊥ | oa] := by
+  rw [probFailure_eq_sub_sum, Finset.univ_unique, PUnit.default_eq_unit, Finset.sum_singleton]
+  rw [ENNReal.sub_sub_cancel (by simp) (by simp)]
+
+lemma probOutput_guard_eq_sub_probOutput_guard_not {α : Type} {oa : OracleComp spec α}
+    (h : oa.neverFails) {p : α → Prop} [DecidablePred p] :
+    [= () | do let a ← oa; guard (p a)] = 1 - [= () | do let a ← oa; guard (¬ p a)] := by
+  rw [probOutput_bind_eq_tsum, probOutput_bind_eq_tsum]
+  simp
+  sorry
+
+end unit
+
+section bool
+
+lemma probOutput_true_eq_probOutput_false_not {ob : OracleComp spec Bool} :
+    [= true | ob] = [= false | do let b ← ob; return !b] := by
+  simp [probOutput_map_eq_sum_fintype_ite]
+
+lemma probOutput_false_eq_probOutput_true_not {ob : OracleComp spec Bool} :
+    [= false | ob] = [= true | do let b ← ob; return !b] := by
+  simp [probOutput_true_eq_probOutput_false_not]
+
+end bool
 
 section eqRec
 

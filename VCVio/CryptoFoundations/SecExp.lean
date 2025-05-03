@@ -27,17 +27,37 @@ universe u v w
 
 open OracleComp OracleSpec ENNReal Polynomial Prod
 
+noncomputable def ProbComp.advantage' (p : ProbComp Bool) : ℝ :=
+  |([= true | p]).toReal - ([= false | p]).toReal|
+
+noncomputable def ProbComp.advantage₂' (p q : ProbComp Bool) : ℝ :=
+  |([= true | p]).toReal - ([= true | q]).toReal|
+
 /-- The **advantage** of a game `p`, assumed to be a probabilistic computation ending with a `guard`
   statement, is the absolute difference between the probability of success and 1/2. -/
-noncomputable def ProbComp.advantage (p : ProbComp Unit) : ℝ := |1 / 2 - ([⊥ | p]).toReal|
+noncomputable def ProbComp.advantage (p : ProbComp Unit) : ℝ := |1 / 2 - ([= () | p]).toReal|
 
 /-- The advantage doesn't change if we replace `⊥` with `= ()` (i.e. swap the probability of success
   and failure). -/
-lemma ProbComp.advantage_eq_advantage_eq_unit (p : ProbComp Unit) :
-    p.advantage = |1 / 2 - ([= () | p]).toReal| := by
+lemma ProbComp.advantage_eq_half_sub_probFailure (p : ProbComp Unit) :
+    p.advantage = |1 / 2 - ([⊥ | p]).toReal| := by
   simp [advantage, probFailure_eq_sub_sum]
   rw [← abs_neg]
   congr; ring
+
+/-- The advantage of a probabilistic computation is half the absolute difference between the
+    probabilities of success and failure. -/
+lemma ProbComp.advantage_eq_half_of_sub (p : ProbComp Unit) :
+    p.advantage = 2⁻¹ * |([⊥ | p]).toReal - ([= () | p]).toReal| := by
+  simp [ProbComp.advantage, probFailure_eq_sub_sum]
+  generalize h : [= () | p] = p_unit
+  symm
+  ring_nf
+  calc
+    _ = |1 - p_unit.toReal * 2| * |2⁻¹| := by
+      congr; ring_nf; symm; exact abs_eq_self.mpr (by simp)
+    _ = |1 / 2 - p_unit.toReal| := by
+      rw [← abs_mul]; ring_nf
 
 /-- The **advantage** between two games `p` and `q`, modeled as probabilistic computations returning
   `Unit`, is the absolute difference between their probabilities of success. -/
