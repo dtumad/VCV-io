@@ -27,11 +27,6 @@ lemma pull_up_4_helper {ι : Type*} {spec : OracleSpec ι} [spec.FiniteRange]
       [= z | do let d ← od; let a ← oa; let b ← ob; let c ← oc; oe a b c d] := by
   sorry
 
-lemma probOutput_uniformSelect_bool_bind_eq_add {α : Type}
-    (oa : Bool → ProbComp α) (x : α) : -- should be anything $ᵗ Bool can lift to
-    [= x | ($ᵗ Bool) >>= oa] = [= x | oa true] / 2 + [= x | oa false] / 2 := by
-  sorry
-
 end scratch
 
 /-- Elgemal-style encryption adapted to a homogeneous space with group structure on points.
@@ -69,8 +64,8 @@ section IND_CPA
 def IND_CPA_parallelTesting_reduction
     (adversary : (elgamalAsymmEnc G P).IND_CPA_adversary) :
     parallelTestingAdversary G P := fun x x₁ x₂ x₃ => do
-  let so : QueryImpl (P × P →ₒ P × P) ProbComp := ⟨fun (query () (m₁, _m₂)) =>
-    return (x₂, m₁ * x₃)⟩
+  let so : QueryImpl (P × P →ₒ P × P) ProbComp :=
+    QueryImpl.ofFn fun (query () (m₁, _m₂)) => return (x₂, m₁ * x₃)
   simulateQ (idOracle ++ₛₒ so) (adversary (x, x₁))
 
 /-- The reduction from ElGamal IND-CPA to parallel testing succeeds exactly as often
@@ -88,13 +83,18 @@ theorem IND_CPA_advantage_eq_parallelTesting_advantage [DecidableEq G] [Decidabl
   congr 2
   · refine probOutput_bind_congr' _ _ fun x => ?_
     refine probOutput_bind_congr' _ _ fun g₁ => ?_
-    unfold IND_CPA_parallelTesting_reduction IND_CPA_queryImpl'
+    unfold IND_CPA_parallelTesting_reduction
+
     simp
+
     sorry -- caching simulation oracles behave the same on same inputs
   · refine probOutput_bind_congr' _ _ fun x => ?_
     refine probOutput_bind_congr' _ _ fun g₁ => ?_
-    unfold IND_CPA_parallelTesting_reduction IND_CPA_queryImpl'
+    unfold IND_CPA_parallelTesting_reduction
+    unfold IND_CPA_queryImpl'
+    unfold IND_CPA_challengeImpl
     simp
+
     sorry -- random things look random
 
 end IND_CPA

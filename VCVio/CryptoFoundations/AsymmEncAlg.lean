@@ -6,7 +6,7 @@ Authors: Devon Tuma
 import VCVio.CryptoFoundations.SecExp
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.Coercions.SubSpec
-import VCVio.OracleComp.SimSemantics.Append
+import VCVio.OracleComp.SimSemantics.Distinguisher
 import VCVio.OracleComp.QueryTracking.CachingOracle
 
 /-!
@@ -25,8 +25,6 @@ instance {α : Type} {n : ℕ} [Add α] : Add (Vector α n) where
 
 instance {α : Type} {n : ℕ} [Zero α] : Zero (Vector α n) where
   zero := Vector.ofFn (0)
-
--- theorem addInst
 
 @[simp]
 theorem vectorofFn_get {α : Type} {n : ℕ} (v : Fin n → α) : (Vector.ofFn v).get = v := by
@@ -83,33 +81,66 @@ def PerfectlyCorrect (encAlg : AsymmEncAlg m M PK SK C) : Prop :=
 
 end Correct
 
+section IND_CPA_Distinguisher
+
+open QueryImpl
+
+def randomCiphertext_distinguisher (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
+  QueryImpl.Distinguisher PK SK (M →ₒ C)
+
+noncomputable def rancomdCiphertext_distinguisherAdvantage [SelectableType M]
+    (encAlg : AsymmEncAlg ProbComp M PK SK C)
+    (adversary : randomCiphertext_distinguisher encAlg) : ℝ≥0∞ :=
+  adversary.advantage encAlg.keygen
+    (fun (pk, _) => QueryImpl.ofFn fun | query _ m => encAlg.encrypt pk m)
+    (fun (pk, _) => QueryImpl.ofFn fun | query _ _ => do encAlg.encrypt pk (←$ᵗ M))
+
+def IND_CPA_distinguisher (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
+  QueryImpl.Distinguisher PK SK (M × M →ₒ C)
+
+noncomputable def IND_CPA_distinguisherAdvantage (encAlg : AsymmEncAlg ProbComp M PK SK C)
+    (adversary : IND_CPA_distinguisher encAlg) : ℝ≥0∞ :=
+  adversary.advantage encAlg.keygen
+    (fun (pk, _) => QueryImpl.ofFn fun | (query _ (m₁, _)) => encAlg.encrypt pk m₁)
+    (fun (pk, _) => QueryImpl.ofFn fun | (query _ (_, m₂)) => encAlg.encrypt pk m₂)
+
+end IND_CPA_Distinguisher
+
 section IND_CPA
 
 variable [DecidableEq M] [DecidableEq C]
 
 -- Simplifying assumption: The algorithm is defined over `ProbComp`
 
-def IND_CPA_oracleSpec (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
-  unifSpec ++ₒ (M × M →ₒ C) -- Second oracle for adversary to request challenge
+/-- Oracle for getting a challenge ciphertext from two messages. -/
+@[reducible, inline]
+def IND_CPA_challengeSpec (_encAlg : AsymmEncAlg ProbComp M PK SK C) :
+    OracleSpec Unit := M × M →ₒ C
+
+/-- Oracles for the IND-CPA security game -/
+@[reducible, inline]
+def IND_CPA_oracleSpec (encAlg : AsymmEncAlg ProbComp M PK SK C) :=
+  unifSpec ++ₒ encAlg.IND_CPA_challengeSpec
+
+def IND_CPA_challengeImpl (encAlg : AsymmEncAlg ProbComp M PK SK C)
+    (pk : PK) (b : Bool) : QueryImpl (M × M →ₒ C) ProbComp where
+  impl | query () (m₁, m₂) => encAlg.encrypt pk (if b then m₁ else m₂)
 
 def IND_CPA_adversary (encAlg : AsymmEncAlg ProbComp M PK SK C) :=
   PK → OracleComp encAlg.IND_CPA_oracleSpec Bool
   -- with poly functors: `ProbComp ((M × M) × (C → ProbComp Bool))`
 
+
 /-- Can be shown this is equivalent to below definition for asymptotic security. -/
 def IND_CPA_queryImpl' (encAlg : AsymmEncAlg ProbComp M PK SK C)
     (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
       (StateT (M × M →ₒ C).QueryCache ProbComp) :=
-  have so : QueryImpl (M × M →ₒ C) ProbComp := ⟨fun (query () (m₁, m₂)) =>
-    encAlg.encrypt pk (if b then m₁ else m₂)⟩
-  idOracle ++ₛₒ so.withCaching
+  idOracle ++ₛₒ (encAlg.IND_CPA_challengeImpl pk b).withCaching
 
 def IND_CPA_queryImpl (encAlg : AsymmEncAlg ProbComp M PK SK C)
     (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
       (StateT (M × M →ₒ C).QueryCache ProbComp) :=
-  have so : QueryImpl (M × M →ₒ C) ProbComp := ⟨fun (query () (m₁, m₂)) =>
-    encAlg.encrypt pk (if b then m₁ else m₂)⟩
-  idOracle ++ₛₒ so
+  idOracle ++ₛₒ encAlg.IND_CPA_challengeImpl pk b
 
 def IND_CPA_experiment {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ProbComp Unit := do
@@ -135,10 +166,7 @@ lemma probOutput_IND_CPA_experiment_eq_add {encAlg : AsymmEncAlg ProbComp M PK S
         let (pk, _sk) ← encAlg.keygen
         let b ← (simulateQ (encAlg.IND_CPA_queryImpl' pk false) (adversary pk)).run' ∅
         guard ¬b] / 2 := by
-  unfold IND_CPA_experiment
-  rw [probOutput_bind_eq_sum_finSupport]
-  have {x : ℝ≥0∞} : 2⁻¹ * x = x / 2 := by field_simp; rw [mul_comm, mul_div, mul_one]
-  simp [this]
+  simp [IND_CPA_experiment, probOutput_uniformSelect_bool_bind_eq_add]
 
 end IND_CPA
 

@@ -318,6 +318,11 @@ instance : SelectableType Bool where
   probOutput_selectElem_eq x y := by simp
   probFailure_selectElem := by simp
 
+lemma probOutput_uniformSelect_bool_bind_eq_add {α : Type}
+    (oa : Bool → ProbComp α) (x : α) : -- should be anything $ᵗ Bool can lift to
+    [= x | ($ᵗ Bool) >>= oa] = [= x | oa true] / 2 + [= x | oa false] / 2 := by
+  sorry
+
 /-- Select a uniform element from `α × β` by independently selecting from `α` and `β`. -/
 instance (α β : Type) [Fintype α] [Fintype β] [Inhabited α] [Inhabited β]
     [SelectableType α] [SelectableType β] : SelectableType (α × β) where
