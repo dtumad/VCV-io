@@ -78,3 +78,14 @@ lemma simulate_coe_append_right [AlternativeMonad m₂] [LawfulMonad m₂] [Lawf
   | failure => simp
 
 end SimOracle
+
+namespace OracleComp
+
+variable {ι : Type _} {spec : OracleSpec ι} {α β γ : Type _}
+
+/-- Version of `simulateQ` that assumes additional `probComp` oracle. -/
+def simulateR  (so : QueryImpl spec ProbComp)
+    (oa : OracleComp (unifSpec ++ₒ spec) α) : ProbComp α :=
+  simulateQ (idOracle ++ₛₒ so) oa
+
+end OracleComp

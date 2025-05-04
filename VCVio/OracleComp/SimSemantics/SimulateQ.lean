@@ -32,10 +32,15 @@ e.g. using uniform selection oracles with a query cache to simulate a random ora
 `simulateQ` gives a method for applying a simulation oracle to a specific computation. -/
 @[ext]
 structure QueryImpl {ι : Type w} (spec : OracleSpec ι) (m : Type u → Type v) where
-  ofFn ::
   impl {α : Type u} (q : OracleQuery spec α) : m α
 
 namespace QueryImpl
+
+protected def ofFn {τ υ : Type _} (f : τ → m υ) :
+    QueryImpl (τ →ₒ υ) m where impl | query () t => f t
+
+@[simp] lemma ofFn_apply {τ υ : Type _} (f : τ → m υ) (u : PUnit) (t : τ) :
+    (QueryImpl.ofFn f).impl (query u t) = f t := rfl
 
 instance [∀ i, Inhabited (spec.range i)] [Pure m] :
   Inhabited (QueryImpl spec m) := ⟨{impl q := pure q.defaultOutput}⟩
@@ -45,6 +50,14 @@ instance [∀ i, Inhabited (spec.range i)] [Pure m] :
     so = so' := QueryImpl.ext (funext λ _ ↦ funext λ q ↦ h q)
 
 end QueryImpl
+
+/-- Simulate a computation using the original oracles by "replacing" queries with queries.
+This operates as an actual identity for `simulate'`, in that we get an exact equality
+between the new and original computation.
+This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
+in a larger set of oracles, leaving the behavior of other oracles unchanged.
+The relevant spec can usually be inferred automatically, so we leave it implicit. -/
+def idOracle : QueryImpl spec (OracleComp spec) where impl q := OracleComp.lift q
 
 namespace OracleComp
 
@@ -101,23 +114,9 @@ variable [LawfulAlternative m]
 @[simp] lemma simulateQ_seqRight (oa : OracleComp spec α) (ob : OracleComp spec β) :
     simulateQ so (oa *> ob) = simulateQ so oa *> simulateQ so ob := by simp [seqRight_eq]
 
--- NOTE: I don't think this is true in general
--- @[simp] lemma simulateQ_orElse (oa oa' : OracleComp spec α) :
---     simulateQ so (oa <|> oa') = (simulateQ so oa <|> simulateQ so oa') := by
---   simp only [simulateQ, Option.getM]
---   simp [OracleComp.orElse_def, OptionT.run]
-
 end OracleComp
 
 open OracleComp
-
-/-- Simulate a computation using the original oracles by "replacing" queries with queries.
-This operates as an actual identity for `simulate'`, in that we get an exact equality
-between the new and original computation.
-This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
-in a larger set of oracles, leaving the behavior of other oracles unchanged.
-The relevant spec can usually be inferred automatically, so we leave it implicit. -/
-def idOracle : QueryImpl spec (OracleComp spec) where impl q := OracleComp.lift q
 
 namespace idOracle
 

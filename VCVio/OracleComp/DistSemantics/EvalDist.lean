@@ -983,6 +983,14 @@ lemma probOutput_false_eq_probOutput_true_not {ob : OracleComp spec Bool} :
     [= false | ob] = [= true | do let b ← ob; return !b] := by
   simp [probOutput_true_eq_probOutput_false_not]
 
+lemma probOutput_true_eq_one_sub (ob : OracleComp spec Bool) :
+    [= true | ob] = (1 - [= false | ob]) - [⊥ | ob] := by
+  sorry
+
+lemma probOutput_false_eq_one_sub (ob : OracleComp spec Bool) :
+    [= false | ob] = (1 - [= true | ob]) - [⊥ | ob] := by
+  sorry
+
 end bool
 
 section eqRec

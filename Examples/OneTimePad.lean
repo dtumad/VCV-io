@@ -24,12 +24,14 @@ The only oracles needed are `unifSpec`, which requires no implementation. -/
   decrypt k σ := some (k ^^^ σ) -- decrypt by xor-ing with the key
   __ := ExecutionMethod.default -- No oracles to implement so use default
 
-namespace oneTimePad
-
 @[simp] lemma toExecutionMethod_eq (n : ℕ) :
     (oneTimePad n).toExecutionMethod = ExecutionMethod.default := rfl
 
 /-- Encryption and decryption are inverses for any OTP key. -/
-instance complete (n : ℕ) : (oneTimePad n).Complete := ⟨by simp⟩
+instance complete (n : ℕ) : (oneTimePad n).Correct := ⟨by simp⟩
 
-end oneTimePad
+theorem oneTimeUniformCiphers_oneTimePad (n : ℕ) :
+    (oneTimePad n).OneTimeUniformCiphers := by
+  have : ∀ m σ : BitVec n, ({x | σ = x ^^^ m} : Finset _) = {σ ^^^ m} := sorry
+  refine QueryImpl.interchangable_of_forAllQuery fun | query () m, σ => ?_
+  simp [probOutput_map_eq_sum_finSupport_ite, this]

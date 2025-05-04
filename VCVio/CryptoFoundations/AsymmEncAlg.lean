@@ -17,7 +17,6 @@ for asymmetric encryption using oracles in `spec`, with message space `M`,
 public/secret keys `PK` and `SK`, and ciphertext space `C`.
 -/
 
-<<<<<<< HEAD
 section vectorAdd
 -- Define vector addition more generally
 
@@ -41,8 +40,6 @@ theorem vectorAdd_get {α : Type} {n : ℕ} [Add α] [Zero α]
 
 end vectorAdd
 
-=======
->>>>>>> e2a3748791bc39ac9ac22cd741eb73e04d80a7b8
 open OracleSpec OracleComp ENNReal
 
 universe u v w
@@ -88,24 +85,24 @@ section IND_CPA_Distinguisher
 
 open QueryImpl
 
-def randomCiphertext_distinguisher (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
-  QueryImpl.Distinguisher PK SK (M →ₒ C)
+-- def randomCiphertext_distinguisher (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
+--   QueryImpl.Distinguisher PK SK (M →ₒ C)
 
-noncomputable def rancomdCiphertext_distinguisherAdvantage [SelectableType M]
-    (encAlg : AsymmEncAlg ProbComp M PK SK C)
-    (adversary : randomCiphertext_distinguisher encAlg) : ℝ≥0∞ :=
-  adversary.advantage encAlg.keygen
-    (fun (pk, _) => QueryImpl.ofFn fun | query _ m => encAlg.encrypt pk m)
-    (fun (pk, _) => QueryImpl.ofFn fun | query _ _ => do encAlg.encrypt pk (←$ᵗ M))
+-- noncomputable def rancomdCiphertext_distinguisherAdvantage [SelectableType M]
+--     (encAlg : AsymmEncAlg ProbComp M PK SK C)
+--     (adversary : randomCiphertext_distinguisher encAlg) : ℝ≥0∞ :=
+--   adversary.advantage encAlg.keygen
+--     (fun (pk, _) => QueryImpl.ofFn fun | query _ m => encAlg.encrypt pk m)
+--     (fun (pk, _) => QueryImpl.ofFn fun | query _ _ => do encAlg.encrypt pk (←$ᵗ M))
 
-def IND_CPA_distinguisher (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
-  QueryImpl.Distinguisher PK SK (M × M →ₒ C)
+-- def IND_CPA_distinguisher (_encAlg : AsymmEncAlg ProbComp M PK SK C) :=
+--   QueryImpl.Distinguisher PK SK (M × M →ₒ C)
 
-noncomputable def IND_CPA_distinguisherAdvantage (encAlg : AsymmEncAlg ProbComp M PK SK C)
-    (adversary : IND_CPA_distinguisher encAlg) : ℝ≥0∞ :=
-  adversary.advantage encAlg.keygen
-    (fun (pk, _) => QueryImpl.ofFn fun | (query _ (m₁, _)) => encAlg.encrypt pk m₁)
-    (fun (pk, _) => QueryImpl.ofFn fun | (query _ (_, m₂)) => encAlg.encrypt pk m₂)
+-- noncomputable def IND_CPA_distinguisherAdvantage (encAlg : AsymmEncAlg ProbComp M PK SK C)
+--     (adversary : IND_CPA_distinguisher encAlg) : ℝ≥0∞ :=
+--   adversary.advantage encAlg.keygen
+--     (fun (pk, _) => QueryImpl.ofFn fun | (query _ (m₁, _)) => encAlg.encrypt pk m₁)
+--     (fun (pk, _) => QueryImpl.ofFn fun | (query _ (_, m₂)) => encAlg.encrypt pk m₂)
 
 end IND_CPA_Distinguisher
 

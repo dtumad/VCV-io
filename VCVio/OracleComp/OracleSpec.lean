@@ -70,9 +70,9 @@ section append
 /-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
 `inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
 def append {ι₁ : Type u} {ι₂ : Type u'} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
-    OracleSpec (ι₁ ⊕ ι₂) := 
+    OracleSpec (ι₁ ⊕ ι₂) :=
   fun | .inl i => spec₁ i | .inr i => spec₂ i
-    
+
     -- Sum.elim spec₁ spec₂
 
 
@@ -124,7 +124,7 @@ instance : FiniteRange []ₒ where
 Uses the singleton type `PUnit` as the indexing set. -/
 @[inline, reducible]
 def singletonSpec (T U : Type v) : OracleSpec.{u,v} PUnit :=
-  λ _ ↦ (T, U)
+  fun _ => (T, U)
 
 infixl : 25 " →ₒ " => singletonSpec
 
@@ -135,6 +135,12 @@ instance {T U : Type v} [DecidableEq T] [DecidableEq U] : (T →ₒ U).Decidable
 instance {T U : Type v} [Inhabited U] [Fintype U] : (T →ₒ U).FiniteRange where
   range_inhabited' := inferInstance
   range_fintype' := inferInstance
+
+@[simp] lemma range_singletonSpec (T U : Type _) (u : PUnit) [Fintype U] :
+  (((T →ₒ U).range u)) = U := rfl
+
+@[simp] lemma domain_singletonSpec (T U : Type _) (u : PUnit) [Fintype U] :
+  (((T →ₒ U).domain u)) = T := rfl
 
 /-- A coin flipping oracle produces a random `Bool` with no meaningful input. -/
 @[inline, reducible] def coinSpec : OracleSpec.{0,0} Unit := Unit →ₒ Bool
@@ -149,8 +155,8 @@ instance : coinSpec.FiniteRange where
 
 -- Nicer than uniform selection but worse computability.
 -- Could just throw errors running if no selectable type exists.
-def unifSpec' : OracleSpec.{u+1,u} (Type u) :=
-  λ α : Type u ↦ (PUnit, α)
+def selectionSpec : OracleSpec.{u+1,u} (Type u) :=
+  fun α : Type u => (PUnit, α)
 
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
 By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.-/
