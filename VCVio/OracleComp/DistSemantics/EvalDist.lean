@@ -163,15 +163,25 @@ noncomputable example : ℝ≥0∞ := [= 5 | do let x ←$[0..4]; return x + 1]
 noncomputable example : ℝ≥0∞ := [⊥ | do let x ←$[0..4]; if x = 0 then failure else return x]
 noncomputable example : ℝ≥0∞ := [(· + 1 ≤ 3) | do let x ←$[0..4]; return x]
 
-@[simp]
-lemma probFailure_add_tsum_probOutput (oa : OracleComp spec α) :
+@[simp] lemma probFailure_add_tsum_probOutput (oa : OracleComp spec α) :
     [⊥ | oa] + ∑' x, [= x | oa] = 1 :=
   (tsum_option _ ENNReal.summable).symm.trans (evalDist oa).tsum_coe
 
-@[simp]
-lemma tsum_probOutput_add_probFailure (oa : OracleComp spec α) :
+@[simp] lemma tsum_probOutput_add_probFailure (oa : OracleComp spec α) :
     ∑' x, [= x | oa] + [⊥ | oa] = 1 :=
   by rw [add_comm, probFailure_add_tsum_probOutput]
+
+@[simp] lemma probFailure_add_sum_probOutput [Fintype α] (oa : OracleComp spec α) :
+    [⊥ | oa] + ∑ x, [= x | oa] = 1 := by
+  rw [← probFailure_add_tsum_probOutput oa, tsum_fintype oa.probOutput]
+
+@[simp] lemma sum_probOutput_add_probFailure [Fintype α] (oa : OracleComp spec α) :
+    ∑ x, [= x | oa] + [⊥ | oa] = 1 := by
+  rw [← tsum_probOutput_add_probFailure oa, tsum_fintype oa.probOutput]
+
+lemma probOutput_add_add_probFailure_eq_one [spec.FiniteRange] (oa : OracleComp spec Bool) :
+    [= true | oa] + [= false | oa] + [⊥ | oa] = 1 := by
+  rw [← sum_probOutput_add_probFailure oa, Fintype.sum_bool]
 
 section bounds
 
