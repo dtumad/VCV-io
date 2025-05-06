@@ -29,32 +29,46 @@ def Distinguisher (spec : OracleSpec ι) :=
 namespace QueryImpl
 
 /-- Two `QueryImpl` are interchangeable if they always induce the same chance of a distinguisher
-returning `true` and `false` with those implementations.
+returning `true` and `false` with those implementations (see `Interchangeable_iff`).
 We include both conditions to factor in the chance of `adv` resulting in `failure`. -/
 def Interchangeable (impl₁ impl₂ : QueryImpl spec ProbComp) : Prop :=
   ∀ adv : Distinguisher spec,
-    [= true | simulateR impl₁ adv] = [= true | simulateR impl₂ adv] ∧
-      [= false | simulateR impl₁ adv] = [= false | simulateR impl₂ adv]
+    [= true | simulateR impl₁ adv] = [= true | simulateR impl₂ adv]
 
 infixr:25 " ≃ₛₒ " => Interchangeable
 
 instance : IsEquiv (QueryImpl spec ProbComp) Interchangeable where
-  refl _ _ := ⟨rfl, rfl⟩
-  symm _ _ h adv := ⟨(h adv).1.symm, (h adv).2.symm⟩
-  trans _ _ _ h₁ h₂ adv := ⟨(h₁ adv).1.trans (h₂ adv).1, (h₁ adv).2.trans (h₂ adv).2⟩
+  refl _ _ := rfl
+  symm _ _ h adv := (h adv).symm
+  trans _ _ _ h₁ h₂ adv := (h₁ adv).trans (h₂ adv)
 
-lemma interchangeable_def (impl₁ impl₂ : QueryImpl spec ProbComp) :
+lemma Interchangeable_iff (impl₁ impl₂ : QueryImpl spec ProbComp) :
     impl₁ ≃ₛₒ impl₂ ↔ ∀ adv : Distinguisher spec,
-      [= true | simulateR impl₁ adv] = [= true | simulateR impl₂ adv] ∧
-        [= false | simulateR impl₁ adv] = [= false | simulateR impl₂ adv] := Iff.rfl
+    [= true | simulateR impl₁ adv] = [= true | simulateR impl₂ adv] ∧
+      [= false | simulateR impl₁ adv] = [= false | simulateR impl₂ adv] := by
+  refine ⟨fun h adv => ⟨h adv, ?_⟩, fun h adv => (h adv).1⟩
+  simpa [simulateR] using h (Bool.not <$> adv)
+
+lemma Interchangeable_iff_probOutput_true (impl₁ impl₂ : QueryImpl spec ProbComp) :
+    impl₁ ≃ₛₒ impl₂ ↔ ∀ adv : Distinguisher spec,
+    [= true | simulateR impl₁ adv] = [= true | simulateR impl₂ adv] := by rfl
+
+lemma Interchangeable_iff_probOutput_false (impl₁ impl₂ : QueryImpl spec ProbComp) :
+    impl₁ ≃ₛₒ impl₂ ↔ ∀ adv : Distinguisher spec,
+    [= false | simulateR impl₁ adv] = [= false | simulateR impl₂ adv] := by
+  rw [Interchangeable_iff_probOutput_true]
+  refine ⟨fun h adv => by simpa [simulateR] using h (Bool.not <$> adv),
+    fun h adv => by simpa [simulateR] using h (Bool.not <$> adv)⟩
 
 lemma interchangeable_iff_probOutput_true (impl₁ impl₂ : QueryImpl spec ProbComp) :
     impl₁ ≃ₛₒ impl₂ ↔ ∀ adv : Distinguisher spec,
       [= true | simulateR impl₁ adv] = [= true | simulateR impl₂ adv] ∧
         [⊥ | simulateR impl₁ adv] = [⊥ | simulateR impl₂ adv] := by
+  refine (Interchangeable_iff _ _).trans ?_
   refine forall_congr' fun adv => and_congr_right_iff.2 ?_
-  have := (probOutput_add_add_probFailure_eq_one (simulateR impl₁ adv)).trans
-    (probOutput_add_add_probFailure_eq_one (simulateR impl₂ adv)).symm
+  have := (probOutput_bool_add_probFailure_eq_one (simulateR impl₁ adv) true).trans
+    (probOutput_bool_add_probFailure_eq_one (simulateR impl₂ adv) true).symm
+  simp only [Bool.not_true] at this
   refine fun h => ⟨fun h' => ?_, fun h' => ?_⟩
   · rwa [h, h', add_right_inj (by simp)] at this
   · rwa [h, h', add_left_inj (by simp), add_right_inj (by simp)] at this
@@ -90,10 +104,23 @@ lemma interchangeable_iff_probOutput_bind_guard' (impl₁ impl₂ : QueryImpl sp
 
 end QueryImpl
 
+noncomputable def Distinguisher.DistinguisherAdvantage' (impl₁ impl₂ : QueryImpl spec ProbComp)
+    (adv : Distinguisher spec) : ℝ≥0∞ := [= () | do
+      let b ←$ᵗ Bool
+      let impl := if b then impl₁ else impl₂
+      let b' ← simulateR impl adv
+      guard (b = b')]
+
 noncomputable def Distinguisher.DistinguisherAdvantage (impl₁ impl₂ : QueryImpl spec ProbComp)
     (adv : Distinguisher spec) : ℝ≥0∞ := max
   ([= true | simulateR impl₁ adv] - [= true | simulateR impl₂ adv])
   ([= false | simulateR impl₁ adv] - [= false | simulateR impl₂ adv])
+
+lemma distinguisherAdvantage_map_neg (impl₁ impl₂ : QueryImpl spec ProbComp)
+    (adv : OracleComp (unifSpec ++ₒ spec) Bool) :
+      Distinguisher.DistinguisherAdvantage impl₁ impl₂ adv =
+      Distinguisher.DistinguisherAdvantage impl₁ impl₂ ((!·) <$> adv) := by
+  sorry
 
 def DistinguisherBound (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) : Prop :=
   ∀ adv : Distinguisher spec, adv.DistinguisherAdvantage impl₁ impl₂ ≤ b
@@ -104,16 +131,29 @@ lemma distinguisherBound_iff (impl₁ impl₂ : QueryImpl spec ProbComp) (b : �
       [= false | simulateR impl₁ adv] - [= false | simulateR impl₂ adv] ≤ b := by
   sorry
 
+-- lemma le_of_distinguisherBound
+
 lemma DistinguisherBound_zero_iff (impl₁ impl₂ : QueryImpl spec ProbComp) :
     DistinguisherBound impl₁ impl₂ 0 ↔ QueryImpl.Interchangeable impl₁ impl₂ := by
-  rw [distinguisherBound_iff, QueryImpl.interchangeable_def]
+  rw [distinguisherBound_iff, QueryImpl.interchangeable_iff]
   simp [tsub_eq_zero_iff_le]
   refine ⟨fun h adv => ?_, fun h adv => by simp [(h adv).1, (h adv).2]⟩
   refine ⟨?_, sorry⟩
   refine le_antisymm (h adv).1 ?_
-  rw [probOutput_true_eq_one_sub, probOutput_true_eq_one_sub]
+  have := (h adv).2
+  -- rw [probOutput_true_eq_one_sub, probOutput_true_eq_one_sub]
 
-  simp
+  sorry
+
+/-- The oracle that compares its input to a random value can't be distinguished from one that
+always fails with probability more than the chance of them returning the same value. -/
+lemma distinguisherBound_predict_inv_card {τ υ : Type _}
+    [SelectableType τ] [Fintype τ] [DecidableEq τ] (b : Bool) :
+    let predict : QueryImpl (τ →ₒ Bool) ProbComp :=
+      QueryImpl.ofFn fun t => do return ((← $ᵗ τ) = t)
+    let give_up : QueryImpl (τ →ₒ Bool) ProbComp :=
+      QueryImpl.ofFn fun t => do return false
+    DistinguisherBound predict give_up (Fintype.card τ)⁻¹ := by
   sorry
 
 -- def Distinguisher (α _β : Type _) (spec : OracleSpec ι) :=

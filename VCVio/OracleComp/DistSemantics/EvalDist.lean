@@ -179,10 +179,6 @@ noncomputable example : ℝ≥0∞ := [(· + 1 ≤ 3) | do let x ←$[0..4]; ret
     ∑ x, [= x | oa] + [⊥ | oa] = 1 := by
   rw [← tsum_probOutput_add_probFailure oa, tsum_fintype oa.probOutput]
 
-lemma probOutput_add_add_probFailure_eq_one [spec.FiniteRange] (oa : OracleComp spec Bool) :
-    [= true | oa] + [= false | oa] + [⊥ | oa] = 1 := by
-  rw [← sum_probOutput_add_probFailure oa, Fintype.sum_bool]
-
 section bounds
 
 variable {oa : OracleComp spec α} {x : α} {p : α → Prop}
@@ -985,21 +981,24 @@ end unit
 
 section bool
 
+lemma probOutput_bool_add_probFailure_eq_one (oa : OracleComp spec Bool) (b : Bool) :
+    [= b | oa] + [= !b | oa] + [⊥ | oa] = 1 := by
+  cases b <;> simp [← sum_probOutput_add_probFailure oa, Fintype.sum_bool, add_comm [=false|oa]]
+
+@[simp] lemma probOutput_map_not (ob : OracleComp spec Bool) (b : Bool) :
+    [= b | Bool.not <$> ob] = [= !b | ob] := by
+  cases b <;> simp [probOutput_map_eq_sum_fintype_ite]
+
+lemma probOutput_bool_eq_one_sub (ob : OracleComp spec Bool) (b : Bool) :
+    [= b | ob] = (1 - [= !b | ob]) - [⊥ | ob] := by
+  rw [← probOutput_bool_add_probFailure_eq_one ob b, tsub_tsub, add_assoc]
+  simp
+
 lemma probOutput_true_eq_probOutput_false_not {ob : OracleComp spec Bool} :
-    [= true | ob] = [= false | do let b ← ob; return !b] := by
-  simp [probOutput_map_eq_sum_fintype_ite]
+    [= true | ob] = [= false | do let b ← ob; return !b] := by simp
 
 lemma probOutput_false_eq_probOutput_true_not {ob : OracleComp spec Bool} :
-    [= false | ob] = [= true | do let b ← ob; return !b] := by
-  simp [probOutput_true_eq_probOutput_false_not]
-
-lemma probOutput_true_eq_one_sub (ob : OracleComp spec Bool) :
-    [= true | ob] = (1 - [= false | ob]) - [⊥ | ob] := by
-  sorry
-
-lemma probOutput_false_eq_one_sub (ob : OracleComp spec Bool) :
-    [= false | ob] = (1 - [= true | ob]) - [⊥ | ob] := by
-  sorry
+    [= false | ob] = [= true | do let b ← ob; return !b] := by simp
 
 end bool
 

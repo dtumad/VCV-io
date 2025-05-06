@@ -65,7 +65,7 @@ def IND_CPA_parallelTesting_reduction
     (adversary : (elgamalAsymmEnc G P).IND_CPA_adversary) :
     parallelTestingAdversary G P := fun x x₁ x₂ x₃ => do
   let so : QueryImpl (P × P →ₒ P × P) ProbComp :=
-    QueryImpl.ofFn fun (query () (m₁, _m₂)) => return (x₂, m₁ * x₃)
+    QueryImpl.ofFn fun (m₁, _m₂) => return (x₂, m₁ * x₃)
   simulateQ (idOracle ++ₛₒ so) (adversary (x, x₁))
 
 /-- The reduction from ElGamal IND-CPA to parallel testing succeeds exactly as often

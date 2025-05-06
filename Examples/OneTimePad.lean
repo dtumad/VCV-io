@@ -33,5 +33,6 @@ instance complete (n : ℕ) : (oneTimePad n).Correct := ⟨by simp⟩
 theorem oneTimeUniformCiphers_oneTimePad (n : ℕ) :
     (oneTimePad n).OneTimeUniformCiphers := by
   have : ∀ m σ : BitVec n, ({x | σ = x ^^^ m} : Finset _) = {σ ^^^ m} := sorry
-  refine QueryImpl.interchangable_of_forAllQuery fun | query () m, σ => ?_
-  simp [probOutput_map_eq_sum_finSupport_ite, this]
+  sorry
+  -- refine QueryImpl.interchangable_of_forAllQuery fun | query () m, σ => ?_
+  -- simp [probOutput_map_eq_sum_finSupport_ite, this]
