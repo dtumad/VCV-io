@@ -1,9 +1,9 @@
 import VCVio
 
-open Lean OracleComp
+open Lean OracleComp ENNReal
 
 syntax (name := probThing)
-  "[" term " | " sepBy((sepBy(ident, ",") " ← " term),";") "]" : term
+  "Pr[" term " | " sepBy((sepBy(ident, ",") " ← " term),";") "]" : term
 
 def BuildProdGen : List (TSyntax `term) → MacroM (TSyntax `term)
   | [] => Macro.throwUnsupported
@@ -21,8 +21,9 @@ def BuildCond (cond : TSyntax `term)
     let rcall ← BuildCond cond vs
     `(Function.uncurry fun $v => $rcall)
 
+
 macro_rules
-  | `([$cond | $vars1:ident,* ← $src1]) => do
+  | `(Pr[$cond | $vars1:ident,* ← $src1]) => do
     let vars_list : List (List (TSyntax `ident)) :=
       [(↑vars1 : Array (TSyntax `ident)).toList]
     let sources :=
@@ -31,8 +32,8 @@ macro_rules
     let check ← BuildCond cond vars_list.flatten
     `(probEvent $call $check)
 
-  | `([$cond | $vars1:ident,* ← $src1;
-               $vars2:ident,* ← $src2]) => do
+  | `(Pr[$cond | $vars1:ident,* ← $src1;
+                 $vars2:ident,* ← $src2]) => do
     let vars_list : List (List (TSyntax `ident)) :=
       [(↑vars1 : Array (TSyntax `ident)).toList,
        (↑vars2 : Array (TSyntax `ident)).toList]
@@ -43,9 +44,9 @@ macro_rules
     let check ← BuildCond cond vars_list.flatten
     `(probEvent $call $check)
 
-  | `([$cond | $vars1:ident,* ← $src1;
-               $vars2:ident,* ← $src2;
-               $vars3:ident,* ← $src3]) => do
+  | `(Pr[$cond | $vars1:ident,* ← $src1;
+                 $vars2:ident,* ← $src2;
+                 $vars3:ident,* ← $src3]) => do
     let vars_list : List (List (TSyntax `ident)) :=
       [(↑vars1 : Array (TSyntax `ident)).toList,
        (↑vars2 : Array (TSyntax `ident)).toList,
@@ -58,11 +59,13 @@ macro_rules
     let check ← BuildCond cond vars_list.flatten
     `(probEvent $call $check)
 
+#check Lean.Parser.doElemParser
+
 noncomputable example (F : Type _) [Field F] [SelectableType F] : Unit := by
-  let t := [∀ i : Fin 3, y[i] ≠ 0| y ←$ᵗ Vector F 3]
-  let u := [y[0] = y[1] ∧ x[0] ≠ 0 | x, y ←$ᵗ Vector F 3]
-  let v := [(x ∧ y) ∨ (x ∧ !z) | x, y, z ←$ᵗ Bool]
-  let w := [b ∧ x[0] ≠ 0 | b ←$ᵗ Bool; x ←$ᵗ Vector F 3]
-  let μ := [b ∧ b' ∧ x * y = 1 | b, b' ←$ᵗ Bool; x, y ←$ᵗ F]
-  let ν := [xs[0] = x ∨ b = true | b ←$ᵗ Bool; x ←$ᵗ F; xs ←$ᵗ Vector F 5]
+  let t := Pr[∀ i : Fin 3, y[i] ≠ 0| y ←$ᵗ Vector F 3]
+  let u := Pr[y[0] = x[0] ∧ x[1] ≠ y[2] | x, y ←$ᵗ Vector F 3]
+  let v := Pr[(x ∧ y) ∨ (x ∧ !z) | x, y, z ←$ᵗ Bool]
+  let w := Pr[b ∧ x[0] ≠ 0 | b ←$ᵗ Bool; x ←$ᵗ Vector F 3]
+  let μ := Pr[b ∧ b' ∧ x * y = 1 | b, b' ←$ᵗ Bool; x, y ←$ᵗ F]
+  let ν := Pr[xs[0] = x ∨ b = true | b ←$ᵗ Bool; x ←$ᵗ F; xs ←$ᵗ Vector F 5]
   exact ()
