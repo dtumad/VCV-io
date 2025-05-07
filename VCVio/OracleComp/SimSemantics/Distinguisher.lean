@@ -107,20 +107,59 @@ end QueryImpl
 noncomputable def Distinguisher.DistinguisherAdvantage' (impl₁ impl₂ : QueryImpl spec ProbComp)
     (adv : Distinguisher spec) : ℝ≥0∞ := [= () | do
       let b ←$ᵗ Bool
-      let impl := if b then impl₁ else impl₂
-      let b' ← simulateR impl adv
+      let b' ← simulateR (if b then impl₁ else impl₂) adv
       guard (b = b')]
 
 noncomputable def Distinguisher.DistinguisherAdvantage (impl₁ impl₂ : QueryImpl spec ProbComp)
     (adv : Distinguisher spec) : ℝ≥0∞ := max
   ([= true | simulateR impl₁ adv] - [= true | simulateR impl₂ adv])
-  ([= false | simulateR impl₁ adv] - [= false | simulateR impl₂ adv])
+  ([= true | simulateR impl₂ adv] - [= true | simulateR impl₁ adv])
+  -- |[= true | simulateR impl₁ adv].toReal - [= true | simulateR impl₂ adv].toReal|.toENNReal
 
-lemma distinguisherAdvantage_map_neg (impl₁ impl₂ : QueryImpl spec ProbComp)
-    (adv : OracleComp (unifSpec ++ₒ spec) Bool) :
-      Distinguisher.DistinguisherAdvantage impl₁ impl₂ adv =
-      Distinguisher.DistinguisherAdvantage impl₁ impl₂ ((!·) <$> adv) := by
+def DistinguisherBound' (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) : Prop :=
+  ∀ adv : Distinguisher spec, Distinguisher.DistinguisherAdvantage impl₁ impl₂ adv ≤ b
+
+lemma DistinguisherBound_of_reduction {ι' : Type _} {rspec : OracleSpec ι'}
+    {impl₁ impl₂ : QueryImpl spec ProbComp}
+    {red_impl₁ red_impl₂ : QueryImpl rspec ProbComp}
+    {b r : ℝ≥0∞}
+    (hr : DistinguisherBound' red_impl₁ red_impl₂ r)
+    (reduction : Distinguisher spec → Distinguisher rspec)
+    (h : ∀ adv : Distinguisher spec,
+      Distinguisher.DistinguisherAdvantage impl₁ impl₂ adv > b →
+        Distinguisher.DistinguisherAdvantage red_impl₁ red_impl₂ (reduction adv) > r) :
+    DistinguisherBound' impl₁ impl₂ b :=
   sorry
+
+lemma DistinguisherBound'.symm (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) :
+    DistinguisherBound' impl₁ impl₂ b ↔ DistinguisherBound' impl₂ impl₁ b := by
+  refine ⟨fun h adv => ?_, sorry⟩
+
+  specialize h (Bool.not <$> adv)
+
+  sorry
+
+lemma DistinguisherBound_iff (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) :
+    DistinguisherBound' impl₁ impl₂ b ↔ ∀ adv : Distinguisher spec,
+      [= true | simulateR impl₁ adv] - [= true | simulateR impl₂ adv] ≤ b ∧
+      [= false | simulateR impl₁ adv] - [= false | simulateR impl₂ adv] ≤ b ∧
+      [= true | simulateR impl₂ adv] - [= true | simulateR impl₁ adv] ≤ b ∧
+      [= false | simulateR impl₂ adv] - [= false | simulateR impl₁ adv] ≤ b := by
+  sorry
+  -- refine ⟨fun h adv => ?_, fun h adv => ?_⟩
+  -- · refine ⟨h adv, ⟨?_, ⟨?_, ?_⟩⟩⟩
+
+  --   · specialize h (Bool.not <$> adv)
+  --     simpa [simulateR] using h
+  --   ·
+  --     specialize h (Bool.not <$> adv)
+
+  --     simp [simulateR] at *
+
+  --     sorry
+  --   sorry
+  -- · refine (h adv).1
+
 
 def DistinguisherBound (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) : Prop :=
   ∀ adv : Distinguisher spec, adv.DistinguisherAdvantage impl₁ impl₂ ≤ b
@@ -129,9 +168,12 @@ lemma distinguisherBound_iff (impl₁ impl₂ : QueryImpl spec ProbComp) (b : �
     DistinguisherBound impl₁ impl₂ b ↔ ∀ adv : Distinguisher spec,
       [= true | simulateR impl₁ adv] - [= true | simulateR impl₂ adv] ≤ b ∧
       [= false | simulateR impl₁ adv] - [= false | simulateR impl₂ adv] ≤ b := by
+  rw [DistinguisherBound]
+  apply forall_congr' fun adv => ?_
+  rw [Distinguisher.DistinguisherAdvantage]
+  simp only [sup_le_iff, tsub_le_iff_right]
   sorry
 
--- lemma le_of_distinguisherBound
 
 lemma DistinguisherBound_zero_iff (impl₁ impl₂ : QueryImpl spec ProbComp) :
     DistinguisherBound impl₁ impl₂ 0 ↔ QueryImpl.Interchangeable impl₁ impl₂ := by
