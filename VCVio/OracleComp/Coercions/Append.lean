@@ -56,8 +56,7 @@ section instances
 instance subSpec_append_left : spec₁ ⊂ₒ (spec₁ ++ₒ spec₂) where
   monadLift | query i t => query (inl i) t
 
-@[simp]
-lemma liftM_append_left_eq (q : OracleQuery spec₁ α) :
+@[simp] lemma liftM_append_left_eq (q : OracleQuery spec₁ α) :
     (liftM q : OracleQuery (spec₁ ++ₒ spec₂) α) =
       match q with | query i t => query (inl i) t := rfl
 
@@ -65,8 +64,7 @@ lemma liftM_append_left_eq (q : OracleQuery spec₁ α) :
 instance subSpec_append_right : spec₂ ⊂ₒ (spec₁ ++ₒ spec₂) where
   monadLift | query i t => query (inr i) t
 
-@[simp]
-lemma liftM_append_right_eq (q : OracleQuery spec₂ α) :
+@[simp] lemma liftM_append_right_eq (q : OracleQuery spec₂ α) :
     (liftM q : OracleQuery (spec₁ ++ₒ spec₂) α) =
       match q with | query i t => query (inr i) t := rfl
 
@@ -76,8 +74,7 @@ instance subSpec_left_append_left_append_of_subSpec [h : spec₁ ⊂ₒ spec₃]
     | query (inl i) t => liftM (query i t)
     | query (inr i) t => query (inr i) t
 
-@[simp]
-lemma liftM_left_append_left_append_eq [h : spec₁ ⊂ₒ spec₃]
+@[simp] lemma liftM_left_append_left_append_eq [h : spec₁ ⊂ₒ spec₃]
     (q : OracleQuery (spec₁ ++ₒ spec₂) α) : (liftM q : OracleQuery (spec₃ ++ₒ spec₂) α) =
     match q with | query (inl i) t => liftM (query i t) | query (inr i) t => query (inr i) t := rfl
 
@@ -98,6 +95,8 @@ instance subSpec_assoc : spec₁ ++ₒ (spec₂ ++ₒ spec₃) ⊂ₒ spec₁ ++
     | query (inr (inl i)) t => query (inl (inr i)) t
     | query (inr (inr i)) t => query (inr i) t
 
+open OracleComp
+
 end instances
 
 end OracleSpec
@@ -112,6 +111,13 @@ variable (α ι₁ ι₂ ι₃ ι₄ ι₅ ι₆ : Type)
   (spec₃ : OracleSpec ι₃) (spec₄ : OracleSpec ι₄)
   (coeSpec : OracleSpec ι₅) (coeSuperSpec : OracleSpec ι₆)
   [coeSpec ⊂ₒ coeSuperSpec]
+
+example (oa : OracleComp spec₁ α) :
+    OracleComp (spec₁ ++ₒ spec₂ ++ₒ spec₃) α := oa
+example (oa : OracleComp spec₂ α) :
+    OracleComp (spec₁ ++ₒ spec₂ ++ₒ spec₃) α := oa
+example (oa : OracleComp spec₃ α) :
+    OracleComp (spec₁ ++ₒ spec₂ ++ₒ spec₃) α := oa
 
 -- coerce a single `coin_spec` and then append extra oracles
 example (oa : OracleComp coeSpec α) :

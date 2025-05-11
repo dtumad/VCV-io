@@ -110,10 +110,18 @@ noncomputable def Distinguisher.DistinguisherAdvantage' (impl₁ impl₂ : Query
       let b' ← simulateR (if b then impl₁ else impl₂) adv
       guard (b = b')]
 
+open Distinguisher
+
+lemma distinguisherAdvantage_eq_add (impl₁ impl₂ : QueryImpl spec ProbComp)
+    (adv : Distinguisher spec) : adv.DistinguisherAdvantage' impl₁ impl₂ =
+      [= true | simulateR impl₁ adv] / 2 + [= false | simulateR impl₂ adv] / 2 := by
+  unfold DistinguisherAdvantage'
+  simp [probOutput_uniformSelect_bool_bind_eq_add]
+
 noncomputable def Distinguisher.DistinguisherAdvantage (impl₁ impl₂ : QueryImpl spec ProbComp)
-    (adv : Distinguisher spec) : ℝ≥0∞ := max
+    (adv : Distinguisher spec) : ℝ≥0∞ := --max
   ([= true | simulateR impl₁ adv] - [= true | simulateR impl₂ adv])
-  ([= true | simulateR impl₂ adv] - [= true | simulateR impl₁ adv])
+  -- ([= true | simulateR impl₂ adv] - [= true | simulateR impl₁ adv])
   -- |[= true | simulateR impl₁ adv].toReal - [= true | simulateR impl₂ adv].toReal|.toENNReal
 
 def DistinguisherBound' (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) : Prop :=
@@ -138,6 +146,24 @@ lemma DistinguisherBound'.symm (impl₁ impl₂ : QueryImpl spec ProbComp) (b : 
   specialize h (Bool.not <$> adv)
 
   sorry
+
+lemma DistinguisherBound_append_right (impl₁ impl₂ : QueryImpl spec ProbComp)
+    (b : ℝ≥0∞) {τ : Type _} {spec' : OracleSpec τ} (implᵣ : QueryImpl spec' ProbComp)
+     :
+    DistinguisherBound' (impl₁ ++ₛₒ implᵣ) (impl₂ ++ₛₒ implᵣ) b ↔
+      DistinguisherBound' impl₁ impl₂ b := by
+  refine ⟨fun h => ?_, fun h => ?_⟩
+  · intro adv
+    let adv' : Distinguisher (spec ++ₒ spec') := liftComp adv _
+    specialize h (liftComp adv _)
+    unfold DistinguisherAdvantage
+    unfold DistinguisherAdvantage at h
+    unfold simulateR at *
+    simp at h
+    rw [liftComp_left_append_left_append_eq]
+    sorry
+  ·
+    sorry
 
 lemma DistinguisherBound_iff (impl₁ impl₂ : QueryImpl spec ProbComp) (b : ℝ≥0∞) :
     DistinguisherBound' impl₁ impl₂ b ↔ ∀ adv : Distinguisher spec,

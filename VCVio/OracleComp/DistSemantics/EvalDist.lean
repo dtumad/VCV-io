@@ -1034,6 +1034,18 @@ lemma probEvent_ite (q : α → Prop) : [q | if p then oa else oa'] =
     if p then [q | oa] else [q | oa'] := by
   by_cases hp : p <;> simp [hp]
 
+@[simp] lemma probOutput_bind_ite_const_failure (oa : OracleComp spec α)
+    (p : α → Prop) [DecidablePred p] (ob : OracleComp spec β) (y : β) :
+    [= y | do let x ← oa; if p x then ob else failure] = [p | oa] * [= y | ob] := by
+  simp only [probOutput_bind_eq_tsum, probOutput_ite, probOutput_failure, mul_ite, mul_zero,
+    probEvent_eq_tsum_ite oa p, ← ENNReal.tsum_mul_right, ite_mul, zero_mul]
+
+@[simp] lemma probOutput_bind_ite_failure_const (oa : OracleComp spec α)
+    (p : α → Prop) [DecidablePred p] (ob : OracleComp spec β) (y : β) :
+    [= y | do let x ← oa; if p x then failure else ob] = [fun x => ¬ p x | oa] * [= y | ob] := by
+  simp only [probOutput_bind_eq_tsum, probOutput_ite, probOutput_failure, mul_ite, mul_zero,
+    probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right, ite_mul, zero_mul, ite_not]
+
 end ite
 
 section coin

@@ -49,6 +49,10 @@ instance [∀ i, Inhabited (spec.range i)] [Pure m] :
     (h : ∀ {α} (q : OracleQuery spec α), so.impl q = so'.impl q) :
     so = so' := QueryImpl.ext (funext λ _ ↦ funext λ q ↦ h q)
 
+instance (m : Type _ → Type _) (n : Type _ → Type _) [MonadLift m n] :
+    Coe (QueryImpl spec m) (QueryImpl spec n) where
+  coe so := QueryImpl.mk fun q => liftM (so.impl q)
+
 end QueryImpl
 
 /-- Simulate a computation using the original oracles by "replacing" queries with queries.

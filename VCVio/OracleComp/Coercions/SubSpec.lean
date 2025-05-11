@@ -194,8 +194,7 @@ instance [MonadLift (OracleQuery spec) (OracleQuery superSpec)] :
 
 variable [MonadLift (OracleQuery spec) (OracleQuery superSpec)]
 
-@[simp]
-lemma liftM_eq_liftComp (oa : OracleComp spec α) :
+@[simp] lemma liftM_eq_liftComp (oa : OracleComp spec α) :
     (liftM oa : OracleComp superSpec α) = liftComp oa superSpec := rfl
 
 end OracleComp
