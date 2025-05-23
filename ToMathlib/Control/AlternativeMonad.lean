@@ -59,7 +59,7 @@ theorem monadLift_elimM [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n]
     [MonadLift m n] [LawfulMonadLift m n] (x : m (Option α)) (y : m β) (z : α → m β) :
       monadLift (Option.elimM x y z) =
         Option.elimM (monadLift x : n (Option α)) (monadLift y) (fun x => monadLift (z x)) :=
-  (monadLift_bind _ _).trans (bind_congr fun | none => rfl | some _ => rfl)
+  (monadLift_bind _ _).trans (by congr; funext x; cases x <;> rfl)
 
 @[simp]
 theorem liftM_elimM [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n]

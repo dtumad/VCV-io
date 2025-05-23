@@ -18,22 +18,20 @@ universe u v w
 
 section abs
 
-lemma mul_abs_of_nonneg {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : 0 ≤ a) :
-    a * |b| = |a * b| := by
+variable {G : Type*} [CommRing G] [LinearOrder G] [IsStrictOrderedRing G] {a b : G}
+
+lemma mul_abs_of_nonneg (h : 0 ≤ a) : a * |b| = |a * b| := by
   rw [abs_mul, abs_of_nonneg h]
 
-lemma abs_mul_of_nonneg {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : 0 ≤ b) :
-    |a| * b = |a * b| := by
+lemma abs_mul_of_nonneg (h : 0 ≤ b) : |a| * b = |a * b| := by
   rw [abs_mul, abs_of_nonneg h]
 
-lemma mul_abs_of_nonpos {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : a < 0) :
-    a * |b| = - |a * b| := by
+lemma mul_abs_of_nonpos (h : a < 0) : a * |b| = - |a * b| := by
   rw (occs := [1]) [← sign_mul_abs a]
   rw [abs_mul, neg_eq_neg_one_mul, mul_assoc]
   congr; simp [h]
 
-lemma abs_mul_of_nonpos {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : b < 0) :
-    |a| * b = - |a * b| := by
+lemma abs_mul_of_nonpos (h : b < 0) : |a| * b = - |a * b| := by
   rw (occs := [1]) [← sign_mul_abs b]
   rw [abs_mul, neg_eq_neg_one_mul, ← mul_assoc, mul_comm |a| _, mul_assoc]
   congr; simp [h]
@@ -253,6 +251,32 @@ lemma PMF.monad_pure_eq_pure {α : Type u} (x : α) :
 @[simp]
 lemma PMF.monad_bind_eq_bind {α β : Type u}
       (p : PMF α) (q : α → PMF β) : p >>= q = p.bind q := rfl
+
+theorem PMF.bind_eq_zero {α β : Type _} {p : PMF α} {f : α → PMF β} {b : β} :
+    (p >>= f) b = 0 ↔ ∀ a, p a = 0 ∨ f a b = 0 := by simp
+
+theorem PMF.heq_iff {α β : Type u} {pa : PMF α} {pb : PMF β} (h : α = β) :
+    HEq pa pb ↔ ∀ x, pa x = pb (cast h x) := by
+  subst h; simp; constructor <;> intro h'
+  · intro x; rw [h']
+  · ext x; rw [h' x]
+
+theorem Option.cast_eq_some_iff {α β : Type u} {x : Option α} {b : β} (h : α = β) :
+    cast (congrArg Option h) x = some b ↔ x = some (cast h.symm b) := by
+  subst h; simp only [cast_eq]
+
+theorem PMF.uniformOfFintype_cast (α β : Type _) [ha : Fintype α] [Nonempty α]
+    [hb : Fintype β] [Nonempty β] (h : α = β) :
+      cast (congrArg PMF h) (PMF.uniformOfFintype α) = @PMF.uniformOfFintype β _ _ := by
+  subst h
+  ext x
+  simp only [cast_eq, uniformOfFintype_apply, inv_inj, Nat.cast_inj]
+  exact @Fintype.card_congr α α ha hb (Equiv.refl α)
+
+theorem tsum_cast {α β : Type u} {f : α → ENNReal} {g : β → ENNReal}
+    (h : α = β) (h' : ∀ a, f a = g (cast h a)) :
+      (∑' (a : α), f a) = (∑' (b : β), g b) := by
+  subst h; simp [h']
 
 @[simp]
 lemma List.foldlM_range {m : Type u → Type v} [Monad m] [LawfulMonad m]

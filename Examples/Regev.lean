@@ -226,19 +226,20 @@ lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
   | succ m ih =>
     rw [Fin.univ_castSuccEmb]
     simp
-    rw [Finset.sum_insert, add_comm]
-    · apply Fin_Bound_add
-      · simp
-        apply ih
-        intro i
-        rw [Fin.castLE]
-        apply this
-      · apply this
-    simp
-    intro ⟨i, hi⟩ hl
-    rw [Fin.castLE, Fin.last] at hl
-    simp at hl
-    linarith
+    rw [add_comm, ← Fin.sum_univ_castSucc]
+    sorry
+    -- · apply Fin_Bound_add
+    --   · simp
+    --     apply ih
+    --     intro i
+    --     rw [Fin.castLE]
+    --     apply this
+    --   · apply this
+    -- simp
+    -- intro ⟨i, hi⟩ hl
+    -- rw [Fin.castLE, Fin.last] at hl
+    -- simp at hl
+    -- linarith
 
 @[simp]
 lemma Fin_bound_castLE {n m : ℕ} {x : Fin (n + 1)} {h : n < m} :

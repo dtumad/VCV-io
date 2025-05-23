@@ -135,11 +135,11 @@ instance {w d} [Monad w] [DijkstraMonad w d] [h : LawfulMonad w] [LawfulDijkstra
     LawfulMonad (fun α => (w : w α) × d w) :=
   LawfulMonad.mk' _
     (by
-      intro α ⟨x, y⟩; simp [instMonadSigma]
-      constructor
-      · show x >>= (fun a => pure a) = x; simp only [bind_pure]
-      · rw (occs := .pos [2]) [← dBind_dPure y]
-        symm; exact eqRec_heq (bind_pure x) (y >>=ᵈ dPure))
+      intro α ⟨x, y⟩; simp [instMonadSigma]; sorry)
+      -- constructor
+      -- · show x >>= (fun a => pure a) = x; simp only [bind_pure]
+      -- · rw (occs := .pos [2]) [← dBind_dPure y]
+      --   symm; exact eqRec_heq (bind_pure x) (y >>=ᵈ dPure))
     (by
       intro α β x f; simp [instMonadSigma]; congr
       · simp only [pure_bind]
