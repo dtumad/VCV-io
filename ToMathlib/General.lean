@@ -18,22 +18,20 @@ universe u v w
 
 section abs
 
-lemma mul_abs_of_nonneg {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : 0 ≤ a) :
-    a * |b| = |a * b| := by
+variable {G : Type*} [CommRing G] [LinearOrder G] [IsStrictOrderedRing G] {a b : G}
+
+lemma mul_abs_of_nonneg (h : 0 ≤ a) : a * |b| = |a * b| := by
   rw [abs_mul, abs_of_nonneg h]
 
-lemma abs_mul_of_nonneg {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : 0 ≤ b) :
-    |a| * b = |a * b| := by
+lemma abs_mul_of_nonneg (h : 0 ≤ b) : |a| * b = |a * b| := by
   rw [abs_mul, abs_of_nonneg h]
 
-lemma mul_abs_of_nonpos {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : a < 0) :
-    a * |b| = - |a * b| := by
+lemma mul_abs_of_nonpos (h : a < 0) : a * |b| = - |a * b| := by
   rw (occs := [1]) [← sign_mul_abs a]
   rw [abs_mul, neg_eq_neg_one_mul, mul_assoc]
   congr; simp [h]
 
-lemma abs_mul_of_nonpos {G : Type*} [LinearOrderedCommRing G] {a b : G} (h : b < 0) :
-    |a| * b = - |a * b| := by
+lemma abs_mul_of_nonpos (h : b < 0) : |a| * b = - |a * b| := by
   rw (occs := [1]) [← sign_mul_abs b]
   rw [abs_mul, neg_eq_neg_one_mul, ← mul_assoc, mul_comm |a| _, mul_assoc]
   congr; simp [h]
