@@ -135,12 +135,12 @@ def IND_CPA_adversary (encAlg : AsymmEncAlg ProbComp M PK SK C) :=
 def IND_CPA_queryImpl' (encAlg : AsymmEncAlg ProbComp M PK SK C)
     (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
       (StateT (M × M →ₒ C).QueryCache ProbComp) :=
-  idOracle ++ₛₒ (encAlg.IND_CPA_challengeImpl pk b).withCaching
+  @idOracle _ unifSpec ++ₛₒ (encAlg.IND_CPA_challengeImpl pk b).withCaching
 
 def IND_CPA_queryImpl (encAlg : AsymmEncAlg ProbComp M PK SK C)
     (pk : PK) (b : Bool) : QueryImpl encAlg.IND_CPA_oracleSpec
       (StateT (M × M →ₒ C).QueryCache ProbComp) :=
-  idOracle ++ₛₒ encAlg.IND_CPA_challengeImpl pk b
+  @idOracle _ unifSpec ++ₛₒ encAlg.IND_CPA_challengeImpl pk b
 
 def IND_CPA_experiment {encAlg : AsymmEncAlg ProbComp M PK SK C}
     (adversary : encAlg.IND_CPA_adversary) : ProbComp Unit := do

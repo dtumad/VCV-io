@@ -73,7 +73,7 @@ def unforgeableExp {sigAlg : SignatureAlg (OracleComp spec) M PK SK S}
     let (pk, sk) ← sigAlg.keygen
     -- Simulate the adversary's signing oracle with the public / secret keys
     let sim_adv : WriterT (QueryLog (M →ₒ S)) (OracleComp spec) (M × S) :=
-      simulateQ (idOracle ++ₛₒ sigAlg.signingOracle pk sk) (adv.main pk)
+      simulateQ (@idOracle _ spec ++ₛₒ sigAlg.signingOracle pk sk) (adv.main pk)
     -- Run the adversary and check that they successfully forged a signature
     let ((m, σ), log) ← sim_adv.run
     return !(log.wasQueried () m) && (← sigAlg.verify pk m σ)

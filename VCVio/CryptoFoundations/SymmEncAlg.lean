@@ -27,6 +27,12 @@ structure SymmEncAlg (m : Type u → Type v)
   encrypt (k : K) (msg : M) : m C
   decrypt (k : K) (c : C) : Option M
 
+structure SymmEncAlg' (m : Type u → Type v) (M K C : ℕ → Type u)
+    extends ExecutionMethod m where
+  keygen (sp : ℕ) : m (K sp)
+  encrypt {sp : ℕ} (k : K sp) (msg : M sp) : m (C sp)
+  decrypt {sp : ℕ} (k : K sp) (c : C sp) : Option (M sp)
+
 namespace SymmEncAlg
 
 variable {ι : Type w} {spec : OracleSpec ι} {m : Type → Type v} {M K C : Type}

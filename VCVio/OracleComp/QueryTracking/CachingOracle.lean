@@ -45,7 +45,7 @@ end QueryImpl
 /-- Oracle for caching queries to the oracles in `spec`, querying fresh values if needed. -/
 @[inline, reducible] def cachingOracle :
     QueryImpl spec (StateT spec.QueryCache (OracleComp spec)) :=
-  idOracle.withCaching
+  (idOracle spec).withCaching
 
 namespace cachingOracle
 

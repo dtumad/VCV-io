@@ -73,7 +73,7 @@ def FiatShamir (sigmaAlg : SigmaAlg X W PC SC Ω P p)
   exec comp :=
     let so : QueryImpl (unifSpec ++ₒ (M × PC →ₒ Ω))
       (StateT ((M × PC →ₒ Ω).QueryCache) ProbComp) :=
-      idOracle ++ₛₒ randomOracle
+      @idOracle _ unifSpec ++ₛₒ randomOracle
     StateT.run' (simulateQ so comp) ∅
   lift_probComp := monadLift
   exec_lift_probComp c := by sorry --simp

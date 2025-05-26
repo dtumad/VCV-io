@@ -50,7 +50,7 @@ end QueryImpl
 /-- Use pregenerated oracle responses for queries. -/
 @[inline, reducible] def seededOracle [DecidableEq ι] :
     QueryImpl spec (ReaderT (QuerySeed spec) (OracleComp spec)) :=
-  idOracle.withPregen
+  (idOracle spec).withPregen
 
 namespace seededOracle
 

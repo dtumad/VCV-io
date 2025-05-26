@@ -30,8 +30,7 @@ variable {ι ι' ιₜ : Type*} {spec : OracleSpec ι}
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulateQ` gives a method for applying a simulation oracle to a specific computation. -/
-@[ext]
-structure QueryImpl {ι : Type w} (spec : OracleSpec ι) (m : Type u → Type v) where
+@[ext] structure QueryImpl {ι : Type w} (spec : OracleSpec ι) (m : Type u → Type v) where
   impl {α : Type u} (q : OracleQuery spec α) : m α
 
 namespace QueryImpl
@@ -61,7 +60,8 @@ between the new and original computation.
 This can be useful especially with `SimOracle.append`, in order to simulate a single oracle
 in a larger set of oracles, leaving the behavior of other oracles unchanged.
 The relevant spec can usually be inferred automatically, so we leave it implicit. -/
-def idOracle : QueryImpl spec (OracleComp spec) where impl q := OracleComp.lift q
+def idOracle (spec : OracleSpec ι) : QueryImpl spec (OracleComp spec)
+    where impl q := OracleComp.lift q
 
 namespace OracleComp
 
@@ -124,15 +124,15 @@ open OracleComp
 
 namespace idOracle
 
-@[simp] lemma apply_eq (q : OracleQuery spec α) : idOracle.impl q = q := rfl
+@[simp] lemma apply_eq (q : OracleQuery spec α) : (idOracle spec).impl q = q := rfl
 
-@[simp] lemma simulateQ_eq_id : @simulateQ ι spec _ α _ idOracle = id := by
+@[simp] lemma simulateQ_eq_id : @simulateQ ι spec _ α _ (idOracle spec) = id := by
   refine funext fun oa => by induction oa using OracleComp.inductionOn with
   | pure x => rfl
   | query_bind i t oa hoa => simp [hoa, Function.comp_def]
   | failure => rfl
 
-lemma simulateQ_eq (oa : OracleComp spec α) : simulateQ idOracle oa = oa := by simp
+lemma simulateQ_eq (oa : OracleComp spec α) : simulateQ (idOracle spec) oa = oa := by simp
 
 end idOracle
 

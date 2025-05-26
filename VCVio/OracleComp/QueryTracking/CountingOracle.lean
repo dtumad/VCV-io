@@ -39,7 +39,7 @@ end QueryImpl
 /-- Oracle for counting the number of queries made by a computation. The count is stored as a
 function from oracle indices to counts, to give finer grained information about the count. -/
 def countingOracle : QueryImpl spec (WriterT (QueryCount spec) (OracleComp spec)) :=
-  idOracle.withCounting
+  (idOracle spec).withCounting
 
 namespace countingOracle
 
