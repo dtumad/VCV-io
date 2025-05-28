@@ -3,7 +3,7 @@ Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import ToMathlib.ProbabilityTheory.Coupling
+-- import ToMathlib.ProbabilityTheory.Coupling
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import ToMathlib.General
 
@@ -16,7 +16,7 @@ We require this embedding respect the basic monad laws.
 
 We also define a number of specific cases:
 
-* `PrPr[= x | mx]` / `probOutput mx x` for odds of `mx` returning `x`
+* `Pr[= x | mx]` / `probOutput mx x` for odds of `mx` returning `x`
 * `Pr[p | mx]` / `probEvent mx p` for odds of `mx`'s result satisfying `p`
 * `Pr[e | x ← mx]` where `x` is free in the expression `e`
 * `PrPr[⊥ | mx]` / `probFailure mx` for odds of `mx` resulting in failure
@@ -32,6 +32,24 @@ universe u v w
 
 variable {α β γ : Type u} {m : Type u → Type v} [Monad m]
 
+/-- Subprobability distribution. -/
+@[reducible] def SPMF : Type u → Type u := OptionT PMF
+
+namespace SPMF
+
+variable {α β : Type u}
+
+@[reducible] protected def mk (m : PMF (Option α)) : SPMF α := OptionT.mk m
+@[reducible] protected def run (m : SPMF α) : PMF (Option α) := OptionT.run m
+
+-- Should we do it this way or add the instance on `Option α` instead?
+instance : FunLike (SPMF α) (α) ENNReal where
+  coe sp x := sp.run (some x)
+  coe_injective' p q := sorry
+
+end SPMF
+
+/-- The monad `m` has a well-behaved embedding into the `SPMF` monad. This means the -/
 class HasEvalDist (m : Type u → Type v) [Monad m] where
   evalDist {α : Type u} (mx : m α) : SPMF α
   evalDist_pure {α : Type u} (x : α) : evalDist (pure x : m α) = pure x
@@ -41,17 +59,15 @@ class HasEvalDist (m : Type u → Type v) [Monad m] where
 export HasEvalDist (evalDist evalDist_pure evalDist_bind)
 attribute [simp] evalDist_pure evalDist_bind
 
-variable [HasEvalDist m]
-
 /-- Probability that a computation `mx` returns the value `x`. -/
-def probOutput [HasEvalDist m] (mx : m α) (x : α) : ℝ≥0∞ := (evalDist mx).run (some x)
+def probOutput [HasEvalDist m] (mx : m α) (x : α) : ℝ≥0∞ := evalDist mx x
 
 /-- Probability that a computation `mx` outputs a value satisfying `p`. -/
 noncomputable def probEvent [HasEvalDist m] (mx : m α) (p : α → Prop) : ℝ≥0∞ :=
   (evalDist mx).run.toOuterMeasure (some '' {x | p x})
 
 /-- Probability that a compuutation `mx` will fail to return a value. -/
-def probFailure [HasEvalDist m] (mx : m α) : ℝ≥0∞ := evalDist mx none
+def probFailure [HasEvalDist m] (mx : m α) : ℝ≥0∞ := (evalDist mx).run none
 
 notation "Pr[=" x "|" mx "]" => probOutput mx x
 notation "Pr[" p "|" mx "]" => probEvent mx p
@@ -68,12 +84,14 @@ example {m : Type → Type} [Monad m] [HasEvalDist m] (mx : m ℕ) : Unit :=
   let _ := Pr[x^2 + x < 10 | x ← mx]
   ()
 
+variable [HasEvalDist m]
+
 lemma probOutput_def (mx : m α) (x : α) : Pr[= x | mx] = (evalDist mx).run (some x) := rfl
 
 lemma probEvent_def (mx : m α) (p : α → Prop) :
     Pr[p | mx] = (evalDist mx).run.toOuterMeasure (some '' {x | p x}) := rfl
 
-lemma probFailure_def (mx : m α) : Pr[⊥ | mx] = evalDist mx none := rfl
+lemma probFailure_def (mx : m α) : Pr[⊥ | mx] = (evalDist mx).run none := rfl
 
 @[simp] lemma evalDist_comp_pure : evalDist ∘ (pure : α → m α) = pure := by
   simp [funext_iff, Function.comp_apply, evalDist_pure]
@@ -105,11 +123,18 @@ lemma probEvent_eq_tsum_indicator (mx : m α) (p : α → Prop) :
   simp [probEvent_def, PMF.toOuterMeasure_apply, Set.indicator_image (Option.some_injective _),
     tsum_option _ ENNReal.summable, probOutput_def, Function.comp_def]
 
-/-- More explicit form of `probEvent_eq_tsum_indicator` when the predicate `p` is decidable. -/
 lemma probEvent_eq_tsum_ite (mx : m α) (p : α → Prop) [DecidablePred p] :
     Pr[p | mx] = ∑' x : α, if p x then Pr[= x | mx] else 0 := by
   simp [probEvent_def, PMF.toOuterMeasure_apply, tsum_option _ ENNReal.summable,
     Set.indicator, probOutput_def]
+
+@[simp] lemma probFailure_add_tsum_probOutput (oa : m α) :
+    Pr[⊥ | oa] + ∑' x, Pr[= x | oa] = 1 :=
+  (tsum_option _ ENNReal.summable).symm.trans (evalDist oa).tsum_coe
+
+@[simp] lemma tsum_probOutput_add_probFailure (oa : m α) :
+    ∑' x, Pr[= x | oa] + Pr[⊥ | oa] = 1 :=
+  by rw [add_comm, probFailure_add_tsum_probOutput]
 
 end sums
 
@@ -122,44 +147,50 @@ variable {mx : m α} {mxe : OptionT m α} {x : α} {p : α → Prop}
 @[simp] lemma probOutput_lt_top : Pr[= x | mx] < ∞ := PMF.apply_lt_top (evalDist mx) x
 @[simp] lemma not_one_lt_probOutput : ¬ 1 < Pr[= x | mx] := not_lt.2 probOutput_le_one
 
--- @[simp] lemma tsum_probOutput_le_one : ∑' x : α, Pr[= x | mx] ≤ 1 :=
---   le_of_le_of_eq (le_add_self) (probFailure_add_tsum_probOutput mx)
--- @[simp] lemma tsum_probOutput_ne_top : ∑' x : α, Pr[= x | mx] ≠ ⊤ :=
---   ne_top_of_le_ne_top one_ne_top tsum_probOutput_le_one
+@[simp] lemma tsum_probOutput_le_one : ∑' x : α, Pr[= x | mx] ≤ 1 :=
+  le_of_le_of_eq (le_add_self) (probFailure_add_tsum_probOutput mx)
+@[simp] lemma tsum_probOutput_ne_top : ∑' x : α, Pr[= x | mx] ≠ ⊤ :=
+  ne_top_of_le_ne_top one_ne_top tsum_probOutput_le_one
 
--- @[simp] lemma probEvent_ne_top : Pr[p | mx] ≠ ∞ := ne_top_of_le_ne_top one_ne_top probEvent_le_one
--- @[simp] lemma probEvent_lt_top : Pr[p | mx] < ∞ := lt_top_iff_ne_top.2 probEvent_ne_top
--- @[simp] lemma not_one_lt_probEvent : ¬ 1 < Pr[p | mx] := not_lt.2 probEvent_le_one
+@[simp] lemma probEvent_le_one : Pr[p | mx] ≤ 1 := by
+  rw [probEvent_def, PMF.toOuterMeasure_apply]
+  refine le_of_le_of_eq (ENNReal.tsum_le_tsum ?_) ((evalDist mx).tsum_coe)
+  exact Set.indicator_le_self (some '' {x | p x}) _
 
--- @[simp] lemma probEvent_le_one : Pr[p | mx] ≤ 1 := by
---   rw [probEvent_def, PMF.toOuterMeasure_apply]
---   refine le_of_le_of_eq (ENNReal.tsum_le_tsum ?_) (mx.evalDist.tsum_coe)
---   exact Set.indicator_le_self (some '' {x | p x}) _
+@[simp] lemma probEvent_ne_top : Pr[p | mx] ≠ ∞ := ne_top_of_le_ne_top one_ne_top probEvent_le_one
+@[simp] lemma probEvent_lt_top : Pr[p | mx] < ∞ := lt_top_iff_ne_top.2 probEvent_ne_top
+@[simp] lemma not_one_lt_probEvent : ¬ 1 < Pr[p | mx] := not_lt.2 probEvent_le_one
 
--- @[simp] lemma probFailure_le_one : Pr[⊥ | mx] ≤ 1 := PMF.coe_le_one (evalDist mx) none
--- @[simp] lemma probFailure_ne_top : Pr[⊥ | mx] ≠ ∞ := PMF.apply_ne_top (evalDist mx) none
--- @[simp] lemma probFailure_lt_top : Pr[⊥ | mx] < ∞ := PMF.apply_lt_top (evalDist mx) none
--- @[simp] lemma not_one_lt_probFailure : ¬ 1 < Pr[⊥ | mx] := not_lt.2 probFailure_le_one
--- @[simp] lemma probFailure_eq_zero [HasEvalDist.NoFailure m] (mx : m α) :
---     Pr[⊥ | mx] = 0 := HasEvalDist.NoFailure.evalDist_apply_none_eq_zero mx
+@[simp] lemma probFailure_le_one : Pr[⊥ | mx] ≤ 1 := PMF.coe_le_one (evalDist mx) none
+@[simp] lemma probFailure_ne_top : Pr[⊥ | mx] ≠ ∞ := PMF.apply_ne_top (evalDist mx) none
+@[simp] lemma probFailure_lt_top : Pr[⊥ | mx] < ∞ := PMF.apply_lt_top (evalDist mx) none
+@[simp] lemma not_one_lt_probFailure : ¬ 1 < Pr[⊥ | mx] := not_lt.2 probFailure_le_one
 
--- @[simp] lemma one_le_probOutput_iff : 1 ≤ Pr[= x | mx] ↔ Pr[= x | mx] = 1 := by
---   simp only [le_iff_eq_or_lt, not_one_lt_probOutput, or_false, eq_comm]
--- @[simp] lemma one_le_probEvent_iff : 1 ≤ [p | mx] ↔ [p | mx] = 1 := by
---   simp only [le_iff_eq_or_lt, not_one_lt_probEvent, or_false, eq_comm]
--- @[simp] lemma one_le_probFailure_iff : 1 ≤ Pr[⊥ | mx] ↔ Pr[⊥ | mx] = 1 := by
---   simp only [le_iff_eq_or_lt, not_one_lt_probFailure, or_false, eq_comm]
+@[simp] lemma one_le_probOutput_iff : 1 ≤ Pr[= x | mx] ↔ Pr[= x | mx] = 1 := by
+  simp only [le_iff_eq_or_lt, not_one_lt_probOutput, or_false, eq_comm]
+@[simp] lemma one_le_probEvent_iff : 1 ≤ Pr[p | mx] ↔ Pr[p | mx] = 1 := by
+  simp only [le_iff_eq_or_lt, not_one_lt_probEvent, or_false, eq_comm]
+@[simp] lemma one_le_probFailure_iff : 1 ≤ Pr[⊥ | mx] ↔ Pr[⊥ | mx] = 1 := by
+  simp only [le_iff_eq_or_lt, not_one_lt_probFailure, or_false, eq_comm]
 
 end bounds
+
+namespace SPMF
+
+/-- Add instance for `SPMF` just to give access to notation. -/
+instance hasEvalDist : HasEvalDist SPMF where
+  evalDist := id
+  evalDist_pure _ := rfl
+  evalDist_bind _ _ := rfl
+
+end SPMF
 
 namespace PMF
 
 noncomputable instance hasEvalDist : HasEvalDist PMF where
   evalDist p := OptionT.mk p
   evalDist_pure _ := by simp; rfl
-  evalDist_bind x y := by
-    simp [Function.comp_def, OptionT.mk, bind_assoc]
-    sorry
+  evalDist_bind x y := sorry
 
 variable (p : PMF α) (x : α)
 
@@ -170,6 +201,12 @@ variable (p : PMF α) (x : α)
   simp only [probOutput_def, evalDist_eq, monad_pure_eq_pure, monad_bind_eq_bind, OptionT.run_mk,
     pure_apply, Option.some.injEq, mul_ite, mul_one, mul_zero]
   simp
+  refine (PMF.map_apply _ _ _).trans ?_
+  refine (tsum_eq_single x ?_).trans ?_
+  · simp
+    refine fun x h h' => ?_
+    refine (h h'.symm).elim
+  simp only [↓reduceIte]
 
 @[simp] lemma probEvent_eq : probEvent p = p.toOuterMeasure := by
   refine funext fun x => ?_
