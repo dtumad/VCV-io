@@ -231,13 +231,10 @@ variable (p : PMF α) (x : α)
 @[simp] lemma probEvent_eq : probEvent p = p.toOuterMeasure := by
   refine funext fun x => ?_
   simp [probEvent_def, monad_map_eq_map]
-  rw [Set.preimage_image_eq]
+  rw [Set.preimage_image_eq _ (Option.some_injective α)]
   rfl
-  exact Option.some_injective α
 
 @[simp] lemma probFailure_eq : probFailure p = 0 := by
-    rw [probFailure]
-    simp
-    sorry
+    simp [probFailure, PMF.monad_map_eq_map]
 
 end PMF
