@@ -42,10 +42,20 @@ variable {α β : Type u}
 @[reducible] protected def mk (m : PMF (Option α)) : SPMF α := OptionT.mk m
 @[reducible] protected def run (m : SPMF α) : PMF (Option α) := OptionT.run m
 
+lemma eq_iff_forall_some (p q : SPMF α) :
+    p = q ↔ ∀ x : α, p.run (some x) = q.run (some x) := by
+  refine ⟨fun h => by simp [h], fun h => ?_⟩
+  refine PMF.ext fun x => match x with
+  | some x => h x
+  | none => sorry
+
 -- Should we do it this way or add the instance on `Option α` instead?
 instance : FunLike (SPMF α) (α) ENNReal where
   coe sp x := sp.run (some x)
-  coe_injective' p q := sorry
+  coe_injective' p q h := by
+    simp [eq_iff_forall_some]
+    intro x
+    simpa using congr_fun h x
 
 end SPMF
 
@@ -183,6 +193,16 @@ instance hasEvalDist : HasEvalDist SPMF where
   evalDist_pure _ := rfl
   evalDist_bind _ _ := rfl
 
+variable (p : SPMF α) (x : α)
+
+@[simp] lemma evalDist_eq : evalDist p = p := rfl
+
+@[simp] lemma probOutput_eq : probOutput p = p := rfl
+
+@[simp] lemma probEvent_eq : probEvent p = p.run.toOuterMeasure ∘ Set.image some := rfl
+
+@[simp] lemma probFailure_eq : probFailure p = p.run none := rfl
+
 end SPMF
 
 namespace PMF
@@ -214,5 +234,10 @@ variable (p : PMF α) (x : α)
   rw [Set.preimage_image_eq]
   rfl
   exact Option.some_injective α
+
+@[simp] lemma probFailure_eq : probFailure p = 0 := by
+    rw [probFailure]
+    simp
+    sorry
 
 end PMF
