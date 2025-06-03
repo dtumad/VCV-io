@@ -11,7 +11,7 @@ import ToMathlib.General
 /-!
 # Denotational Semantics for Output Distributions
 
-This file defines a typeclass for monads that can be canonically embedded in the `PMF` monad.
+This file defines a typeclass for monads that can be canonically embedded in the `SPMF` monad.
 We require this embedding respect the basic monad laws.
 
 We also define a number of specific cases:
@@ -68,7 +68,7 @@ lemma run_none_eq_one_sub (p : SPMF α) :
         _ = q.run none := by rw [run_none_eq_one_sub]
 
 -- Should we do it this way or add the instance on `Option α` instead?
-instance : FunLike (SPMF α) (α) ENNReal where
+instance : FunLike (SPMF α) α ENNReal where
   coe sp x := sp.run (some x)
   coe_injective' p q h := by simpa [SPMF.ext_iff] using congr_fun h
 
@@ -76,12 +76,13 @@ instance : FunLike (SPMF α) (α) ENNReal where
 
 end SPMF
 
-/-- The monad `m` has a well-behaved embedding into the `SPMF` monad. This means the -/
+/-- The monad `m` has a well-behaved embedding into the `SPMF` monad.
+TODO: modify this to extend `MonadHom` to get some lemmas for free. -/
 class HasEvalDist (m : Type u → Type v) [Monad m] where
   evalDist {α : Type u} (mx : m α) : SPMF α
   evalDist_pure {α : Type u} (x : α) : evalDist (pure x : m α) = pure x
   evalDist_bind {α β : Type u} (mx : m α) (my : α → m β) :
-    evalDist (mx >>= my) = evalDist mx >>= evalDist ∘ my
+    evalDist (mx >>= my) = evalDist mx >>= fun x => evalDist (my x)
 
 export HasEvalDist (evalDist evalDist_pure evalDist_bind)
 attribute [simp] evalDist_pure evalDist_bind
@@ -131,7 +132,7 @@ lemma probFailure_def (mx : m α) : Pr[⊥ | mx] = (evalDist mx).run none := rfl
 
 @[simp] lemma evalDist_map [LawfulMonad m] (mx : m α) (f : α → β) :
     evalDist (f <$> mx) = f <$> (evalDist mx) := by
-  simp only [map_eq_bind_pure_comp, evalDist_bind, evalDist_comp_pure']
+  simp [map_eq_bind_pure_comp]
 
 @[simp] lemma evalDist_comp_map [LawfulMonad m] (mx : m α) :
     evalDist ∘ (fun f => f <$> mx) = fun f : (α → β) => f <$> evalDist mx := by simp [funext_iff]
