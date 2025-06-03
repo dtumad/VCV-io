@@ -39,23 +39,40 @@ namespace SPMF
 
 variable {α β : Type u}
 
-@[reducible] protected def mk (m : PMF (Option α)) : SPMF α := OptionT.mk m
-@[reducible] protected def run (m : SPMF α) : PMF (Option α) := OptionT.run m
+-- @[reducible] protected def mk (m : PMF (Option α)) : SPMF α := OptionT.mk m
+-- @[reducible] protected def run (m : SPMF α) : PMF (Option α) := OptionT.run m
 
-lemma eq_iff_forall_some (p q : SPMF α) :
-    p = q ↔ ∀ x : α, p.run (some x) = q.run (some x) := by
-  refine ⟨fun h => by simp [h], fun h => ?_⟩
-  refine PMF.ext fun x => match x with
-  | some x => h x
-  | none => sorry
+lemma tsum_run_some_eq_one_sub (p : SPMF α) :
+    ∑' x, p.run (some x) = 1 - p.run none := by
+  rw [p.tsum_coe.symm.trans (tsum_option _ ENNReal.summable)]
+  exact (ENNReal.add_sub_cancel_left (PMF.apply_ne_top p none)).symm
+
+@[simp] lemma tsum_run_some_ne_top (p : SPMF α) :
+    ∑' x, p.run (some x) ≠ ⊤ :=
+  ne_top_of_le_ne_top one_ne_top (p.tsum_run_some_eq_one_sub ▸ tsub_le_self)
+
+lemma run_none_eq_one_sub (p : SPMF α) :
+    p.run none = 1 - ∑' x, p.run (some x) := by
+  rw [p.tsum_coe.symm.trans (tsum_option _ ENNReal.summable)]
+  refine ENNReal.eq_sub_of_add_eq ?_ rfl
+  simp only [ne_eq, tsum_run_some_ne_top, not_false_eq_true]
+
+@[simp] lemma run_none_ne_top (p : SPMF α) : p.run none ≠ ⊤ := PMF.apply_ne_top p none
+
+@[ext] lemma ext {p q : SPMF α} (h : ∀ x : α, p.run (some x) = q.run (some x)) : p = q :=
+  PMF.ext fun
+    | some x => h x
+    | none =>  calc p.run none
+        _ = 1 - ∑' x, p.run (some x) := by rw [run_none_eq_one_sub]
+        _ = 1 - ∑' x, q.run (some x) := by simp only [h]
+        _ = q.run none := by rw [run_none_eq_one_sub]
 
 -- Should we do it this way or add the instance on `Option α` instead?
 instance : FunLike (SPMF α) (α) ENNReal where
   coe sp x := sp.run (some x)
-  coe_injective' p q h := by
-    simp [eq_iff_forall_some]
-    intro x
-    simpa using congr_fun h x
+  coe_injective' p q h := by simpa [SPMF.ext_iff] using congr_fun h
+
+@[simp] lemma apply_eq_run_some (p : SPMF α) (x : α) : p x = p.run (some x) := rfl
 
 end SPMF
 
