@@ -93,14 +93,6 @@ lemma probOutput_prod_mk_snd_map' [spec.FiniteRange] (ob : OracleComp spec β)
     [= z | (x, f ·) <$> ob] = [= z.1 | (pure x : OracleComp spec α)] * [= z.2 | f <$> ob] := by
   sorry
 
-@[simp]
-lemma Option.getM_none {m : Type _ → Type _} {α : Type _} [Alternative m] :
-    (Option.getM none : m α) = failure := rfl
-
-@[simp]
-lemma Option.getM_some {m : Type _ → Type _} {α : Type _} [Alternative m] (x : α) :
-    (Option.getM (some x) : m α) = pure x := rfl
-
 lemma probOutput_bind_ite_failure_eq_tsum [spec.FiniteRange] [DecidableEq β]
     (oa : OracleComp spec α) (f : α → β) (p : α → Prop) [DecidablePred p] (y : β) :
     [= y | oa >>= fun x => if p x then pure (f x) else failure] =
