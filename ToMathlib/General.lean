@@ -71,7 +71,7 @@ lemma Prod.mk.injective2 {α β : Type*} :
   simp [Function.Injective2]
 
 lemma Function.injective2_swap_iff {α β γ : Type*} (f : α → β → γ) :
-    f.swap.Injective2 ↔ f.Injective2 :=
+    (Function.swap f).Injective2 ↔ f.Injective2 :=
   ⟨λ h _ _ _ _ h' ↦ and_comm.1 (h h'), λ h _ _ _ _ h' ↦ and_comm.1 (h h')⟩
 
 @[simp] theorem Finset.image_const_univ {α β} [DecidableEq β]  [Fintype α]
