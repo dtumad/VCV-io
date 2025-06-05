@@ -194,20 +194,13 @@ lemma Fin_Bound_mul {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
 @[simp]
 lemma Fin_bound_neg {n b : ℕ} {x : Fin n} (h : Fin_Bound x b) :
   Fin_Bound (-x) b := by
-  by_cases h0 : n = 0
-  · rw [h0] at x
-    apply x.elim0
-  have nnz : NeZero n := ⟨by omega⟩
-  have : Fin_Bound (-(Fin.ofNat' n 1)) 1 := by
-    right
-    simp [Fin.coe_neg]
-    by_cases h1 : n = 1
-    · simp [h1]
-    push_neg at h0 h1
-    rw [Nat.one_mod_eq_one.mpr h1]
-    rw [Nat.mod_eq_of_lt] <;> omega
-  rw [← one_mul b, ← neg_one_mul x]
-  apply Fin_Bound_mul this h
+  rcases n with _ | n
+  · cases x; omega
+  · rcases x with ⟨_ | _, _⟩
+    · simpa
+    · simp only [Fin_Bound, ge_iff_le, Fin.neg_def] at *
+      rw [Nat.mod_eq_of_lt (by omega)]
+      omega
 
 lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
 (h1 : Fin_Bound_vec v₁ b₁) (h2 : Fin_Bound_vec v₂ b₂) (Nez : NeZero p) :
@@ -252,7 +245,7 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
     Fin_Bound (Fin.castLE h a - (Fin.ofNat' p χ)) χ := by
   by_cases n0 : χ = 0
   · have := Fin.le_val_last a
-    simp [n0] at *
+    simp [n0, Fin.ofNat'] at *
     trivial
   by_cases hv : a ≥ χ
   · left
@@ -265,12 +258,11 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
       rw [Fin.le_def] at hv ⊢
       trans ↑a <;> simp at *
       rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
-    simp_all [this]
+    simp_all [Fin.ofNat', this]
     trans 2 * χ
-    · norm_cast
-      have g := Fin.val_lt_of_le a (le_refl (2*χ + 1))
-      omega
-    · rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
+    · omega
+    · simp [Fin.castLE] at this
+      rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
   · right
     simp at *
     apply IntLE_imp_NatLE; simp
@@ -284,8 +276,9 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
       simp at *
       rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
     rw [ite_cond_eq_false]
-    · rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
-    simp_all [this]
+    · simp only [Fin.ofNat', Fin.ofNat_eq_cast, Fin.val_natCast, Int.natCast_emod, ge_iff_le]
+      rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
+    simp_all [Fin.ofNat', this]
 
 -- This lemma is no longer needed
 lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m} [NeZero p] (h : p > 2*χ) :
