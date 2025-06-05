@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Devon Tuma
+Authors: Devon Tuma, František Silváši
 -/
 -- import ToMathlib.ProbabilityTheory.Coupling
 import Mathlib.Probability.ProbabilityMassFunction.Monad
@@ -19,7 +19,8 @@ We also define a number of specific cases:
 * `Pr[= x | mx]` / `probOutput mx x` for odds of `mx` returning `x`
 * `Pr[p | mx]` / `probEvent mx p` for odds of `mx`'s result satisfying `p`
 * `Pr[e | x ← mx]` where `x` is free in the expression `e`
-* `PrPr[⊥ | mx]` / `probFailure mx` for odds of `mx` resulting in failure
+* `Pr{x ← mx}[e]` where `x` is free in the expression `e`
+* `Pr[⊥ | mx]` / `probFailure mx` for odds of `mx` resulting in failure
 
 For the last case, we assume `mx` has an `OptionT` transformer to represent the failure.
 In future it may be nice to generalize to any `AlternativeMonad` using an additional typeclass
@@ -36,11 +37,6 @@ variable {α β γ : Type u} {m : Type u → Type v} [Monad m]
 @[reducible] def SPMF : Type u → Type u := OptionT PMF
 
 namespace SPMF
-
-variable {α β : Type u}
-
--- @[reducible] protected def mk (m : PMF (Option α)) : SPMF α := OptionT.mk m
--- @[reducible] protected def run (m : SPMF α) : PMF (Option α) := OptionT.run m
 
 lemma tsum_run_some_eq_one_sub (p : SPMF α) :
     ∑' x, p.run (some x) = 1 - p.run none := by
@@ -74,6 +70,10 @@ instance : FunLike (SPMF α) α ENNReal where
 
 @[simp] lemma apply_eq_run_some (p : SPMF α) (x : α) : p x = p.run (some x) := rfl
 
+lemma apply'_none_eq_run (p : SPMF α) :
+    let p' : PMF (Option α) := p
+    p' none = p.run none := rfl
+
 end SPMF
 
 /-- The monad `m` has a well-behaved embedding into the `SPMF` monad.
@@ -97,19 +97,38 @@ noncomputable def probEvent [HasEvalDist m] (mx : m α) (p : α → Prop) : ℝ�
 /-- Probability that a compuutation `mx` will fail to return a value. -/
 def probFailure [HasEvalDist m] (mx : m α) : ℝ≥0∞ := (evalDist mx).run none
 
+/-- Probability that a computation returns a particular output. -/
 notation "Pr[=" x "|" mx "]" => probOutput mx x
+
+/-- Probability that a computation returns a value satisfying a predicate. -/
 notation "Pr[" p "|" mx "]" => probEvent mx p
+
+/-- Probability that a computation fails to return a value. -/
 notation "Pr[⊥" "|" mx "]" => probFailure mx
 
-syntax (name := probEventBinding)
+/-- Probability that a computation returns a value satisfying a predicate. -/
+syntax (name := probEventBinding1)
   "Pr[" term " | " ident " ← " term "]" : term
 
-macro_rules | `(Pr[$cond:term | $var:ident ← $src:term]) => `(Pr[fun $var => $cond | $src])
+macro_rules (kind := probEventBinding1)
+  | `(Pr[$cond:term | $var:ident ← $src:term]) => `(Pr[fun $var => $cond | $src])
 
-example {m : Type → Type} [Monad m] [HasEvalDist m] (mx : m ℕ) : Unit :=
+/-- Probability that a computation returns a value satisfying a predicate. -/
+syntax (name := probEventBinding2) "Pr{" doSeq "}[" term "]" : term
+
+macro_rules (kind := probEventBinding2)
+  -- `doSeqBracketed`
+  | `(Pr{{$items*}}[$t]) => `(probOutput (do $items:doSeqItem* return $t:term) True)
+  -- `doSeqIndent`
+  | `(Pr{$items*}[$t]) => `(probOutput (do $items:doSeqItem* return $t:term) True)
+
+/-- Test for all the different probability notations. -/
+example {m : Type → Type u} [Monad m] [HasEvalDist m] (mx : m ℕ) : Unit :=
   let _ := Pr[= 10 | mx]
   let _ := Pr[fun x => x^2 + x < 10 | mx]
   let _ := Pr[x^2 + x < 10 | x ← mx]
+  let _ := Pr{let x ← mx}[x = 10]
+  let _ := Pr[⊥ | mx]
   ()
 
 variable [HasEvalDist m]
@@ -202,6 +221,26 @@ variable {mx : m α} {mxe : OptionT m α} {x : α} {p : α → Prop}
   simp only [le_iff_eq_or_lt, not_one_lt_probFailure, or_false, eq_comm]
 
 end bounds
+
+section bind
+
+variable (mx : m α) (my : α → m β)
+
+lemma probOutput_bind_eq_tsum (y : β) :
+    Pr[= y | mx >>= my] = ∑' x : α, Pr[= x | mx] * Pr[= y | my x] := by
+  simp [probOutput, evalDist_bind, tsum_option _ ENNReal.summable, Option.elimM]
+
+end bind
+
+lemma probOutput_true_eq_probEvent {α} {m : Type → Type u} [Monad m] [HasEvalDist m]
+    (mx : m α) (p : α → Prop) : Pr{let x ← mx}[p x] = Pr[p | mx] := by
+  rw [probEvent_eq_tsum_indicator]
+  rw [probOutput_bind_eq_tsum]
+  refine tsum_congr fun α => ?_
+  simp [Set.indicator]
+  congr
+  rw [eq_true_eq_id]
+  rfl
 
 namespace SPMF
 
