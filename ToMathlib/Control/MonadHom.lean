@@ -78,6 +78,19 @@ lemma mmap_seqRight [LawfulMonad m] [LawfulMonad n]
     (F : m →ᵐ n) (x : m α) (y : m β) : F (x *> y) = F x *> F y := by
   simp [seqRight_eq]
 
+section id
+
+/-- The identity map extends to a lawful monad mapping. -/
+protected def id (m : Type u → Type v) [Monad m] : m →ᵐ m where
+  toFun := id
+  toFun_pure' _ := rfl
+  toFun_bind' _ _ := rfl
+
+@[simp] lemma id_apply {m : Type u → Type v} [Monad m] (mx : m α) :
+    MonadHom.id m mx = mx := rfl
+
+end id
+
 section ofLift
 
 /-- Construct a `MonadHom` from a lawful monad lift. -/

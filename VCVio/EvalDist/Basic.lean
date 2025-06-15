@@ -3,9 +3,8 @@ Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma, František Silváši
 -/
--- import ToMathlib.ProbabilityTheory.Coupling
-import Mathlib.Probability.ProbabilityMassFunction.Monad
-import ToMathlib.General
+import VCVio.EvalDist.SPMF
+import ToMathlib.Control.MonadHom
 
 
 /-!
@@ -33,69 +32,31 @@ universe u v w
 
 variable {α β γ : Type u} {m : Type u → Type v} [Monad m]
 
-/-- Subprobability distribution. -/
-@[reducible] def SPMF : Type u → Type u := OptionT PMF
+/-- The monad `m` has a well-behaved embedding into the `SPMF` monad, implemented as a `MonadHom`.
+In particular the lifting respects `return`, `bind`, `map`, etc.
 
-namespace SPMF
+We choose this over a `MonadLift` to be more explicit about which monads should actually
+have such a distribution and prevent over-aggressive type-class lifting. -/
+class HasEvalDist (m : Type u → Type v) [Monad m] extends MonadHom m SPMF
 
-lemma tsum_run_some_eq_one_sub (p : SPMF α) :
-    ∑' x, p.run (some x) = 1 - p.run none := by
-  rw [p.tsum_coe.symm.trans (tsum_option _ ENNReal.summable)]
-  exact (ENNReal.add_sub_cancel_left (PMF.apply_ne_top p none)).symm
-
-@[simp] lemma tsum_run_some_ne_top (p : SPMF α) :
-    ∑' x, p.run (some x) ≠ ⊤ :=
-  ne_top_of_le_ne_top one_ne_top (p.tsum_run_some_eq_one_sub ▸ tsub_le_self)
-
-lemma run_none_eq_one_sub (p : SPMF α) :
-    p.run none = 1 - ∑' x, p.run (some x) := by
-  rw [p.tsum_coe.symm.trans (tsum_option _ ENNReal.summable)]
-  refine ENNReal.eq_sub_of_add_eq ?_ rfl
-  simp only [ne_eq, tsum_run_some_ne_top, not_false_eq_true]
-
-@[simp] lemma run_none_ne_top (p : SPMF α) : p.run none ≠ ⊤ := PMF.apply_ne_top p none
-
-@[ext] lemma ext {p q : SPMF α} (h : ∀ x : α, p.run (some x) = q.run (some x)) : p = q :=
-  PMF.ext fun
-    | some x => h x
-    | none =>  calc p.run none
-        _ = 1 - ∑' x, p.run (some x) := by rw [run_none_eq_one_sub]
-        _ = 1 - ∑' x, q.run (some x) := by simp only [h]
-        _ = q.run none := by rw [run_none_eq_one_sub]
-
--- Should we do it this way or add the instance on `Option α` instead?
-instance : FunLike (SPMF α) α ENNReal where
-  coe sp x := sp.run (some x)
-  coe_injective' p q h := by simpa [SPMF.ext_iff] using congr_fun h
-
-@[simp] lemma apply_eq_run_some (p : SPMF α) (x : α) : p x = p.run (some x) := rfl
-
-lemma apply'_none_eq_run (p : SPMF α) :
-    let p' : PMF (Option α) := p
-    p' none = p.run none := rfl
-
-end SPMF
-
-/-- The monad `m` has a well-behaved embedding into the `SPMF` monad.
-TODO: modify this to extend `MonadHom` to get some lemmas for free. -/
-class HasEvalDist (m : Type u → Type v) [Monad m] where
-  evalDist {α : Type u} (mx : m α) : SPMF α
-  evalDist_pure {α : Type u} (x : α) : evalDist (pure x : m α) = pure x
-  evalDist_bind {α β : Type u} (mx : m α) (my : α → m β) :
-    evalDist (mx >>= my) = evalDist mx >>= fun x => evalDist (my x)
-
-export HasEvalDist (evalDist evalDist_pure evalDist_bind)
-attribute [simp] evalDist_pure evalDist_bind
+/-- Probability distribution of a computation `mx` induced by a `HasEvalDist` instance. -/
+def evalDist [h : HasEvalDist m] (mx : m α) : SPMF α :=
+  h.toFun mx
 
 /-- Probability that a computation `mx` returns the value `x`. -/
-def probOutput [HasEvalDist m] (mx : m α) (x : α) : ℝ≥0∞ := evalDist mx x
+def probOutput [HasEvalDist m] (mx : m α) (x : α) : ℝ≥0∞ :=
+  evalDist mx x
 
 /-- Probability that a computation `mx` outputs a value satisfying `p`. -/
 noncomputable def probEvent [HasEvalDist m] (mx : m α) (p : α → Prop) : ℝ≥0∞ :=
   (evalDist mx).run.toOuterMeasure (some '' {x | p x})
 
 /-- Probability that a compuutation `mx` will fail to return a value. -/
-def probFailure [HasEvalDist m] (mx : m α) : ℝ≥0∞ := (evalDist mx).run none
+def probFailure [HasEvalDist m] (mx : m α) : ℝ≥0∞ :=
+  (evalDist mx).run none
+
+/-- Probability distribution associated to a computation. -/
+notation "Pr[" mx "]" => evalDist mx
 
 /-- Probability that a computation returns a particular output. -/
 notation "Pr[=" x "|" mx "]" => probOutput mx x
@@ -122,58 +83,52 @@ macro_rules (kind := probEventBinding2)
   -- `doSeqIndent`
   | `(Pr{$items*}[$t]) => `(probOutput (do $items:doSeqItem* return $t:term) True)
 
-/-- Test for all the different probability notations. -/
+/-- Simple unit for all the different probability notations. -/
 example {m : Type → Type u} [Monad m] [HasEvalDist m] (mx : m ℕ) : Unit :=
-  let _ := Pr[= 10 | mx]
-  let _ := Pr[fun x => x^2 + x < 10 | mx]
-  let _ := Pr[x^2 + x < 10 | x ← mx]
-  let _ := Pr{let x ← mx}[x = 10]
-  let _ := Pr[⊥ | mx]
+  let _ : SPMF ℕ := Pr[mx]
+  let _ : ℝ≥0∞ := Pr[= 10 | mx]
+  let _ : ℝ≥0∞ := Pr[fun x => x^2 + x < 10 | mx]
+  let _ : ℝ≥0∞ := Pr[x^2 + x < 10 | x ← mx]
+  let _ : ℝ≥0∞ := Pr{let x ← mx}[x = 10]
+  let _ : ℝ≥0∞ := Pr[⊥ | mx]
   ()
 
-variable [HasEvalDist m]
+variable [hm : HasEvalDist m]
 
-lemma probOutput_def (mx : m α) (x : α) : Pr[= x | mx] = (evalDist mx).run (some x) := rfl
+lemma evalDist_def (mx : m α) :
+    Pr[mx] = hm.toFun mx := rfl
+
+lemma probOutput_def (mx : m α) (x : α) :
+    Pr[= x | mx] = Pr[mx] x := rfl
 
 lemma probEvent_def (mx : m α) (p : α → Prop) :
-    Pr[p | mx] = (evalDist mx).run.toOuterMeasure (some '' {x | p x}) := rfl
+    Pr[p | mx] = Pr[mx].run.toOuterMeasure (some '' {x | p x}) := rfl
 
-lemma probFailure_def (mx : m α) : Pr[⊥ | mx] = (evalDist mx).run none := rfl
+lemma probFailure_def (mx : m α) :
+    Pr[⊥ | mx] = Pr[mx].run none := rfl
 
-@[simp] lemma evalDist_comp_pure : evalDist ∘ (pure : α → m α) = pure := by
-  simp [funext_iff, Function.comp_apply, evalDist_pure]
-
-@[simp] lemma evalDist_comp_pure' (f : α → β) : evalDist ∘ (pure : β → m β) ∘ f = pure ∘ f := by
-  simp only [← Function.comp_assoc, evalDist_comp_pure]
-
-@[simp] lemma probOutput_pure [DecidableEq α] (x y : α) :
-    Pr[= x | (pure y : m α)] = if x = y then 1 else 0 := by simp [probOutput_def]
-
-@[simp] lemma evalDist_map [LawfulMonad m] (mx : m α) (f : α → β) :
-    evalDist (f <$> mx) = f <$> (evalDist mx) := by
-  simp [map_eq_bind_pure_comp]
-
-@[simp] lemma evalDist_comp_map [LawfulMonad m] (mx : m α) :
-    evalDist ∘ (fun f => f <$> mx) = fun f : (α → β) => f <$> evalDist mx := by simp [funext_iff]
-
-@[simp] lemma evalDist_seq [LawfulMonad m] (mf : m (α → β)) (mx : m α) :
-    evalDist (mf <*> mx) = evalDist mf <*> evalDist mx := by simp [seq_eq_bind_map]
-
-@[simp] lemma evalDist_ite (p : Prop) [Decidable p] (mx mx' : m α) :
-    evalDist (if p then mx else mx') = if p then evalDist mx else evalDist mx' := by
-  by_cases hp : p <;> simp [hp]
-
-section sums
+section sum_indicator
 
 lemma probEvent_eq_tsum_indicator (mx : m α) (p : α → Prop) :
     Pr[p | mx] = ∑' x : α, {x | p x}.indicator (Pr[= · | mx]) x := by
   simp [probEvent_def, PMF.toOuterMeasure_apply, Set.indicator_image (Option.some_injective _),
     tsum_option _ ENNReal.summable, probOutput_def, Function.comp_def]
 
+end sum_indicator
+
+section sum_ite
+
 lemma probEvent_eq_tsum_ite (mx : m α) (p : α → Prop) [DecidablePred p] :
     Pr[p | mx] = ∑' x : α, if p x then Pr[= x | mx] else 0 := by
   simp [probEvent_def, PMF.toOuterMeasure_apply, tsum_option _ ENNReal.summable,
     Set.indicator, probOutput_def]
+
+lemma probEvent_eq_sum_finType_ite [Fintype α] (mx : m α) (p : α → Prop) [DecidablePred p] :
+    Pr[p | mx] = ∑ x : α, if p x then Pr[= x | mx] else 0 := by
+  rw [probEvent_eq_tsum_ite, tsum_eq_sum]
+  simp
+
+end sum_ite
 
 @[simp] lemma probFailure_add_tsum_probOutput (oa : m α) :
     Pr[⊥ | oa] + ∑' x, Pr[= x | oa] = 1 :=
@@ -182,8 +137,6 @@ lemma probEvent_eq_tsum_ite (mx : m α) (p : α → Prop) [DecidablePred p] :
 @[simp] lemma tsum_probOutput_add_probFailure (oa : m α) :
     ∑' x, Pr[= x | oa] + Pr[⊥ | oa] = 1 :=
   by rw [add_comm, probFailure_add_tsum_probOutput]
-
-end sums
 
 section bounds
 
@@ -222,33 +175,10 @@ variable {mx : m α} {mxe : OptionT m α} {x : α} {p : α → Prop}
 
 end bounds
 
-section bind
-
-variable (mx : m α) (my : α → m β)
-
-lemma probOutput_bind_eq_tsum (y : β) :
-    Pr[= y | mx >>= my] = ∑' x : α, Pr[= x | mx] * Pr[= y | my x] := by
-  simp [probOutput, evalDist_bind, tsum_option _ ENNReal.summable, Option.elimM]
-
-end bind
-
-lemma probOutput_true_eq_probEvent {α} {m : Type → Type u} [Monad m] [HasEvalDist m]
-    (mx : m α) (p : α → Prop) : Pr{let x ← mx}[p x] = Pr[p | mx] := by
-  rw [probEvent_eq_tsum_indicator]
-  rw [probOutput_bind_eq_tsum]
-  refine tsum_congr fun α => ?_
-  simp [Set.indicator]
-  congr
-  rw [eq_true_eq_id]
-  rfl
-
 namespace SPMF
 
-/-- Add instance for `SPMF` just to give access to notation. -/
-instance hasEvalDist : HasEvalDist SPMF where
-  evalDist := id
-  evalDist_pure _ := rfl
-  evalDist_bind _ _ := rfl
+/-- Add instance for `SPMF` just to give access to notation, using identity morphism. -/
+instance hasEvalDist : HasEvalDist SPMF := HasEvalDist.mk (MonadHom.id SPMF)
 
 variable (p : SPMF α) (x : α)
 
@@ -264,14 +194,13 @@ end SPMF
 
 namespace PMF
 
-noncomputable instance hasEvalDist : HasEvalDist PMF where
-  evalDist p := OptionT.mk p
-  evalDist_pure _ := by simp; rfl
-  evalDist_bind x y := sorry
+/-- Induced distribution on `PMF` by the natural lifting into `SPMF`. -/
+noncomputable instance hasEvalDist : HasEvalDist PMF :=
+  HasEvalDist.mk (MonadHom.ofLift PMF SPMF)
 
 variable (p : PMF α) (x : α)
 
-@[simp] lemma evalDist_eq : evalDist p = liftM p := rfl
+@[simp] lemma evalDist_eq : Pr[p] = liftM p := rfl
 
 @[simp] lemma probOutput_eq : probOutput p = p := by
   refine funext fun x => ?_
@@ -293,5 +222,21 @@ variable (p : PMF α) (x : α)
 
 @[simp] lemma probFailure_eq : probFailure p = 0 := by
     simp [probFailure, PMF.monad_map_eq_map]
+
+section SPMF
+
+@[simp] lemma evalDist_liftM (px : PMF α) :
+    Pr[(liftM px : SPMF α)] = Pr[px] := rfl
+
+@[simp] lemma probOutput_liftM (px : PMF α) (x : α) :
+    Pr[= x | (liftM px : SPMF α)] = Pr[= x | px] := rfl
+
+@[simp] lemma probEvent_liftM (px : PMF α) (p : α → Prop) :
+    Pr[p | (liftM px : SPMF α)] = Pr[p | px] := rfl
+
+@[simp] lemma probFailure_liftM (px : PMF α) :
+    Pr[⊥ | (liftM px : SPMF α)] = 0 := by simp [PMF.monad_map_eq_map]
+
+end SPMF
 
 end PMF
