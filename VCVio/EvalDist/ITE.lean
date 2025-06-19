@@ -11,6 +11,9 @@ import VCVio.EvalDist.Basic
 
 section ite
 
+variable {m : Type _ → Type _} [Monad m] [HasEvalDist m]
+  {α β γ : Type _}
+
 -- Pushing into `ite` is more natural than usual in our setting, so we make it `simp`.
 -- This comes up a lot in our applications with both cases and `guard` statements.
 

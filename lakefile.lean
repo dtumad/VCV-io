@@ -25,7 +25,7 @@ package VCVio where
     ++ vcvLinters.map fun s ↦
       { s with name := `weak ++ s.name }
 
-require "leanprover-community" / "mathlib" @ git "v4.21.0-rc3"
+require "leanprover-community" / "mathlib" @ git "master"
 
 /-- Main library. -/
 @[default_target] lean_lib VCVio

@@ -29,11 +29,11 @@ NOTE: `OracleComp` as currently defined doesn't allow specialized error messagin
 Changing this would just require adding a `String` to the `failure` constructor -/
 protected def runIO {α : Type} (oa : ProbComp α) : IO α :=
   oa.mapM (fail := throw (IO.userError "Computation failed during execution"))
-    (query_map := λ (query i _) ↦ IO.rand 0 i) -- Queries become random selection
-
--- protected def runIO' {α : Type} (oa : OracleComp probSpec α) : IO α :=
---   oa.mapM (fail := throw (IO.userError "Computation failed during execution"))
---     (query_map := fun (query m n) => IO.rand n m) -- Queries become random selection
+    (query_map := fun (query i _) ↦ do
+      let x ← IO.rand 0 i
+      if h : x < i + 1 then return ⟨x, h⟩ else
+        -- This should never happen in practice. Would be nice not to need
+        throw (IO.Error.illegalOperation 0 "IO.rand returned out of bounds"))
 
 /-- Automatic lifting of probabalistic computations into `IO`. -/
 instance : MonadLift ProbComp IO where
@@ -45,7 +45,5 @@ example : IO (ℕ × ℕ) := do
   let z := x + y
   IO.println z
   return (x, y)
-
--- #eval Nat.add <$> $[0..10] <*> $[0..10]
 
 end OracleComp

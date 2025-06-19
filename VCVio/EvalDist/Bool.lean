@@ -9,8 +9,10 @@ import VCVio.EvalDist.Monad
 # Probability Distributions of Boolean/Propositional Computations
 -/
 
+variable {m : Type _ → Type _} [Monad m] [HasEvalDist m]
+  {α β γ : Type _}
 
-lemma probOutput_true_eq_probEvent {α} {m : Type → Type u} [Monad m] [HasEvalDist m]
+lemma probOutput_true_eq_probEvent {α} {m : Type → Type _} [Monad m] [HasEvalDist m]
     (mx : m α) (p : α → Prop) : Pr{let x ← mx}[p x] = Pr[p | mx] := by
   rw [probEvent_eq_tsum_indicator]
   rw [probOutput_bind_eq_tsum]
