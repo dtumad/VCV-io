@@ -13,28 +13,28 @@ import Mathlib.Data.PFunctor.Multivariate.Basic
   definitions, with their properties and categories defined in later files.
 -/
 
-universe u v
+universe u v uA uB uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄ vA vB
 
 namespace PFunctor
 
 /-- Lift a polynomial functor to a larger universe. -/
-protected def ulift (P : PFunctor.{u}) : PFunctor.{max u v} :=
+protected def ulift (P : PFunctor.{uA, uB}) : PFunctor.{max uA vA, max uB vB} :=
   ⟨ULift P.A, fun a => ULift (P.B (ULift.down a))⟩
 
 /-- The zero polynomial functor -/
-def zero : PFunctor.{u} := ⟨PEmpty, fun _ => PEmpty⟩
+def zero : PFunctor.{uA, uB} := ⟨PEmpty, fun _ => PEmpty⟩
 
 /-- The unit polynomial functor -/
-def one : PFunctor.{u} := ⟨PUnit, fun _ => PEmpty⟩
+def one : PFunctor.{uA, uB} := ⟨PUnit, fun _ => PEmpty⟩
 
-instance : Zero PFunctor.{u} where
+instance : Zero PFunctor.{uA, uB} where
   zero := zero
 
-instance : One PFunctor.{u} where
+instance : One PFunctor.{uA, uB} where
   one := one
 
 /-- The variable `y` polynomial functor. This is the unit for composition. -/
-def y : PFunctor.{u} :=
+def y : PFunctor.{uA, uB} :=
   ⟨PUnit, fun _ => PUnit⟩
 
 instance : IsEmpty zero.A := inferInstanceAs (IsEmpty PEmpty)
@@ -44,24 +44,24 @@ instance : Unique (A 1) := inferInstanceAs (Unique PUnit)
 instance : Unique y.A := inferInstanceAs (Unique PUnit)
 
 /-- The monomial functor `P(y) = A y^B` -/
-def monomial (A B : Type u) : PFunctor.{u} :=
+def monomial (A : Type uA) (B : Type uB) : PFunctor.{uA, uB} :=
   ⟨A, fun _ => B⟩
 
 @[inherit_doc] infixr:80 " y^" => monomial
 
 /-- The constant functor `P(y) = A` -/
-def C (A : Type u) : PFunctor.{u} :=
+def C (A : Type uA) : PFunctor.{uA, uB} :=
   A y^ PEmpty
 
 /-- The linear functor `P(y) = A y` -/
-def linear (A : Type u) : PFunctor.{u} :=
+def linear (A : Type uA) : PFunctor.{uA, uB} :=
   A y^ PUnit
 
 /-- The self monomial functor `P(y) = S y^S` -/
-def selfMonomial (S : Type u) : PFunctor.{u} := S y^S
+def selfMonomial (S : Type uA) : PFunctor.{uA, uA} := S y^S
 
 /-- The pure power functor `P(y) = y^B` -/
-def purePower (B : Type u) : PFunctor.{u} :=
+def purePower (B : Type uB) : PFunctor.{uA, uB} :=
   PUnit y^ B
 
 /-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
@@ -69,17 +69,21 @@ alias representable := purePower
 
 section Coprod
 
-/-- Coprod (sum) of polynomial functors `P + Q` -/
-def coprod (P Q : PFunctor.{u}) : PFunctor.{u} :=
+/-- Coprodudct (sum) of polynomial functors `P + Q`. Requires the output universe to be the same. -/
+def coprod (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB}) :
+    PFunctor.{max uA₁ uA₂, uB} :=
   ⟨P.A ⊕ Q.A, Sum.elim P.B Q.B⟩
 
-instance : Add PFunctor.{u} where
+instance : HAdd PFunctor.{uA₁, uB} PFunctor.{uA₂, uB} PFunctor.{max uA₁ uA₂, uB} where
+  hAdd := coprod
+
+instance : Add PFunctor.{uA, uB} where
   add := coprod
 
 alias coprodUnit := zero
 
 /-- Generalized coproduct (sigma type) of an indexed family of polynomial functors -/
-def sigma {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
+def sigma {I : Type v} (F : I → PFunctor.{uA, uB}) : PFunctor.{max uA v, max uB v} :=
   ⟨Σ i, (F i).A, fun ⟨i, a⟩ => ULift ((F i).B a)⟩
 
 -- macro "Σₚ" xs:Lean.explicitBinders ", " b:term : term => Lean.expandExplicitBinders ``sigma xs b
@@ -89,16 +93,20 @@ end Coprod
 section Prod
 
 /-- Product of polynomial functors `P * Q` -/
-def prod (P Q : PFunctor.{u}) : PFunctor.{u} :=
+def prod (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
+    PFunctor.{max uA₁ uA₂, max uB₁ uB₂} :=
   ⟨P.A × Q.A, fun ab => P.B ab.1 ⊕ Q.B ab.2⟩
 
-instance : Mul PFunctor.{u} where
+instance : HMul PFunctor.{uA₁, uB₁} PFunctor.{uA₂, uB₂} PFunctor.{max uA₁ uA₂, max uB₁ uB₂} where
+  hMul := prod
+
+instance : Mul PFunctor.{uA, uB} where
   mul := prod
 
 alias prodUnit := one
 
 /-- Generalized product (pi type) of an indexed family of polynomial functors -/
-def pi {I : Type v} (F : I → PFunctor.{u}) : PFunctor.{max u v} :=
+def pi {I : Type v} (F : I → PFunctor.{uA, uB}) : PFunctor.{max uA v, max uB v} :=
   ⟨(i : I) → (F i).A, fun f => Σ i, (F i).B (f i)⟩
 
 end Prod
@@ -113,26 +121,27 @@ alias compUnit := y
 
 /-- Repeated composition `P ◂ P ◂ ... ◂ P` (n times). -/
 @[simp]
-def compNth (P : PFunctor.{u}) : Nat → PFunctor.{u}
+def compNth (P : PFunctor.{uA, uB}) : Nat → PFunctor.{max uA uB, uB}
   | 0 => y
   | Nat.succ n => P ◂ compNth P n
 
-instance : NatPow PFunctor.{u} where
+instance : NatPow PFunctor.{max uA uB, uB} where
   pow := compNth
 
 end Comp
 
 /-- Exponential of polynomial functors `P ^ Q` -/
-def exp (P Q : PFunctor.{u}) : PFunctor.{u} :=
+def exp (P Q : PFunctor.{uA, uB}) : PFunctor.{max uA uB, max uA uB} :=
   pi (fun a => P ◂ (y + C (Q.B a)))
 
-instance : Pow PFunctor.{u} PFunctor.{u} where
-  pow := exp
+instance : HPow PFunctor.{uA, uB} PFunctor.{uA, uB} PFunctor.{max uA uB, max uA uB} where
+  hPow := exp
 
 section Tensor
 
 /-- Tensor or parallel product of polynomial functors -/
-def tensor (P Q : PFunctor.{u}) : PFunctor.{u} :=
+def tensor (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
+    PFunctor.{max uA₁ uA₂, max uB₁ uB₂} :=
   ⟨P.A × Q.A, fun ab => P.B ab.1 × Q.B ab.2⟩
 
 /-- Infix notation for tensor product `P ⊗ₚ Q` -/
@@ -146,17 +155,18 @@ end Tensor
 section Fintype
 
 /-- A polynomial functor is finitely branching if each of its branches is a finite type. -/
-protected class Fintype (P : PFunctor.{u}) where
+protected class Fintype (P : PFunctor.{uA, uB}) where
   fintype_B : ∀ a, Fintype (P.B a)
 
-instance {P : PFunctor.{u}} [inst : P.Fintype] : PFunctor.Fintype (PFunctor.ulift P) where
+instance {P : PFunctor.{uA, uB}} [inst : P.Fintype] : PFunctor.Fintype (PFunctor.ulift P) where
   fintype_B := fun a => by
     unfold PFunctor.ulift
     haveI : Fintype (P.B (ULift.down a)) := inst.fintype_B (ULift.down a)
     infer_instance
 
 @[simp]
-instance {P : PFunctor.{u}} [inst : P.Fintype] : ∀ a, Fintype (P.B a) := fun a => inst.fintype_B a
+instance {P : PFunctor.{uA, uB}} [inst : P.Fintype] : ∀ a, Fintype (P.B a) :=
+  fun a => inst.fintype_B a
 
 end Fintype
 
@@ -165,42 +175,46 @@ end Fintype
 
 
 /-- A **lens** between two polynomial functors `P` and `Q` is a pair of a function:
-- `mapPos : P.A → Q.A`
-- `mapDir : ∀ a, Q.B (mapPos a) → P.B a` -/
-structure Lens (P Q : PFunctor.{u}) where
-  mapPos : P.A → Q.A
-  mapDir : ∀ a, Q.B (mapPos a) → P.B a
+- `toFunA : P.A → Q.A`
+- `toFunB : ∀ a, Q.B (toFunA a) → P.B a` -/
+structure Lens (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
+  toFunA : P.A → Q.A
+  toFunB : ∀ a, Q.B (toFunA a) → P.B a
 
-/-- Infix notation for constructing a lens `mapPos ⇆ mapDir` -/
+/-- Infix notation for constructing a lens `toFunA ⇆ toFunB` -/
 infixr:25 " ⇆ " => Lens.mk
 
 namespace Lens
 
 /-- The identity lens -/
-protected def id (P : PFunctor.{u}) : Lens P P where
-  mapPos := _root_.id
-  mapDir := fun _ b => b
+protected def id (P : PFunctor.{uA, uB}) : Lens P P where
+  toFunA := id
+  toFunB := fun _ => id
 
 /-- Composition of lenses -/
-def comp {P Q R : PFunctor.{u}} (l : Lens Q R) (l' : Lens P Q) : Lens P R where
-  mapPos := l.mapPos ∘ l'.mapPos
-  mapDir := fun i => (l'.mapDir i) ∘ l.mapDir (l'.mapPos i)
+def comp {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    (l : Lens Q R) (l' : Lens P Q) : Lens P R where
+  toFunA := l.toFunA ∘ l'.toFunA
+  toFunB := fun i => (l'.toFunB i) ∘ l.toFunB (l'.toFunA i)
 
 @[inherit_doc] infixl:75 " ∘ₗ " => comp
 
 @[simp]
-theorem id_comp {P Q : PFunctor.{u}} (f : Lens P Q) : (Lens.id Q) ∘ₗ f = f := rfl
+theorem id_comp {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (f : Lens P Q) :
+    (Lens.id Q) ∘ₗ f = f := rfl
 
 @[simp]
-theorem comp_id {P Q : PFunctor.{u}} (f : Lens P Q) : f ∘ₗ (Lens.id P) = f := rfl
+theorem comp_id {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (f : Lens P Q) :
+    f ∘ₗ (Lens.id P) = f := rfl
 
-theorem comp_assoc {P Q R S : PFunctor.{u}} (l : Lens R S) (l' : Lens Q R) (l'' : Lens P Q) :
+theorem comp_assoc {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    {S : PFunctor.{uA₄, uB₄}} (l : Lens R S) (l' : Lens Q R) (l'' : Lens P Q) :
     (l ∘ₗ l') ∘ₗ l'' = l ∘ₗ (l' ∘ₗ l'') := rfl
 
 /-- An equivalence between two polynomial functors `P` and `Q`, using lenses.
     This corresponds to an isomorphism in the category `PFunctor` with `Lens` morphisms. -/
 @[ext]
-structure Equiv (P Q : PFunctor.{u}) where
+structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
   toLens : Lens P Q
   invLens : Lens Q P
   left_inv : comp invLens toLens = Lens.id P
@@ -211,15 +225,16 @@ structure Equiv (P Q : PFunctor.{u}) where
 namespace Equiv
 
 @[refl]
-def refl (P : PFunctor.{u}) : P ≃ₗ P :=
+def refl (P : PFunctor.{uA, uB}) : P ≃ₗ P :=
   ⟨Lens.id P, Lens.id P, rfl, rfl⟩
 
 @[symm]
-def symm {P Q : PFunctor.{u}} (e : P ≃ₗ Q) : Q ≃ₗ P :=
+def symm {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (e : P ≃ₗ Q) : Q ≃ₗ P :=
   ⟨e.invLens, e.toLens, e.right_inv, e.left_inv⟩
 
 @[trans]
-def trans {P Q R : PFunctor.{u}} (e₁ : P ≃ₗ Q) (e₂ : Q ≃ₗ R) : P ≃ₗ R :=
+def trans {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    (e₁ : P ≃ₗ Q) (e₂ : Q ≃ₗ R) : P ≃ₗ R :=
   ⟨e₂.toLens ∘ₗ e₁.toLens, e₁.invLens ∘ₗ e₂.invLens,
     by
       rw [comp_assoc]
@@ -233,90 +248,105 @@ def trans {P Q R : PFunctor.{u}} (e₁ : P ≃ₗ Q) (e₂ : Q ≃ₗ R) : P ≃
 end Equiv
 
 /-- The (unique) initial lens from the zero functor to any functor `P`. -/
-def initial {P : PFunctor.{u}} : Lens 0 P :=
+def initial {P : PFunctor.{uA, uB}} : Lens 0 P :=
   PEmpty.elim ⇆ fun a => PEmpty.elim a
 
 /-- The (unique) terminal lens from any functor `P` to the unit functor `1`. -/
-def terminal {P : PFunctor.{u}} : Lens P 1 :=
+def terminal {P : PFunctor.{uA, uB}} : Lens P 1 :=
   (fun _ => PUnit.unit) ⇆ (fun _ => PEmpty.elim)
 
 alias fromZero := initial
 alias toOne := terminal
 
 /-- Left injection lens `inl : P → P + Q` -/
-def inl {P Q : PFunctor.{u}} : Lens P (P + Q) :=
+def inl {P : PFunctor.{uA₁, uB}} {Q : PFunctor.{uA₂, uB}} :
+    Lens.{uA₁, uB, max uA₁ uA₂, uB} P (P + Q) :=
   Sum.inl ⇆ (fun _ d => d)
 
 /-- Right injection lens `inr : Q → P + Q` -/
-def inr {P Q : PFunctor.{u}} : Lens Q (P + Q) :=
+def inr {P : PFunctor.{uA₁, uB}} {Q : PFunctor.{uA₂, uB}} :
+    Lens.{uA₂, uB, max uA₁ uA₂, uB} Q (P + Q) :=
   Sum.inr ⇆ (fun _ d => d)
 
 /-- Copairing of lenses `[l₁, l₂]ₗ : P + Q → R` -/
-def coprodPair {P Q R : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q R) : Lens (P + Q) R :=
-  (Sum.elim l₁.mapPos l₂.mapPos) ⇆
+def coprodPair {P : PFunctor.{uA₁, uB}} {Q : PFunctor.{uA₂, uB}} {R : PFunctor.{uA₃, uB₃}}
+    (l₁ : Lens P R) (l₂ : Lens Q R) :
+    Lens.{max uA₁ uA₂, uB, uA₃, uB₃} (P + Q) R :=
+  (Sum.elim l₁.toFunA l₂.toFunA) ⇆
     (fun a d => match a with
-      | Sum.inl pa => l₁.mapDir pa d
-      | Sum.inr qa => l₂.mapDir qa d)
+      | Sum.inl pa => l₁.toFunB pa d
+      | Sum.inr qa => l₂.toFunB qa d)
 
 /-- Parallel application of lenses for coproduct `l₁ ⊎ l₂ : P + Q → R + W` -/
-def coprodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P + Q) (R + W) :=
-  (Sum.map l₁.mapPos l₂.mapPos) ⇆
+def coprodMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₁}} {R : PFunctor.{uA₃, uB₃}}
+    {W : PFunctor.{uA₄, uB₃}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+    Lens.{max uA₁ uA₂, uB₁, max uA₃ uA₄, uB₃} (P + Q) (R + W) :=
+  (Sum.map l₁.toFunA l₂.toFunA) ⇆
     (fun psum => match psum with
-      | Sum.inl pa => l₁.mapDir pa
-      | Sum.inr qa => l₂.mapDir qa)
-
+      | Sum.inl pa => l₁.toFunB pa
+      | Sum.inr qa => l₂.toFunB qa)
 
 -- def sigmaExists
 -- def sigmaMap
 
 /-- Projection lens `fst : P * Q → P` -/
-def fst {P Q : PFunctor.{u}} : Lens (P * Q) P :=
+def fst {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} :
+    Lens.{max uA₁ uA₂, max uB₁ uB₂, uA₁, uB₁} (P * Q) P :=
   Prod.fst ⇆ (fun _ => Sum.inl)
 
 /-- Projection lens `snd : P * Q → Q` -/
-def snd {P Q : PFunctor.{u}} : Lens (P * Q) Q :=
+def snd {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} :
+    Lens.{max uA₁ uA₂, max uB₁ uB₂, uA₂, uB₂} (P * Q) Q :=
   Prod.snd ⇆ (fun _ => Sum.inr)
 
 /-- Pairing of lenses `⟨l₁, l₂⟩ₗ : P → Q * R` -/
-def prodPair {P Q R : PFunctor.{u}} (l₁ : Lens P Q) (l₂ : Lens P R) : Lens P (Q * R) :=
-  (fun p => (l₁.mapPos p, l₂.mapPos p)) ⇆
-    (fun p => Sum.elim (l₁.mapDir p) (l₂.mapDir p))
+def prodPair {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    (l₁ : Lens P Q) (l₂ : Lens P R) :
+    Lens.{uA₁, uB₁, max uA₂ uA₃, max uB₂ uB₃} P (Q * R) :=
+  (fun p => (l₁.toFunA p, l₂.toFunA p)) ⇆
+    (fun p => Sum.elim (l₁.toFunB p) (l₂.toFunB p))
 
 /-- Parallel application of lenses for product `l₁ ×ₗ l₂ : P * Q → R * W` -/
-def prodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P * Q) (R * W) :=
-  (fun pq => (l₁.mapPos pq.1, l₂.mapPos pq.2)) ⇆
-    (fun pq => Sum.elim (Sum.inl ∘ l₁.mapDir pq.1) (Sum.inr ∘ l₂.mapDir pq.2))
+def prodMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    {W : PFunctor.{uA₄, uB₄}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+    Lens.{max uA₁ uA₂, max uB₁ uB₂, max uA₃ uA₄, max uB₃ uB₄} (P * Q) (R * W) :=
+  (fun pq => (l₁.toFunA pq.1, l₂.toFunA pq.2)) ⇆
+    (fun pq => Sum.elim (Sum.inl ∘ l₁.toFunB pq.1) (Sum.inr ∘ l₂.toFunB pq.2))
 
 -- def piForall
 -- def piMap
 
 /-- Apply lenses to both sides of a composition: `l₁ ◂ₗ l₂ : (P ◂ Q ⇆ R ◂ W)` -/
-def compMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ◂ Q) (R ◂ W) :=
-  (fun ⟨pa, pq⟩ => ⟨l₁.mapPos pa, fun rb' => l₂.mapPos (pq (l₁.mapDir pa rb'))⟩) ⇆
+def compMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    {W : PFunctor.{uA₄, uB₄}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+    Lens.{max uA₁ uA₂ uB₁, max uB₁ uB₂, max uA₃ uA₄ uB₃, max uB₃ uB₄} (P ◂ Q) (R ◂ W) :=
+  (fun ⟨pa, pq⟩ => ⟨l₁.toFunA pa, fun rb' => l₂.toFunA (pq (l₁.toFunB pa rb'))⟩) ⇆
     (fun ⟨pa, pq⟩ ⟨rb, wc⟩ =>
-      let pb := l₁.mapDir pa rb
-      let qc := l₂.mapDir (pq pb) wc
+      let pb := l₁.toFunB pa rb
+      let qc := l₂.toFunB (pq pb) wc
       ⟨pb, qc⟩)
 
 /-- Apply lenses to both sides of a tensor / parallel product: `l₁ ⊗ₗ l₂ : (P ⊗ₚ Q ⇆ R ⊗ₚ W)` -/
-def tensorMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) : Lens (P ⊗ₚ Q) (R ⊗ₚ W) :=
-  (fun ⟨pa, qa⟩ => (l₁.mapPos pa, l₂.mapPos qa)) ⇆
-    (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.mapDir _pa rb, l₂.mapDir qa wb))
+def tensorMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    {W : PFunctor.{uA₄, uB₄}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+    Lens.{max uA₁ uA₂, max uB₁ uB₂, max uA₃ uA₄, max uB₃ uB₄} (P ⊗ₚ Q) (R ⊗ₚ W) :=
+  (fun ⟨pa, qa⟩ => (l₁.toFunA pa, l₂.toFunA qa)) ⇆
+    (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.toFunB _pa rb, l₂.toFunB qa wb))
 
 /-- Lens to introduce `y` on the right: `P → P ◂ y` -/
-def tildeR {P : PFunctor.{u}} : Lens P (P ◂ y) :=
+def tildeR {P : PFunctor.{uA, uB}} : Lens P (P ◂ y) :=
   (fun a => ⟨a, fun _ => PUnit.unit⟩) ⇆ (fun _a => fun ⟨b, _⟩ => b)
 
 /-- Lens to introduce `y` on the left: `P → y ◂ P` -/
-def tildeL {P : PFunctor.{u}} : Lens P (y ◂ P) :=
+def tildeL {P : PFunctor.{uA, uB}} : Lens P (y ◂ P) :=
   (fun a => ⟨PUnit.unit, fun _ => a⟩) ⇆ (fun _a => fun ⟨_, b⟩ => b)
 
 /-- Lens from `P ◂ y` to `P` -/
-def invTildeR {P : PFunctor.{u}} : Lens (P ◂ y) P :=
+def invTildeR {P : PFunctor.{uA, uB}} : Lens (P ◂ y) P :=
   (fun a => a.1) ⇆ (fun _ b => ⟨b, PUnit.unit⟩)
 
 /-- Lens from `y ◂ P` to `P` -/
-def invTildeL {P : PFunctor.{u}} : Lens (y ◂ P) P :=
+def invTildeL {P : PFunctor.{uA, uB}} : Lens (y ◂ P) P :=
   (fun ⟨_, f⟩ => f PUnit.unit) ⇆ (fun _ b => ⟨PUnit.unit, b⟩)
 
 @[inherit_doc] infixl:75 " ◂ₗ " => compMap
@@ -327,8 +357,8 @@ notation "[" l₁ "," l₂ "]ₗ" => coprodPair l₁ l₂
 notation "⟨" l₁ "," l₂ "⟩ₗ" => prodPair l₁ l₂
 
 /-- The type of lenses from a polynomial functor `P` to `y` -/
-def enclose (P : PFunctor.{u}) : Type u :=
-  Lens P y
+def enclose (P : PFunctor.{uA, uB}) : Type max uA uA₁ uB uB₁ :=
+  Lens P y.{uA₁, uB₁}
 
 /-- Helper lens for `speedup` -/
 def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◂ selfMonomial S) :=
@@ -342,13 +372,13 @@ def speedup {S : Type u} {P : PFunctor.{u}} (l : Lens (selfMonomial S) P) :
 end Lens
 
 /-- A chart between two polynomial functors `P` and `Q` is a pair of a function:
-- `mapPos : P.A → Q.A`
-- `mapDir : ∀ a, P.B a → Q.B (mapPos a)` -/
+- `toFunA : P.A → Q.A`
+- `toFunB : ∀ a, P.B a → Q.B (toFunA a)` -/
 structure Chart (P Q : PFunctor.{u}) where
-  mapPos : P.A → Q.A
-  mapDir : ∀ a, P.B a → Q.B (mapPos a)
+  toFunA : P.A → Q.A
+  toFunB : ∀ a, P.B a → Q.B (toFunA a)
 
-/-- Infix notation for constructing a chart `mapPos ⇉ mapDir` -/
+/-- Infix notation for constructing a chart `toFunA ⇉ toFunB` -/
 infixr:25 " ⇉ " => Chart.mk
 
 namespace Chart
@@ -358,8 +388,8 @@ protected def id (P : PFunctor.{u}) : Chart P P := id ⇉ fun _ => id
 
 /-- Composition of charts -/
 def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R where
-  mapPos := c'.mapPos ∘ c.mapPos
-  mapDir := fun i => c'.mapDir (c.mapPos i) ∘ c.mapDir i
+  toFunA := c'.toFunA ∘ c.toFunA
+  toFunB := fun i => c'.toFunB (c.toFunA i) ∘ c.toFunB i
 
 /-- Infix notation for chart composition `c' ∘c c` -/
 infixl:75 " ∘c " => comp
@@ -429,22 +459,22 @@ theorem ext {P Q : PFunctor.{u}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸
 
 @[ext (iff := false)]
 theorem Lens.ext {P Q : PFunctor.{u}} (l₁ l₂ : Lens P Q)
-    (h₁ : ∀ a, l₁.mapPos a = l₂.mapPos a) (h₂ : ∀ a, l₁.mapDir a = (h₁ a) ▸ l₂.mapDir a) :
+    (h₁ : ∀ a, l₁.toFunA a = l₂.toFunA a) (h₂ : ∀ a, l₁.toFunB a = (h₁ a) ▸ l₂.toFunB a) :
     l₁ = l₂ := by
-  rcases l₁ with ⟨mapPos₁, _⟩
-  rcases l₂ with ⟨mapPos₂, _⟩
-  have h : mapPos₁ = mapPos₂ := funext h₁
+  rcases l₁ with ⟨toFunA₁, _⟩
+  rcases l₂ with ⟨toFunA₂, _⟩
+  have h : toFunA₁ = toFunA₂ := funext h₁
   subst h
   simp_all
   exact funext h₂
 
 @[ext (iff := false)]
 theorem Chart.ext {P Q : PFunctor.{u}} (c₁ c₂ : Chart P Q)
-    (h₁ : ∀ a, c₁.mapPos a = c₂.mapPos a) (h₂ : ∀ a, c₁.mapDir a = (h₁ a) ▸ c₂.mapDir a) :
+    (h₁ : ∀ a, c₁.toFunA a = c₂.toFunA a) (h₂ : ∀ a, c₁.toFunB a = (h₁ a) ▸ c₂.toFunB a) :
     c₁ = c₂ := by
-  rcases c₁ with ⟨mapPos₁, _⟩
-  rcases c₂ with ⟨mapPos₂, _⟩
-  have h : mapPos₁ = mapPos₂ := funext h₁
+  rcases c₁ with ⟨toFunA₁, _⟩
+  rcases c₂ with ⟨toFunA₂, _⟩
+  have h : toFunA₁ = toFunA₂ := funext h₁
   subst h
   simp_all
   exact funext h₂
