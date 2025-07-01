@@ -14,20 +14,20 @@ We define the free monad on a **polynomial functor** (`PFunctor`), and prove som
 
 -/
 
-universe u v
+universe u v uA uB
 
 namespace PFunctor
 
 /-- The free monad on a polynomial functor.
 This extends the `W`-type construction with an extra `pure` constructor. -/
-inductive FreeM (P : PFunctor.{u}) : Type v → Type (max u v)
+inductive FreeM (P : PFunctor.{uA, uB}) : Type v → Type (max uA uB v)
   | pure {α} (x : α) : FreeM P α
   | roll {α} (a : P.A) (r : P.B a → FreeM P α) : FreeM P α
 deriving Inhabited
 
 namespace FreeM
 
-variable {P : PFunctor.{u}} {α β γ : Type u}
+variable {P : PFunctor.{uA, uB}} {α β γ : Type v}
 
 /-- Lift a position of the base polynomial functor into the free monad. -/
 @[always_inline, inline]
@@ -122,7 +122,7 @@ end construct
 
 section mapM
 
-variable {m : Type u → Type v}
+variable {m : Type uB → Type v} {α : Type uB}
 
 /-- Canonical mapping of `FreeM P` into any other monad, given a map `s : (a : P.A) → m (P.B a)`. -/
 protected def mapM [Pure m] [Bind m] (s : (a : P.A) → m (P.B a)) : FreeM P α → m α

@@ -13,7 +13,7 @@ import Mathlib.Data.PFunctor.Multivariate.Basic
   definitions, with their properties and categories defined in later files.
 -/
 
-universe u v uA uB uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄ vA vB
+universe u v uA uB uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄ uA₅ uB₅ uA₆ uB₆ vA vB
 
 namespace PFunctor
 
@@ -365,7 +365,7 @@ def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◂ selfMonomi
   (fun s₀ => ⟨s₀, fun s₁ => s₁⟩) ⇆ (fun _s₀ => fun ⟨_s₁, s₂⟩ => s₂)
 
 /-- The `speedup` lens operation: `Lens (S y^S) P → Lens (S y^S) (P ◂ P)` -/
-def speedup {S : Type u} {P : PFunctor.{u}} (l : Lens (selfMonomial S) P) :
+def speedup {S : Type u} {P : PFunctor.{uA, uB}} (l : Lens (selfMonomial S) P) :
     Lens (selfMonomial S) (P ◂ P) :=
   (l ◂ₗ l) ∘ₗ fixState
 
@@ -374,7 +374,7 @@ end Lens
 /-- A chart between two polynomial functors `P` and `Q` is a pair of a function:
 - `toFunA : P.A → Q.A`
 - `toFunB : ∀ a, P.B a → Q.B (toFunA a)` -/
-structure Chart (P Q : PFunctor.{u}) where
+structure Chart (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
   toFunA : P.A → Q.A
   toFunB : ∀ a, P.B a → Q.B (toFunA a)
 
@@ -384,10 +384,11 @@ infixr:25 " ⇉ " => Chart.mk
 namespace Chart
 
 /-- The identity chart -/
-protected def id (P : PFunctor.{u}) : Chart P P := id ⇉ fun _ => id
+protected def id (P : PFunctor.{uA, uB}) : Chart P P := id ⇉ fun _ => id
 
 /-- Composition of charts -/
-def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R where
+def comp {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    (c' : Chart Q R) (c : Chart P Q) : Chart P R where
   toFunA := c'.toFunA ∘ c.toFunA
   toFunB := fun i => c'.toFunB (c.toFunA i) ∘ c.toFunB i
 
@@ -395,18 +396,21 @@ def comp {P Q R : PFunctor.{u}} (c' : Chart Q R) (c : Chart P Q) : Chart P R whe
 infixl:75 " ∘c " => comp
 
 @[simp]
-theorem id_comp {P Q : PFunctor.{u}} (f : Chart P Q) : (Chart.id Q) ∘c f = f := rfl
+theorem id_comp {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (f : Chart P Q) :
+    (Chart.id Q) ∘c f = f := rfl
 
 @[simp]
-theorem comp_id {P Q : PFunctor.{u}} (f : Chart P Q) : f ∘c (Chart.id P) = f := rfl
+theorem comp_id {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (f : Chart P Q) :
+    f ∘c (Chart.id P) = f := rfl
 
-theorem comp_assoc {P Q R S : PFunctor.{u}} (c : Chart R S) (c' : Chart Q R) (c'' : Chart P Q) :
+theorem comp_assoc {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    {S : PFunctor.{uA₄, uB₄}} (c : Chart R S) (c' : Chart Q R) (c'' : Chart P Q) :
     (c ∘c c') ∘c c'' = c ∘c (c' ∘c c'') := rfl
 
 /-- An equivalence between two polynomial functors `P` and `Q`, using charts.
     This corresponds to an isomorphism in the category `PFunctor` with `Chart` morphisms. -/
 @[ext]
-structure Equiv (P Q : PFunctor.{u}) where
+structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
   toChart : Chart P Q
   invChart : Chart Q P
   left_inv : comp invChart toChart = Chart.id P
@@ -418,14 +422,15 @@ infix:50 " ≃c " => Equiv
 namespace Equiv
 
 @[refl]
-def refl (P : PFunctor.{u}) : P ≃c P :=
+def refl (P : PFunctor.{uA, uB}) : P ≃c P :=
   ⟨Chart.id P, Chart.id P, rfl, rfl⟩
 
 @[symm]
-def symm {P Q : PFunctor.{u}} (e : P ≃c Q) : Q ≃c P :=
+def symm {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (e : P ≃c Q) : Q ≃c P :=
   ⟨e.invChart, e.toChart, e.right_inv, e.left_inv⟩
 
-def trans {P Q R : PFunctor.{u}} (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R :=
+def trans {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R :=
   ⟨e₂.toChart ∘c e₁.toChart, e₁.invChart ∘c e₂.invChart,
     by
       rw [comp_assoc]
@@ -439,11 +444,11 @@ def trans {P Q R : PFunctor.{u}} (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R 
 end Equiv
 
 /-- The (unique) initial chart from the zero functor to any functor `P`. -/
-def initial {P : PFunctor.{u}} : Chart 0 P :=
+def initial {P : PFunctor.{uA, uB}} : Chart 0 P :=
   PEmpty.elim ⇉ fun _ => PEmpty.elim
 
 /-- The (unique) terminal chart from any functor `P` to the functor `Y`. -/
-def terminal {P : PFunctor.{u}} : Chart P y :=
+def terminal {P : PFunctor.{uA, uB}} : Chart P y :=
   (fun _ => PUnit.unit) ⇉ (fun _ _ => PUnit.unit)
 
 alias fromZero := initial
@@ -454,11 +459,11 @@ end Chart
 section Lemmas
 
 @[ext (iff := false)]
-theorem ext {P Q : PFunctor.{u}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸ a)) : P = Q := by
+theorem ext {P Q : PFunctor.{uA, uB}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸ a)) : P = Q := by
   cases P; cases Q; simp at h h' ⊢; subst h; simp_all; funext; exact h' _
 
 @[ext (iff := false)]
-theorem Lens.ext {P Q : PFunctor.{u}} (l₁ l₂ : Lens P Q)
+theorem Lens.ext {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (l₁ l₂ : Lens P Q)
     (h₁ : ∀ a, l₁.toFunA a = l₂.toFunA a) (h₂ : ∀ a, l₁.toFunB a = (h₁ a) ▸ l₂.toFunB a) :
     l₁ = l₂ := by
   rcases l₁ with ⟨toFunA₁, _⟩
@@ -469,7 +474,7 @@ theorem Lens.ext {P Q : PFunctor.{u}} (l₁ l₂ : Lens P Q)
   exact funext h₂
 
 @[ext (iff := false)]
-theorem Chart.ext {P Q : PFunctor.{u}} (c₁ c₂ : Chart P Q)
+theorem Chart.ext {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (c₁ c₂ : Chart P Q)
     (h₁ : ∀ a, c₁.toFunA a = c₂.toFunA a) (h₂ : ∀ a, c₁.toFunB a = (h₁ a) ▸ c₂.toFunB a) :
     c₁ = c₂ := by
   rcases c₁ with ⟨toFunA₁, _⟩
@@ -505,7 +510,7 @@ lemma y_eq_purePower_pUnit : y = purePower PUnit := rfl
 
 section ULift
 
-variable {P : PFunctor.{u}}
+variable {P : PFunctor.{uA, uB}}
 
 @[simp]
 theorem ulift_A : (P.ulift).A = ULift P.A := rfl
@@ -529,45 +534,50 @@ namespace Lens
 
 section Coprod
 
+-- Note the universe levels for `uB` in order to apply coproduct / sum
+variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₁}}
+  {R : PFunctor.{uA₃, uB₃}} {W : PFunctor.{uA₄, uB₃}} {X : PFunctor.{uA₅, uB₅}}
+
 @[simp]
-theorem coprodMap_comp_inl {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+theorem coprodMap_comp_inl (l₁ : Lens P R) (l₂ : Lens Q W) :
     ((l₁ ⊎ₗ l₂) ∘ₗ Lens.inl) = (Lens.inl ∘ₗ l₁) := rfl
 
 @[simp]
-theorem coprodMap_comp_inr {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) :
-    (l₁ ⊎ₗ l₂) ∘ₗ Lens.inr = Lens.inr ∘ₗ l₂ := rfl
+theorem coprodMap_comp_inr (l₁ : Lens P R) (l₂ : Lens Q W) :
+    ((l₁ ⊎ₗ l₂) ∘ₗ Lens.inr) = (Lens.inr ∘ₗ l₂) := rfl
 
-theorem coprodPair_comp_coprodMap {P Q R W X : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W)
+theorem coprodPair_comp_coprodMap (l₁ : Lens P R) (l₂ : Lens Q W)
     (f : Lens R X) (g : Lens W X) :
   Lens.coprodPair f g ∘ₗ (l₁ ⊎ₗ l₂) = Lens.coprodPair (f ∘ₗ l₁) (g ∘ₗ l₂) := by
   ext a <;> rcases a with a | a <;> rfl
 
 @[simp]
-theorem coprodPair_comp_inl {P Q R : PFunctor.{u}} (f : Lens P R) (g : Lens Q R) :
+theorem coprodPair_comp_inl (f : Lens P R) (g : Lens Q R) :
     Lens.coprodPair f g ∘ₗ Lens.inl = f := rfl
 
 @[simp]
-theorem coprodPair_comp_inr {P Q R : PFunctor.{u}} (f : Lens P R) (g : Lens Q R) :
+theorem coprodPair_comp_inr (f : Lens P R) (g : Lens Q R) :
     Lens.coprodPair f g ∘ₗ Lens.inr = g := rfl
 
-theorem comp_inl_inr {P Q R : PFunctor.{u}} (h : Lens (P + Q) R) :
+theorem comp_inl_inr (h : Lens.{max uA₁ uA₂, uB₁, uA₃, uB₃} (P + Q) R) :
     Lens.coprodPair (h ∘ₗ Lens.inl) (h ∘ₗ Lens.inr) = h := by
   ext a <;> rcases a <;> rfl
 
 @[simp]
-theorem coprodMap_id {P Q : PFunctor.{u}} :
-    Lens.coprodMap (Lens.id P) (Lens.id Q) = Lens.id (P + Q) := by
+theorem coprodMap_id :
+    Lens.coprodMap (Lens.id P) (Lens.id Q) = Lens.id.{max uA₁ uA₂, uB₁} (P + Q) := by
   ext a <;> rcases a <;> rfl
 
 @[simp]
-theorem coprodPair_inl_inr {P Q : PFunctor.{u}} :
-    Lens.coprodPair Lens.inl Lens.inr = Lens.id (P + Q) := by
+theorem coprodPair_inl_inr :
+    Lens.coprodPair Lens.inl Lens.inr = Lens.id.{max uA₁ uA₂, uB₁} (P + Q) := by
   ext a <;> rcases a <;> rfl
 
 namespace Equiv
 
 /-- Commutativity of coproduct -/
-def coprodComm (P Q : PFunctor.{u}) : P + Q ≃ₗ Q + P where
+def coprodComm (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB}) :
+    Lens.Equiv.{max uA₁ uA₂, uB, max uA₁ uA₂, uB} (P + Q) (Q + P) where
   toLens := Lens.coprodPair Lens.inr Lens.inl
   invLens := Lens.coprodPair Lens.inr Lens.inl
   left_inv := by
@@ -575,11 +585,15 @@ def coprodComm (P Q : PFunctor.{u}) : P + Q ≃ₗ Q + P where
   right_inv := by
     ext a <;> rcases a with a | a <;> rfl
 
+variable {P : PFunctor.{uA₁, uB}} {Q : PFunctor.{uA₂, uB}} {R : PFunctor.{uA₃, uB}}
+
 @[simp]
-theorem coprodComm_symm {P Q : PFunctor.{u}} : (coprodComm P Q).symm = coprodComm Q P := rfl
+theorem coprodComm_symm :
+    (coprodComm P Q).symm = coprodComm Q P := rfl
 
 /-- Associativity of coproduct -/
-def coprodAssoc {P Q R : PFunctor.{u}} : (P + Q) + R ≃ₗ P + (Q + R) where
+def coprodAssoc :
+    Lens.Equiv.{max uA₁ uA₂ uA₃, uB, max uA₁ uA₂ uA₃, uB} ((P + Q) + R) (P + (Q + R)) where
   toLens := -- Maps (P + Q) + R to P + (Q + R)
     Lens.coprodPair
       (Lens.coprodPair -- Maps P + Q to P + (Q + R)
@@ -600,7 +614,8 @@ def coprodAssoc {P Q R : PFunctor.{u}} : (P + Q) + R ≃ₗ P + (Q + R) where
     ext a <;> rcases a with a | a |a <;> rfl
 
 /-- Coproduct with `0` is identity (right) -/
-def coprodZero {P : PFunctor.{u}} : P + 0 ≃ₗ P where
+def coprodZero :
+    Lens.Equiv.{max uA uA₁, uB, uA₁, uB} (P + (0 : PFunctor.{uA, uB})) P where
   toLens := Lens.coprodPair (Lens.id P) Lens.initial
   invLens := Lens.inl
   left_inv := by
@@ -613,7 +628,8 @@ def coprodZero {P : PFunctor.{u}} : P + 0 ≃ₗ P where
     ext <;> rfl
 
 /-- Coproduct with `0` is identity (left) -/
-def zeroCoprod {P : PFunctor.{u}} : 0 + P ≃ₗ P where
+def zeroCoprod :
+    Lens.Equiv.{max uA uA₁, uB, uA₁, uB} ((0 : PFunctor.{uA, uB}) + P) P where
   toLens := Lens.coprodPair Lens.initial (Lens.id P)
   invLens := Lens.inr
   left_inv := by
@@ -631,45 +647,47 @@ end Coprod
 
 section Prod
 
+variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+  {W : PFunctor.{uA₄, uB₄}} {X : PFunctor.{uA₅, uB₅}}
+
 @[simp]
-theorem fst_comp_prodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+theorem fst_comp_prodMap (l₁ : Lens P R) (l₂ : Lens Q W) :
     Lens.fst ∘ₗ (l₁ ×ₗ l₂) = l₁ ∘ₗ Lens.fst := rfl
 
 @[simp]
-theorem snd_comp_prodMap {P Q R W : PFunctor.{u}} (l₁ : Lens P R) (l₂ : Lens Q W) :
+theorem snd_comp_prodMap (l₁ : Lens P R) (l₂ : Lens Q W) :
     Lens.snd ∘ₗ (l₁ ×ₗ l₂) = l₂ ∘ₗ Lens.snd := rfl
 
-theorem prodMap_comp_prodPair {P Q R W X : PFunctor.{u}} (l₁ : Lens Q W) (l₂ : Lens R X)
-  (f : Lens P Q) (g : Lens P R) :
+theorem prodMap_comp_prodPair (l₁ : Lens Q W) (l₂ : Lens R X) (f : Lens P Q) (g : Lens P R) :
     (l₁ ×ₗ l₂) ∘ₗ Lens.prodPair f g = Lens.prodPair (l₁ ∘ₗ f) (l₂ ∘ₗ g) := by
   ext a x
   · rfl
   · cases x <;> rfl
 
 @[simp]
-theorem fst_comp_prodPair {P Q R : PFunctor.{u}} (f : Lens P Q) (g : Lens P R) :
+theorem fst_comp_prodPair (f : Lens P Q) (g : Lens P R) :
     Lens.fst ∘ₗ Lens.prodPair f g = f := rfl
 
 @[simp]
-theorem snd_comp_prodPair {P Q R : PFunctor.{u}} (f : Lens P Q) (g : Lens P R) :
+theorem snd_comp_prodPair (f : Lens P Q) (g : Lens P R) :
     Lens.snd ∘ₗ Lens.prodPair f g = g := rfl
 
-theorem comp_fst_snd {P Q R : PFunctor.{u}} (h : Lens P (Q * R)) :
+theorem comp_fst_snd (h : Lens.{uA₁, uB₁, max uA₂ uA₃, max uB₂ uB₃} P (Q * R)) :
     Lens.prodPair (Lens.fst ∘ₗ h) (Lens.snd ∘ₗ h) = h := by
   ext a x
   · rfl
   · cases x <;> rfl
 
 @[simp]
-theorem prodMap_id {P Q : PFunctor.{u}} :
-    Lens.prodMap (Lens.id P) (Lens.id Q) = Lens.id (P * Q) := by
+theorem prodMap_id :
+    Lens.prodMap (Lens.id P) (Lens.id Q) = Lens.id.{max uA₁ uA₂, max uB₁ uB₂} (P * Q) := by
   ext a x
   · rfl
   · cases x <;> rfl
 
 @[simp]
-theorem prodPair_fst_snd {P Q : PFunctor.{u}} :
-    Lens.prodPair Lens.fst Lens.snd = Lens.id (P * Q) := by
+theorem prodPair_fst_snd :
+    Lens.prodPair Lens.fst Lens.snd = Lens.id.{max uA₁ uA₂, max uB₁ uB₂} (P * Q) := by
   ext a x
   · rfl
   · cases x <;> rfl
@@ -677,7 +695,8 @@ theorem prodPair_fst_snd {P Q : PFunctor.{u}} :
 namespace Equiv
 
 /-- Commutativity of product -/
-def prodComm (P Q : PFunctor.{u}) : P * Q ≃ₗ Q * P where
+def prodComm (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}):
+    Lens.Equiv.{max uA₁ uA₂, max uB₁ uB₂, max uA₁ uA₂, max uB₁ uB₂} (P * Q) (Q * P) where
   toLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
   invLens := Prod.swap ⇆ (fun _ => Sum.elim Sum.inr Sum.inl)
   left_inv := by
@@ -690,10 +709,13 @@ def prodComm (P Q : PFunctor.{u}) : P * Q ≃ₗ Q * P where
     · cases b <;> rfl
 
 @[simp]
-theorem prodComm_symm {P Q : PFunctor.{u}} : (prodComm P Q).symm = prodComm Q P := rfl
+theorem prodComm_symm : (prodComm P Q).symm = prodComm Q P := rfl
+
+variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
 
 /-- Associativity of product -/
-def prodAssoc {P Q R : PFunctor.{u}} : (P * Q) * R ≃ₗ P * (Q * R) where
+def prodAssoc : Lens.Equiv.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃, max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}
+    ((P * Q) * R) (P * (Q * R)) where
   toLens := (_root_.Equiv.prodAssoc P.A Q.A R.A).toFun ⇆
               (fun _ d => (Equiv.sumAssoc _ _ _).invFun d)
   invLens := (_root_.Equiv.prodAssoc P.A Q.A R.A).invFun ⇆
@@ -712,7 +734,8 @@ def prodAssoc {P Q R : PFunctor.{u}} : (P * Q) * R ≃ₗ P * (Q * R) where
       · cases b <;> rfl
 
 /-- Product with `1` is identity (right) -/
-def prodOne {P : PFunctor.{u}} : P * 1 ≃ₗ P where
+def prodOne :
+    Lens.Equiv.{max uA₁ uA₂, max uB₁ uB₂, uA₁, uB₁} (P * (1 : PFunctor.{uA₂, uB₂})) P where
   toLens := Prod.fst ⇆ (fun _ => Sum.inl)
   invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ => Sum.elim id PEmpty.elim)
   left_inv := by
@@ -725,7 +748,8 @@ def prodOne {P : PFunctor.{u}} : P * 1 ≃ₗ P where
     ext <;> rfl
 
 /-- Product with `1` is identity (left) -/
-def oneProd {P : PFunctor.{u}} : 1 * P ≃ₗ P where
+def oneProd :
+    Lens.Equiv.{max uA₁ uA₂, max uB₁ uB₂, uA₁, uB₁} ((1 : PFunctor.{uA₂, uB₂}) * P) P where
   toLens := Prod.snd ⇆ (fun _ => Sum.inr)
   invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ => Sum.elim PEmpty.elim id)
   left_inv := by
@@ -738,7 +762,8 @@ def oneProd {P : PFunctor.{u}} : 1 * P ≃ₗ P where
     ext <;> rfl
 
 /-- Product with `0` is zero (right) -/
-def prodZero {P : PFunctor.{u}} : P * 0 ≃ₗ 0 where
+def prodZero :
+    Lens.Equiv.{max uA₁ uA₂, max uB₁ uB₂, uA₁, uB₁} (P * (0 : PFunctor.{uA₂, uB₂})) 0 where
   toLens := (fun a => PEmpty.elim a.2) ⇆ (fun _ x => PEmpty.elim x)
   invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
   left_inv := by
@@ -747,7 +772,8 @@ def prodZero {P : PFunctor.{u}} : P * 0 ≃ₗ 0 where
     ext ⟨_, _⟩
 
 /-- Product with `0` is zero (left) -/
-def zeroProd {P : PFunctor.{u}} : 0 * P ≃ₗ 0 where
+def zeroProd :
+    Lens.Equiv.{max uA₁ uA₂, max uB₁ uB₂, uA₁, uB₁} ((0 : PFunctor.{uA₂, uB₂}) * P) 0 where
   toLens := (fun ⟨pa, _⟩ => PEmpty.elim pa) ⇆ (fun _ x => PEmpty.elim x)
   invLens := PEmpty.elim ⇆ (fun pe _ => PEmpty.elim pe)
   left_inv := by
@@ -755,8 +781,12 @@ def zeroProd {P : PFunctor.{u}} : 0 * P ≃ₗ 0 where
   right_inv := by
     ext ⟨_, _⟩
 
+variable {R : PFunctor.{uA₃, uB₂}}
+
 /-- Left distributive law for product over coproduct -/
-def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P * R) where
+def prodCoprodDistrib :
+    Lens.Equiv.{max uA₁ uA₂ uA₃, max uB₁ uB₂, max uA₁ uA₂ uA₃, max uB₁ uB₂}
+      (P * (Q + R)) ((P * Q) + (P * R)) where
   toLens := (fun ⟨p, qr⟩ => match qr with
               | Sum.inl q => Sum.inl (p, q)
               | Sum.inr r => Sum.inr (p, r)) ⇆
@@ -775,7 +805,9 @@ def prodCoprodDistrib {P Q R : PFunctor.{u}} : P * (Q + R) ≃ₗ (P * Q) + (P *
     ext a <;> rcases a with ⟨p, q⟩ | ⟨p, r⟩ <;> rfl
 
 /-- Right distributive law for coproduct over product -/
-def coprodProdDistrib {P Q R : PFunctor.{u}} : (Q + R) * P ≃ₗ (Q * P) + (R * P) where
+def coprodProdDistrib :
+    Lens.Equiv.{max uA₁ uA₂ uA₃, max uB₁ uB₂, max uA₁ uA₂ uA₃, max uB₁ uB₂}
+      ((Q + R) * P) ((Q * P) + (R * P)) where
   toLens := (fun ⟨qr, p⟩ => Sum.elim (fun q => Sum.inl (q, p)) (fun r => Sum.inr (r, p)) qr) ⇆
             (fun ⟨qr, p⟩ => match qr with
               | Sum.inl _ => id
@@ -797,19 +829,22 @@ end Prod
 
 section Comp
 
+variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+
 @[simp]
-theorem compMap_id {P Q : PFunctor.{u}} :
+theorem compMap_id :
     (Lens.id P) ◂ₗ (Lens.id Q) = Lens.id (P ◂ Q) := by
   ext ⟨_, _⟩ ⟨_, _⟩ <;> rfl
 
-theorem compMap_comp {P Q R P' Q' R' : PFunctor.{u}}
+theorem compMap_comp
+    {P' : PFunctor.{uA₄, uB₄}} {Q' : PFunctor.{uA₅, uB₅}} {R' : PFunctor.{uA₆, uB₆}}
     (l₁ : Lens P P') (l₂ : Lens Q Q') (l₁' : Lens P' R) (l₂' : Lens Q' R') :
     (l₁' ∘ₗ l₁) ◂ₗ (l₂' ∘ₗ l₂) = (l₁' ◂ₗ l₂') ∘ₗ (l₁ ◂ₗ l₂) := rfl
 
 namespace Equiv
 
 /-- Associativity of composition -/
-def compAssoc {P Q R : PFunctor.{u}} : (P ◂ Q) ◂ R ≃ₗ P ◂ (Q ◂ R) where
+def compAssoc : (P ◂ Q) ◂ R ≃ₗ P ◂ (Q ◂ R) where
   toLens := (fun ⟨⟨pa, qf⟩, rf⟩ => ⟨pa, fun pb => ⟨qf pb, fun qb => rf ⟨pb, qb⟩⟩⟩) ⇆
             (fun _ ⟨pb, ⟨qb, rb⟩⟩ => ⟨⟨pb, qb⟩, rb⟩)
   invLens := (fun ⟨pa, g⟩ => ⟨⟨pa, fun pb => (g pb).1⟩, fun ⟨pb, qb⟩ => (g pb).2 qb⟩) ⇆
@@ -818,21 +853,23 @@ def compAssoc {P Q R : PFunctor.{u}} : (P ◂ Q) ◂ R ≃ₗ P ◂ (Q ◂ R) wh
   right_inv := rfl
 
 /-- Composition with `y` is identity (right) -/
-def compY {P : PFunctor.{u}} : P ◂ y ≃ₗ P where
+def compY : P ◂ y ≃ₗ P where
   toLens := invTildeR
   invLens := tildeR
   left_inv := rfl
   right_inv := rfl
 
 /-- Composition with `y` is identity (left) -/
-def yComp {P : PFunctor.{u}} : y ◂ P ≃ₗ P where
+def yComp : y ◂ P ≃ₗ P where
   toLens := invTildeL
   invLens := tildeL
   left_inv := rfl
   right_inv := rfl
 
 /-- Distributivity of composition over coproduct on the right -/
-def coprodCompDistrib {P Q R : PFunctor.{u}} : (Q + R) ◂ P ≃ₗ (Q ◂ P) + (R ◂ P) where
+def coprodCompDistrib {R : PFunctor.{uA₃, uB₂}} :
+    Lens.Equiv.{max uA₁ uA₂ uA₃ uB₂, max uB₁ uB₂, max uA₁ uA₂ uA₃ uB₂, max uB₁ uB₂}
+      ((Q + R : PFunctor.{max uA₂ uA₃, uB₂}) ◂ P) ((Q ◂ P) + (R ◂ P)) where
   toLens := (fun a => match a with
               | ⟨Sum.inl qa, pf⟩ => Sum.inl ⟨qa, pf⟩
               | ⟨Sum.inr ra, pf⟩ => Sum.inr ⟨ra, pf⟩) ⇆
@@ -856,25 +893,28 @@ end Comp
 
 section Tensor
 
+variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+
 @[simp]
-theorem tensorMap_id {P Q : PFunctor.{u}} : (Lens.id P) ⊗ₗ (Lens.id Q) = Lens.id (P ⊗ₚ Q) :=
+theorem tensorMap_id : (Lens.id P) ⊗ₗ (Lens.id Q) = Lens.id (P ⊗ₚ Q) :=
   rfl
 
-theorem tensorMap_comp {P Q R P' Q' R' : PFunctor.{u}}
+theorem tensorMap_comp
+    {P' : PFunctor.{uA₄, uB₄}} {Q' : PFunctor.{uA₅, uB₅}} {R' : PFunctor.{uA₆, uB₆}}
     (l₁ : Lens P P') (l₂ : Lens Q Q') (l₁' : Lens P' R) (l₂' : Lens Q' R') :
     (l₁' ∘ₗ l₁) ⊗ₗ (l₂' ∘ₗ l₂) = (l₁' ⊗ₗ l₂') ∘ₗ (l₁ ⊗ₗ l₂) := rfl
 
 namespace Equiv
 
 /-- Commutativity of tensor product -/
-def tensorComm (P Q : PFunctor.{u}) : P ⊗ₚ Q ≃ₗ Q ⊗ₚ P where
+def tensorComm (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) : P ⊗ₚ Q ≃ₗ Q ⊗ₚ P where
   toLens := Prod.swap ⇆ (fun _ => Prod.swap)
   invLens := Prod.swap ⇆ (fun _ => Prod.swap)
   left_inv := rfl
   right_inv := rfl
 
 /-- Associativity of tensor product -/
-def tensorAssoc {P Q R : PFunctor.{u}} : (P ⊗ₚ Q) ⊗ₚ R ≃ₗ P ⊗ₚ (Q ⊗ₚ R) where
+def tensorAssoc : (P ⊗ₚ Q) ⊗ₚ R ≃ₗ P ⊗ₚ (Q ⊗ₚ R) where
   toLens := (_root_.Equiv.prodAssoc _ _ _).toFun ⇆
             (fun _ => (_root_.Equiv.prodAssoc _ _ _).invFun)
   invLens := (_root_.Equiv.prodAssoc _ _ _).invFun ⇆
@@ -883,21 +923,21 @@ def tensorAssoc {P Q R : PFunctor.{u}} : (P ⊗ₚ Q) ⊗ₚ R ≃ₗ P ⊗ₚ (
   right_inv := rfl
 
 /-- Tensor product with `y` is identity (right) -/
-def tensorY {P : PFunctor.{u}} : P ⊗ₚ y ≃ₗ P where
+def tensorY : P ⊗ₚ y ≃ₗ P where
   toLens := Prod.fst ⇆ (fun _ b => (b, PUnit.unit))
   invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ bp => bp.1)
   left_inv := rfl
   right_inv := rfl
 
 /-- Tensor product with `y` is identity (left) -/
-def yTensor {P : PFunctor.{u}} : y ⊗ₚ P ≃ₗ P where
+def yTensor : y ⊗ₚ P ≃ₗ P where
   toLens := Prod.snd ⇆ (fun _ b => (PUnit.unit, b))
   invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ bp => bp.2)
   left_inv := rfl
   right_inv := rfl
 
 /-- Tensor product with `0` is zero (left) -/
-def zeroTensor {P : PFunctor.{u}} : 0 ⊗ₚ P ≃ₗ 0 where
+def zeroTensor : 0 ⊗ₚ P ≃ₗ 0 where
   toLens := (fun a => PEmpty.elim a.1) ⇆ (fun _ b => PEmpty.elim b)
   invLens := PEmpty.elim ⇆ (fun a _ => PEmpty.elim a)
   left_inv := by
@@ -906,7 +946,7 @@ def zeroTensor {P : PFunctor.{u}} : 0 ⊗ₚ P ≃ₗ 0 where
     ext a <;> exact PEmpty.elim a
 
 /-- Tensor product with `0` is zero (right) -/
-def tensorZero {P : PFunctor.{u}} : P ⊗ₚ 0 ≃ₗ 0 where
+def tensorZero : P ⊗ₚ 0 ≃ₗ 0 where
   toLens := (fun a => PEmpty.elim a.2) ⇆ (fun _ b => PEmpty.elim b)
   invLens := PEmpty.elim ⇆ (fun a _ => PEmpty.elim a)
   left_inv := by
@@ -914,8 +954,12 @@ def tensorZero {P : PFunctor.{u}} : P ⊗ₚ 0 ≃ₗ 0 where
   right_inv := by
     ext a <;> exact PEmpty.elim a
 
+variable {R : PFunctor.{uA₃, uB₂}}
+
 /-- Left distributivity of tensor product over coproduct -/
-def tensorCoprodDistrib {P Q R : PFunctor.{u}} : P ⊗ₚ (Q + R) ≃ₗ (P ⊗ₚ Q) + (P ⊗ₚ R) where
+def tensorCoprodDistrib :
+    Lens.Equiv.{max uA₁ uA₂ uA₃, max uB₁ uB₂, max uA₁ uA₂ uA₃, max uB₁ uB₂}
+      (P ⊗ₚ (Q + R : PFunctor.{max uA₂ uA₃, uB₂})) ((P ⊗ₚ Q) + (P ⊗ₚ R)) where
   toLens := (fun ⟨p, qr⟩ => match qr with
               | Sum.inl q => Sum.inl (p, q)
               | Sum.inr r => Sum.inr (p, r)) ⇆
@@ -934,7 +978,9 @@ def tensorCoprodDistrib {P Q R : PFunctor.{u}} : P ⊗ₚ (Q + R) ≃ₗ (P ⊗�
     ext pqpr <;> cases pqpr <;> rfl
 
 /-- Right distributivity of tensor product over coproduct -/
-def coprodTensorDistrib {P Q R : PFunctor.{u}} : (Q + R) ⊗ₚ P ≃ₗ (Q ⊗ₚ P) + (R ⊗ₚ P) where
+def coprodTensorDistrib :
+    (Q + R : PFunctor.{max uA₂ uA₃, uB₂}) ⊗ₚ P
+      ≃ₗ ((Q ⊗ₚ P) + (R ⊗ₚ P) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
   toLens := (fun ⟨qr, p⟩ => match qr with
               | Sum.inl q => Sum.inl (q, p)
               | Sum.inr r => Sum.inr (r, p)) ⇆
@@ -1080,7 +1126,9 @@ def piUnit {P : PFunctor.{u}} : pi (fun (_ : PUnit) => P) ≃ₗ P where
 -- /-- Pi of a family of zero functors over an inhabited type is the zero functor. -/
 -- def piZero (F_zero : ∀ i, F i = 0) :
 --     pi (F : I → PFunctor.{u}) ≃ₗ 0 where
---   toLens := (fun a => PEmpty.elim (Classical.choice (Function.funext_iff.mp F_zero (Classical.choice Classical.propDecidable)))) ⇆ -- Requires some work to construct the PEmpty element
+--   toLens := (fun a => PEmpty.elim
+-- (Classical.choice (Function.funext_iff.mp F_zero (Classical.choice Classical.propDecidable))))
+-- ⇆ -- Requires some work to construct the PEmpty element
 --             (fun _ => PEmpty.elim)
 --   invLens := PEmpty.elim ⇆ (fun a => PEmpty.elim a)
 --   left_inv := sorry -- Proof depends on constructing the PEmpty term above
@@ -1093,5 +1141,29 @@ end Lens
 -- Do the same for charts?
 
 end Lemmas
+
+/-- Equivalence between two polynomial functors `P` and `Q`.
+
+This is a special case of both `Lens` and `Chart`. -/
+@[ext]
+structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
+  equivA : P.A ≃ Q.A
+  equivB : ∀ a, P.B a ≃ Q.B (equivA a)
+
+namespace Equiv
+
+variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}}
+
+/-- Convert an equivalence between two polynomial functors `P` and `Q` to a lens. -/
+def toLens (e : Equiv P Q) : Lens P Q where
+  toFunA := e.equivA
+  toFunB := fun a => (e.equivB a).symm
+
+/-- Convert an equivalence between two polynomial functors `P` and `Q` to a chart. -/
+def toChart (e : Equiv P Q) : Chart P Q where
+  toFunA := e.equivA
+  toFunB := fun a => e.equivB a
+
+end Equiv
 
 end PFunctor
