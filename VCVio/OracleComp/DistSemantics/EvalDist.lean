@@ -1070,7 +1070,7 @@ end uniformFin
 /-- Example of brute forcing a probability computation by expanding terms and using `ring_nf`. -/
 example : [⊥ | do
     let x ←$[0..5]; let y ←$[0..3]
-    guard (x = 0); guard (y ≠ x); return ()] = 21 / 24 := by
+    guard (x = 0); guard (y.val ≠ x.val); return ()] = 21 / 24 := by
   -- would be nice not to need arithmetic facts
   have : (6 : ℝ≥0∞)⁻¹ * (4 : ℝ≥0∞)⁻¹ = (24 : ℝ≥0∞)⁻¹ :=
     by rw [← ENNReal.mul_inv (by tauto) (by tauto)]; ring_nf

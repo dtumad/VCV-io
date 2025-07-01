@@ -91,7 +91,7 @@ def ofNatIso {J₁ J₂ : C ⥤ D} (φ : J₁ ≅ J₂) (M : RelativeMonad C D J
   T := M.T
   η := φ.inv.app _ ≫ M.η
   μ := fun f => M.μ (φ.hom.app _ ≫ f)
-  assoc f g := by simp; rw [← assoc]; simp
+  assoc f g := by rw [← assoc]; simp
 
 /-- Precompose a relative monad `M : RelativeMonad C D J` along a functor `J' : C' ⥤ C`. -/
 def precompose {C' : Type u₃} [Category.{v₃} C'] (J' : C' ⥤ C) (M : RelativeMonad C D J) :
@@ -343,7 +343,7 @@ theorem map_congrᵣ [RelativeFunctor j m] {x : m α} {f g : j α → j β} (h :
 
 theorem RelativeFunctor.map_unitᵣ [RelativeMonad j m] [LawfulRelativeMonad j m] {a : m PUnit} :
     (fun y : j PUnit => y) <$>ᵣ a = a := by
-  simp [map_constᵣ]
+  simp
 
 instance [RelativeFunctor Id f] [LawfulRelativeFunctor Id f] : LawfulFunctor f where
   map_const := @map_constᵣ Id f _ _
