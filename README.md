@@ -85,3 +85,9 @@ Predicates on computations:
 * `someWhen`/`allWhen` - recursively check predicates on a computation's syntax tree given some allowed query outputs
 * `neverFailsWhen`/`mayFailWhen` - check if a computation could fail given a set of allowed query outputs
 * `isQueryBound` - bound the number of queries a computation makes
+
+## Trivia
+
+`VCV-io` is inspired by [FCF](https://github.com/adampetcher/fcf), a foundational framework for verified cryptography in Coq. Similar to FCF, we formalize the notion of oracle computations as central to modeling cryptographic games, primitives, and protocols. In contrast to FCF, our handling of oracles is much more refined - we allow for an *indexed* family of oracles (soon to be *dependent* oracles), and build significant infrastructure for combining & simulation of oracles.
+
+The name `VCV` is reverse of `FCF` under the involution `F <=> V` (same number of characters going from the beginning, versus the end, of the English alphabet). One backronym for the name is "Verified Cryptography with Indexed Oracles", though this may not remain accurate in the future (with the switch to dependent oracles / polynomial functors).
