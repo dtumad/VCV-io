@@ -267,7 +267,8 @@ namespace PMF
 noncomputable instance hasEvalDist : HasEvalDist PMF where
   evalDist p := OptionT.mk p
   evalDist_pure _ := by simp; rfl
-  evalDist_bind x y := sorry
+  evalDist_bind x y := OptionT.ext <| PMF.ext fun x => by
+    simp [Function.comp_def, Option.elimM]
 
 variable (p : PMF α) (x : α)
 
@@ -275,9 +276,7 @@ variable (p : PMF α) (x : α)
 
 @[simp] lemma probOutput_eq : probOutput p = p := by
   refine funext fun x => ?_
-  simp only [probOutput_def, evalDist_eq, monad_pure_eq_pure, monad_bind_eq_bind, OptionT.run_mk,
-    pure_apply, Option.some.injEq, mul_ite, mul_one, mul_zero]
-  simp
+  simp only [probOutput_def, evalDist_eq, OptionT.run_monadLift, monadLift_self]
   refine (PMF.map_apply _ _ _).trans ?_
   refine (tsum_eq_single x ?_).trans ?_
   · simp

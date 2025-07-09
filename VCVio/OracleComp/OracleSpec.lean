@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import Mathlib.Data.Fintype.Card
+import ToMathlib.PFunctor.Basic
 
 /-!
 # Specifications of Available Oracles
@@ -70,12 +71,8 @@ section append
 /-- `spec₁ ++ spec₂` combines the two sets of oracles disjointly using `Sum` for the indexing set.
 `inl i` is a query to oracle `i` of `spec`, and `inr i` for oracle `i` of `spec'`. -/
 def append {ι₁ : Type u} {ι₂ : Type u'} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
-    OracleSpec (ι₁ ⊕ ι₂) := 
+    OracleSpec (ι₁ ⊕ ι₂) :=
   fun | .inl i => spec₁ i | .inr i => spec₂ i
-    
-    -- Sum.elim spec₁ spec₂
-
-
 
 infixl : 65 " ++ₒ " => OracleSpec.append
 
@@ -90,6 +87,9 @@ instance [h₁ : spec₁.FiniteRange] [h₂ : spec₂.FiniteRange] :
     (spec₁ ++ₒ spec₂).FiniteRange where
   range_inhabited' := λ i ↦ Sum.recOn i h₁.range_inhabited' h₂.range_inhabited'
   range_fintype' := λ i ↦ Sum.recOn i h₁.range_fintype' h₂.range_fintype'
+
+lemma append_def {ι₁ : Type u} {ι₂ : Type u'} (spec₁ : OracleSpec ι₁) (spec₂ : OracleSpec ι₂) :
+    (spec₁ ++ₒ spec₂) = fun | .inl i => spec₁ i | .inr i => spec₂ i := rfl
 
 end append
 

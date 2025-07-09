@@ -67,6 +67,16 @@ def purePower (B : Type uB) : PFunctor.{uA, uB} :=
 /-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
 alias representable := purePower
 
+section ofFn
+
+/-- Construct a polynomial functor from just a function `B`, with `A` derived implicitly. -/
+@[simps]
+def ofFn {A : Type uA₁} (B : (a : A) → Type uB) : PFunctor.{uA₁, uB} where
+  A := A
+  B := B
+
+end ofFn
+
 section Coprod
 
 /-- Coprodudct (sum) of polynomial functors `P + Q`. Requires the output universe to be the same. -/
@@ -79,6 +89,9 @@ instance : HAdd PFunctor.{uA₁, uB} PFunctor.{uA₂, uB} PFunctor.{max uA₁ uA
 
 instance : Add PFunctor.{uA, uB} where
   add := coprod
+
+lemma add_def (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB}) :
+    P + Q = ⟨P.A ⊕ Q.A, Sum.elim P.B Q.B⟩ := rfl
 
 alias coprodUnit := zero
 
