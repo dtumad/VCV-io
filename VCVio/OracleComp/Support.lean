@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import VCVio.OracleComp.SimSemantics.SimulateQ
+import VCVio.EvalDist.Support
 
 /-!
 # Support of a Computation
@@ -60,14 +61,13 @@ def supportWhen (oa : OracleComp spec α)
     (possible_outputs : {α : Type v} → OracleQuery spec α → Set α) : Set α := by
   induction oa using OracleComp.construct with
   | pure x => exact {x}
-  | failure => exact ∅
   | query_bind q _ f => exact ⋃ u ∈ possible_outputs q, f u
 
 /-- The `support` of a computation `oa` is the set of all possible output values,
 assuming that all output values of the oracles are possible.
 This is naturally compatible with `evalDist` where the oracles respond uniformly. -/
 def support (oa : OracleComp spec α) : Set α :=
-  oa.supportWhen fun _ => Set.univ
+  HasEvalDist.support oa
 
 lemma support_def (oa : OracleComp spec α) :
     oa.support = oa.supportWhen fun _ => Set.univ := rfl
@@ -83,7 +83,6 @@ def finSupportWhen [DecidableEq α] (oa : OracleComp spec α)
     (possible_outputs : {α : Type v} → OracleQuery spec α → Finset α) : Finset α := by
   induction oa using OracleComp.construct with
   | pure x => exact {x}
-  | failure => exact ∅
   | query_bind q _ f => exact (possible_outputs q).biUnion f
 
 /-- Case of `finSupportWhen` where each oracle has a finite type as output and we assume any

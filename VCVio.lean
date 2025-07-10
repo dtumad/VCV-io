@@ -13,6 +13,8 @@ import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
 import VCVio.EvalDist.Basic
+import VCVio.EvalDist.NeverFails
+import VCVio.EvalDist.Support
 import VCVio.OracleComp.Coercions.Append
 import VCVio.OracleComp.Coercions.SimOracle
 import VCVio.OracleComp.Coercions.SubSpec
@@ -31,6 +33,7 @@ import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Simulate
 import VCVio.OracleComp.ExecutionMethod
 import VCVio.OracleComp.OracleComp
+import VCVio.OracleComp.OracleQuery
 import VCVio.OracleComp.OracleSpec
 import VCVio.OracleComp.QueryBound
 import VCVio.OracleComp.QueryTracking.CachingOracle

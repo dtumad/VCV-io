@@ -46,6 +46,7 @@ Implemented as a functor with the oracle output type as the constructor result. 
 inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) : Type v → Type (max u v)
   | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
 
+-- dt: This is a nicer definition for `PFunctor.A` but loses information about the output type.
 structure OracleQuery' {ι : Type u} (spec : OracleSpec.{u,v} ι) where
   query ::
   i : ι
@@ -106,7 +107,9 @@ def toPFunctor {ι : Type u} (spec : OracleSpec.{u,v} ι) : PFunctor where
   A := (i : ι) × spec.domain i
   B := fun q => spec.range q.1
 
-def lift_toPFunctorA {ι : Type u} (spec : OracleSpec.{u,v} ι) {α : Type v}
-    (q : OracleQuery spec α) : spec.toPFunctor.A := ⟨q.index, q.input⟩
+def OracleQuery.lift_toPFunctor {ι : Type u} (spec : OracleSpec.{u,v} ι)
+    {α : Type v} (q : OracleQuery spec α) : spec.toPFunctor α :=
+  match q with
+  | query i t => ⟨⟨i, t⟩, id⟩
 
 end OracleSpec

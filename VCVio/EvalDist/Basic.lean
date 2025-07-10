@@ -149,6 +149,13 @@ lemma probFailure_def (mx : m α) : Pr[⊥ | mx] = (evalDist mx).run none := rfl
 @[simp] lemma probOutput_pure [DecidableEq α] (x y : α) :
     Pr[= x | (pure y : m α)] = if x = y then 1 else 0 := by simp [probOutput_def]
 
+lemma probOutput_pure_eq_indicator (x y : α) :
+    Pr[= x | (pure y : m α)] = Set.indicator (M := ℝ≥0∞) {y} (Function.const _ 1) x := by
+  simp only [probOutput_def, evalDist_pure, OptionT.run_pure, PMF.monad_pure_eq_pure,
+    PMF.pure_apply, Option.some.injEq, Set.indicator, Set.mem_singleton_iff, Function.const_apply]
+  rw [Option.some_inj]
+  rfl
+
 @[simp] lemma evalDist_map [LawfulMonad m] (mx : m α) (f : α → β) :
     evalDist (f <$> mx) = f <$> (evalDist mx) := by
   simp [map_eq_bind_pure_comp]

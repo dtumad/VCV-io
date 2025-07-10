@@ -40,6 +40,12 @@ def lift (x : P.Obj α) : FreeM P α := FreeM.roll x.1 (fun y ↦ FreeM.pure (x.
 instance : MonadLift P (FreeM P) where
   monadLift x := FreeM.lift x
 
+@[simp] lemma lift_ne_pure (x : P α) (y : α) :
+    (lift x : FreeM P α) ≠ PFunctor.FreeM.pure y := by simp [lift]
+
+@[simp] lemma pure_ne_lift (x : P α) (y : α) :
+    PFunctor.FreeM.pure y ≠ (lift x : FreeM P α) := by simp [lift]
+
 @[simp]
 lemma monadLift_eq_lift (x : P.Obj α) : (x : FreeM P α) = FreeM.lift x := rfl
 

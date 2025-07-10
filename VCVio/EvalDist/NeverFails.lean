@@ -1,0 +1,33 @@
+/-
+Copyright (c) 2025 Devon Tuma. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Devon Tuma
+-/
+import VCVio.EvalDist.Basic
+
+
+/-!
+# Computations that Never Fail
+
+This file contains a type-class for computations `mx` in a monad `m` that never fail,
+in the sense that `probFailure mx = 0`. Equivalently the sum of `probOutput` is `1`
+and the corresponding `SPMF` is actually a `PMF`.
+
+Typeclass inference is not very expensive because there is usually a unique syntax match.
+-/
+
+namespace HasEvalDist
+
+variable {α β γ : Type _} {m : Type _ → Type _} [Monad m] [HasEvalDist m]
+
+/-- `neverFails mx` means that `mx` will also return a (probabalistic) value. -/
+class neverFails {α : Type _} {m : Type _ → Type _} [Monad m]
+    [HasEvalDist m] (mx : m α) : Prop where
+  probFailure_eq_zero : Pr[⊥ | mx] = 0
+
+class mayFail {α : Type _} {m : Type _ → Type _} [Monad m]
+    [HasEvalDist m] (mx : m α) extends NeZero Pr[⊥ | mx]
+
+export neverFails (probFailure_eq_zero)
+
+end HasEvalDist
