@@ -6,7 +6,7 @@ Authors: Devon Tuma, František Silváši
 -- import ToMathlib.ProbabilityTheory.Coupling
 import Mathlib.Probability.ProbabilityMassFunction.Monad
 import ToMathlib.General
-
+import Batteries.Control.AlternativeMonad
 
 /-!
 # Denotational Semantics for Output Distributions
@@ -228,6 +228,18 @@ variable {mx : m α} {mxe : OptionT m α} {x : α} {p : α → Prop}
   simp only [le_iff_eq_or_lt, not_one_lt_probFailure, or_false, eq_comm]
 
 end bounds
+
+section LawfulProbFailure
+
+/-- Class for `HasEvalDist` instances that assign full failure chance to `failure`. -/
+class LawfulProbFailure (m : Type _ → Type _) [AlternativeMonad m] [HasEvalDist m] where
+    probFailure_failure {α : Type _} : Pr[⊥ | (failure : m α)] = 1
+
+export LawfulProbFailure (probFailure_failure)
+
+attribute [simp] probFailure_failure
+
+end LawfulProbFailure
 
 section bind
 

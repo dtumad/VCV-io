@@ -62,6 +62,10 @@ lemma mem_support_map [LawfulMonad m] {mx : m α} {x : α} (hx : x ∈ support m
     support (if p then mx else mx') = if p then support mx else support mx' :=
   apply_ite support p mx mx'
 
+@[simp] lemma support_failure {m : Type _ → Type _}
+    [AlternativeMonad m] [HasEvalDist m] [LawfulProbFailure m] :
+    support (failure : m α) = ∅ := sorry
+
 end HasEvalDist
 
 namespace OptionT

@@ -23,11 +23,16 @@ variable {α β γ : Type _} {m : Type _ → Type _} [Monad m] [HasEvalDist m]
 /-- `neverFails mx` means that `mx` will also return a (probabalistic) value. -/
 class neverFails {α : Type _} {m : Type _ → Type _} [Monad m]
     [HasEvalDist m] (mx : m α) : Prop where
+  mk ::
   probFailure_eq_zero : Pr[⊥ | mx] = 0
 
-class mayFail {α : Type _} {m : Type _ → Type _} [Monad m]
-    [HasEvalDist m] (mx : m α) extends NeZero Pr[⊥ | mx]
-
 export neverFails (probFailure_eq_zero)
+
+instance neverFails_pure {x} : neverFails (pure x : m α) where
+  probFailure_eq_zero := sorry
+
+lemma neverFails_bind {mx : m α} {my : α → m β}
+    (hx : neverFails mx) (hy : ∀ x, neverFails (my x)) : neverFails (mx >>= my) := by
+  sorry
 
 end HasEvalDist
