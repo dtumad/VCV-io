@@ -3,8 +3,8 @@ Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma, František Silváši
 -/
-import VCVio.EvalDist.SPMF
-import VCVio.EvalDist.HasSupportM
+import VCVio.EvalDist.Defs.SPMF
+import VCVio.EvalDist.Defs.HasSupportM
 
 /-!
 # Denotational Semantics for Output Distributions

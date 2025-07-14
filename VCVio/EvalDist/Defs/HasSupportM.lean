@@ -3,7 +3,7 @@ Copyright (c) 2025 Devon Tuma. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
-import VCVio.EvalDist.SPMF
+import VCVio.EvalDist.Defs.SPMF
 import ToMathlib.Control.MonadHom
 
 /-!
@@ -73,40 +73,6 @@ lemma mem_support_ite_iff (p : Prop) [Decidable p] (mx mx' : m α) (x : α) :
     (x : α) : x ∈ support (if h : p then mx h else mx' h) ↔
       (∃ h : p, x ∈ support (mx h)) ∨ (∃ h : ¬ p, x ∈ support (mx' h)) := by
   split_ifs with h <;> simp [h]
-
-
--- @[simp] lemma support_eqRec (oa : OracleComp spec α) (h : α = β) :
---     (h ▸ oa).support = h.symm ▸ oa.support := by
---   induction h; rfl
--- @[simp] lemma finSupport_eqRec [spec.DecidableEq] [spec.FiniteRange]
---     [hα : DecidableEq α] [hβ : DecidableEq β] (oa : OracleComp spec α) (h : α = β) :
---     @finSupport _ _ _ _ hβ (h ▸ oa : OracleComp spec β) =
---       h.symm ▸ @finSupport _ _ _ _ hα oa := by
---   refine Finset.ext (λ x ↦ ?_)
---   simp [mem_finSupport_iff_mem_support]
---   induction h -- We can't do this earlier without running into trouble with `DecidableEq`
---   exact Iff.symm (mem_finSupport_iff_mem_support oa x)
-
--- lemma mem_support_eqRec_iff (oa : OracleComp spec α) (h : α = β) (y : β) :
---     y ∈ (h ▸ oa).support ↔ h.symm ▸ y ∈ oa.support := by
---   induction h; rfl
--- -- lemma mem_finSupport_eqRec_iff [spec.DecidableEq] [spec.FiniteRange]
--- --     [hα : DecidableEq α] [hβ : DecidableEq β] (oa : OracleComp spec α) (h : α = β) (y : β) :
--- --     y ∈ (h ▸ oa).finSupport ↔ h.symm ▸ y ∈ oa.finSupport := by
--- --   induction h; rfl
-
--- @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
---     (f <$> oa).support = f '' oa.support := by
---   simp only [map_eq_pure_bind, ← Set.image_eq_iUnion, support_bind, support_pure]
--- @[simp] lemma fin_support_map [spec.DecidableEq] [spec.FiniteRange]
---     [DecidableEq α] [DecidableEq β] (oa : OracleComp spec α) (f : α → β) :
---     (f <$> oa).finSupport = oa.finSupport.image f := by
---   simp [finSupport_eq_iff_support_eq_coe]
-
--- lemma mem_support_map {oa : OracleComp spec α} {x : α}
---     (hx : x ∈ oa.support) (f : α → β) : f x ∈ (f <$> oa).support := by
---   simp only [support_map, Set.mem_image]
---   refine ⟨x, hx, rfl⟩
 
 end HasSupportM
 

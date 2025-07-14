@@ -19,7 +19,7 @@ open OracleSpec
 
 namespace OracleComp
 
-variable {ι : Type*} {spec : OracleSpec ι} {m : Type u → Type v} [AlternativeMonad m]
+variable {ι : Type*} {spec : OracleSpec} {m : Type u → Type v} [AlternativeMonad m]
   [LawfulAlternative m]
   {σ : Type u} [Subsingleton σ] (so : QueryImpl spec (StateT σ m))
 

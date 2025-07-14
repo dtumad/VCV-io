@@ -19,6 +19,7 @@ import VCVio.EvalDist.Defs.HasSupportM
 import VCVio.EvalDist.Defs.NeverFails
 import VCVio.EvalDist.Defs.SPMF
 import VCVio.EvalDist.List
+import VCVio.EvalDist.Monad.Alternative
 import VCVio.EvalDist.Monad.Bind
 import VCVio.EvalDist.Monad.Map
 import VCVio.EvalDist.Monad.Seq
@@ -30,14 +31,7 @@ import VCVio.OracleComp.Constructions.GenerateSeed
 import VCVio.OracleComp.Constructions.Replicate
 import VCVio.OracleComp.Constructions.UniformSelect
 import VCVio.OracleComp.DistSemantics.ActiveOracles
-import VCVio.OracleComp.DistSemantics.Alternative
-import VCVio.OracleComp.DistSemantics.BitVec
 import VCVio.OracleComp.DistSemantics.EvalDist
-import VCVio.OracleComp.DistSemantics.HEq
-import VCVio.OracleComp.DistSemantics.List
-import VCVio.OracleComp.DistSemantics.Monad
-import VCVio.OracleComp.DistSemantics.Prod
-import VCVio.OracleComp.DistSemantics.Seq
 import VCVio.OracleComp.DistSemantics.Simulate
 import VCVio.OracleComp.EvalDist
 import VCVio.OracleComp.ExecutionMethod

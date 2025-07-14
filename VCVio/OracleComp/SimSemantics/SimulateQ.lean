@@ -23,18 +23,18 @@ open OracleSpec Prod
 
 universe u v w
 
-variable {ι ι' ιₜ : Type*} {spec : OracleSpec ι}
-    {spec' : OracleSpec ι'} {specₜ : OracleSpec ιₜ}
+variable {ι ι' ιₜ : Type*} {spec : OracleSpec}
+    {spec' : OracleSpec} {specₜ : OracleSpec}
     {m : Type u → Type v} {α β γ σ : Type u}
 
 /-- Specifies a way to simulate a set of oracles using another set of oracles.
 e.g. using uniform selection oracles with a query cache to simulate a random oracle.
 `simulateQ` gives a method for applying a simulation oracle to a specific computation. -/
 @[ext]
-structure QueryImpl {ι : Type w} (spec : OracleSpec ι) (m : Type u → Type v) where
+structure QueryImpl (spec : OracleSpec) (m : Type u → Type v) where
   impl {α : Type u} (q : OracleQuery spec α) : m α
 
-instance QueryImpl.Inhabited [∀ i, Inhabited (spec.range i)] [Pure m] :
+instance QueryImpl.Inhabited [spec.Inhabited] [Pure m] :
   Inhabited (QueryImpl spec m) := ⟨{impl q := pure q.defaultOutput}⟩
 
 lemma QueryImpl.ext' {so so' : QueryImpl spec m}
@@ -47,7 +47,7 @@ namespace OracleComp
 to a new function `OracleComp spec α` by preserving `bind`, `pure`, and `failure`.
 NOTE: could change the output type to `OracleComp spec →ᵐ m`, makes some stuff below free -/
 def simulateQ [Monad m] (so : QueryImpl spec m) (oa : OracleComp spec α) : m α :=
-  PFunctor.FreeM.mapM (fun it : (i : ι) × spec.domain i => so.impl (query it.1 it.2)) oa
+  PFunctor.FreeM.mapM (fun t => so.impl (query t)) oa
   -- do Option.getM (← FreeMonad.mapM oa.run so.impl)
 
 variable [AlternativeMonad m] (so : QueryImpl spec m)
@@ -115,38 +115,38 @@ def idOracle : QueryImpl spec (OracleComp spec) where impl q := OracleComp.lift 
 
 namespace idOracle
 
-@[simp] lemma apply_eq (q : OracleQuery spec α) : idOracle.impl q = q := rfl
+-- @[simp] lemma apply_eq (q : OracleQuery spec α) : idOracle.impl q = q := rfl
 
-@[simp] lemma simulateQ_eq_id : @simulateQ ι spec _ α _ idOracle = id := by
-  sorry
-  -- refine funext fun oa => by induction oa using OracleComp.inductionOn with
-  -- | pure x => rfl
-  -- | query_bind i t oa hoa => simp [hoa, Function.comp_def]
-  -- | failure => rfl
+-- @[simp] lemma simulateQ_eq_id : @simulateQ ι spec _ α _ idOracle = id := by
+--   sorry
+--   -- refine funext fun oa => by induction oa using OracleComp.inductionOn with
+--   -- | pure x => rfl
+--   -- | query_bind i t oa hoa => simp [hoa, Function.comp_def]
+--   -- | failure => rfl
 
-lemma simulateQ_eq (oa : OracleComp spec α) : simulateQ idOracle oa = oa := by simp
+-- lemma simulateQ_eq (oa : OracleComp spec α) : simulateQ idOracle oa = oa := by simp
 
 end idOracle
 
-/-- Simulate a computation by having each oracle return the default value of the query output type
-for all queries. This gives a way to run arbitrary computations to get *some* output.
-Mostly useful in some existence proofs, not usually used in an actual implementation. -/
-def defaultOracle [spec.FiniteRange] : QueryImpl spec Option where
-  impl | q => do return q.defaultOutput
+-- /-- Simulate a computation by having each oracle return the default value of the query output type
+-- for all queries. This gives a way to run arbitrary computations to get *some* output.
+-- Mostly useful in some existence proofs, not usually used in an actual implementation. -/
+-- def defaultOracle [spec.FiniteRange] : QueryImpl spec Option where
+--   impl | q => do return q.defaultOutput
 
-namespace defaultOracle
+-- namespace defaultOracle
 
-@[simp] lemma apply_eq [spec.FiniteRange] (q : OracleQuery spec α) :
-    defaultOracle.impl q = return q.defaultOutput := rfl
+-- @[simp] lemma apply_eq [spec.FiniteRange] (q : OracleQuery spec α) :
+--     defaultOracle.impl q = return q.defaultOutput := rfl
 
-@[simp] lemma simulateQ_eq_getM_defaultResult [spec.FiniteRange] :
-    @simulateQ ι spec _ α _ defaultOracle = Option.getM ∘ defaultResult := by
-  sorry
-  -- refine funext fun oa => by induction oa using OracleComp.inductionOn with
-  -- | pure x => simp [defaultResult, Option.getM]
-  -- | query_bind i t oa hoa => simp [hoa]; rfl
+-- @[simp] lemma simulateQ_eq_getM_defaultResult [spec.FiniteRange] :
+--     @simulateQ ι spec _ α _ defaultOracle = Option.getM ∘ defaultResult := by
+--   sorry
+--   -- refine funext fun oa => by induction oa using OracleComp.inductionOn with
+--   -- | pure x => simp [defaultResult, Option.getM]
+--   -- | query_bind i t oa hoa => simp [hoa]; rfl
 
-lemma simulateQ_eq [spec.FiniteRange] (oa : OracleComp spec α) :
-    simulateQ defaultOracle oa = oa.defaultResult.getM := by simp
+-- lemma simulateQ_eq [spec.FiniteRange] (oa : OracleComp spec α) :
+--     simulateQ defaultOracle oa = oa.defaultResult.getM := by simp
 
-end defaultOracle
+-- end defaultOracle
