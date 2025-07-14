@@ -48,7 +48,6 @@ and `failure` is also added after by the `OptionT` transformer.
 In practive computations in `OracleComp spec α` have have one of three forms:
 * `return x` to succeed with some `x : α` as the result.
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
-* `failure` which terminates the computation early
 See `OracleComp.inductionOn` for an explicit induction principle. -/
 def OracleComp {ι : Type u} (spec : OracleSpec.{u,v} ι) :
     Type w → Type (max u v w) :=
