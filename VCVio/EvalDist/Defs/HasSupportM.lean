@@ -9,6 +9,7 @@ import ToMathlib.Control.MonadHom
 /-!
 # Support of a Monadic Computation
 
+dt: Consider switching naming conventions to `supportM` to avoid naming clashes more.
 -/
 
 open ENNReal
@@ -50,6 +51,9 @@ lemma mem_support_bind_iff (mx : m α) (my : α → m β) (y : β) :
   simp [map_eq_bind_pure_comp, Set.ext_iff]
   aesop
 
+lemma mem_support_map_iff [LawfulMonad m] (mx : m α) (f : α → β) (y : β) :
+    y ∈ support (f <$> mx) ↔ ∃ x ∈ support mx, f x = y := by simp
+
 lemma mem_support_map [LawfulMonad m] {mx : m α} {x : α} (hx : x ∈ support mx)
     (f : α → β) : f x ∈ support (f <$> mx) := by aesop
 
@@ -57,7 +61,62 @@ lemma mem_support_map [LawfulMonad m] {mx : m α} {x : α} (hx : x ∈ support m
     support (if p then mx else mx') = if p then support mx else support mx' :=
   apply_ite support p mx mx'
 
+lemma mem_support_ite_iff (p : Prop) [Decidable p] (mx mx' : m α) (x : α) :
+    x ∈ support (if p then mx else mx') ↔ p ∧ x ∈ support mx ∨ ¬ p ∧ x ∈ support mx' := by
+  split_ifs with h <;> simp [h]
+
+@[simp] lemma support_dite (p : Prop) [Decidable p] (mx : p → m α) (mx' : ¬ p → m α) :
+    support (if h : p then mx h else mx' h) = if h : p then support (mx h) else support (mx' h) :=
+  apply_dite support p mx mx'
+
+@[simp] lemma mem_support_dite_iff (p : Prop) [Decidable p] (mx : p → m α) (mx' : ¬ p → m α)
+    (x : α) : x ∈ support (if h : p then mx h else mx' h) ↔
+      (∃ h : p, x ∈ support (mx h)) ∨ (∃ h : ¬ p, x ∈ support (mx' h)) := by
+  split_ifs with h <;> simp [h]
+
+
+-- @[simp] lemma support_eqRec (oa : OracleComp spec α) (h : α = β) :
+--     (h ▸ oa).support = h.symm ▸ oa.support := by
+--   induction h; rfl
+-- @[simp] lemma finSupport_eqRec [spec.DecidableEq] [spec.FiniteRange]
+--     [hα : DecidableEq α] [hβ : DecidableEq β] (oa : OracleComp spec α) (h : α = β) :
+--     @finSupport _ _ _ _ hβ (h ▸ oa : OracleComp spec β) =
+--       h.symm ▸ @finSupport _ _ _ _ hα oa := by
+--   refine Finset.ext (λ x ↦ ?_)
+--   simp [mem_finSupport_iff_mem_support]
+--   induction h -- We can't do this earlier without running into trouble with `DecidableEq`
+--   exact Iff.symm (mem_finSupport_iff_mem_support oa x)
+
+-- lemma mem_support_eqRec_iff (oa : OracleComp spec α) (h : α = β) (y : β) :
+--     y ∈ (h ▸ oa).support ↔ h.symm ▸ y ∈ oa.support := by
+--   induction h; rfl
+-- -- lemma mem_finSupport_eqRec_iff [spec.DecidableEq] [spec.FiniteRange]
+-- --     [hα : DecidableEq α] [hβ : DecidableEq β] (oa : OracleComp spec α) (h : α = β) (y : β) :
+-- --     y ∈ (h ▸ oa).finSupport ↔ h.symm ▸ y ∈ oa.finSupport := by
+-- --   induction h; rfl
+
+-- @[simp] lemma support_map (oa : OracleComp spec α) (f : α → β) :
+--     (f <$> oa).support = f '' oa.support := by
+--   simp only [map_eq_pure_bind, ← Set.image_eq_iUnion, support_bind, support_pure]
+-- @[simp] lemma fin_support_map [spec.DecidableEq] [spec.FiniteRange]
+--     [DecidableEq α] [DecidableEq β] (oa : OracleComp spec α) (f : α → β) :
+--     (f <$> oa).finSupport = oa.finSupport.image f := by
+--   simp [finSupport_eq_iff_support_eq_coe]
+
+-- lemma mem_support_map {oa : OracleComp spec α} {x : α}
+--     (hx : x ∈ oa.support) (f : α → β) : f x ∈ (f <$> oa).support := by
+--   simp only [support_map, Set.mem_image]
+--   refine ⟨x, hx, rfl⟩
+
 end HasSupportM
+
+section decidable
+
+/-- Typeclass for decidable membership in the support of a computation. -/
+class HasSupportM.decidable {m : Type _ → Type _} [Monad m] [HasSupportM m] where
+  mem_support_decidable {α : Type _} (mx : m α) : DecidablePred (· ∈ support mx)
+
+end decidable
 
 section LawfulFailure
 

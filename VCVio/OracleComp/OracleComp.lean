@@ -49,9 +49,9 @@ In practive computations in `OracleComp spec α` have have one of three forms:
 * `return x` to succeed with some `x : α` as the result.
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-def OracleComp (spec : OracleSpec.{u,v}) : Type w → Type (max u v w) :=
+def OracleComp (spec : OracleSpec.{u,v}) :
+    Type w → Type (max u v w) :=
   PFunctor.FreeM spec
-  -- OptionT (FreeMonad (OracleQuery.{u,v} spec))
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/
 abbrev ProbComp : Type z → Type z := OracleComp unifSpec
