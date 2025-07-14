@@ -11,6 +11,8 @@ import Mathlib.Data.PFunctor.Multivariate.Basic
 
   This file defines polynomial functors, lenses, and charts. The goal is to provide basic
   definitions, with their properties and categories defined in later files.
+
+dt: this file is getting long and should maybe be split up more.
 -/
 
 universe u v uA uB uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄ uA₅ uB₅ uA₆ uB₆ vA vB
@@ -30,8 +32,12 @@ def one : PFunctor.{uA, uB} := ⟨PUnit, fun _ => PEmpty⟩
 instance : Zero PFunctor.{uA, uB} where
   zero := zero
 
+protected lemma zero_def : (0 : PFunctor) = PFunctor.zero := rfl
+
 instance : One PFunctor.{uA, uB} where
   one := one
+
+protected lemma one_def : (1 : PFunctor) = PFunctor.one := rfl
 
 /-- The variable `y` polynomial functor. This is the unit for composition. -/
 def y : PFunctor.{uA, uB} :=
@@ -181,11 +187,86 @@ instance {P : PFunctor.{uA, uB}} [inst : P.Fintype] : PFunctor.Fintype (PFunctor
 instance {P : PFunctor.{uA, uB}} [inst : P.Fintype] : ∀ a, Fintype (P.B a) :=
   fun a => inst.fintype_B a
 
+instance : PFunctor.Fintype 0 where
+  fintype_B _ := Fintype.instPEmpty
+
+instance : PFunctor.Fintype 1 where
+  fintype_B _ := Fintype.instPEmpty
+
 end Fintype
 
+section Inhabited
 
+protected class Inhabited (P : PFunctor.{uA, uB}) where
+  inhabited_B : ∀ a, Inhabited (P.B a)
 
+instance {P : PFunctor.{uA, uB}} [inst : P.Inhabited] :
+    PFunctor.Inhabited (PFunctor.ulift P) where
+  inhabited_B := fun a => by
+    unfold PFunctor.ulift
+    haveI : Inhabited (P.B (ULift.down a)) := inst.inhabited_B (ULift.down a)
+    infer_instance
 
+@[simp]
+instance {P : PFunctor.{uA, uB}} [inst : P.Inhabited] : ∀ a, Inhabited (P.B a) :=
+  fun a => inst.inhabited_B a
+
+end Inhabited
+
+section DecidableEq
+
+protected class DecidableEq (P : PFunctor.{uA, uB}) where
+  decidableEq_A : DecidableEq P.A
+  decidableEq_B : ∀ a, DecidableEq (P.B a)
+
+instance {P : PFunctor.{uA, uB}} [inst : P.DecidableEq] : DecidableEq P.A :=
+  inst.decidableEq_A
+
+instance {P : PFunctor.{uA, uB}} [inst : P.DecidableEq] (a : P.A) :
+    DecidableEq (P.B a) := inst.decidableEq_B a
+
+@[simp]
+instance {P : PFunctor.{uA, uB}} [inst : P.DecidableEq] :
+    PFunctor.DecidableEq (PFunctor.ulift P) where
+  decidableEq_A := by
+    unfold PFunctor.ulift
+    infer_instance
+  decidableEq_B := fun a => by
+    unfold PFunctor.ulift
+    infer_instance
+
+instance : PFunctor.DecidableEq 0 where
+  decidableEq_A := inferInstanceAs (DecidableEq PEmpty)
+  decidableEq_B _ := inferInstanceAs (DecidableEq PEmpty)
+
+instance : PFunctor.DecidableEq 1 where
+  decidableEq_A := inferInstanceAs (DecidableEq PUnit)
+  decidableEq_B _ := inferInstanceAs (DecidableEq PEmpty)
+
+end DecidableEq
+
+section ofConst
+
+/-- PFunctor where the output type is constant over an arbitrary input type. -/
+def ofConst (A : Type uA) (B : Type uB) : PFunctor.{uA, uB} where
+  A := A
+  B _ := B
+
+variable (A : Type uA) (B : Type uB)
+
+infixl : 25 " →ₒ " => PFunctor.ofConst
+
+instance [hB : Fintype B] : (A →ₒ B).Fintype where
+  fintype_B _ := inferInstanceAs (Fintype B)
+
+instance [DecidableEq A] [DecidableEq B] : (A →ₒ B).DecidableEq where
+  decidableEq_A := inferInstanceAs (DecidableEq A)
+  decidableEq_B _ := inferInstanceAs (DecidableEq B)
+
+instance [Inhabited B] : (A →ₒ B).Inhabited where
+  inhabited_B _ := inferInstanceAs (Inhabited B)
+
+end ofConst
 
 /-- A **lens** between two polynomial functors `P` and `Q` is a pair of a function:
 - `toFunA : P.A → Q.A`

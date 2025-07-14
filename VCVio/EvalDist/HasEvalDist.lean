@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma, František Silváši
 -/
 import VCVio.EvalDist.SPMF
-import VCVio.EvalDist.Support
+import VCVio.EvalDist.HasSupportM
 
 /-!
 # Denotational Semantics for Output Distributions
@@ -35,14 +35,10 @@ variable {α β γ : Type u} {m : Type u → Type v} [Monad m]
 TODO: modify this to extend `MonadHom` to get some lemmas for free. -/
 class HasEvalDist (m : Type u → Type v) [Monad m]
     extends HasSupportM m where
-  evalDist {α : Type u} (mx : m α) : SPMF α
-  evalDist_pure {α : Type u} (x : α) : evalDist (pure x : m α) = pure x
-  evalDist_bind {α β : Type u} (mx : m α) (my : α → m β) :
-    evalDist (mx >>= my) = evalDist mx >>= fun x => evalDist (my x)
+  evalDist : m →ᵐ SPMF
   support_eq {α : Type u} (mx : m α) : support mx = {x | evalDist mx x ≠ 0}
 
-export HasEvalDist (evalDist evalDist_pure evalDist_bind)
-attribute [simp] evalDist_pure evalDist_bind
+export HasEvalDist (evalDist)
 
 /-- Probability that a computation `mx` returns the value `x`. -/
 def probOutput [HasEvalDist m] (mx : m α) (x : α) : ℝ≥0∞ := evalDist mx x
@@ -97,10 +93,18 @@ lemma probEvent_def (mx : m α) (p : α → Prop) :
 
 lemma probFailure_def (mx : m α) : Pr[⊥ | mx] = (evalDist mx).run none := rfl
 
-@[simp] lemma evalDist_comp_pure : evalDist ∘ (pure : α → m α) = pure := by
-  simp [funext_iff, Function.comp_apply, evalDist_pure]
+@[simp] lemma evalDist_pure {α : Type u} (x : α) : evalDist (pure x : m α) = pure x :=
+  MonadHom.toFun_pure' _ x
 
-@[simp] lemma evalDist_comp_pure' (f : α → β) : evalDist ∘ (pure : β → m β) ∘ f = pure ∘ f := by
+@[simp] lemma evalDist_bind {α β : Type u} (mx : m α) (my : α → m β) :
+    evalDist (mx >>= my) = evalDist mx >>= fun x => evalDist (my x) :=
+  MonadHom.toFun_bind' _ mx my
+
+@[simp] lemma evalDist_comp_pure : evalDist.toFun ∘ (pure : α → m α) = pure := by
+  simp [funext_iff, Function.comp_apply]
+
+@[simp] lemma evalDist_comp_pure' (f : α → β) :
+    evalDist.toFun ∘ (pure : β → m β) ∘ f = pure ∘ f := by
   simp only [← Function.comp_assoc, evalDist_comp_pure]
 
 @[simp] lemma probOutput_pure [DecidableEq α] (x y : α) :
@@ -117,8 +121,8 @@ lemma probOutput_pure_eq_indicator (x y : α) :
     evalDist (f <$> mx) = f <$> (evalDist mx) := by
   simp [map_eq_bind_pure_comp]
 
-@[simp] lemma evalDist_comp_map [LawfulMonad m] (mx : m α) :
-    evalDist ∘ (fun f => f <$> mx) = fun f : (α → β) => f <$> evalDist mx := by simp [funext_iff]
+@[simp] lemma evalDist_comp_map [LawfulMonad m] (mx : m α) : evalDist.toFun ∘ (fun f => f <$> mx) =
+    fun f : (α → β) => f <$> evalDist mx := by simp [funext_iff]
 
 @[simp] lemma evalDist_seq [LawfulMonad m] (mf : m (α → β)) (mx : m α) :
     evalDist (mf <*> mx) = evalDist mf <*> evalDist mx := by simp [seq_eq_bind_map]
@@ -224,9 +228,7 @@ instance : HasSupportM SPMF := sorry
 
 /-- Add instance for `SPMF` just to give access to notation. -/
 instance hasEvalDist : HasEvalDist SPMF where
-  evalDist := id
-  evalDist_pure _ := rfl
-  evalDist_bind _ _ := rfl
+  evalDist := MonadHom.id SPMF
   support_eq := sorry
 
 variable (p : SPMF α) (x : α)
@@ -246,10 +248,7 @@ namespace PMF
 instance hasSupportM : HasSupportM PMF := sorry
 
 noncomputable instance hasEvalDist : HasEvalDist PMF where
-  evalDist p := OptionT.mk p
-  evalDist_pure _ := by simp; rfl
-  evalDist_bind x y := OptionT.ext <| PMF.ext fun x => by
-    simp [Function.comp_def, Option.elimM]
+  evalDist := MonadHom.ofLift PMF SPMF
   support_eq := sorry
 
 variable (p : PMF α) (x : α)

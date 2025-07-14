@@ -43,73 +43,67 @@ namespace OracleSpec
 /-- An `OracleQuery` to one of the oracles in `spec`, bundling an index and the input to
 use for querying that oracle, implemented as a dependent pair.
 Implemented as a functor with the oracle output type as the constructor result. -/
-inductive OracleQuery {ι : Type u} (spec : OracleSpec.{u,v} ι) : Type v → Type (max u v)
-  | query (i : ι) (t : spec.domain i) : OracleQuery spec (spec.range i)
-
--- dt: This is a nicer definition for `PFunctor.A` but loses information about the output type.
-structure OracleQuery' {ι : Type u} (spec : OracleSpec.{u,v} ι) where
-  query ::
-  i : ι
-  t : spec.domain i
+inductive OracleQuery (spec : OracleSpec.{u,v}) : Type v → Type (max u v)
+  | query (t : spec.A) : OracleQuery spec (spec.B t)
 
 namespace OracleQuery
 
-variable {ι : Type u} {spec : OracleSpec ι} {α β : Type v}
+variable {ι : Type u} {spec : OracleSpec} {α β : Type v}
 
 def defaultOutput [∀ i, Inhabited (spec.range i)] : (q : OracleQuery spec α) → α
-  | query i t => default
+  | query t => default
 
-def index : (q : OracleQuery spec α) → ι | query i t => i
+-- def index : (q : OracleQuery spec α) → ι | query i t => i
 
-@[simp] lemma index_query (i : ι) (t : spec.domain i) : (query i t).index = i := rfl
+-- @[simp] lemma index_query (i : ι) (t : spec.domain i) : (query i t).index = i := rfl
 
-def input : (q : OracleQuery spec α) → spec.domain q.index | query i t => t
+def input : (q : OracleQuery spec α) → spec.A | query t => t
 
-@[simp] lemma input_query (i : ι) (t : spec.domain i) : (query i t).input = t := rfl
+@[simp] lemma input_query (t : spec.A) : (query t).input = t := rfl
 
 @[simp]
-lemma range_index : (q : OracleQuery spec α) → spec.range q.index = α | query i t => rfl
+lemma range_index : (q : OracleQuery spec α) → spec.B q.input = α | query t => rfl
 
 lemma eq_query_index_input : (q : OracleQuery spec α) →
-    q = q.range_index ▸ OracleQuery.query q.index q.input | query i t => rfl
+    q = q.range_index ▸ OracleQuery.query q.input | query t => rfl
 
 def rangeDecidableEq [spec.DecidableEq] : OracleQuery spec α → DecidableEq α
-  | query i t => inferInstance
+  | query t => inferInstance
 
-def rangeFintype [spec.FiniteRange] : OracleQuery spec α → Fintype α
-  | query i t => inferInstance
+def rangeFintype [spec.Fintype] : OracleQuery spec α → Fintype α
+  | query t => inferInstance
 
-def rangeInhabited [spec.FiniteRange] : OracleQuery spec α → Inhabited α
-  | query i t => inferInstance
+def rangeInhabited [spec.Inhabited] : OracleQuery spec α → Inhabited α
+  | query t => inferInstance
 
-instance isEmpty : IsEmpty (OracleQuery []ₒ α) where false | query i t => i.elim
+instance isEmpty : IsEmpty (OracleQuery []ₒ α) where false | query t => t.elim
 
-instance [hι : DecidableEq ι] [hd : ∀ i, DecidableEq (spec.domain i)] {α : Type u} :
-    DecidableEq (OracleQuery spec α)
-  | query i t => λ q ↦ match hι i q.index with
-    | isTrue h => by
-        have : q = query i (h ▸ q.input) := by
-          refine q.eq_query_index_input.trans (eq_of_heq (eqRec_heq_iff_heq.2 ?_))
-          congr
-          · exact h.symm
-          · exact HEq.symm (eqRec_heq (Eq.symm h) q.input)
-        rw [this, query.injEq]
-        exact hd i t _
-    | isFalse h => isFalse λ h' ↦ h (congr_arg index h')
+-- instance[hd : ∀ t, DecidableEq (spec.A t)] {α : Type u} :
+--     DecidableEq (OracleQuery spec α)
+--   | query i t => λ q ↦ match hι i q.index with
+--     | isTrue h => by
+--         have : q = query i (h ▸ q.input) := by
+--           refine q.eq_query_index_input.trans (eq_of_heq (eqRec_heq_iff_heq.2 ?_))
+--           congr
+--           · exact h.symm
+--           · exact HEq.symm (eqRec_heq (Eq.symm h) q.input)
+--         rw [this, query.injEq]
+--         exact hd i t _
+--     | isFalse h => isFalse λ h' ↦ h (congr_arg index h')
 
 end OracleQuery
 
 -- Put `query` in the main `OracleSpec` namespace
 export OracleQuery (query)
 
-/-- `PFunctor` corresponding to querying from oracles in `spec`. -/
-def toPFunctor {ι : Type u} (spec : OracleSpec.{u,v} ι) : PFunctor where
-  A := (i : ι) × spec.domain i
-  B := fun q => spec.range q.1
+-- /-- `PFunctor` corresponding to querying from oracles in `spec`. -/
+-- def toPFunctor {ι : Type u} (spec : OracleSpec.{u,v}) : PFunctor where
+--   A := (i : ι) × spec.domain i
+--   B := fun q => spec.range q.1
 
-def OracleQuery.lift_toPFunctor {ι : Type u} (spec : OracleSpec.{u,v} ι)
-    {α : Type v} (q : OracleQuery spec α) : spec.toPFunctor α :=
+def OracleQuery.lift_toPFunctor (spec : OracleSpec.{u,v})
+    {α : Type v} (q : OracleQuery spec α) : spec α :=
   match q with
-  | query i t => ⟨⟨i, t⟩, id⟩
+  | query t => ⟨t, id⟩
 
 end OracleSpec
