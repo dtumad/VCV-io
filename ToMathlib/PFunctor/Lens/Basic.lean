@@ -174,20 +174,20 @@ def tensorMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : P
   (fun ⟨pa, qa⟩ => (l₁.toFunA pa, l₂.toFunA qa)) ⇆
     (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.toFunB _pa rb, l₂.toFunB qa wb))
 
-/-- Lens to introduce `y` on the right: `P → P ◃ y` -/
-def tildeR {P : PFunctor.{uA, uB}} : Lens P (P ◃ y) :=
+/-- Lens to introduce `X` on the right: `P → P ◃ X` -/
+def tildeR {P : PFunctor.{uA, uB}} : Lens P (P ◃ X) :=
   (fun a => ⟨a, fun _ => PUnit.unit⟩) ⇆ (fun _a => fun ⟨b, _⟩ => b)
 
-/-- Lens to introduce `y` on the left: `P → y ◃ P` -/
-def tildeL {P : PFunctor.{uA, uB}} : Lens P (y ◃ P) :=
+/-- Lens to introduce `X` on the left: `P → X ◃ P` -/
+def tildeL {P : PFunctor.{uA, uB}} : Lens P (X ◃ P) :=
   (fun a => ⟨PUnit.unit, fun _ => a⟩) ⇆ (fun _a => fun ⟨_, b⟩ => b)
 
-/-- Lens from `P ◃ y` to `P` -/
-def invTildeR {P : PFunctor.{uA, uB}} : Lens (P ◃ y) P :=
+/-- Lens from `P ◃ X` to `P` -/
+def invTildeR {P : PFunctor.{uA, uB}} : Lens (P ◃ X) P :=
   (fun a => a.1) ⇆ (fun _ b => ⟨b, PUnit.unit⟩)
 
-/-- Lens from `y ◃ P` to `P` -/
-def invTildeL {P : PFunctor.{uA, uB}} : Lens (y ◃ P) P :=
+/-- Lens from `X ◃ P` to `P` -/
+def invTildeL {P : PFunctor.{uA, uB}} : Lens (X ◃ P) P :=
   (fun ⟨_, f⟩ => f PUnit.unit) ⇆ (fun _ b => ⟨PUnit.unit, b⟩)
 
 @[inherit_doc] infixl:75 " ◃ₗ " => compMap
@@ -197,9 +197,9 @@ def invTildeL {P : PFunctor.{uA, uB}} : Lens (y ◃ P) P :=
 notation "[" l₁ "," l₂ "]ₗ" => sumPair l₁ l₂
 notation "⟨" l₁ "," l₂ "⟩ₗ" => prodPair l₁ l₂
 
-/-- The type of lenses from a polynomial functor `P` to `y` -/
+/-- The type of lenses from a polynomial functor `P` to `X` -/
 def enclose (P : PFunctor.{uA, uB}) : Type max uA uA₁ uB uB₁ :=
-  Lens P y.{uA₁, uB₁}
+  Lens P X.{uA₁, uB₁}
 
 /-- Helper lens for `speedup` -/
 def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◃ selfMonomial S) :=
@@ -530,15 +530,15 @@ def compAssoc : (P ◃ Q) ◃ R ≃ₗ P ◃ (Q ◃ R) where
   left_inv := rfl
   right_inv := rfl
 
-/-- Composition with `y` is identity (right) -/
-def compY : P ◃ y ≃ₗ P where
+/-- Composition with `X` is identity (right) -/
+def compX : P ◃ X ≃ₗ P where
   toLens := invTildeR
   invLens := tildeR
   left_inv := rfl
   right_inv := rfl
 
-/-- Composition with `y` is identity (left) -/
-def yComp : y ◃ P ≃ₗ P where
+/-- Composition with `X` is identity (left) -/
+def XComp : X ◃ P ≃ₗ P where
   toLens := invTildeL
   invLens := tildeL
   left_inv := rfl
@@ -600,15 +600,15 @@ def tensorAssoc : (P ⊗ Q) ⊗ R ≃ₗ P ⊗ (Q ⊗ R) where
   left_inv := rfl
   right_inv := rfl
 
-/-- Tensor product with `y` is identity (right) -/
-def tensorY : P ⊗ y ≃ₗ P where
+/-- Tensor product with `X` is identity (right) -/
+def tensorX : P ⊗ X ≃ₗ P where
   toLens := Prod.fst ⇆ (fun _ b => (b, PUnit.unit))
   invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ bp => bp.1)
   left_inv := rfl
   right_inv := rfl
 
-/-- Tensor product with `y` is identity (left) -/
-def yTensor : y ⊗ P ≃ₗ P where
+/-- Tensor product with `X` is identity (left) -/
+def xTensor : X ⊗ P ≃ₗ P where
   toLens := Prod.snd ⇆ (fun _ b => (PUnit.unit, b))
   invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ bp => bp.2)
   left_inv := rfl

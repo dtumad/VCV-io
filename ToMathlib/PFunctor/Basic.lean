@@ -29,63 +29,68 @@ instance : Zero PFunctor.{uA, uB} where
 instance : One PFunctor.{uA, uB} where
   one := ⟨PUnit, fun _ => PEmpty⟩
 
-/-- The variable `y` polynomial functor, defined as `A = PUnit` and `B _ = PUnit`, is the identity
-  with respect to tensor product and composition (up to equivalence) -/
-def y : PFunctor.{uA, uB} :=
-  ⟨PUnit, fun _ => PUnit⟩
-
-instance : IsEmpty (A 0) := inferInstanceAs (IsEmpty PEmpty)
-instance : Unique (A 1) := inferInstanceAs (Unique PUnit)
-instance : IsEmpty (B 1 PUnit.unit) := inferInstanceAs (IsEmpty PEmpty)
-instance : Unique (A y) := inferInstanceAs (Unique PUnit)
-instance : Unique (B y PUnit.unit) := inferInstanceAs (Unique PUnit)
-
-@[simp] lemma y_A : y.A = PUnit := rfl
-@[simp] lemma y_B (a : y.A) : y.B a = PUnit := rfl
-
-end Basic
-
-section Monomial
-
-/-- The monomial functor, also written `P(y) = A y^ B`, has `A` as its head type and the constant
+/-- The monomial functor, also written `P(X) = A X^ B`, has `A` as its head type and the constant
   family `B_a = B` as the child type for each each shape `a : A` . -/
 def monomial (A : Type uA) (B : Type uB) : PFunctor.{uA, uB} :=
   ⟨A, fun _ => B⟩
 
-@[inherit_doc] scoped[PFunctor] infixr:80 " y^ " => monomial
+@[inherit_doc] scoped[PFunctor] infixr:80 " X^ " => monomial
 
-/-- The constant polynomial functor `P(y) = A` -/
+/-- The constant polynomial functor `P(X) = A X^ PEmpty` -/
 def C (A : Type uA) : PFunctor.{uA, uB} :=
-  A y^ PEmpty
+  A X^ PEmpty
 
-/-- The linear polynomial functor `P(y) = A y` -/
+/-- The variable (or indeterminate) polynomial functor `X`, defined as `P(X) = PUnit X^ PUnit`.
+
+This is the identity with respect to tensor product and composition (up to equivalence). -/
+def X : PFunctor.{uA, uB} :=
+  PUnit X^ PUnit
+
+/-- The linear polynomial functor `P(X) = A X` -/
 def linear (A : Type uA) : PFunctor.{uA, uB} :=
-  A y^ PUnit
+  A X^ PUnit
 
-/-- The self monomial polynomial functor `P(y) = S y^ S` -/
+/-- The self monomial polynomial functor `P(X) = S X^ S` -/
 def selfMonomial (S : Type uA) : PFunctor.{uA, uA} :=
-  S y^ S
+  S X^ S
 
-/-- The pure power polynomial functor `P(y) = y^ B` -/
+/-- The pure power polynomial functor `P(X) = X^ B` -/
 def purePower (B : Type uB) : PFunctor.{uA, uB} :=
-  PUnit y^ B
+  PUnit X^ B
 
-/-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
+/-- A polynomial functor is representable if it is equivalent to `X^A` for some type `A`. -/
 alias representable := purePower
 
-@[simp] lemma C_zero : C PEmpty = 0 := rfl
-@[simp] lemma C_one : C PUnit = 1 := rfl
+instance : IsEmpty (A 0) := inferInstanceAs (IsEmpty PEmpty)
+instance : Unique (A 1) := inferInstanceAs (Unique PUnit)
+instance : IsEmpty (B 1 PUnit.unit) := inferInstanceAs (IsEmpty PEmpty)
+instance {α} (a : α) : IsEmpty (B (C α) a) := inferInstanceAs (IsEmpty PEmpty)
+instance : Unique (A X) := inferInstanceAs (Unique PUnit)
+instance : Unique (B X PUnit.unit) := inferInstanceAs (Unique PUnit)
+instance {α} (a : α) : Unique (B (linear α) a) := inferInstanceAs (Unique PUnit)
+instance {β} : Unique (A (purePower β)) := inferInstanceAs (Unique PUnit)
+
+@[simp] lemma C_empty : C PEmpty = 0 := rfl
+@[simp] lemma C_unit : C PUnit = 1 := rfl
 
 @[simp] lemma C_A (A : Type u) : (C A).A = A := rfl
 @[simp] lemma C_B (A : Type u) (a : (C A).A) : (C A).B a = PEmpty := rfl
 
+@[simp] lemma X_A : X.A = PUnit := rfl
+@[simp] lemma X_B (a : X.A) : X.B a = PUnit := rfl
+
 @[simp] lemma linear_A (A : Type u) : (linear A).A = A := rfl
 @[simp] lemma linear_B (A : Type u) (a : (linear A).A) : (linear A).B a = PUnit := rfl
 
+@[simp] lemma selfMonomial_A (S : Type u) : (selfMonomial S).A = S := rfl
+@[simp] lemma selfMonomial_B (S : Type u) (a : (selfMonomial S).A) : (selfMonomial S).B a = S := rfl
+@[simp] lemma selfMonomial_unit : selfMonomial PUnit = X := rfl
+
 @[simp] lemma purePower_A (B : Type u) : (purePower B).A = PUnit := rfl
 @[simp] lemma purePower_B (B : Type u) (a : (purePower B).A) : (purePower B).B a = B := rfl
+@[simp] lemma purePower_unit : purePower PUnit = X := rfl
 
-end Monomial
+end Basic
 
 section Sum
 
@@ -150,7 +155,7 @@ def tensor (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
 scoped[PFunctor] infixl:70 " ⊗ " => tensor
 
 /-- The unit for the tensor product `Y` -/
-alias tensorUnit := y
+alias tensorUnit := X
 
 end Tensor
 
@@ -160,12 +165,12 @@ section Comp
 scoped[PFunctor] infixl:80 " ◃ " => PFunctor.comp
 
 /-- The unit for composition `Y` -/
-alias compUnit := y
+alias compUnit := X
 
 /-- Repeated composition `P ◃ P ◃ ... ◃ P` (n times). -/
 @[simp]
 def compNth (P : PFunctor.{uA, uB}) : Nat → PFunctor.{max uA uB, uB}
-  | 0 => y
+  | 0 => X
   | Nat.succ n => P ◃ compNth P n
 
 instance : NatPow PFunctor.{max uA uB, uB} where
@@ -183,7 +188,7 @@ end ULift
 
 /-- Exponential of polynomial functors `P ^ Q` -/
 def exp (P Q : PFunctor.{uA, uB}) : PFunctor.{max uA uB, max uA uB} :=
-  pi (fun a => P ◃ (y + C (Q.B a)))
+  pi (fun a => P ◃ (X + C (Q.B a)))
 
 instance : HPow PFunctor.{uA, uB} PFunctor.{uA, uB} PFunctor.{max uA uB, max uA uB} where
   hPow := exp
@@ -271,8 +276,8 @@ section Lemmas
 theorem ext {P Q : PFunctor.{uA, uB}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸ a)) : P = Q := by
   cases P; cases Q; simp at h h' ⊢; subst h; simp_all; funext; exact h' _
 
-lemma y_eq_linear_pUnit : y = linear PUnit := rfl
-lemma y_eq_purePower_pUnit : y = purePower PUnit := rfl
+lemma X_eq_linear_pUnit : X = linear PUnit := rfl
+lemma X_eq_purePower_pUnit : X = purePower PUnit := rfl
 
 section ULift
 

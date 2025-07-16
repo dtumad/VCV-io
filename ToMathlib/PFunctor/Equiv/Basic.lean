@@ -143,12 +143,8 @@ def sumProdDistrib (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₁}) (
     ((P + Q) * R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) ≃ₚ
     ((P * R) + (Q * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
   equivA := _root_.Equiv.sumProdDistrib P.A Q.A R.A
-  equivB := fun ⟨a, b⟩ => {
-    toFun := Sum.casesOn a (fun _ => id) (fun _ => id)
-    invFun := Sum.casesOn a (fun _ => id) (fun _ => id)
-    left_inv x := by rcases a with _ | _ <;> simp
-    right_inv x := by rcases a with _ | _ <;> simp
-  }
+  equivB := fun ⟨a, _⟩ =>
+    Sum.casesOn a (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _)
 
 /-- Product distributes over sum: `P * (Q + R) ≃ₚ (P * Q) + (P * R)`
 
@@ -158,12 +154,8 @@ def prodSumDistrib (R : PFunctor.{uA₃, uB₂}):
     (P * (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) ≃ₚ
     ((P * Q) + (P * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
   equivA := _root_.Equiv.prodSumDistrib P.A Q.A R.A
-  equivB := fun ⟨a, b⟩ => {
-    toFun := Sum.casesOn b (fun _ => id) (fun _ => id)
-    invFun := Sum.casesOn b (fun _ => id) (fun _ => id)
-    left_inv x := by rcases b with _ | _ <;> simp
-    right_inv x := by rcases b with _ | _ <;> simp
-  }
+  equivB := fun ⟨_, a⟩ =>
+    Sum.casesOn a (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _)
 
 end Prod
 
@@ -216,13 +208,13 @@ variable (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) (R : PFunct
 
 /-- Tensor product with the functor Y on the right -/
 @[simps]
-def tensorY : P ⊗ y ≃ₚ P where
+def tensorX : P ⊗ X ≃ₚ P where
   equivA := _root_.Equiv.prodPUnit P.A
   equivB := fun a => _root_.Equiv.prodPUnit (P.B a.1)
 
 /-- Tensor product with the functor Y on the left -/
 @[simps]
-def yTensor : y ⊗ P ≃ₚ P where
+def xTensor : X ⊗ P ≃ₚ P where
   equivA := _root_.Equiv.punitProd P.A
   equivB := fun a => _root_.Equiv.punitProd (P.B a.2)
 
@@ -258,21 +250,54 @@ def tensorTensorTensorComm :
   equivA := _root_.Equiv.prodProdProdComm P.A Q.A R.A S.A
   equivB := fun a => _root_.Equiv.prodProdProdComm (P.B a.1.1) (Q.B a.1.2) (R.B a.2.1) (S.B a.2.2)
 
-/-- Tensor product distributes over sum: `P ⊗ (Q + R) ≃ₚ (P ⊗ Q) + (P ⊗ R)` -/
-def tensorSumDistrib (R : PFunctor.{uA₃, uB₂}):
-    (P ⊗ (Q + R : PFunctor.{max uA₂ uA₃, uB₂})) ≃ₚ
-    ((P ⊗ Q) + (P ⊗ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) :=
-  sorry
-
 /-- Sum distributes over tensor product: `(P + Q) ⊗ R ≃ₚ (P ⊗ R) + (Q ⊗ R)` -/
 def sumTensorDistrib (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₁}) (R : PFunctor.{uA₃, uB₂}) :
     ((P + Q : PFunctor.{max uA₁ uA₂, uB₁}) ⊗ R) ≃ₚ
-    ((P ⊗ R) + (Q ⊗ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) :=
-  sorry
+    ((P ⊗ R) + (Q ⊗ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
+  equivA := _root_.Equiv.sumProdDistrib P.A Q.A R.A
+  equivB := fun ⟨a, _⟩ =>
+    Sum.casesOn a (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _)
+
+/-- Tensor product distributes over sum: `P ⊗ (Q + R) ≃ₚ (P ⊗ Q) + (P ⊗ R)` -/
+def tensorSumDistrib (R : PFunctor.{uA₃, uB₂}):
+    (P ⊗ (Q + R : PFunctor.{max uA₂ uA₃, uB₂})) ≃ₚ
+    ((P ⊗ Q) + (P ⊗ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
+  equivA := _root_.Equiv.prodSumDistrib P.A Q.A R.A
+  equivB := fun ⟨_, a⟩ =>
+    Sum.casesOn a (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _)
 
 end Tensor
 
 section Comp
+
+variable (P : PFunctor.{uA₁, uB₁})
+
+instance : IsEmpty (0 ◃ P).A where
+  false := fun a => a.1.elim
+
+def zeroComp : 0 ◃ P ≃ₚ 0 where
+  equivA := Equiv.equivPEmpty _
+  equivB := fun a => a.1.elim
+
+-- def oneComp : 1 ◃ P ≃ₚ 1 where
+--   equivA := (Equiv.uniqueSigma _).trans (Equiv.pemptyArrowEquivPUnit _)
+--   equivB := sorry
+
+-- def compOne : P ◃ 1 ≃ₚ P where
+--   equivA := by simp [comp]; sorry
+--   equivB := sorry
+
+-- def sumCompDistrib (Q : PFunctor.{uA₂, uB₂}) :
+--     (P + Q : PFunctor.{max uA₁ uA₂, uB₁}) ◃ R ≃ₚ
+--     (P ◃ R + Q ◃ R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
+--   equivA := sorry
+--   equivB := sorry
+
+-- def prodCompDistrib (Q : PFunctor.{uA₂, uB₂}) (R : PFunctor.{uA₃, uB₃}) :
+--     (P * Q : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) ◃ R ≃ₚ
+--     (P ◃ R * Q ◃ R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) where
+--   equivA := sorry
+--   equivB := sorry
 
 end Comp
 

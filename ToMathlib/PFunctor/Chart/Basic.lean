@@ -80,8 +80,8 @@ end Equiv
 def initial {P : PFunctor.{uA, uB}} : Chart 0 P :=
   PEmpty.elim ⇉ fun _ => PEmpty.elim
 
-/-- The (unique) terminal chart from any functor `P` to the functor `Y`. -/
-def terminal {P : PFunctor.{uA, uB}} : Chart P y :=
+/-- The (unique) terminal chart from any functor `P` to the functor `X`. -/
+def terminal {P : PFunctor.{uA, uB}} : Chart P X :=
   (fun _ => PUnit.unit) ⇉ (fun _ _ => PUnit.unit)
 
 alias fromZero := initial
