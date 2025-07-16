@@ -832,7 +832,7 @@ namespace Equiv
 variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}}
 
 /-- Convert an equivalence between two polynomial functors `P` and `Q` to a lens. -/
-def toLens (e : Equiv P Q) : Lens P Q where
+def toLens (e : P ≃ₚ Q) : Lens P Q where
   toFunA := e.equivA
   toFunB := fun a => (e.equivB a).symm
 

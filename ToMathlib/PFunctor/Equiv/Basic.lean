@@ -48,34 +48,19 @@ variable (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB})
 @[simps]
 def sumZero : P + 0 ≃ₚ P where
   equivA := Equiv.sumEmpty P.A PEmpty
-  equivB := fun a => {
-      toFun := Sum.casesOn a (fun _ => id) (fun a => a.elim)
-      invFun := Sum.casesOn a (fun _ => id) (fun a => a.elim)
-      left_inv x := by rcases a with _ | a; simp; exact a.elim
-      right_inv x := by rcases a with _ | a; simp; exact a.elim
-    }
+  equivB := (Sum.casesOn · (fun _ => _root_.Equiv.refl _) (fun a => a.elim))
 
 /-- Addition with the zero functor on the right is equivalent to the original functor -/
 @[simps]
 def zeroSum : 0 + P ≃ₚ P where
   equivA := Equiv.emptySum PEmpty P.A
-  equivB := fun a => {
-    toFun := Sum.casesOn a (fun a => a.elim) (fun _ => id)
-    invFun := Sum.casesOn a (fun a => a.elim) (fun _ => id)
-    left_inv x := by rcases a with a | _; exact a.elim; simp
-    right_inv x := by rcases a with a | _; exact a.elim; simp
-  }
+  equivB := (Sum.casesOn · (fun a => a.elim) (fun _ => _root_.Equiv.refl _))
 
 /-- Sum of polynomial functors is commutative up to equivalence -/
 @[simps]
 def sumComm : (P + Q : PFunctor.{max uA₁ uA₂, uB}) ≃ₚ (Q + P : PFunctor.{max uA₁ uA₂, uB}) where
   equivA := _root_.Equiv.sumComm P.A Q.A
-  equivB := fun a => {
-    toFun := Sum.casesOn a (fun _ => id) (fun _ => id)
-    invFun := Sum.casesOn a (fun _ => id) (fun _ => id)
-    left_inv x := by rcases a with _ | _ <;> simp
-    right_inv x := by rcases a with _ | _ <;> simp
-  }
+  equivB := (Sum.casesOn · (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _))
 
 /-- Sum of polynomial functors is associative up to equivalence -/
 @[simps]
@@ -83,38 +68,25 @@ def sumAssoc :
     ((P + Q) + R : PFunctor.{max uA₁ uA₂ uA₃, uB}) ≃ₚ
     (P + (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, uB}) where
   equivA := _root_.Equiv.sumAssoc P.A Q.A R.A
-  equivB := fun a => {
-    toFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id)) (fun _ => id)
-    invFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id)) (fun _ => id)
-    left_inv x := by rcases a with (_ | _) | _ <;> simp
-    right_inv x := by rcases a with (_ | _) | _ <;> simp
-  }
+  equivB := (Sum.casesOn ·
+    (Sum.casesOn · (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _))
+    (fun _ => _root_.Equiv.refl _))
 
 /-- If `P ≃ₚ R` and `Q ≃ₚ S`, then `P + Q ≃ₚ R + S` -/
 @[simps]
 def sumCongr {P Q} {R : PFunctor.{uA₃, uB₁}} {S : PFunctor.{uA₄, uB₁}} (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) :
     P + Q ≃ₚ (R + S : PFunctor.{max uA₃ uA₄, uB₁}) where
   equivA := _root_.Equiv.sumCongr e₁.equivA e₂.equivA
-  equivB := fun a => {
-    toFun := Sum.casesOn a (e₁.equivB ·) (e₂.equivB ·)
-    invFun := Sum.casesOn a (fun a => (e₁.equivB a).symm) (fun a => (e₂.equivB a).symm)
-    left_inv x := by rcases a with _ | _ <;> simp
-    right_inv x := by rcases a with _ | _ <;> simp
-  }
+  equivB := (Sum.casesOn · (e₁.equivB ·) (e₂.equivB ·))
 
 /-- Rearrangement of nested sums: `(P + Q) + (R + S) ≃ₚ (P + R) + (Q + S)` -/
 def sumSumSumComm :
     ((P + Q) + (R + S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, uB}) ≃ₚ
     ((P + R) + (Q + S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, uB}) where
   equivA := _root_.Equiv.sumSumSumComm P.A Q.A R.A S.A
-  equivB := fun a => {
-    toFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id))
-      (Sum.casesOn · (fun _ => id) (fun _ => id))
-    invFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id))
-      (Sum.casesOn · (fun _ => id) (fun _ => id))
-    left_inv x := by rcases a with (_ | _) | (_ | _) <;> simp
-    right_inv x := by rcases a with (_ | _) | (_ | _) <;> simp
-  }
+  equivB := (Sum.casesOn ·
+    (Sum.casesOn · (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _))
+    (Sum.casesOn · (fun _ => _root_.Equiv.refl _) (fun _ => _root_.Equiv.refl _)))
 
 end Sum
 
@@ -127,21 +99,13 @@ variable (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) (R : PFunct
 @[simps]
 def prodOne : P * 1 ≃ₚ P where
   equivA := _root_.Equiv.prodPUnit P.A
-  equivB := fun a => {
-    toFun := Sum.elim id (fun x => x.elim)
-    invFun := Sum.inl
-    left_inv x := by rcases x with x | x; simp; exact x.elim
-  }
+  equivB := fun a => _root_.Equiv.sumEmpty (P.B a.1) PEmpty
 
 /-- Product with the unit functor on the left is equivalent to the original functor -/
 @[simps]
 def oneProd : 1 * P ≃ₚ P where
   equivA := _root_.Equiv.punitProd P.A
-  equivB := fun a => {
-    toFun := Sum.elim (fun x => x.elim) id
-    invFun := Sum.inr
-    left_inv x := by rcases x with x | x; exact x.elim; simp
-  }
+  equivB := fun a => _root_.Equiv.emptySum PEmpty (P.B a.2)
 
 /-- Product of polynomial functors is commutative up to equivalence -/
 @[simps]
@@ -149,12 +113,7 @@ def prodComm :
     (P * Q : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) ≃ₚ
     (Q * P : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) where
   equivA := _root_.Equiv.prodComm P.A Q.A
-  equivB := fun a => {
-    toFun := Sum.swap
-    invFun := Sum.swap
-    left_inv x := by rcases x with _ | _ <;> simp
-    right_inv x := by rcases x with _ | _ <;> simp
-  }
+  equivB := fun a => _root_.Equiv.sumComm (P.B a.1) (Q.B a.2)
 
 /-- Product of polynomial functors is associative up to equivalence -/
 @[simps]
@@ -162,24 +121,14 @@ def prodAssoc :
     ((P * Q) * R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) ≃ₚ
     (P * (Q * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) where
   equivA := _root_.Equiv.prodAssoc P.A Q.A R.A
-  equivB := fun a => {
-    toFun := Sum.elim (Sum.elim Sum.inl (Sum.inr ∘ Sum.inl)) (Sum.inr ∘ Sum.inr)
-    invFun := Sum.elim (Sum.inl ∘ Sum.inl) (Sum.elim (Sum.inl ∘ Sum.inr) Sum.inr)
-    left_inv x := by rcases x with (_ | _) | _ <;> simp
-    right_inv x := by rcases x with _ | (_ | _) <;> simp
-  }
+  equivB := fun a => _root_.Equiv.sumAssoc (P.B a.1.1) (Q.B a.1.2) (R.B a.2)
 
 /-- Equivalence is preserved under product: if `P ≃ₚ R` and `Q ≃ₚ S`, then `P * Q ≃ₚ R * S` -/
 @[simps]
 def prodCongr {P Q} {R : PFunctor.{uA₃, uB₃}} {S : PFunctor.{uA₄, uB₄}}
     (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) : P * Q ≃ₚ (R * S : PFunctor.{max uA₃ uA₄, max uB₃ uB₄}) where
   equivA := _root_.Equiv.prodCongr e₁.equivA e₂.equivA
-  equivB := fun a => {
-    toFun := Sum.elim (Sum.inl ∘ e₁.equivB a.1) (Sum.inr ∘ e₂.equivB a.2)
-    invFun := Sum.elim (Sum.inl ∘ (e₁.equivB a.1).symm) (Sum.inr ∘ (e₂.equivB a.2).symm)
-    left_inv x := by rcases x with _ | _ <;> simp
-    right_inv x := by rcases x with _ | _ <;> simp
-  }
+  equivB := fun a => _root_.Equiv.sumCongr (e₁.equivB a.1) (e₂.equivB a.2)
 
 /-- Rearrangement of nested products: `(P * Q) * (R * S) ≃ₚ (P * R) * (Q * S)` -/
 @[simps]
@@ -187,47 +136,34 @@ def prodProdProdComm :
     ((P * Q) * (R * S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) ≃ₚ
     ((P * R) * (Q * S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) where
   equivA := _root_.Equiv.prodProdProdComm P.A Q.A R.A S.A
-  equivB := fun a => {
-    toFun := Sum.elim
-      (Sum.elim (Sum.inl ∘ Sum.inl) (Sum.inr ∘ Sum.inl))
-      (Sum.elim (Sum.inl ∘ Sum.inr) (Sum.inr ∘ Sum.inr))
-    invFun := Sum.elim
-      (Sum.elim (Sum.inl ∘ Sum.inl) (Sum.inr ∘ Sum.inl))
-      (Sum.elim (Sum.inl ∘ Sum.inr) (Sum.inr ∘ Sum.inr))
-    left_inv x := by rcases x with (_ | _) | (_ | _) <;> simp
-    right_inv x := by rcases x with (_ | _) | (_ | _) <;> simp
+  equivB := fun a => _root_.Equiv.sumSumSumComm (P.B a.1.1) (Q.B a.1.2) (R.B a.2.1) (S.B a.2.2)
+
+/-- Sum distributes over product: `(P + Q) * R ≃ₚ (P * R) + (Q * R)` -/
+def sumProdDistrib (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₁}) (R : PFunctor.{uA₃, uB₂}) :
+    ((P + Q) * R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) ≃ₚ
+    ((P * R) + (Q * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
+  equivA := _root_.Equiv.sumProdDistrib P.A Q.A R.A
+  equivB := fun ⟨a, b⟩ => {
+    toFun := Sum.casesOn a (fun _ => id) (fun _ => id)
+    invFun := Sum.casesOn a (fun _ => id) (fun _ => id)
+    left_inv x := by rcases a with _ | _ <;> simp
+    right_inv x := by rcases a with _ | _ <;> simp
   }
 
-/-- Product distributes over sum: `P * (Q + R) ≃ₚ (P * Q) + (P * R)` -/
+/-- Product distributes over sum: `P * (Q + R) ≃ₚ (P * Q) + (P * R)`
+
+TODO: define in terms of `sumProdDistrib` -/
 @[simps]
 def prodSumDistrib (R : PFunctor.{uA₃, uB₂}):
     (P * (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) ≃ₚ
     ((P * Q) + (P * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
   equivA := _root_.Equiv.prodSumDistrib P.A Q.A R.A
-  equivB := fun a => {
-    toFun := match a with
-      | ⟨a, Sum.inl b⟩ => fun x => match x with
-          | Sum.inl x => Sum.inl x
-          | Sum.inr x => Sum.inr x
-      | ⟨a, Sum.inr b⟩ => fun x => match x with
-          | Sum.inl x => Sum.inl x
-          | Sum.inr x => Sum.inr x
-    invFun := match a with
-      | ⟨a, Sum.inl b⟩ => fun x => match x with
-        | Sum.inl x => Sum.inl x
-        | Sum.inr x => Sum.inr x
-      | ⟨a, Sum.inr b⟩ => fun x => match x with
-        | Sum.inl x => Sum.inl x
-        | Sum.inr x => Sum.inr x
-    left_inv x := by rcases x with _ | _ <;> simp <;> sorry
-    right_inv x := by simp <;> sorry
+  equivB := fun ⟨a, b⟩ => {
+    toFun := Sum.casesOn b (fun _ => id) (fun _ => id)
+    invFun := Sum.casesOn b (fun _ => id) (fun _ => id)
+    left_inv x := by rcases b with _ | _ <;> simp
+    right_inv x := by rcases b with _ | _ <;> simp
   }
-
-/-- Sum distributes over product: `(P + Q) * R ≃ₚ (P * R) + (Q * R)` -/
-def sumProdDistrib (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₁}) (R : PFunctor.{uA₃, uB₂}) :
-    ((P + Q) * R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) ≃ₚ
-    ((P * R) + (Q * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) :=
-  sorry
 
 end Prod
 
@@ -255,9 +191,8 @@ def uliftUliftEquiv : P.ulift.ulift ≃ₚ P.ulift :=
 
 /-- Universe lifting commutes with sum -/
 def uliftSumEquiv (Q : PFunctor.{uA₂, uB₁}) :
-    Equiv.{max uA₁ uA₂ u, max uB₁ v, max uA₁ uA uA₂ uA', max uB₁ uB}
-    (PFunctor.ulift.{_, _, u, v} (sum.{uB₁, uA₁, uA₂} P Q))
-    (sum.{max uB₁ uB, max uA₁ uA, max uA₂ uA'} (P.ulift : PFunctor.{max uA₁ uA, max uB₁ uB})
+    (PFunctor.ulift.{_, _, u, v} (P + Q : PFunctor.{max uA₁ uA₂, uB₁})) ≃ₚ
+    ((PFunctor.ulift.{_, _, uA, uB} P : PFunctor.{max uA₁ uA, max uB₁ uB}) +
       (Q.ulift : PFunctor.{max uA₂ uA', max uB₁ uB}) : PFunctor.{max uA₁ uA uA₂ uA', max uB₁ uB}) :=
   sorry
 
@@ -280,35 +215,48 @@ variable (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) (R : PFunct
   (S : PFunctor.{uA₄, uB₄})
 
 /-- Tensor product with the functor Y on the right -/
-def tensorY : P ⊗ y ≃ₚ P :=
-  sorry
+@[simps]
+def tensorY : P ⊗ y ≃ₚ P where
+  equivA := _root_.Equiv.prodPUnit P.A
+  equivB := fun a => _root_.Equiv.prodPUnit (P.B a.1)
 
 /-- Tensor product with the functor Y on the left -/
-def yTensor : y ⊗ P ≃ₚ P :=
-  sorry
+@[simps]
+def yTensor : y ⊗ P ≃ₚ P where
+  equivA := _root_.Equiv.punitProd P.A
+  equivB := fun a => _root_.Equiv.punitProd (P.B a.2)
 
 /-- Tensor product of polynomial functors is commutative up to equivalence -/
+@[simps]
 def tensorComm :
     (P ⊗ Q : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) ≃ₚ
-    (Q ⊗ P : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) :=
-  sorry
+    (Q ⊗ P : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) where
+  equivA := _root_.Equiv.prodComm P.A Q.A
+  equivB := fun a => _root_.Equiv.prodComm (P.B a.1) (Q.B a.2)
 
 /-- Tensor product of polynomial functors is associative up to equivalence -/
+@[simps]
 def tensorAssoc :
     ((P ⊗ Q) ⊗ R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) ≃ₚ
-    (P ⊗ (Q ⊗ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) :=
-  sorry
+    (P ⊗ (Q ⊗ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) where
+  equivA := _root_.Equiv.prodAssoc P.A Q.A R.A
+  equivB := fun a => _root_.Equiv.prodAssoc (P.B a.1.1) (Q.B a.1.2) (R.B a.2)
 
-/-- If `P ≃ₚ P'` and `Q ≃ₚ Q'`, then `P ⊗ Q ≃ₚ P' ⊗ Q'` -/
-def tensorCongr {P Q} {R : PFunctor.{uA₃, uB₁}} {S : PFunctor.{uA₄, uB₁}} (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) :
-    P ⊗ Q ≃ₚ (R ⊗ S : PFunctor.{max uA₃ uA₄, uB₁}) :=
-  sorry
+/-- Tensor product preserves equivalences: if `P ≃ₚ R` and `Q ≃ₚ S`, then `P ⊗ Q ≃ₚ R ⊗ S` -/
+@[simps]
+def tensorCongr {P : PFunctor.{uA₁, uB₁}} {Q} {R : PFunctor.{uA₃, uB₃}} {S}
+    (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) :
+      (P ⊗ Q : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) ≃ₚ
+      (R ⊗ S : PFunctor.{max uA₃ uA₄, max uB₃ uB₄}) where
+  equivA := _root_.Equiv.prodCongr e₁.equivA e₂.equivA
+  equivB := fun a => _root_.Equiv.prodCongr (e₁.equivB a.1) (e₂.equivB a.2)
 
 /-- Rearrangement of nested tensor products: `(P ⊗ Q) ⊗ (R ⊗ S) ≃ₚ (P ⊗ R) ⊗ (Q ⊗ S)` -/
 def tensorTensorTensorComm :
     ((P ⊗ Q) ⊗ (R ⊗ S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) ≃ₚ
-    ((P ⊗ R) ⊗ (Q ⊗ S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) :=
-  sorry
+    ((P ⊗ R) ⊗ (Q ⊗ S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) where
+  equivA := _root_.Equiv.prodProdProdComm P.A Q.A R.A S.A
+  equivB := fun a => _root_.Equiv.prodProdProdComm (P.B a.1.1) (Q.B a.1.2) (R.B a.2.1) (S.B a.2.2)
 
 /-- Tensor product distributes over sum: `P ⊗ (Q + R) ≃ₚ (P ⊗ Q) + (P ⊗ R)` -/
 def tensorSumDistrib (R : PFunctor.{uA₃, uB₂}):

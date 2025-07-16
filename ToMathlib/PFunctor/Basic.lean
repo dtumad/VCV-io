@@ -209,13 +209,13 @@ end Fintype
 /-- An equivalence between two polynomial functors `P` and `Q`, written `P ≃ₚ Q`, is given by an
 equivalence of the `A` types and an equivalence between the `B` types for each `a : A`. -/
 @[ext]
-structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
+protected structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
   /-- An equivalence between the `A` types -/
   equivA : P.A ≃ Q.A
   /-- An equivalence between the `B` types for each `a : A` -/
   equivB : ∀ a, P.B a ≃ Q.B (equivA a)
 
-@[inherit_doc] scoped[PFunctor] infixl:25 " ≃ₚ " => Equiv
+@[inherit_doc] scoped[PFunctor] infixl:25 " ≃ₚ " => PFunctor.Equiv
 
 namespace Equiv
 
@@ -255,8 +255,6 @@ structure Lens (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
 /-- Infix notation for constructing a lens `toFunA ⇆ toFunB` -/
 infixr:25 " ⇆ " => Lens.mk
 
-
-
 /-- A chart between two polynomial functors `P` and `Q` is a pair of a function:
 - `toFunA : P.A → Q.A`
 - `toFunB : ∀ a, P.B a → Q.B (toFunA a)` -/
@@ -267,99 +265,11 @@ structure Chart (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) wher
 /-- Infix notation for constructing a chart `toFunA ⇉ toFunB` -/
 infixr:25 " ⇉ " => Chart.mk
 
-namespace Chart
-
-/-- The identity chart -/
-protected def id (P : PFunctor.{uA, uB}) : Chart P P := id ⇉ fun _ => id
-
-/-- Composition of charts -/
-def comp {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
-    (c' : Chart Q R) (c : Chart P Q) : Chart P R where
-  toFunA := c'.toFunA ∘ c.toFunA
-  toFunB := fun i => c'.toFunB (c.toFunA i) ∘ c.toFunB i
-
-/-- Infix notation for chart composition `c' ∘c c` -/
-infixl:75 " ∘c " => comp
-
-@[simp]
-theorem id_comp {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (f : Chart P Q) :
-    (Chart.id Q) ∘c f = f := rfl
-
-@[simp]
-theorem comp_id {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (f : Chart P Q) :
-    f ∘c (Chart.id P) = f := rfl
-
-theorem comp_assoc {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
-    {S : PFunctor.{uA₄, uB₄}} (c : Chart R S) (c' : Chart Q R) (c'' : Chart P Q) :
-    (c ∘c c') ∘c c'' = c ∘c (c' ∘c c'') := rfl
-
-/-- An equivalence between two polynomial functors `P` and `Q`, using charts.
-    This corresponds to an isomorphism in the category `PFunctor` with `Chart` morphisms. -/
-@[ext]
-structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
-  toChart : Chart P Q
-  invChart : Chart Q P
-  left_inv : comp invChart toChart = Chart.id P
-  right_inv : comp toChart invChart = Chart.id Q
-
-/-- Infix notation for chart equivalence `P ≃c Q` -/
-infix:50 " ≃c " => Equiv
-
-namespace Equiv
-
-@[refl]
-def refl (P : PFunctor.{uA, uB}) : P ≃c P :=
-  ⟨Chart.id P, Chart.id P, rfl, rfl⟩
-
-@[symm]
-def symm {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (e : P ≃c Q) : Q ≃c P :=
-  ⟨e.invChart, e.toChart, e.right_inv, e.left_inv⟩
-
-def trans {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
-    (e₁ : P ≃c Q) (e₂ : Q ≃c R) : P ≃c R :=
-  ⟨e₂.toChart ∘c e₁.toChart, e₁.invChart ∘c e₂.invChart,
-    by
-      rw [comp_assoc]
-      rw (occs := [2]) [← comp_assoc]
-      simp [e₁.left_inv, e₂.left_inv],
-    by
-      rw [comp_assoc]
-      rw (occs := [2]) [← comp_assoc]
-      simp [e₁.right_inv, e₂.right_inv]⟩
-
-end Equiv
-
-/-- The (unique) initial chart from the zero functor to any functor `P`. -/
-def initial {P : PFunctor.{uA, uB}} : Chart 0 P :=
-  PEmpty.elim ⇉ fun _ => PEmpty.elim
-
-/-- The (unique) terminal chart from any functor `P` to the functor `Y`. -/
-def terminal {P : PFunctor.{uA, uB}} : Chart P y :=
-  (fun _ => PUnit.unit) ⇉ (fun _ _ => PUnit.unit)
-
-alias fromZero := initial
-alias toOne := terminal
-
-end Chart
-
 section Lemmas
 
 @[ext (iff := false)]
 theorem ext {P Q : PFunctor.{uA, uB}} (h : P.A = Q.A) (h' : ∀ a, P.B a = Q.B (h ▸ a)) : P = Q := by
   cases P; cases Q; simp at h h' ⊢; subst h; simp_all; funext; exact h' _
-
-
-
-@[ext (iff := false)]
-theorem Chart.ext {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (c₁ c₂ : Chart P Q)
-    (h₁ : ∀ a, c₁.toFunA a = c₂.toFunA a) (h₂ : ∀ a, c₁.toFunB a = (h₁ a) ▸ c₂.toFunB a) :
-    c₁ = c₂ := by
-  rcases c₁ with ⟨toFunA₁, _⟩
-  rcases c₂ with ⟨toFunA₂, _⟩
-  have h : toFunA₁ = toFunA₂ := funext h₁
-  subst h
-  simp_all
-  exact funext h₂
 
 lemma y_eq_linear_pUnit : y = linear PUnit := rfl
 lemma y_eq_purePower_pUnit : y = purePower PUnit := rfl
@@ -374,27 +284,8 @@ theorem ulift_A : (P.ulift).A = ULift P.A := rfl
 @[simp]
 theorem ulift_B {a : P.A} : (P.ulift).B (ULift.up a) = ULift (P.B a) := rfl
 
-
-
 end ULift
 
-
-
--- Do the same for charts?
-
 end Lemmas
-
-namespace Equiv
-
-variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}}
-
-
-
-/-- Convert an equivalence between two polynomial functors `P` and `Q` to a chart. -/
-def toChart (e : Equiv P Q) : Chart P Q where
-  toFunA := e.equivA
-  toFunB := fun a => e.equivB a
-
-end Equiv
 
 end PFunctor
