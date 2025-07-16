@@ -49,20 +49,10 @@ variable (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB})
 def sumZero : P + 0 ≃ₚ P where
   equivA := Equiv.sumEmpty P.A PEmpty
   equivB := fun a => {
-      toFun := fun x => match a with
-        | Sum.inl a => x
-        | Sum.inr a => a.elim
-      invFun := fun x => match a with
-        | Sum.inl a => x
-        | Sum.inr a => a.elim
-      left_inv := fun x => by
-        rcases a with _ | a
-        · simp
-        · exact a.elim
-      right_inv := fun x => by
-        rcases a with _ | a
-        · simp
-        · exact a.elim
+      toFun := Sum.casesOn a (fun _ => id) (fun a => a.elim)
+      invFun := Sum.casesOn a (fun _ => id) (fun a => a.elim)
+      left_inv x := by rcases a with _ | a; simp; exact a.elim
+      right_inv x := by rcases a with _ | a; simp; exact a.elim
     }
 
 /-- Addition with the zero functor on the right is equivalent to the original functor -/
@@ -70,20 +60,10 @@ def sumZero : P + 0 ≃ₚ P where
 def zeroSum : 0 + P ≃ₚ P where
   equivA := Equiv.emptySum PEmpty P.A
   equivB := fun a => {
-    toFun := fun x => match a with
-      | Sum.inl a => a.elim
-      | Sum.inr a => x
-    invFun := fun x => match a with
-      | Sum.inl a => a.elim
-      | Sum.inr a => x
-    left_inv := fun x => by
-      rcases a with a | _
-      · exact a.elim
-      · simp
-    right_inv := fun x => by
-      rcases a with a | _
-      · exact a.elim
-      · simp
+    toFun := Sum.casesOn a (fun a => a.elim) (fun _ => id)
+    invFun := Sum.casesOn a (fun a => a.elim) (fun _ => id)
+    left_inv x := by rcases a with a | _; exact a.elim; simp
+    right_inv x := by rcases a with a | _; exact a.elim; simp
   }
 
 /-- Sum of polynomial functors is commutative up to equivalence -/
@@ -91,14 +71,10 @@ def zeroSum : 0 + P ≃ₚ P where
 def sumComm : (P + Q : PFunctor.{max uA₁ uA₂, uB}) ≃ₚ (Q + P : PFunctor.{max uA₁ uA₂, uB}) where
   equivA := _root_.Equiv.sumComm P.A Q.A
   equivB := fun a => {
-    toFun := fun x => match a with
-      | Sum.inl a => x
-      | Sum.inr a => x
-    invFun := fun x => match a with
-      | Sum.inl a => x
-      | Sum.inr a => x
-    left_inv := fun x => by rcases a with _ | _ <;> simp
-    right_inv := fun x => by rcases a with _ | _ <;> simp
+    toFun := Sum.casesOn a (fun _ => id) (fun _ => id)
+    invFun := Sum.casesOn a (fun _ => id) (fun _ => id)
+    left_inv x := by rcases a with _ | _ <;> simp
+    right_inv x := by rcases a with _ | _ <;> simp
   }
 
 /-- Sum of polynomial functors is associative up to equivalence -/
@@ -108,16 +84,10 @@ def sumAssoc :
     (P + (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, uB}) where
   equivA := _root_.Equiv.sumAssoc P.A Q.A R.A
   equivB := fun a => {
-    toFun := fun x => match a with
-      | Sum.inl (Sum.inl a) => x
-      | Sum.inl (Sum.inr a) => x
-      | Sum.inr a => x
-    invFun := fun x => match a with
-      | Sum.inl (Sum.inl a) => x
-      | Sum.inl (Sum.inr a) => x
-      | Sum.inr a => x
-    left_inv := fun x => by rcases a with (_ | _) | _ <;> simp
-    right_inv := fun x => by rcases a with (_ | _) | _ <;> simp
+    toFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id)) (fun _ => id)
+    invFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id)) (fun _ => id)
+    left_inv x := by rcases a with (_ | _) | _ <;> simp
+    right_inv x := by rcases a with (_ | _) | _ <;> simp
   }
 
 /-- If `P ≃ₚ R` and `Q ≃ₚ S`, then `P + Q ≃ₚ R + S` -/
@@ -126,14 +96,10 @@ def sumCongr {P Q} {R : PFunctor.{uA₃, uB₁}} {S : PFunctor.{uA₄, uB₁}} (
     P + Q ≃ₚ (R + S : PFunctor.{max uA₃ uA₄, uB₁}) where
   equivA := _root_.Equiv.sumCongr e₁.equivA e₂.equivA
   equivB := fun a => {
-    toFun := fun x => match a with
-      | Sum.inl a => e₁.equivB a x
-      | Sum.inr a => e₂.equivB a x
-    invFun := fun x => match a with
-      | Sum.inl a => (e₁.equivB a).symm x
-      | Sum.inr a => (e₂.equivB a).symm x
-    left_inv := fun x => by rcases a with _ | _ <;> simp
-    right_inv := fun x => by rcases a with _ | _ <;> simp
+    toFun := Sum.casesOn a (e₁.equivB ·) (e₂.equivB ·)
+    invFun := Sum.casesOn a (fun a => (e₁.equivB a).symm) (fun a => (e₂.equivB a).symm)
+    left_inv x := by rcases a with _ | _ <;> simp
+    right_inv x := by rcases a with _ | _ <;> simp
   }
 
 /-- Rearrangement of nested sums: `(P + Q) + (R + S) ≃ₚ (P + R) + (Q + S)` -/
@@ -142,18 +108,12 @@ def sumSumSumComm :
     ((P + R) + (Q + S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, uB}) where
   equivA := _root_.Equiv.sumSumSumComm P.A Q.A R.A S.A
   equivB := fun a => {
-    toFun := fun x => match a with
-      | Sum.inl (Sum.inl a) => x
-      | Sum.inl (Sum.inr a) => x
-      | Sum.inr (Sum.inl a) => x
-      | Sum.inr (Sum.inr a) => x
-    invFun := fun x => match a with
-      | Sum.inl (Sum.inl a) => x
-      | Sum.inl (Sum.inr a) => x
-      | Sum.inr (Sum.inl a) => x
-      | Sum.inr (Sum.inr a) => x
-    left_inv := fun x => by rcases a with (_ | _) | (_ | _) <;> simp
-    right_inv := fun x => by rcases a with (_ | _) | (_ | _) <;> simp
+    toFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id))
+      (Sum.casesOn · (fun _ => id) (fun _ => id))
+    invFun := Sum.casesOn a (Sum.casesOn · (fun _ => id) (fun _ => id))
+      (Sum.casesOn · (fun _ => id) (fun _ => id))
+    left_inv x := by rcases a with (_ | _) | (_ | _) <;> simp
+    right_inv x := by rcases a with (_ | _) | (_ | _) <;> simp
   }
 
 end Sum
@@ -168,15 +128,9 @@ variable (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) (R : PFunct
 def prodOne : P * 1 ≃ₚ P where
   equivA := _root_.Equiv.prodPUnit P.A
   equivB := fun a => {
-    toFun := fun x => match x with
-        | Sum.inl x => x
-        | Sum.inr x => x.elim
-    invFun := fun x => Sum.inl x
-    left_inv := fun x => by
-      rcases x with x | x
-      · simp
-      · exact x.elim
-    right_inv := fun x => by simp
+    toFun := Sum.elim id (fun x => x.elim)
+    invFun := Sum.inl
+    left_inv x := by rcases x with x | x; simp; exact x.elim
   }
 
 /-- Product with the unit functor on the left is equivalent to the original functor -/
@@ -184,44 +138,90 @@ def prodOne : P * 1 ≃ₚ P where
 def oneProd : 1 * P ≃ₚ P where
   equivA := _root_.Equiv.punitProd P.A
   equivB := fun a => {
-    toFun := fun x => match x with
-      | Sum.inl x => x.elim
-      | Sum.inr x => x
-    invFun := fun x => Sum.inr x
-    left_inv := fun x => by
-      rcases x with x | x
-      · exact x.elim
-      · simp
+    toFun := Sum.elim (fun x => x.elim) id
+    invFun := Sum.inr
+    left_inv x := by rcases x with x | x; exact x.elim; simp
   }
 
 /-- Product of polynomial functors is commutative up to equivalence -/
+@[simps]
 def prodComm :
     (P * Q : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) ≃ₚ
-    (Q * P : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) :=
-  sorry
+    (Q * P : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) where
+  equivA := _root_.Equiv.prodComm P.A Q.A
+  equivB := fun a => {
+    toFun := Sum.swap
+    invFun := Sum.swap
+    left_inv x := by rcases x with _ | _ <;> simp
+    right_inv x := by rcases x with _ | _ <;> simp
+  }
 
 /-- Product of polynomial functors is associative up to equivalence -/
+@[simps]
 def prodAssoc :
     ((P * Q) * R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) ≃ₚ
-    (P * (Q * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) :=
-  sorry
+    (P * (Q * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) where
+  equivA := _root_.Equiv.prodAssoc P.A Q.A R.A
+  equivB := fun a => {
+    toFun := Sum.elim (Sum.elim Sum.inl (Sum.inr ∘ Sum.inl)) (Sum.inr ∘ Sum.inr)
+    invFun := Sum.elim (Sum.inl ∘ Sum.inl) (Sum.elim (Sum.inl ∘ Sum.inr) Sum.inr)
+    left_inv x := by rcases x with (_ | _) | _ <;> simp
+    right_inv x := by rcases x with _ | (_ | _) <;> simp
+  }
 
-/-- If `P ≃ₚ P'` and `Q ≃ₚ Q'`, then `P * Q ≃ₚ P' * Q'` -/
+/-- Equivalence is preserved under product: if `P ≃ₚ R` and `Q ≃ₚ S`, then `P * Q ≃ₚ R * S` -/
+@[simps]
 def prodCongr {P Q} {R : PFunctor.{uA₃, uB₃}} {S : PFunctor.{uA₄, uB₄}}
-    (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) : P * Q ≃ₚ (R * S : PFunctor.{max uA₃ uA₄, max uB₃ uB₄}) :=
-  sorry
+    (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) : P * Q ≃ₚ (R * S : PFunctor.{max uA₃ uA₄, max uB₃ uB₄}) where
+  equivA := _root_.Equiv.prodCongr e₁.equivA e₂.equivA
+  equivB := fun a => {
+    toFun := Sum.elim (Sum.inl ∘ e₁.equivB a.1) (Sum.inr ∘ e₂.equivB a.2)
+    invFun := Sum.elim (Sum.inl ∘ (e₁.equivB a.1).symm) (Sum.inr ∘ (e₂.equivB a.2).symm)
+    left_inv x := by rcases x with _ | _ <;> simp
+    right_inv x := by rcases x with _ | _ <;> simp
+  }
 
 /-- Rearrangement of nested products: `(P * Q) * (R * S) ≃ₚ (P * R) * (Q * S)` -/
+@[simps]
 def prodProdProdComm :
     ((P * Q) * (R * S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) ≃ₚ
-    ((P * R) * (Q * S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) :=
-  sorry
+    ((P * R) * (Q * S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, max uB₁ uB₂ uB₃ uB₄}) where
+  equivA := _root_.Equiv.prodProdProdComm P.A Q.A R.A S.A
+  equivB := fun a => {
+    toFun := Sum.elim
+      (Sum.elim (Sum.inl ∘ Sum.inl) (Sum.inr ∘ Sum.inl))
+      (Sum.elim (Sum.inl ∘ Sum.inr) (Sum.inr ∘ Sum.inr))
+    invFun := Sum.elim
+      (Sum.elim (Sum.inl ∘ Sum.inl) (Sum.inr ∘ Sum.inl))
+      (Sum.elim (Sum.inl ∘ Sum.inr) (Sum.inr ∘ Sum.inr))
+    left_inv x := by rcases x with (_ | _) | (_ | _) <;> simp
+    right_inv x := by rcases x with (_ | _) | (_ | _) <;> simp
+  }
 
 /-- Product distributes over sum: `P * (Q + R) ≃ₚ (P * Q) + (P * R)` -/
+@[simps]
 def prodSumDistrib (R : PFunctor.{uA₃, uB₂}):
     (P * (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) ≃ₚ
-    ((P * Q) + (P * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) :=
-  sorry
+    ((P * Q) + (P * R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
+  equivA := _root_.Equiv.prodSumDistrib P.A Q.A R.A
+  equivB := fun a => {
+    toFun := match a with
+      | ⟨a, Sum.inl b⟩ => fun x => match x with
+          | Sum.inl x => Sum.inl x
+          | Sum.inr x => Sum.inr x
+      | ⟨a, Sum.inr b⟩ => fun x => match x with
+          | Sum.inl x => Sum.inl x
+          | Sum.inr x => Sum.inr x
+    invFun := match a with
+      | ⟨a, Sum.inl b⟩ => fun x => match x with
+        | Sum.inl x => Sum.inl x
+        | Sum.inr x => Sum.inr x
+      | ⟨a, Sum.inr b⟩ => fun x => match x with
+        | Sum.inl x => Sum.inl x
+        | Sum.inr x => Sum.inr x
+    left_inv x := by rcases x with _ | _ <;> simp <;> sorry
+    right_inv x := by simp <;> sorry
+  }
 
 /-- Sum distributes over product: `(P + Q) * R ≃ₚ (P * R) + (Q * R)` -/
 def sumProdDistrib (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₁}) (R : PFunctor.{uA₃, uB₂}) :
