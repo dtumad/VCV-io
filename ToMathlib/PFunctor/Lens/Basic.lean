@@ -12,6 +12,18 @@ import ToMathlib.PFunctor.Basic
 
 universe u v uA uB uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄ uA₅ uB₅ uA₆ uB₆
 
+section find_home
+
+variable {α : Sort u} {β : α → Sort v} {γ : α → Sort v}
+
+lemma heq_forall_iff (h : ∀ a, β a = γ a) {f : (a : α) → β a} {g : (a : α) → γ a} :
+    f ≍ g ↔ ∀ a, (f a) ≍ (g a) := by
+  have := funext h
+  subst this
+  aesop
+
+end find_home
+
 namespace PFunctor
 
 namespace Lens
@@ -834,12 +846,11 @@ variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}}
 /-- Convert an equivalence between two polynomial functors `P` and `Q` to a lens. -/
 def toLensEquiv (e : P ≃ₚ Q) : P ≃ₗ Q where
   toLens := e.equivA ⇆ (fun a => (e.equivB a).symm)
-  invLens := e.equivA.symm ⇆
-    (fun a =>
-      (e.equivB (e.equivA.symm a)).trans <|
-        _root_.Equiv.cast (congrArg _ (Equiv.apply_symm_apply _ _)))
-  left_inv := sorry
-  right_inv := by simp [Lens.comp, Lens.id, _root_.Equiv.cast]; sorry
+  invLens := e.symm.equivA ⇆ (fun a => (e.symm.equivB a).symm)
+  left_inv := by
+    simp only [Lens.comp, Lens.id]
+    ext a b <;> simp [Equiv.symm]; sorry
+  right_inv := by sorry
 
 end Equiv
 
