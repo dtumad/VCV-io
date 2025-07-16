@@ -146,8 +146,8 @@ def tensor (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
     PFunctor.{max uA₁ uA₂, max uB₁ uB₂} :=
   ⟨P.A × Q.A, fun ab => P.B ab.1 × Q.B ab.2⟩
 
-/-- Infix notation for tensor product `P ⊗ₚ Q` -/
-scoped[PFunctor] infixl:70 " ⊗ₚ " => tensor
+/-- Infix notation for tensor product `P ⊗ Q` -/
+scoped[PFunctor] infixl:70 " ⊗ " => tensor
 
 /-- The unit for the tensor product `Y` -/
 alias tensorUnit := y
@@ -397,10 +397,10 @@ def compMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFu
       let qc := l₂.toFunB (pq pb) wc
       ⟨pb, qc⟩)
 
-/-- Apply lenses to both sides of a tensor / parallel product: `l₁ ⊗ₗ l₂ : (P ⊗ₚ Q ⇆ R ⊗ₚ W)` -/
+/-- Apply lenses to both sides of a tensor / parallel product: `l₁ ⊗ₗ l₂ : (P ⊗ Q ⇆ R ⊗ W)` -/
 def tensorMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
     {W : PFunctor.{uA₄, uB₄}} (l₁ : Lens P R) (l₂ : Lens Q W) :
-    Lens.{max uA₁ uA₂, max uB₁ uB₂, max uA₃ uA₄, max uB₃ uB₄} (P ⊗ₚ Q) (R ⊗ₚ W) :=
+    Lens.{max uA₁ uA₂, max uB₁ uB₂, max uA₃ uA₄, max uB₃ uB₄} (P ⊗ Q) (R ⊗ W) :=
   (fun ⟨pa, qa⟩ => (l₁.toFunA pa, l₂.toFunA qa)) ⇆
     (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.toFunB _pa rb, l₂.toFunB qa wb))
 
@@ -946,7 +946,7 @@ section Tensor
 variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
 
 @[simp]
-theorem tensorMap_id : (Lens.id P) ⊗ₗ (Lens.id Q) = Lens.id (P ⊗ₚ Q) :=
+theorem tensorMap_id : (Lens.id P) ⊗ₗ (Lens.id Q) = Lens.id (P ⊗ Q) :=
   rfl
 
 theorem tensorMap_comp
@@ -957,14 +957,14 @@ theorem tensorMap_comp
 namespace Equiv
 
 /-- Commutativity of tensor product -/
-def tensorComm (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) : P ⊗ₚ Q ≃ₗ Q ⊗ₚ P where
+def tensorComm (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) : P ⊗ Q ≃ₗ Q ⊗ P where
   toLens := Prod.swap ⇆ (fun _ => Prod.swap)
   invLens := Prod.swap ⇆ (fun _ => Prod.swap)
   left_inv := rfl
   right_inv := rfl
 
 /-- Associativity of tensor product -/
-def tensorAssoc : (P ⊗ₚ Q) ⊗ₚ R ≃ₗ P ⊗ₚ (Q ⊗ₚ R) where
+def tensorAssoc : (P ⊗ Q) ⊗ R ≃ₗ P ⊗ (Q ⊗ R) where
   toLens := (_root_.Equiv.prodAssoc _ _ _).toFun ⇆
             (fun _ => (_root_.Equiv.prodAssoc _ _ _).invFun)
   invLens := (_root_.Equiv.prodAssoc _ _ _).invFun ⇆
@@ -973,21 +973,21 @@ def tensorAssoc : (P ⊗ₚ Q) ⊗ₚ R ≃ₗ P ⊗ₚ (Q ⊗ₚ R) where
   right_inv := rfl
 
 /-- Tensor product with `y` is identity (right) -/
-def tensorY : P ⊗ₚ y ≃ₗ P where
+def tensorY : P ⊗ y ≃ₗ P where
   toLens := Prod.fst ⇆ (fun _ b => (b, PUnit.unit))
   invLens := (fun p => (p, PUnit.unit)) ⇆ (fun _ bp => bp.1)
   left_inv := rfl
   right_inv := rfl
 
 /-- Tensor product with `y` is identity (left) -/
-def yTensor : y ⊗ₚ P ≃ₗ P where
+def yTensor : y ⊗ P ≃ₗ P where
   toLens := Prod.snd ⇆ (fun _ b => (PUnit.unit, b))
   invLens := (fun p => (PUnit.unit, p)) ⇆ (fun _ bp => bp.2)
   left_inv := rfl
   right_inv := rfl
 
 /-- Tensor product with `0` is zero (left) -/
-def zeroTensor : 0 ⊗ₚ P ≃ₗ 0 where
+def zeroTensor : 0 ⊗ P ≃ₗ 0 where
   toLens := (fun a => PEmpty.elim a.1) ⇆ (fun _ b => PEmpty.elim b)
   invLens := PEmpty.elim ⇆ (fun a _ => PEmpty.elim a)
   left_inv := by
@@ -996,7 +996,7 @@ def zeroTensor : 0 ⊗ₚ P ≃ₗ 0 where
     ext a <;> exact PEmpty.elim a
 
 /-- Tensor product with `0` is zero (right) -/
-def tensorZero : P ⊗ₚ 0 ≃ₗ 0 where
+def tensorZero : P ⊗ 0 ≃ₗ 0 where
   toLens := (fun a => PEmpty.elim a.2) ⇆ (fun _ b => PEmpty.elim b)
   invLens := PEmpty.elim ⇆ (fun a _ => PEmpty.elim a)
   left_inv := by
@@ -1009,7 +1009,7 @@ variable {R : PFunctor.{uA₃, uB₂}}
 /-- Left distributivity of tensor product over coproduct -/
 def tensorCoprodDistrib :
     Lens.Equiv.{max uA₁ uA₂ uA₃, max uB₁ uB₂, max uA₁ uA₂ uA₃, max uB₁ uB₂}
-      (P ⊗ₚ (Q + R : PFunctor.{max uA₂ uA₃, uB₂})) ((P ⊗ₚ Q) + (P ⊗ₚ R)) where
+      (P ⊗ (Q + R : PFunctor.{max uA₂ uA₃, uB₂})) ((P ⊗ Q) + (P ⊗ R)) where
   toLens := (fun ⟨p, qr⟩ => match qr with
               | Sum.inl q => Sum.inl (p, q)
               | Sum.inr r => Sum.inr (p, r)) ⇆
@@ -1029,8 +1029,8 @@ def tensorCoprodDistrib :
 
 /-- Right distributivity of tensor product over coproduct -/
 def coprodTensorDistrib :
-    (Q + R : PFunctor.{max uA₂ uA₃, uB₂}) ⊗ₚ P
-      ≃ₗ ((Q ⊗ₚ P) + (R ⊗ₚ P) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
+    (Q + R : PFunctor.{max uA₂ uA₃, uB₂}) ⊗ P
+      ≃ₗ ((Q ⊗ P) + (R ⊗ P) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂}) where
   toLens := (fun ⟨qr, p⟩ => match qr with
               | Sum.inl q => Sum.inl (q, p)
               | Sum.inr r => Sum.inr (r, p)) ⇆
@@ -1128,7 +1128,7 @@ instance [IsEmpty I] {F : I → PFunctor.{u}} {a : (sigma F).A} : IsEmpty ((sigm
 
 -- /-- Left distributivity of tensor product over sigma. -/
 -- def tensorSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
---     P ⊗ₚ sigma F ≃ₗ sigma (fun i => P ⊗ₚ F i) where
+--     P ⊗ sigma F ≃ₗ sigma (fun i => P ⊗ F i) where
 --   toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
 --             (fun _ ⟨pb, fib⟩ => ⟨pb, ULift.up fib⟩)
 --   invLens := (fun ⟨i, ⟨pa, fia⟩⟩ => ⟨pa, ⟨i, fia⟩⟩) ⇆
@@ -1138,7 +1138,7 @@ instance [IsEmpty I] {F : I → PFunctor.{u}} {a : (sigma F).A} : IsEmpty ((sigm
 
 -- /-- Right distributivity of tensor product over sigma. -/
 -- def sigmaTensorDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
---     sigma F ⊗ₚ P ≃ₗ sigma (fun i => F i ⊗ₚ P) where
+--     sigma F ⊗ P ≃ₗ sigma (fun i => F i ⊗ P) where
 --   toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
 --             (fun _ ⟨fib, pb⟩ => ⟨ULift.up fib, pb⟩)
 --   invLens := (fun ⟨i, ⟨fia, pa⟩⟩ => ⟨⟨i, fia⟩, pa⟩) ⇆
