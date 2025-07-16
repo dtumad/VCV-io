@@ -63,10 +63,10 @@ alias representable := purePower
 
 instance : IsEmpty (A 0) := inferInstanceAs (IsEmpty PEmpty)
 instance : Unique (A 1) := inferInstanceAs (Unique PUnit)
-instance : IsEmpty (B 1 PUnit.unit) := inferInstanceAs (IsEmpty PEmpty)
+instance {a} : IsEmpty (B 1 a) := inferInstanceAs (IsEmpty PEmpty)
 instance {α} (a : α) : IsEmpty (B (C α) a) := inferInstanceAs (IsEmpty PEmpty)
 instance : Unique (A X) := inferInstanceAs (Unique PUnit)
-instance : Unique (B X PUnit.unit) := inferInstanceAs (Unique PUnit)
+instance {a} : Unique (B X a) := inferInstanceAs (Unique PUnit)
 instance {α} (a : α) : Unique (B (linear α) a) := inferInstanceAs (Unique PUnit)
 instance {β} : Unique (A (purePower β)) := inferInstanceAs (Unique PUnit)
 

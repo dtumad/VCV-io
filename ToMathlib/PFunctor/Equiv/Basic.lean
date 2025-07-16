@@ -35,6 +35,14 @@ We provide various canonical equivalences for operations on polynomial functors,
 
 universe u v uA uB uA' uB' uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄
 
+section find_home
+
+instance instIsEmptySigma {α : Sort u} {β : α → Sort v} [inst : IsEmpty α] :
+    IsEmpty ((a : α) ×' β a) where
+  false := fun a => inst.elim a.1
+
+end find_home
+
 namespace PFunctor
 
 namespace Equiv
@@ -171,32 +179,60 @@ end Prod
 
 section Sigma
 
+variable (P : PFunctor.{uA₁, uB₁}) {I : Type v} (F : I → PFunctor.{uA₂, uB₂})
+
+instance [inst : IsEmpty I] : IsEmpty (sigma F).A where
+  false := fun a => inst.elim a.1
+
 /-- Sigma of an empty family is the zero functor. -/
-def sigmaEmpty {I : Type v} [IsEmpty I] (F : I → PFunctor.{uA, uB}) :
-    sigma F ≃ₚ (0 : PFunctor) where
-  equivA := sorry
-  equivB := sorry
+def emptySigma [inst : IsEmpty I] : sigma F ≃ₚ 0 where
+  equivA := Equiv.equivPEmpty _
+  equivB := fun a => inst.elim a.1
+
+def uniqueSigma [Unique I] : sigma F ≃ₚ F default where
+  equivA := _root_.Equiv.uniqueSigma _
+  equivB := fun a => by simp [sigma] at a ⊢; sorry
 
 /-- Sigma of a `PUnit`-indexed family is equivalent to the functor itself. -/
-def sigmaPUnit {F : PUnit → PFunctor.{uA, uB}} :
-    sigma F ≃ₚ F PUnit.unit where
+def punitSigma {F : PUnit → PFunctor.{uA, uB}} : sigma F ≃ₚ F PUnit.unit where
+  equivA := _root_.Equiv.uniqueSigma _
+  equivB := sorry
+
+#check Equiv.sigmaSumDistrib
+
+#check Equiv.sumSigmaDistrib
+
+#check Equiv.prodSumDistrib
+
+/-- Left distributivity of sum over sigma. -/
+def sumSigmaDistrib (F : I → PFunctor.{uA₂, uB₁}) :
+    (P + sigma F : PFunctor.{max uA₁ uA₂ v, uB₁}) ≃ₚ
+    sigma (fun i => (P + F i : PFunctor.{max uA₁ uA₂, uB₁})) where
+  equivA := by simp [sigma, HAdd.hAdd, sum]; sorry
+  equivB := fun a => sorry
+
+/-- Right distributivity of sum over sigma. -/
+def sigmaSumDistrib (F : I → PFunctor.{uA₂, uB₁}) :
+    (sigma F + P : PFunctor.{max uA₁ uA₂ v, uB₁}) ≃ₚ
+    sigma (fun i => (F i + P : PFunctor.{max uA₁ uA₂, uB₁})) where
+  equivA := by simp [sigma, HAdd.hAdd, sum]; sorry
+  -- exact (_root_.Equiv.sumSigmaDistrib _).symm
+  equivB := fun a => sorry
+
+/-- Left distributivity of product over sigma. -/
+def prodSigmaDistrib : (P * sigma F : PFunctor.{max uA₁ uA₂ v, max uB₁ uB₂}) ≃ₚ
+    sigma (fun i => (P * F i : PFunctor.{max uA₁ uA₂, max uB₁ uB₂})) where
   equivA := sorry
   equivB := sorry
 
--- /-- Left distributivity of product over sigma. -/
--- def prodSigmaDistrib {I : Type v} (P : PFunctor.{uA₁, uB₁}) (F : I → PFunctor.{uA₂, uB₁}) :
---     P * sigma F ≃ₚ sigma (fun i => P * F i) where
---   equivA := sorry
---   equivB := sorry
-
--- /-- Right distributivity of product over sigma. -/
--- def sigmaProdDistrib {I : Type v} (F : I → PFunctor.{uA₁, uB₁}) (P : PFunctor.{uA₂, uB₁}) :
---     sigma F * P ≃ₚ sigma (fun i => F i * P) where
---   equivA := sorry
---   equivB := sorry
+/-- Right distributivity of product over sigma. -/
+def sigmaProdDistrib : (sigma F * P : PFunctor.{max uA₁ uA₂ v, max uB₁ uB₂}) ≃ₚ
+    sigma (fun i => (F i * P : PFunctor.{max uA₁ uA₂, max uB₁ uB₂})) where
+  equivA := sorry
+  equivB := sorry
 
 /-- Left distributivity of tensor product over sigma. -/
-def tensorSigmaDistrib {I : Type v} (P : PFunctor.{uA₁, uB₁}) (F : I → PFunctor.{uA₂, uB₂}) :
+def tensorSigmaDistrib :
     P ⊗ sigma F ≃ₚ sigma (fun i => P ⊗ F i) where
   equivA := sorry
   equivB := sorry
@@ -365,24 +401,39 @@ def zeroComp : 0 ◃ P ≃ₚ 0 where
   equivA := Equiv.equivPEmpty _
   equivB := fun a => a.1.elim
 
--- def oneComp : (1 : PFunctor.{uA₁, uB₁}) ◃ P ≃ₚ (1 : PFunctor.{uA₃, uB₃}) where
---   equivA := (Equiv.uniqueSigma (fun i => B 1 i → P.A)).trans (Equiv.pemptyArrowEquivPUnit _)
---   equivB := sorry
+instance {a : (1 ◃ P).A} : IsEmpty ((1 ◃ P).B a) where
+  false := fun a => a.1.elim
+
+def oneComp : (1 : PFunctor.{uA, uB}) ◃ P ≃ₚ 1 where
+  equivA := (@_root_.Equiv.uniqueSigma _ (fun i => B 1 i → P.A)
+    (instUniqueAOfNat_toMathlib.{uA, uB})).trans (Equiv.pemptyArrowEquivPUnit _)
+  equivB := fun _ => Equiv.equivPEmpty _
+
+#check Equiv.sigmaAssocProd
 
 /-- Associativity of composition -/
 def compAssoc : (P ◃ Q) ◃ R ≃ₚ P ◃ (Q ◃ R) where
-  equivA := sorry
-  equivB := sorry
+  equivA := {
+    toFun := fun ⟨⟨pa, qf⟩, rf⟩ => ⟨pa, fun pb => ⟨qf pb, fun qb => rf ⟨pb, qb⟩⟩⟩
+    invFun := fun ⟨pa, g⟩ => ⟨⟨pa, fun pb => (g pb).1⟩, fun ⟨pb, qb⟩ => (g pb).2 qb⟩
+    left_inv := by
+      rintro ⟨⟨pa, qf⟩, rf⟩
+      simp [comp]
+    right_inv := by
+      rintro ⟨pa, g⟩; simp [comp]
+  }
+  equivB := fun ⟨⟨pa, qf⟩, rf⟩ => sorry
+  -- Equiv.sigmaProdDistrib _ _
 
 /-- Composition with `X` is identity (right) -/
 def compX : P ◃ X ≃ₚ P where
-  equivA := sorry
-  equivB := sorry
+  equivA := Equiv.sigmaUnique P.A (fun a => P.B a → PUnit.{_ + 1})
+  equivB := fun _ => _root_.Equiv.sigmaPUnit _
 
 /-- Composition with `X` is identity (left) -/
 def XComp : X ◃ P ≃ₚ P where
-  equivA := sorry
-  equivB := sorry
+  equivA := (_root_.Equiv.uniqueSigma _).trans (Equiv.punitArrowEquiv P.A)
+  equivB := fun _ => by exact _root_.Equiv.uniqueSigma _
 
 /-- Distributivity of composition over sum on the right -/
 def sumCompDistrib (Q : PFunctor.{uA₂, uB₁}) :
@@ -393,9 +444,12 @@ def sumCompDistrib (Q : PFunctor.{uA₂, uB₁}) :
 
 -- def prodCompDistrib (Q : PFunctor.{uA₂, uB₂}) (R : PFunctor.{uA₃, uB₃}) :
 --     (P * Q : PFunctor.{max uA₁ uA₂, max uB₁ uB₂}) ◃ R ≃ₚ
---     (P ◃ R * Q ◃ R : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) where
+--     ((P ◃ R) * (Q ◃ R) : PFunctor.{max uA₁ uA₂ uA₃, max uB₁ uB₂ uB₃}) where
 --   equivA := sorry
 --   equivB := sorry
+
+-- sigmaCompDistrib
+-- piCompDistrib
 
 -- sigma / pi / tensor and comp?
 
