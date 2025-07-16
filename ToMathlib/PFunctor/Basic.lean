@@ -17,140 +17,176 @@ universe u v uA uB uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄ uA₅ uB₅ u
 
 namespace PFunctor
 
-/-- Lift a polynomial functor to a larger universe. -/
-protected def ulift (P : PFunctor.{uA, uB}) : PFunctor.{max uA vA, max uB vB} :=
-  ⟨ULift P.A, fun a => ULift (P.B (ULift.down a))⟩
+section Basic
 
-/-- The zero polynomial functor -/
-def zero : PFunctor.{uA, uB} := ⟨PEmpty, fun _ => PEmpty⟩
-
-/-- The unit polynomial functor -/
-def one : PFunctor.{uA, uB} := ⟨PUnit, fun _ => PEmpty⟩
-
+/-- The zero polynomial functor, defined as `A = PEmpty` and `B _ = PEmpty`, is the identity with
+  respect to sum (up to equivalence) -/
 instance : Zero PFunctor.{uA, uB} where
-  zero := zero
+  zero := ⟨PEmpty, fun _ => PEmpty⟩
 
+/-- The unit polynomial functor, defined as `A = PUnit` and `B _ = PEmpty`, is the identity with
+  respect to product (up to equivalence) -/
 instance : One PFunctor.{uA, uB} where
-  one := one
+  one := ⟨PUnit, fun _ => PEmpty⟩
 
-/-- The variable `y` polynomial functor. This is the unit for composition. -/
+/-- The variable `y` polynomial functor, defined as `A = PUnit` and `B _ = PUnit`, is the identity
+  with respect to tensor product and composition (up to equivalence) -/
 def y : PFunctor.{uA, uB} :=
   ⟨PUnit, fun _ => PUnit⟩
 
-instance : IsEmpty zero.A := inferInstanceAs (IsEmpty PEmpty)
 instance : IsEmpty (A 0) := inferInstanceAs (IsEmpty PEmpty)
-instance : Unique one.A := inferInstanceAs (Unique PUnit)
 instance : Unique (A 1) := inferInstanceAs (Unique PUnit)
-instance : Unique y.A := inferInstanceAs (Unique PUnit)
+instance : IsEmpty (B 1 PUnit.unit) := inferInstanceAs (IsEmpty PEmpty)
+instance : Unique (A y) := inferInstanceAs (Unique PUnit)
+instance : Unique (B y PUnit.unit) := inferInstanceAs (Unique PUnit)
 
-/-- The monomial functor `P(y) = A y^B` -/
+@[simp] lemma y_A : y.A = PUnit := rfl
+@[simp] lemma y_B (a : y.A) : y.B a = PUnit := rfl
+
+end Basic
+
+section Monomial
+
+/-- The monomial functor, also written `P(y) = A y^ B`, has `A` as its head type and the constant
+  family `B_a = B` as the child type for each each shape `a : A` . -/
 def monomial (A : Type uA) (B : Type uB) : PFunctor.{uA, uB} :=
   ⟨A, fun _ => B⟩
 
-@[inherit_doc] infixr:80 " y^" => monomial
+@[inherit_doc] scoped[PFunctor] infixr:80 " y^ " => monomial
 
-/-- The constant functor `P(y) = A` -/
+/-- The constant polynomial functor `P(y) = A` -/
 def C (A : Type uA) : PFunctor.{uA, uB} :=
   A y^ PEmpty
 
-/-- The linear functor `P(y) = A y` -/
+/-- The linear polynomial functor `P(y) = A y` -/
 def linear (A : Type uA) : PFunctor.{uA, uB} :=
   A y^ PUnit
 
-/-- The self monomial functor `P(y) = S y^S` -/
-def selfMonomial (S : Type uA) : PFunctor.{uA, uA} := S y^S
+/-- The self monomial polynomial functor `P(y) = S y^ S` -/
+def selfMonomial (S : Type uA) : PFunctor.{uA, uA} :=
+  S y^ S
 
-/-- The pure power functor `P(y) = y^B` -/
+/-- The pure power polynomial functor `P(y) = y^ B` -/
 def purePower (B : Type uB) : PFunctor.{uA, uB} :=
   PUnit y^ B
 
 /-- A polynomial functor is representable if it is equivalent to `y^A` for some type `A`. -/
 alias representable := purePower
 
-section Coprod
+@[simp] lemma C_zero : C PEmpty = 0 := rfl
+@[simp] lemma C_one : C PUnit = 1 := rfl
 
-/-- Coprodudct (sum) of polynomial functors `P + Q`. Requires the output universe to be the same. -/
-def coprod (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB}) :
+@[simp] lemma C_A (A : Type u) : (C A).A = A := rfl
+@[simp] lemma C_B (A : Type u) (a : (C A).A) : (C A).B a = PEmpty := rfl
+
+@[simp] lemma linear_A (A : Type u) : (linear A).A = A := rfl
+@[simp] lemma linear_B (A : Type u) (a : (linear A).A) : (linear A).B a = PUnit := rfl
+
+@[simp] lemma purePower_A (B : Type u) : (purePower B).A = PUnit := rfl
+@[simp] lemma purePower_B (B : Type u) (a : (purePower B).A) : (purePower B).B a = B := rfl
+
+end Monomial
+
+section Sum
+
+/-- The sum (coproduct) of two polynomial functors `P` and `Q`, written as `P + Q`.
+
+Defined as the sum of the head types and the sum case analysis for the child types.
+
+Note: requires the `B` universe levels to be the same. -/
+def sum (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB}) :
     PFunctor.{max uA₁ uA₂, uB} :=
   ⟨P.A ⊕ Q.A, Sum.elim P.B Q.B⟩
 
+/-- Addition of polynomial functors, defined as the sum construction. -/
 instance : HAdd PFunctor.{uA₁, uB} PFunctor.{uA₂, uB} PFunctor.{max uA₁ uA₂, uB} where
-  hAdd := coprod
+  hAdd := sum
 
 instance : Add PFunctor.{uA, uB} where
-  add := coprod
+  add := sum
 
-alias coprodUnit := zero
+alias coprod := sum
 
-/-- Generalized coproduct (sigma type) of an indexed family of polynomial functors -/
-def sigma {I : Type v} (F : I → PFunctor.{uA, uB}) : PFunctor.{max uA v, max uB v} :=
-  ⟨Σ i, (F i).A, fun ⟨i, a⟩ => ULift ((F i).B a)⟩
+/-- The generalized sum (sigma type) of an indexed family of polynomial functors. -/
+def sigma {I : Type v} (F : I → PFunctor.{uA, uB}) : PFunctor.{max uA v, uB} :=
+  ⟨Σ i, (F i).A, fun ⟨i, a⟩ => (F i).B a⟩
 
 -- macro "Σₚ" xs:Lean.explicitBinders ", " b:term : term => Lean.expandExplicitBinders ``sigma xs b
 
-end Coprod
+end Sum
 
 section Prod
 
-/-- Product of polynomial functors `P * Q` -/
+/-- The product of two polynomial functors `P` and `Q`, written as `P * Q`.
+
+Defined as the product of the head types and the sum of the child types. -/
 def prod (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
     PFunctor.{max uA₁ uA₂, max uB₁ uB₂} :=
   ⟨P.A × Q.A, fun ab => P.B ab.1 ⊕ Q.B ab.2⟩
 
+/-- Multiplication of polynomial functors, defined as the product construction. -/
 instance : HMul PFunctor.{uA₁, uB₁} PFunctor.{uA₂, uB₂} PFunctor.{max uA₁ uA₂, max uB₁ uB₂} where
   hMul := prod
 
 instance : Mul PFunctor.{uA, uB} where
   mul := prod
 
-alias prodUnit := one
-
-/-- Generalized product (pi type) of an indexed family of polynomial functors -/
+/-- The generalized product (pi type) of an indexed family of polynomial functors. -/
 def pi {I : Type v} (F : I → PFunctor.{uA, uB}) : PFunctor.{max uA v, max uB v} :=
   ⟨(i : I) → (F i).A, fun f => Σ i, (F i).B (f i)⟩
 
 end Prod
 
+section Tensor
+
+/-- The tensor (also called parallel or Dirichlet) product of two polynomial functors `P` and `Q`.
+
+Defined as the product of the head types and the product of the child types. -/
+def tensor (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
+    PFunctor.{max uA₁ uA₂, max uB₁ uB₂} :=
+  ⟨P.A × Q.A, fun ab => P.B ab.1 × Q.B ab.2⟩
+
+/-- Infix notation for tensor product `P ⊗ₚ Q` -/
+scoped[PFunctor] infixl:70 " ⊗ₚ " => tensor
+
+/-- The unit for the tensor product `Y` -/
+alias tensorUnit := y
+
+end Tensor
+
 section Comp
 
 /-- Infix notation for `PFunctor.comp P Q` -/
-infixl:80 " ◂ " => PFunctor.comp
+scoped[PFunctor] infixl:80 " ◃ " => PFunctor.comp
 
 /-- The unit for composition `Y` -/
 alias compUnit := y
 
-/-- Repeated composition `P ◂ P ◂ ... ◂ P` (n times). -/
+/-- Repeated composition `P ◃ P ◃ ... ◃ P` (n times). -/
 @[simp]
 def compNth (P : PFunctor.{uA, uB}) : Nat → PFunctor.{max uA uB, uB}
   | 0 => y
-  | Nat.succ n => P ◂ compNth P n
+  | Nat.succ n => P ◃ compNth P n
 
 instance : NatPow PFunctor.{max uA uB, uB} where
   pow := compNth
 
 end Comp
 
+section ULift
+
+/-- Lift a polynomial functor `P` to a pair of larger universes. -/
+protected def ulift (P : PFunctor.{uA, uB}) : PFunctor.{max uA vA, max uB vB} :=
+  ⟨ULift P.A, fun a => ULift (P.B (ULift.down a))⟩
+
+end ULift
+
 /-- Exponential of polynomial functors `P ^ Q` -/
 def exp (P Q : PFunctor.{uA, uB}) : PFunctor.{max uA uB, max uA uB} :=
-  pi (fun a => P ◂ (y + C (Q.B a)))
+  pi (fun a => P ◃ (y + C (Q.B a)))
 
 instance : HPow PFunctor.{uA, uB} PFunctor.{uA, uB} PFunctor.{max uA uB, max uA uB} where
   hPow := exp
-
-section Tensor
-
-/-- Tensor or parallel product of polynomial functors -/
-def tensor (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) :
-    PFunctor.{max uA₁ uA₂, max uB₁ uB₂} :=
-  ⟨P.A × Q.A, fun ab => P.B ab.1 × Q.B ab.2⟩
-
-/-- Infix notation for tensor product `P ⊗ₚ Q` -/
-infixl:70 " ⊗ₚ " => tensor
-
-/-- The unit for the tensor product `Y` -/
-alias tensorUnit := y
-
-end Tensor
 
 section Fintype
 
@@ -170,9 +206,44 @@ instance {P : PFunctor.{uA, uB}} [inst : P.Fintype] : ∀ a, Fintype (P.B a) :=
 
 end Fintype
 
+/-- An equivalence between two polynomial functors `P` and `Q`, written `P ≃ₚ Q`, is given by an
+equivalence of the `A` types and an equivalence between the `B` types for each `a : A`. -/
+@[ext]
+structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
+  /-- An equivalence between the `A` types -/
+  equivA : P.A ≃ Q.A
+  /-- An equivalence between the `B` types for each `a : A` -/
+  equivB : ∀ a, P.B a ≃ Q.B (equivA a)
 
+@[inherit_doc] scoped[PFunctor] infixl:25 " ≃ₚ " => Equiv
 
+namespace Equiv
 
+/-- The identity equivalence between a polynomial functor `P` and itself. -/
+def refl (P : PFunctor.{uA, uB}) : P ≃ₚ P where
+  equivA := _root_.Equiv.refl P.A
+  equivB := fun a => _root_.Equiv.refl (P.B a)
+
+/-- The inverse of an equivalence between polynomial functors. -/
+def symm {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (E : P ≃ₚ Q) : Q ≃ₚ P where
+  equivA := E.equivA.symm
+  equivB := fun a =>
+    (Equiv.cast (congrArg Q.B ((Equiv.symm_apply_eq E.equivA).mp rfl))).trans
+      (E.equivB (E.equivA.symm a)).symm
+
+/-- The composition of two equivalences between polynomial functors. -/
+def trans {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
+    (E : P ≃ₚ Q) (F : Q ≃ₚ R) : P ≃ₚ R where
+  equivA := E.equivA.trans F.equivA
+  equivB := fun a => (E.equivB a).trans (F.equivB (E.equivA a))
+
+/-- Equivalence between two polynomial functors `P` and `Q` that are equal. -/
+def cast {P Q : PFunctor.{uA, uB}} (hA : P.A = Q.A) (hB : ∀ a, P.B a = Q.B (cast hA a)) :
+    P ≃ₚ Q where
+  equivA := _root_.Equiv.cast hA
+  equivB := fun a => _root_.Equiv.cast (hB a)
+
+end Equiv
 
 /-- A **lens** between two polynomial functors `P` and `Q` is a pair of a function:
 - `toFunA : P.A → Q.A`
@@ -316,10 +387,10 @@ def prodMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFu
 -- def piForall
 -- def piMap
 
-/-- Apply lenses to both sides of a composition: `l₁ ◂ₗ l₂ : (P ◂ Q ⇆ R ◂ W)` -/
+/-- Apply lenses to both sides of a composition: `l₁ ◃ₗ l₂ : (P ◃ Q ⇆ R ◃ W)` -/
 def compMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
     {W : PFunctor.{uA₄, uB₄}} (l₁ : Lens P R) (l₂ : Lens Q W) :
-    Lens.{max uA₁ uA₂ uB₁, max uB₁ uB₂, max uA₃ uA₄ uB₃, max uB₃ uB₄} (P ◂ Q) (R ◂ W) :=
+    Lens.{max uA₁ uA₂ uB₁, max uB₁ uB₂, max uA₃ uA₄ uB₃, max uB₃ uB₄} (P ◃ Q) (R ◃ W) :=
   (fun ⟨pa, pq⟩ => ⟨l₁.toFunA pa, fun rb' => l₂.toFunA (pq (l₁.toFunB pa rb'))⟩) ⇆
     (fun ⟨pa, pq⟩ ⟨rb, wc⟩ =>
       let pb := l₁.toFunB pa rb
@@ -333,23 +404,23 @@ def tensorMap {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : P
   (fun ⟨pa, qa⟩ => (l₁.toFunA pa, l₂.toFunA qa)) ⇆
     (fun ⟨_pa, qa⟩ ⟨rb, wb⟩ => (l₁.toFunB _pa rb, l₂.toFunB qa wb))
 
-/-- Lens to introduce `y` on the right: `P → P ◂ y` -/
-def tildeR {P : PFunctor.{uA, uB}} : Lens P (P ◂ y) :=
+/-- Lens to introduce `y` on the right: `P → P ◃ y` -/
+def tildeR {P : PFunctor.{uA, uB}} : Lens P (P ◃ y) :=
   (fun a => ⟨a, fun _ => PUnit.unit⟩) ⇆ (fun _a => fun ⟨b, _⟩ => b)
 
-/-- Lens to introduce `y` on the left: `P → y ◂ P` -/
-def tildeL {P : PFunctor.{uA, uB}} : Lens P (y ◂ P) :=
+/-- Lens to introduce `y` on the left: `P → y ◃ P` -/
+def tildeL {P : PFunctor.{uA, uB}} : Lens P (y ◃ P) :=
   (fun a => ⟨PUnit.unit, fun _ => a⟩) ⇆ (fun _a => fun ⟨_, b⟩ => b)
 
-/-- Lens from `P ◂ y` to `P` -/
-def invTildeR {P : PFunctor.{uA, uB}} : Lens (P ◂ y) P :=
+/-- Lens from `P ◃ y` to `P` -/
+def invTildeR {P : PFunctor.{uA, uB}} : Lens (P ◃ y) P :=
   (fun a => a.1) ⇆ (fun _ b => ⟨b, PUnit.unit⟩)
 
-/-- Lens from `y ◂ P` to `P` -/
-def invTildeL {P : PFunctor.{uA, uB}} : Lens (y ◂ P) P :=
+/-- Lens from `y ◃ P` to `P` -/
+def invTildeL {P : PFunctor.{uA, uB}} : Lens (y ◃ P) P :=
   (fun ⟨_, f⟩ => f PUnit.unit) ⇆ (fun _ b => ⟨PUnit.unit, b⟩)
 
-@[inherit_doc] infixl:75 " ◂ₗ " => compMap
+@[inherit_doc] infixl:75 " ◃ₗ " => compMap
 @[inherit_doc] infixl:75 " ×ₗ " => prodMap
 @[inherit_doc] infixl:75 " ⊎ₗ " => coprodMap
 @[inherit_doc] infixl:75 " ⊗ₗ " => tensorMap
@@ -361,13 +432,13 @@ def enclose (P : PFunctor.{uA, uB}) : Type max uA uA₁ uB uB₁ :=
   Lens P y.{uA₁, uB₁}
 
 /-- Helper lens for `speedup` -/
-def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◂ selfMonomial S) :=
+def fixState {S : Type u} : Lens (selfMonomial S) (selfMonomial S ◃ selfMonomial S) :=
   (fun s₀ => ⟨s₀, fun s₁ => s₁⟩) ⇆ (fun _s₀ => fun ⟨_s₁, s₂⟩ => s₂)
 
-/-- The `speedup` lens operation: `Lens (S y^S) P → Lens (S y^S) (P ◂ P)` -/
+/-- The `speedup` lens operation: `Lens (S y^S) P → Lens (S y^S) (P ◃ P)` -/
 def speedup {S : Type u} {P : PFunctor.{uA, uB}} (l : Lens (selfMonomial S) P) :
-    Lens (selfMonomial S) (P ◂ P) :=
-  (l ◂ₗ l) ∘ₗ fixState
+    Lens (selfMonomial S) (P ◃ P) :=
+  (l ◃ₗ l) ∘ₗ fixState
 
 end Lens
 
@@ -483,27 +554,6 @@ theorem Chart.ext {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (c
   subst h
   simp_all
   exact funext h₂
-
-@[simp] theorem C_zero : C PEmpty = 0 := rfl
-@[simp] theorem C_one : C PUnit = 1 := rfl
-
-@[simp] lemma zero_A : zero.A = PEmpty := rfl
-@[simp] lemma zero_B (a : zero.A) : zero.B a = PEmpty := PEmpty.elim a
-
-@[simp] lemma one_A : one.A = PUnit := rfl
-@[simp] lemma one_B (a : one.A) : one.B a = PEmpty := rfl
-
-@[simp] lemma y_A : y.A = PUnit := rfl
-@[simp] lemma y_B (a : y.A) : y.B a = PUnit := rfl
-
-@[simp] lemma C_A (A : Type u) : (C A).A = A := rfl
-@[simp] lemma C_B (A : Type u) (a : (C A).A) : (C A).B a = PEmpty := rfl
-
-@[simp] lemma linear_A (A : Type u) : (linear A).A = A := rfl
-@[simp] lemma linear_B (A : Type u) (a : (linear A).A) : (linear A).B a = PUnit := rfl
-
-@[simp] lemma purePower_A (B : Type u) : (purePower B).A = PUnit := rfl
-@[simp] lemma purePower_B (B : Type u) (a : (purePower B).A) : (purePower B).B a = B := rfl
 
 lemma y_eq_linear_pUnit : y = linear PUnit := rfl
 lemma y_eq_purePower_pUnit : y = purePower PUnit := rfl
@@ -833,18 +883,18 @@ variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunct
 
 @[simp]
 theorem compMap_id :
-    (Lens.id P) ◂ₗ (Lens.id Q) = Lens.id (P ◂ Q) := by
+    (Lens.id P) ◃ₗ (Lens.id Q) = Lens.id (P ◃ Q) := by
   ext ⟨_, _⟩ ⟨_, _⟩ <;> rfl
 
 theorem compMap_comp
     {P' : PFunctor.{uA₄, uB₄}} {Q' : PFunctor.{uA₅, uB₅}} {R' : PFunctor.{uA₆, uB₆}}
     (l₁ : Lens P P') (l₂ : Lens Q Q') (l₁' : Lens P' R) (l₂' : Lens Q' R') :
-    (l₁' ∘ₗ l₁) ◂ₗ (l₂' ∘ₗ l₂) = (l₁' ◂ₗ l₂') ∘ₗ (l₁ ◂ₗ l₂) := rfl
+    (l₁' ∘ₗ l₁) ◃ₗ (l₂' ∘ₗ l₂) = (l₁' ◃ₗ l₂') ∘ₗ (l₁ ◃ₗ l₂) := rfl
 
 namespace Equiv
 
 /-- Associativity of composition -/
-def compAssoc : (P ◂ Q) ◂ R ≃ₗ P ◂ (Q ◂ R) where
+def compAssoc : (P ◃ Q) ◃ R ≃ₗ P ◃ (Q ◃ R) where
   toLens := (fun ⟨⟨pa, qf⟩, rf⟩ => ⟨pa, fun pb => ⟨qf pb, fun qb => rf ⟨pb, qb⟩⟩⟩) ⇆
             (fun _ ⟨pb, ⟨qb, rb⟩⟩ => ⟨⟨pb, qb⟩, rb⟩)
   invLens := (fun ⟨pa, g⟩ => ⟨⟨pa, fun pb => (g pb).1⟩, fun ⟨pb, qb⟩ => (g pb).2 qb⟩) ⇆
@@ -853,14 +903,14 @@ def compAssoc : (P ◂ Q) ◂ R ≃ₗ P ◂ (Q ◂ R) where
   right_inv := rfl
 
 /-- Composition with `y` is identity (right) -/
-def compY : P ◂ y ≃ₗ P where
+def compY : P ◃ y ≃ₗ P where
   toLens := invTildeR
   invLens := tildeR
   left_inv := rfl
   right_inv := rfl
 
 /-- Composition with `y` is identity (left) -/
-def yComp : y ◂ P ≃ₗ P where
+def yComp : y ◃ P ≃ₗ P where
   toLens := invTildeL
   invLens := tildeL
   left_inv := rfl
@@ -869,7 +919,7 @@ def yComp : y ◂ P ≃ₗ P where
 /-- Distributivity of composition over coproduct on the right -/
 def coprodCompDistrib {R : PFunctor.{uA₃, uB₂}} :
     Lens.Equiv.{max uA₁ uA₂ uA₃ uB₂, max uB₁ uB₂, max uA₁ uA₂ uA₃ uB₂, max uB₁ uB₂}
-      ((Q + R : PFunctor.{max uA₂ uA₃, uB₂}) ◂ P) ((Q ◂ P) + (R ◂ P)) where
+      ((Q + R : PFunctor.{max uA₂ uA₃, uB₂}) ◃ P) ((Q ◃ P) + (R ◃ P)) where
   toLens := (fun a => match a with
               | ⟨Sum.inl qa, pf⟩ => Sum.inl ⟨qa, pf⟩
               | ⟨Sum.inr ra, pf⟩ => Sum.inr ⟨ra, pf⟩) ⇆
@@ -1011,94 +1061,94 @@ instance [IsEmpty I] {F : I → PFunctor.{u}} : IsEmpty (sigma F).A := by
 instance [IsEmpty I] {F : I → PFunctor.{u}} {a : (sigma F).A} : IsEmpty ((sigma F).B a) :=
   isEmptyElim a
 
-/-- Sigma of an empty family is the zero functor. -/
-def sigmaEmpty [IsEmpty I] {F : I → PFunctor.{u}} : sigma F ≃ₗ 0 where
-  toLens := isEmptyElim ⇆ (fun a _ => isEmptyElim a)
-  invLens := isEmptyElim ⇆ (fun a _ => isEmptyElim a)
-  left_inv := by ext a <;> exact isEmptyElim a
-  right_inv := by ext a <;> exact isEmptyElim a
+-- /-- Sigma of an empty family is the zero functor. -/
+-- def sigmaEmpty [IsEmpty I] {F : I → PFunctor.{u}} : sigma F ≃ₗ 0 where
+--   toLens := isEmptyElim ⇆ (fun a _ => isEmptyElim a)
+--   invLens := isEmptyElim ⇆ (fun a _ => isEmptyElim a)
+--   left_inv := by ext a <;> exact isEmptyElim a
+--   right_inv := by ext a <;> exact isEmptyElim a
 
-/-- Sigma of a `PUnit`-indexed family is equivalent to the functor itself. -/
-def sigmaUnit {F : PUnit → PFunctor.{u}} : sigma F ≃ₗ (F PUnit.unit).ulift where
-  toLens := (fun ⟨_, a⟩ => ULift.up a) ⇆ (fun _ b => b)
-  invLens := (fun a => ⟨PUnit.unit, ULift.down a⟩) ⇆ (fun _ b => b)
-  left_inv := rfl
-  right_inv := rfl
+-- /-- Sigma of a `PUnit`-indexed family is equivalent to the functor itself. -/
+-- def sigmaUnit {F : PUnit → PFunctor.{u}} : sigma F ≃ₗ (F PUnit.unit).ulift where
+--   toLens := (fun ⟨_, a⟩ => ULift.up a) ⇆ (fun _ b => b)
+--   invLens := (fun a => ⟨PUnit.unit, ULift.down a⟩) ⇆ (fun _ b => b)
+--   left_inv := rfl
+--   right_inv := rfl
 
-/-- Sigma of an `I`-indexed family, where `I` is unique, is equivalent to the functor itself. -/
-def sigmaOfUnique [Unique I] {F : I → PFunctor.{u}} : sigma F ≃ₗ (F default).ulift where
-  toLens := (fun ⟨_, a⟩ => (Unique.uniq _ _) ▸ ULift.up a) ⇆
-            (fun ⟨i, a⟩ b => (Unique.uniq _ i) ▸ b)
-  invLens := (fun a => ⟨default, ULift.down a⟩) ⇆ (fun _ b => b)
-  left_inv := by
-    ext ⟨i, a⟩ b <;> simp [sigma, Lens.id, comp]
-    · generalize_proofs h; subst h; simp
-    · generalize_proofs _ h; subst h; simp
-  right_inv := rfl
+-- /-- Sigma of an `I`-indexed family, where `I` is unique, is equivalent to the functor itself. -/
+-- def sigmaOfUnique [Unique I] {F : I → PFunctor.{u}} : sigma F ≃ₗ (F default).ulift where
+--   toLens := (fun ⟨_, a⟩ => (Unique.uniq _ _) ▸ ULift.up a) ⇆
+--             (fun ⟨i, a⟩ b => (Unique.uniq _ i) ▸ b)
+--   invLens := (fun a => ⟨default, ULift.down a⟩) ⇆ (fun _ b => b)
+--   left_inv := by
+--     ext ⟨i, a⟩ b <;> simp [sigma, Lens.id, comp]
+--     · generalize_proofs h; subst h; simp
+--     · generalize_proofs _ h; subst h; simp
+--   right_inv := rfl
 
-/-- Left distributivity of product over sigma. -/
-def prodSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    P * sigma F ≃ₗ sigma (fun i => P * F i) where
-  toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
-            (fun _ b => match ULift.down b with
-              | Sum.inl p => Sum.inl p
-              | Sum.inr q => Sum.inr (ULift.up q))
-  invLens := (fun ⟨i, ⟨pa, fia⟩⟩ => ⟨pa, ⟨i, fia⟩⟩) ⇆
-             (fun _ b => match b with
-              | Sum.inl p => ULift.up (Sum.inl p)
-              | Sum.inr q => ULift.up (Sum.inr (ULift.down q)))
-  left_inv := by
-    ext ⟨pa, ⟨i, fia⟩⟩ b
-    · rfl
-    · rcases b with _ | _ <;> rfl
-  right_inv := by
-    ext ⟨i, ⟨pa, fia⟩⟩ b
-    · rfl
-    · rcases b with _ | _ <;> rfl
+-- /-- Left distributivity of product over sigma. -/
+-- def prodSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+--     P * sigma F ≃ₗ sigma (fun i => P * F i) where
+--   toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
+--             (fun _ b => match ULift.down b with
+--               | Sum.inl p => Sum.inl p
+--               | Sum.inr q => Sum.inr (ULift.up q))
+--   invLens := (fun ⟨i, ⟨pa, fia⟩⟩ => ⟨pa, ⟨i, fia⟩⟩) ⇆
+--              (fun _ b => match b with
+--               | Sum.inl p => ULift.up (Sum.inl p)
+--               | Sum.inr q => ULift.up (Sum.inr (ULift.down q)))
+--   left_inv := by
+--     ext ⟨pa, ⟨i, fia⟩⟩ b
+--     · rfl
+--     · rcases b with _ | _ <;> rfl
+--   right_inv := by
+--     ext ⟨i, ⟨pa, fia⟩⟩ b
+--     · rfl
+--     · rcases b with _ | _ <;> rfl
 
-/-- Right distributivity of product over sigma. -/
-def sigmaProdDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    sigma F * P ≃ₗ sigma (fun i => F i * P) where
-  toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
-            (fun _ b => match ULift.down b with
-              | Sum.inl p => Sum.inl (ULift.up p)
-              | Sum.inr q => Sum.inr q)
-  invLens := (fun ⟨i, ⟨fia, pa⟩⟩ => ⟨⟨i, fia⟩, pa⟩) ⇆
-             (fun _ b => match b with
-              | Sum.inl p => ULift.up (Sum.inl (ULift.down p))
-              | Sum.inr q => ULift.up (Sum.inr q))
-  left_inv := by
-    ext ⟨⟨i, fia⟩, pa⟩ b
-    · rfl
-    · rcases b with _ | _ <;> rfl
-  right_inv := by
-    ext ⟨i, ⟨fia, pa⟩⟩ b
-    · rfl
-    · rcases b with _ | _ <;> rfl
+-- /-- Right distributivity of product over sigma. -/
+-- def sigmaProdDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+--     sigma F * P ≃ₗ sigma (fun i => F i * P) where
+--   toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
+--             (fun _ b => match ULift.down b with
+--               | Sum.inl p => Sum.inl (ULift.up p)
+--               | Sum.inr q => Sum.inr q)
+--   invLens := (fun ⟨i, ⟨fia, pa⟩⟩ => ⟨⟨i, fia⟩, pa⟩) ⇆
+--              (fun _ b => match b with
+--               | Sum.inl p => ULift.up (Sum.inl (ULift.down p))
+--               | Sum.inr q => ULift.up (Sum.inr q))
+--   left_inv := by
+--     ext ⟨⟨i, fia⟩, pa⟩ b
+--     · rfl
+--     · rcases b with _ | _ <;> rfl
+--   right_inv := by
+--     ext ⟨i, ⟨fia, pa⟩⟩ b
+--     · rfl
+--     · rcases b with _ | _ <;> rfl
 
-/-- Left distributivity of tensor product over sigma. -/
-def tensorSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    P ⊗ₚ sigma F ≃ₗ sigma (fun i => P ⊗ₚ F i) where
-  toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
-            (fun _ ⟨pb, fib⟩ => ⟨pb, ULift.up fib⟩)
-  invLens := (fun ⟨i, ⟨pa, fia⟩⟩ => ⟨pa, ⟨i, fia⟩⟩) ⇆
-             (fun _ ⟨pb, fib⟩ => ⟨pb, ULift.down fib⟩)
-  left_inv := rfl
-  right_inv := rfl
+-- /-- Left distributivity of tensor product over sigma. -/
+-- def tensorSigmaDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+--     P ⊗ₚ sigma F ≃ₗ sigma (fun i => P ⊗ₚ F i) where
+--   toLens := (fun ⟨pa, ⟨i, fia⟩⟩ => ⟨i, ⟨pa, fia⟩⟩) ⇆
+--             (fun _ ⟨pb, fib⟩ => ⟨pb, ULift.up fib⟩)
+--   invLens := (fun ⟨i, ⟨pa, fia⟩⟩ => ⟨pa, ⟨i, fia⟩⟩) ⇆
+--              (fun _ ⟨pb, fib⟩ => ⟨pb, ULift.down fib⟩)
+--   left_inv := rfl
+--   right_inv := rfl
 
-/-- Right distributivity of tensor product over sigma. -/
-def sigmaTensorDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
-    sigma F ⊗ₚ P ≃ₗ sigma (fun i => F i ⊗ₚ P) where
-  toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
-            (fun _ ⟨fib, pb⟩ => ⟨ULift.up fib, pb⟩)
-  invLens := (fun ⟨i, ⟨fia, pa⟩⟩ => ⟨⟨i, fia⟩, pa⟩) ⇆
-             (fun _ ⟨fib, pb⟩ => ⟨ULift.down fib, pb⟩)
-  left_inv := rfl
-  right_inv := rfl
+-- /-- Right distributivity of tensor product over sigma. -/
+-- def sigmaTensorDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
+--     sigma F ⊗ₚ P ≃ₗ sigma (fun i => F i ⊗ₚ P) where
+--   toLens := (fun ⟨⟨i, fia⟩, pa⟩ => ⟨i, ⟨fia, pa⟩⟩) ⇆
+--             (fun _ ⟨fib, pb⟩ => ⟨ULift.up fib, pb⟩)
+--   invLens := (fun ⟨i, ⟨fia, pa⟩⟩ => ⟨⟨i, fia⟩, pa⟩) ⇆
+--              (fun _ ⟨fib, pb⟩ => ⟨ULift.down fib, pb⟩)
+--   left_inv := rfl
+--   right_inv := rfl
 
 -- /-- Right distributivity of composition over sigma. -/
 -- def sigmaCompDistrib {P : PFunctor.{u}} {I : Type u} {F : I → PFunctor.{u}} :
---     (sigma F) ◂ P ≃ₗ sigma (fun i => F i ◂ P) where
+--     (sigma F) ◃ P ≃ₗ sigma (fun i => F i ◃ P) where
 --   toLens := (fun ⟨⟨i, fia⟩, pf⟩ => ⟨i, ⟨fia, pf⟩⟩) ⇆
 --             (fun _ b => match ULift.down b with
 --               | Sum.inl p => Sum.inl (ULift.up p)
@@ -1141,14 +1191,6 @@ end Lens
 -- Do the same for charts?
 
 end Lemmas
-
-/-- Equivalence between two polynomial functors `P` and `Q`.
-
-This is a special case of both `Lens` and `Chart`. -/
-@[ext]
-structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
-  equivA : P.A ≃ Q.A
-  equivB : ∀ a, P.B a ≃ Q.B (equivA a)
 
 namespace Equiv
 
