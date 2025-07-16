@@ -37,43 +37,7 @@ universe u v uA uB uA' uB' uA₁ uB₁ uA₂ uB₂ uA₃ uB₃ uA₄ uB₄
 
 namespace PFunctor
 
--- /-- An equivalence between two polynomial functors `P` and `Q`, written `P ≃ₚ Q`, is given by an
--- equivalence of the `A` types and an equivalence between the `B` types for each `a : A`. -/
--- @[ext]
--- structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
---   /-- An equivalence between the `A` types -/
---   equivA : P.A ≃ Q.A
---   /-- An equivalence between the `B` types for each `a : A` -/
---   equivB : ∀ a, P.B a ≃ Q.B (equivA a)
-
--- @[inherit_doc]
--- infixl:25 " ≃ₚ " => Equiv
-
 namespace Equiv
-
--- /-- The identity equivalence between a polynomial functor `P` and itself. -/
--- def refl (P : PFunctor.{uA, uB}) : P ≃ₚ P where
---   equivA := _root_.Equiv.refl P.A
---   equivB := fun a => _root_.Equiv.refl (P.B a)
-
--- /-- The inverse of an equivalence between polynomial functors. -/
--- def symm {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} (E : P ≃ₚ Q) : Q ≃ₚ P where
---   equivA := E.equivA.symm
---   equivB := fun a =>
---     (Equiv.cast (congrArg Q.B ((Equiv.symm_apply_eq E.equivA).mp rfl))).trans
---       (E.equivB (E.equivA.symm a)).symm
-
--- /-- The composition of two equivalences between polynomial functors. -/
--- def trans {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {R : PFunctor.{uA₃, uB₃}}
---     (E : P ≃ₚ Q) (F : Q ≃ₚ R) : P ≃ₚ R where
---   equivA := E.equivA.trans F.equivA
---   equivB := fun a => (E.equivB a).trans (F.equivB (E.equivA a))
-
--- /-- Equivalence between two polynomial functors `P` and `Q` that are equal. -/
--- def cast {P Q : PFunctor.{uA, uB}} (hA : P.A = Q.A) (hB : ∀ a, P.B a = Q.B (cast hA a)) :
---     P ≃ₚ Q where
---   equivA := _root_.Equiv.cast hA
---   equivB := fun a => _root_.Equiv.cast (hB a)
 
 section Sum
 
@@ -81,6 +45,7 @@ variable (P : PFunctor.{uA₁, uB}) (Q : PFunctor.{uA₂, uB})
   (R : PFunctor.{uA₃, uB}) (S : PFunctor.{uA₄, uB})
 
 /-- Addition with the zero functor on the left is equivalent to the original functor -/
+@[simps]
 def sumZero : P + 0 ≃ₚ P where
   equivA := Equiv.sumEmpty P.A PEmpty
   equivB := fun a => {
@@ -101,6 +66,7 @@ def sumZero : P + 0 ≃ₚ P where
     }
 
 /-- Addition with the zero functor on the right is equivalent to the original functor -/
+@[simps]
 def zeroSum : 0 + P ≃ₚ P where
   equivA := Equiv.emptySum PEmpty P.A
   equivB := fun a => {
@@ -121,25 +87,74 @@ def zeroSum : 0 + P ≃ₚ P where
   }
 
 /-- Sum of polynomial functors is commutative up to equivalence -/
-def sumComm : (P + Q : PFunctor.{max uA₁ uA₂, uB}) ≃ₚ (Q + P : PFunctor.{max uA₁ uA₂, uB}) :=
-  sorry
+@[simps]
+def sumComm : (P + Q : PFunctor.{max uA₁ uA₂, uB}) ≃ₚ (Q + P : PFunctor.{max uA₁ uA₂, uB}) where
+  equivA := _root_.Equiv.sumComm P.A Q.A
+  equivB := fun a => {
+    toFun := fun x => match a with
+      | Sum.inl a => x
+      | Sum.inr a => x
+    invFun := fun x => match a with
+      | Sum.inl a => x
+      | Sum.inr a => x
+    left_inv := fun x => by rcases a with _ | _ <;> simp
+    right_inv := fun x => by rcases a with _ | _ <;> simp
+  }
 
 /-- Sum of polynomial functors is associative up to equivalence -/
+@[simps]
 def sumAssoc :
     ((P + Q) + R : PFunctor.{max uA₁ uA₂ uA₃, uB}) ≃ₚ
-    (P + (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, uB}) :=
-  sorry
+    (P + (Q + R) : PFunctor.{max uA₁ uA₂ uA₃, uB}) where
+  equivA := _root_.Equiv.sumAssoc P.A Q.A R.A
+  equivB := fun a => {
+    toFun := fun x => match a with
+      | Sum.inl (Sum.inl a) => x
+      | Sum.inl (Sum.inr a) => x
+      | Sum.inr a => x
+    invFun := fun x => match a with
+      | Sum.inl (Sum.inl a) => x
+      | Sum.inl (Sum.inr a) => x
+      | Sum.inr a => x
+    left_inv := fun x => by rcases a with (_ | _) | _ <;> simp
+    right_inv := fun x => by rcases a with (_ | _) | _ <;> simp
+  }
 
 /-- If `P ≃ₚ R` and `Q ≃ₚ S`, then `P + Q ≃ₚ R + S` -/
+@[simps]
 def sumCongr {P Q} {R : PFunctor.{uA₃, uB₁}} {S : PFunctor.{uA₄, uB₁}} (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) :
-    P + Q ≃ₚ (R + S : PFunctor.{max uA₃ uA₄, uB₁}) :=
-  sorry
+    P + Q ≃ₚ (R + S : PFunctor.{max uA₃ uA₄, uB₁}) where
+  equivA := _root_.Equiv.sumCongr e₁.equivA e₂.equivA
+  equivB := fun a => {
+    toFun := fun x => match a with
+      | Sum.inl a => e₁.equivB a x
+      | Sum.inr a => e₂.equivB a x
+    invFun := fun x => match a with
+      | Sum.inl a => (e₁.equivB a).symm x
+      | Sum.inr a => (e₂.equivB a).symm x
+    left_inv := fun x => by rcases a with _ | _ <;> simp
+    right_inv := fun x => by rcases a with _ | _ <;> simp
+  }
 
 /-- Rearrangement of nested sums: `(P + Q) + (R + S) ≃ₚ (P + R) + (Q + S)` -/
 def sumSumSumComm :
     ((P + Q) + (R + S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, uB}) ≃ₚ
-    ((P + R) + (Q + S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, uB}) :=
-  sorry
+    ((P + R) + (Q + S) : PFunctor.{max uA₁ uA₂ uA₃ uA₄, uB}) where
+  equivA := _root_.Equiv.sumSumSumComm P.A Q.A R.A S.A
+  equivB := fun a => {
+    toFun := fun x => match a with
+      | Sum.inl (Sum.inl a) => x
+      | Sum.inl (Sum.inr a) => x
+      | Sum.inr (Sum.inl a) => x
+      | Sum.inr (Sum.inr a) => x
+    invFun := fun x => match a with
+      | Sum.inl (Sum.inl a) => x
+      | Sum.inl (Sum.inr a) => x
+      | Sum.inr (Sum.inl a) => x
+      | Sum.inr (Sum.inr a) => x
+    left_inv := fun x => by rcases a with (_ | _) | (_ | _) <;> simp
+    right_inv := fun x => by rcases a with (_ | _) | (_ | _) <;> simp
+  }
 
 end Sum
 
@@ -149,12 +164,35 @@ variable (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) (R : PFunct
   (S : PFunctor.{uA₄, uB₄})
 
 /-- Product with the unit functor on the right is equivalent to the original functor -/
-def prodOne : P * 1 ≃ₚ P :=
-  sorry
+@[simps]
+def prodOne : P * 1 ≃ₚ P where
+  equivA := _root_.Equiv.prodPUnit P.A
+  equivB := fun a => {
+    toFun := fun x => match x with
+        | Sum.inl x => x
+        | Sum.inr x => x.elim
+    invFun := fun x => Sum.inl x
+    left_inv := fun x => by
+      rcases x with x | x
+      · simp
+      · exact x.elim
+    right_inv := fun x => by simp
+  }
 
 /-- Product with the unit functor on the left is equivalent to the original functor -/
-def oneProd : 1 * P ≃ₚ P :=
-  sorry
+@[simps]
+def oneProd : 1 * P ≃ₚ P where
+  equivA := _root_.Equiv.punitProd P.A
+  equivB := fun a => {
+    toFun := fun x => match x with
+      | Sum.inl x => x.elim
+      | Sum.inr x => x
+    invFun := fun x => Sum.inr x
+    left_inv := fun x => by
+      rcases x with x | x
+      · exact x.elim
+      · simp
+  }
 
 /-- Product of polynomial functors is commutative up to equivalence -/
 def prodComm :
@@ -169,8 +207,8 @@ def prodAssoc :
   sorry
 
 /-- If `P ≃ₚ P'` and `Q ≃ₚ Q'`, then `P * Q ≃ₚ P' * Q'` -/
-def prodCongr {P Q} {R : PFunctor.{uA₃, uB₁}} {S : PFunctor.{uA₄, uB₁}} (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) :
-    P * Q ≃ₚ (R * S : PFunctor.{max uA₃ uA₄, uB₁}) :=
+def prodCongr {P Q} {R : PFunctor.{uA₃, uB₃}} {S : PFunctor.{uA₄, uB₄}}
+    (e₁ : P ≃ₚ R) (e₂ : Q ≃ₚ S) : P * Q ≃ₚ (R * S : PFunctor.{max uA₃ uA₄, max uB₃ uB₄}) :=
   sorry
 
 /-- Rearrangement of nested products: `(P * Q) * (R * S) ≃ₚ (P * R) * (Q * S)` -/
