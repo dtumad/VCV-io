@@ -58,8 +58,8 @@ theorem comp_assoc {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}} {
 structure Equiv (P : PFunctor.{uA₁, uB₁}) (Q : PFunctor.{uA₂, uB₂}) where
   toLens : Lens P Q
   invLens : Lens Q P
-  left_inv : comp invLens toLens = Lens.id P
-  right_inv : comp toLens invLens = Lens.id Q
+  left_inv : comp invLens toLens = Lens.id P := by simp
+  right_inv : comp toLens invLens = Lens.id Q := by simp
 
 @[inherit_doc] infix:50 " ≃ₗ " => Equiv
 
@@ -832,9 +832,14 @@ namespace Equiv
 variable {P : PFunctor.{uA₁, uB₁}} {Q : PFunctor.{uA₂, uB₂}}
 
 /-- Convert an equivalence between two polynomial functors `P` and `Q` to a lens. -/
-def toLens (e : P ≃ₚ Q) : Lens P Q where
-  toFunA := e.equivA
-  toFunB := fun a => (e.equivB a).symm
+def toLensEquiv (e : P ≃ₚ Q) : P ≃ₗ Q where
+  toLens := e.equivA ⇆ (fun a => (e.equivB a).symm)
+  invLens := e.equivA.symm ⇆
+    (fun a =>
+      (e.equivB (e.equivA.symm a)).trans <|
+        _root_.Equiv.cast (congrArg _ (Equiv.apply_symm_apply _ _)))
+  left_inv := sorry
+  right_inv := by simp [Lens.comp, Lens.id, _root_.Equiv.cast]; sorry
 
 end Equiv
 
