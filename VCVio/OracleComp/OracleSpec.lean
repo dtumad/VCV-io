@@ -33,8 +33,8 @@ abbrev OracleSpec.domain (spec : OracleSpec) : Type _ := spec.A
 /-- Type of the range for calls to the oracle corresponding to index `i`. -/
 abbrev OracleSpec.range (spec : OracleSpec) (i : spec.A) := spec.B i
 
-abbrev emptySpec := PFunctor.zero
-notation "[]ₒ" => PFunctor.zero
+abbrev emptySpec := 0
+notation "[]ₒ" => 0
 
 @[inline, reducible]
 def coinSpec : OracleSpec.{0,0} := Unit →ₒ Bool
