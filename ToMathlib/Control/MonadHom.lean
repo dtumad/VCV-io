@@ -94,4 +94,11 @@ lemma mmap_ofLift (m : Type u → Type v) (n : Type u → Type v) [Monad m] [Mon
 
 end ofLift
 
+def id (m : Type u → Type v) [Monad m] : m →ᵐ m where
+  toFun mx := mx
+  toFun_pure' _ := rfl
+  toFun_bind' _ _ := rfl
+
+@[simp] lemma id_apply (mx : m α) : MonadHom.id m mx = mx := rfl
+
 end MonadHom

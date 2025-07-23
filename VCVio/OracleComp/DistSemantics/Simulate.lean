@@ -15,13 +15,13 @@ TODO: probably put these in simulate folder as about the query impl itself
 -/
 
 
-open OracleSpec Option ENNReal BigOperators
+-- open OracleSpec Option ENNReal BigOperators
 
-universe u v w
+-- universe u v w
 
-namespace OracleComp
+-- namespace OracleComp
 
-variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type u} [hs : spec.FiniteRange]
+-- variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type u} [hs : spec.FiniteRange]
 
 -- /-- If `fst <$> so i (t, s)` has the same distribution as `query i t` for any state `s`,
 -- Then `simulate' so` doesn't change the output distribution.
@@ -62,4 +62,4 @@ variable {ι : Type u} {spec : OracleSpec ι} {α β γ : Type u} [hs : spec.Fin
 --     sorry
 --   }
 
-end OracleComp
+-- end OracleComp
