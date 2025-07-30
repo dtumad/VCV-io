@@ -1,10 +1,12 @@
 import ToMathlib.Control.AlternativeMonad
+import ToMathlib.Control.FreeCont
 import ToMathlib.Control.FreeMonad
 import ToMathlib.Control.Lawful.MonadControl
 import ToMathlib.Control.Lawful.MonadFunctor
 import ToMathlib.Control.Lawful.MonadReader
 import ToMathlib.Control.Lawful.MonadState
 import ToMathlib.Control.MonadAlgebra
+import ToMathlib.Control.MonadEquiv
 import ToMathlib.Control.MonadHom
 import ToMathlib.Control.MonadRelation
 import ToMathlib.Control.MonadTransformer
@@ -22,3 +24,4 @@ import ToMathlib.PFunctor.Equiv.Basic
 import ToMathlib.PFunctor.Free
 import ToMathlib.PFunctor.Lens.Basic
 import ToMathlib.ProbabilityTheory.Coupling
+import ToMathlib.ProbabilityTheory.FinRatPMF
