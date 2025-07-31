@@ -50,19 +50,19 @@ def PFunctor.FreeContT (P : PFunctor.{z, y}) (m : Type u → Type v) (α : Type 
 def PFunctor.FreeContM (P : PFunctor.{z, y}) (α : Type w) : Type _ :=
   FreeContT P Id.{u} α
 
-mutual
+-- mutual
 
-/-- Free monad transformer, defined inductively.
--/
-inductive FreeStepT (F : Type u → Type y) (m : Type u → Type v) (α : Type w)
-    -- Type (max (u + 1) v w y (z + 1)) where
-  | pure (a : α) : FreeStepT F m α
-  | roll {β : Type u} (fx : F β) (k : m β → FreeT F m α) : FreeStepT F m α
+-- /-- Free monad transformer, defined inductively.
+-- -/
+-- inductive FreeStepT (F : Type u → Type y) (m : Type u → Type v) (α : Type w)
+--     -- Type (max (u + 1) v w y (z + 1)) where
+--   | pure (a : α) : FreeStepT F m α
+--   | roll {β : Type u} (fx : F β) (k : m β → FreeT F m α) : FreeStepT F m α
 
-inductive FreeT (F : Type u → Type y) (m : Type u → Type v) (α : Type w)
-  | lift (mb : FreeStepT F m α) : FreeT F m α
+-- inductive FreeT (F : Type u → Type y) (m : Type u → Type v) (α : Type w)
+--   | lift (mb : FreeStepT F m α) : FreeT F m α
 
-end
+-- end
 
 namespace FreeT
 
@@ -82,20 +82,20 @@ variable {F : Type u → Type y} {m : Type u → Type v} {α β : Type u}
 
 end FreeT
 
-/-- Free monad transformer from a polynomial functor, defined inductively. -/
-inductive PFunctor.FreeT (P : PFunctor.{w, u}) (m : Type u → Type v) (α : Type u) :
-    Type (max u v w) where
-  | pure (x : α) : PFunctor.FreeT P m α
-  | lift (a : P.A) (mb : m (P.B a)) (k : P.B a → PFunctor.FreeT P m α) : PFunctor.FreeT P m α
-  | roll (a : P.A) (k : P.B a → PFunctor.FreeT P m α) : PFunctor.FreeT P m α
+-- /-- Free monad transformer from a polynomial functor, defined inductively. -/
+-- inductive PFunctor.FreeT (P : PFunctor.{w, u}) (m : Type u → Type v) (α : Type u) :
+--     Type (max u v w) where
+--   | pure (x : α) : PFunctor.FreeT P m α
+--   | lift (a : P.A) (mb : m (P.B a)) (k : P.B a → PFunctor.FreeT P m α) : PFunctor.FreeT P m α
+--   | roll (a : P.A) (k : P.B a → PFunctor.FreeT P m α) : PFunctor.FreeT P m α
 
 -- /-- Free monad, defined inductively. -/
 -- def FreeM (F : Type z → Type y) (α : Type w) : Type (max (u + 1) w y (z + 1)) :=
 --   FreeT F Id.{u} α
 
-/-- Free monad from a polynomial functor, defined inductively. -/
-def PFunctor.FreeM' (P : PFunctor.{w, u}) (α : Type u) : Type (max u w) :=
-  PFunctor.FreeT P Id α
+-- /-- Free monad from a polynomial functor, defined inductively. -/
+-- def PFunctor.FreeM' (P : PFunctor.{w, u}) (α : Type u) : Type (max u w) :=
+--   PFunctor.FreeT P Id α
 
 variable {f : Type z → Type y} {m : Type u → Type v} {α β : Type w}
 
