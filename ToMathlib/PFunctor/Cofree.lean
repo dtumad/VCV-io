@@ -40,15 +40,31 @@ def CofreeC (F : PFunctor.{uA, uB}) (α : Type u) : Type _ :=
 
 namespace CofreeC
 
+variable {F : PFunctor.{uA, uB}} {α : Type u}
+
 /-- Head (label) of a cofree tree. -/
-def head {F : PFunctor} {α : Type u} (t : CofreeC F α) : α :=
+def head (t : CofreeC F α) : α :=
   (M.head t).1
 
 /-- Tail of a cofree tree (an `F`-structured family of sub-trees). -/
-def tail {F : PFunctor} {α : Type u} (t : CofreeC F α) :
-    F (CofreeC F α) :=
+def tail (t : CofreeC F α) : F (CofreeC F α) :=
   let d := M.dest t       --  d : constProd F α (CofreeC F α)
   ⟨d.1.2, d.2⟩            -- drop the constant `α` stored in `d.1.1`
+
+def extract (t : CofreeC F α) : α :=
+  head t
+
+def extend (f : CofreeC F α → α) (t : CofreeC F α) : α :=
+  f t
+
+instance : Comonad (CofreeC F) where
+  extract := extract
+  extend := sorry
+  coseq := sorry
+
+instance : LawfulComonad (CofreeC F) := sorry
+--  'map_const', 'id_map', 'comp_map', 'coseqLeft_eq', 'coseqRight_eq', 'coseq_assoc',
+--  'map_eq_extend_extract', 'extend_extract', 'extract_extend', 'extend_assoc'
 
 end CofreeC
 

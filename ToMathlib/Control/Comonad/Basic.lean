@@ -83,8 +83,14 @@ class Comonad (w : Type u → Type v) extends Coapplicative w, Extend w where
       Note: This requires that the `Functor` instance provided to `Coapplicative`
       is compatible with this definition. `LawfulComonad` ensures this. -/
   map f wa := extend wa (f ∘ extract)
-  -- Defaults for coseq, coseqLeft, coseqRight in terms of extend/extract
-  -- are complex and not standardly included; they depend on the specific comonad.
+  /-- Default `coseq` built only from `extend` and `extract`.
+
+      For two contexts `wa : w α`, `wb : w β` we:
+      1. `extend` over the first context, so we may look inside it,
+      2. pair its extracted value with the *already* extracted value of `wb`.
+
+      This yields `w (α × β)` as required.  -/
+  coseq wa wb := extend wa (fun wa' => (extract wa', extract wb))
 
 -- Lawful Hierarchy --
 
