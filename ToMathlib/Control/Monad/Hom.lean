@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import Mathlib.Probability.ProbabilityMassFunction.Monad
-import ToMathlib.Control.MonadAlgebra
+import ToMathlib.Control.Monad.Algebra
 
 /-!
 # Morphisms Between Monads

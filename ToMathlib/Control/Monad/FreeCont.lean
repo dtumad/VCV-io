@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Quang Dao
 -/
 
-import ToMathlib.Control.FreeMonad
+import ToMathlib.Control.Monad.Free
 import ToMathlib.PFunctor.Free
 import Mathlib.Control.Monad.Cont
 import Mathlib
@@ -50,12 +50,19 @@ def PFunctor.FreeContT (P : PFunctor.{z, y}) (m : Type u → Type v) (α : Type 
 def PFunctor.FreeContM (P : PFunctor.{z, y}) (α : Type w) : Type _ :=
   FreeContT P Id.{u} α
 
+mutual
+
 /-- Free monad transformer, defined inductively.
 -/
-inductive FreeT (F : Type u → Type y) (m : Type u → Type v) (α : Type u)
+inductive FreeStepT (F : Type u → Type y) (m : Type u → Type v) (α : Type w)
     -- Type (max (u + 1) v w y (z + 1)) where
-  | lift (mb : m α) : FreeT F m α
-  | roll {β : Type u} (fx : F β) (k : m β → FreeT F m α) : FreeT F m α
+  | pure (a : α) : FreeStepT F m α
+  | roll {β : Type u} (fx : F β) (k : m β → FreeT F m α) : FreeStepT F m α
+
+inductive FreeT (F : Type u → Type y) (m : Type u → Type v) (α : Type w)
+  | lift (mb : FreeStepT F m α) : FreeT F m α
+
+end
 
 namespace FreeT
 
