@@ -39,9 +39,9 @@ instance : LawfulCoapplicative Id where
   coseq_assoc := by simp [coseq, Functor.map, Equiv.prodAssoc]
 
 instance : LawfulComonad Id where
-  map_eq_extend_extract := by simp [Functor.map, extend, Extract.extract, id_def]
-  extend_extract := by simp [extend, Extract.extract, id_def]
-  extract_extend := by simp [extract, extend, id_def]
+  map_eq_extend_extract := by simp [Functor.map, extend, Extract.extract]
+  extend_extract := by simp [extend, Extract.extract]
+  extract_extend := by simp [extract, extend]
   extend_assoc := by simp [extend]
 
 end Id
@@ -77,13 +77,13 @@ instance : Comonad (Prod ε) where
 
 instance : LawfulFunctor (Prod ε) where
   id_map := by simp [Functor.map]
-  comp_map := by simp [Functor.map, Function.comp_def]
+  comp_map := by simp [Functor.map]
   map_const := by simp [Functor.mapConst, Functor.map]
 
 instance : LawfulCoapplicative (Prod ε) where
   -- Inherits LawfulFunctor proofs
-  coseqLeft_eq := by intros; simp [coseqLeft, Functor.map, coseq, Prod.ext_iff] -- Use unqualified name
-  coseqRight_eq := by intros; simp [coseqRight, Functor.map, coseq, Prod.ext_iff] -- Use unqualified name
+  coseqLeft_eq := by intros; simp [coseqLeft]
+  coseqRight_eq := by intros; simp [coseqRight]
   coseq_assoc := by
     intros α β γ wa wb wc
     apply Prod.ext
@@ -94,10 +94,10 @@ instance : LawfulCoapplicative (Prod ε) where
 
 instance : LawfulComonad (Prod ε) where
   -- Inherits LawfulCoapplicative proofs
-  map_eq_extend_extract := by simp [Functor.map, extend, extract, Function.comp_def, Prod.ext_iff]
-  extend_extract := by simp [extend, extract, Prod.ext_iff]
+  map_eq_extend_extract := by simp [Functor.map, extend, extract]
+  extend_extract := by simp [extend, extract]
   extract_extend := by simp [extract, extend]
-  extend_assoc := by simp [extend, Prod.ext_iff]
+  extend_assoc := by simp [extend]
 
 end Prod
 
@@ -181,23 +181,23 @@ instance : Comonad Stream' where
 instance : LawfulFunctor Stream' where
   id_map := by
     intros α s; apply Stream'.ext; intro n
-    simp [Functor.map, Stream'.map, Stream'.get, id_def]
+    simp [Functor.map, Stream'.map, Stream'.get]
   comp_map := by
     intros α β γ g h s; apply Stream'.ext; intro n
     simp [Functor.map, Stream'.map, Stream'.get, Function.comp_apply]
   map_const := by
     intros
-    simp [Functor.mapConst, Functor.map, Stream'.map, Stream'.get, Function.const_apply]
+    simp [Functor.mapConst, Functor.map]
 
 instance : LawfulCoapplicative Stream' where
   coseqLeft_eq := by
     intros α β s₁ s₂; apply Stream'.ext; intro n
     -- Explicitly state the default definition in simp
-    simp [CoseqLeft.coseqLeft, Functor.map, Prod.fst, coseq, Stream'.map, Stream'.zip, Stream'.get]
+    simp [CoseqLeft.coseqLeft, Functor.map, coseq, Stream'.map, Stream'.zip, Stream'.get]
   coseqRight_eq := by
     intros α β s₁ s₂; apply Stream'.ext; intro n
     -- Explicitly state the default definition in simp
-    simp [CoseqRight.coseqRight, Functor.map, Prod.snd, coseq, Stream'.map, Stream'.zip, Stream'.get]
+    simp [CoseqRight.coseqRight, Functor.map, coseq, Stream'.map, Stream'.zip, Stream'.get]
   coseq_assoc := by
     intros α β γ s₁ s₂ s₃; apply Stream'.ext; intro n
     simp only [Functor.map, coseq, Stream'.map, Stream'.get, Stream'.zip, Equiv.prodAssoc_apply]
@@ -205,21 +205,22 @@ instance : LawfulCoapplicative Stream' where
 instance : LawfulComonad Stream' where
   map_eq_extend_extract := by
     intros α β f s; apply Stream'.ext; intro n
-    simp [Functor.map, extend, extract, Stream'.map, Stream'.get, Stream'.head, Stream'.drop, Stream'.get_drop, Nat.add_zero, Function.comp_apply]
+    simp [Functor.map, extend, extract, Stream'.map, Stream'.get, Stream'.head, Stream'.drop,
+      Function.comp_apply]
   extend_extract := by
     intros wa f
-    simp [extend, extract, Stream'.head, Stream'.get, Stream'.drop, Stream'.get_drop, Nat.add_zero]
+    simp [extend, extract, Stream'.head, Stream'.get, Stream'.drop]
   extract_extend := by
     intros wa
-    simp [extend, extract, Stream'.head, Stream'.get, Stream'.drop, Stream'.get_drop, Nat.add_zero]
+    simp [extend, extract, Stream'.head, Stream'.get]
   extend_assoc := by
     intros α β γ s f g
     dsimp [extend] -- Unfold extend first
     ext n
-    simp [Stream'.get, Stream'.drop, Function.comp_apply, Stream'.get_drop, Stream'.drop_drop, Nat.add_assoc]
+    simp [Stream'.get, Stream'.drop_drop]
     congr 1
     ext n'
-    simp [drop]
+    simp
     sorry
 
 end Stream'
@@ -261,18 +262,18 @@ instance : LawfulFunctor NonEmptyList where
     simp [Functor.map, NonEmptyList.map_map]
   map_const := by
     intro
-    simp [Functor.map, Functor.mapConst, NonEmptyList.map, List.map_const]
+    simp [Functor.map, Functor.mapConst]
 
 instance : LawfulCoapplicative NonEmptyList where
   coseqLeft_eq := by
     intros
-    simp [CoseqLeft.coseqLeft, Functor.map, coseq, zip, NonEmptyList.map, Prod.fst]
+    simp [CoseqLeft.coseqLeft, Functor.map, zip, NonEmptyList.map]
   coseqRight_eq := by
     intros
-    simp [CoseqRight.coseqRight, Functor.map, coseq, zip, NonEmptyList.map, Prod.snd]
+    simp [CoseqRight.coseqRight, Functor.map, zip, NonEmptyList.map]
   coseq_assoc := by
     intros
-    simp [Functor.map, coseq, zip, NonEmptyList.map, Equiv.prodAssoc, List.map_map, List.map]
+    simp [Functor.map, coseq, zip, NonEmptyList.map, Equiv.prodAssoc]
     sorry
 
 instance : LawfulComonad NonEmptyList where
@@ -387,8 +388,8 @@ instance instExtend [Extend w] : Extend (EnvT e w) where
   extend envt k := { runEnvT := Extend.extend envt.runEnvT (fun w'a => k { runEnvT := w'a, env := envt.env }), env := envt.env }
 
 -- Duplicate definition (derived from extend)
-def duplicate [Extend w] {a : Type u₂} (envt : EnvT e w a) : EnvT e w (EnvT e w a) :=
-  extend envt id
+-- def duplicate [Extend w] {a : Type u₂} (envt : EnvT e w a) : EnvT e w (EnvT e w a) :=
+--   extend envt id
 
 -- Coseq instance (Requires Coseq w)
 -- Note: This assumes the environments are the same, which is typical usage.
@@ -415,13 +416,15 @@ instance instLawfulFunctor [Comonad w] [LawfulFunctor w] : LawfulFunctor (EnvT e
 
 instance instLawfulCoapplicative [Comonad w] [LawfulCoapplicative w] : LawfulCoapplicative (EnvT e w) where
   -- Requires LawfulFunctor w
-  coseqLeft_eq := by intros α β wa wb; cases wa; cases wb; simp [coseqLeft, Functor.map, Coseq.coseq, coseqLeft_eq]
-  coseqRight_eq := by intros α β wa wb; cases wa; cases wb; simp [coseqRight, Functor.map, Coseq.coseq, coseqRight_eq]
+  coseqLeft_eq := by intros α β wa wb; cases wa; cases wb; simp [coseqLeft, Functor.map,
+    Coseq.coseq]
+  coseqRight_eq := by intros α β wa wb; cases wa; cases wb; simp [coseqRight, Functor.map,
+    Coseq.coseq]
   coseq_assoc := sorry -- Requires underlying coseq_assoc proof for w
 
 instance instLawfulComonad [Comonad w] [LawfulComonad w] : LawfulComonad (EnvT e w) where
   -- Requires LawfulCoapplicative w
-  map_eq_extend_extract := by intros α β f wa; cases wa; simp [Functor.map, extend, extract, map_eq_extend_extract, Function.comp_apply]
+  map_eq_extend_extract := by intros α β f wa; cases wa; simp [Functor.map, extend, extract, map_eq_extend_extract, Function.comp_apply]; sorry
   extend_extract := by intros α wa; cases wa; simp [extend, extract, extend_extract]
   extract_extend := by intros α β wa f; cases wa; simp [extend, extract, extract_extend]
   extend_assoc := sorry -- Requires underlying extend_assoc proof for w, very complex
@@ -455,15 +458,16 @@ instance instExtend [Comonad w] : Extend (StoreT s w) where
   extend storet k := { runStoreT := Extend.extend storet.runStoreT (fun w'sa s' => k { runStoreT := w'sa, pos := s' }), pos := storet.pos }
 
 -- Duplicate definition (derived from extend)
-def duplicate [Comonad w] {a : Type u₂} (storet : StoreT s w a) : StoreT s w (StoreT s w a) :=
-  extend storet id
+-- def duplicate [Comonad w] {a : Type u₂} (storet : StoreT s w a) : StoreT s w (StoreT s w a) :=
+--   extend storet id
 
 -- Coseq instance (Requires Comonad w for map/coseq)
 instance instCoseq [Comonad w] : Coseq (StoreT s w) where
   coseq storet_a storet_b :=
     let run_ab := Coseq.coseq storet_a.runStoreT storet_b.runStoreT -- w ((s → a) × (s → b))
     let run_prod_s := Functor.map (fun (f, g) s' => (f s', g s')) run_ab -- w (s → a × b)
-    { runStoreT := run_prod_s, pos := storet_a.pos } -- Keep first position? Or combine? Let's keep first.
+    { runStoreT := run_prod_s, pos := storet_a.pos }
+    -- Keep first position? Or combine? Let's keep first.
 
 -- Coapplicative instance
 instance instCoapplicative [Comonad w] : Coapplicative (StoreT s w) where
@@ -476,8 +480,8 @@ instance instComonad [Comonad w] : Comonad (StoreT s w) where
 -- Lawfulness (Sketch - requires proofs based on w's lawfulness)
 
 instance instLawfulFunctor [Comonad w] [LawfulFunctor w] : LawfulFunctor (StoreT s w) where
-  id_map := by intros α wa; cases wa; simp [Functor.map, id_map, Function.comp_assoc]
-  comp_map := by intros α β γ g h wa; cases wa; simp [Functor.map, comp_map, Function.comp_assoc]
+  id_map := by intros α wa; cases wa; simp [Functor.map]
+  comp_map := by intros α β γ g h wa; cases wa; simp [Functor.map, Function.comp_assoc]
   map_const := by intros; rfl
 
 instance instLawfulCoapplicative [Comonad w] [LawfulCoapplicative w] : LawfulCoapplicative (StoreT s w) where

@@ -44,14 +44,14 @@ class Coseq (w : Type u → Type v) where
   /-- Combine two comonadic contexts. -/
   coseq : {α β : Type u} → w α → w β → w (α × β)
 
-/-- The `CoseqLeft` typeclass provides the `coseqLeft` operation (`<@`), dual to `SeqLeft.seqLeft` (`<*`).
-    Evaluates two contexts but returns the result of the first. -/
+/-- The `CoseqLeft` typeclass provides the `coseqLeft` operation (`<@`), dual to `SeqLeft.seqLeft`
+  (`<*`). Evaluates two contexts but returns the result of the first. -/
 class CoseqLeft (w : Type u → Type v) where
   /-- Evaluate two contexts, returning the first result. -/
   coseqLeft : {α β : Type u} → w α → w β → w α
 
-/-- The `CoseqRight` typeclass provides the `coseqRight` operation (`@>`), dual to `SeqRight.seqRight` (`*>`).
-    Evaluates two contexts but returns the result of the second. -/
+/-- The `CoseqRight` typeclass provides the `coseqRight` operation (`@>`), dual to
+  `SeqRight.seqRight` (`*>`). Evaluates two contexts but returns the result of the second. -/
 class CoseqRight (w : Type u → Type v) where
   /-- Evaluate two contexts, returning the second result. -/
   coseqRight : {α β : Type u} → w α → w β → w β
@@ -69,7 +69,8 @@ infixl:60 " @> "  => CoseqRight.coseqRight
 
 /-- `Coapplicative` functor. Dual to `Applicative`.
     Combines `Functor`, `Extract`, and `Coseq` operations. -/
-class Coapplicative (w : Type u → Type v) extends Functor w, Extract w, Coseq w, CoseqLeft w, CoseqRight w where
+class Coapplicative (w : Type u → Type v) extends
+    Functor w, Extract w, Coseq w, CoseqLeft w, CoseqRight w where
   /-- Default implementation for `coseqLeft` using `coseq` and `map`. -/
   coseqLeft wa wb := Functor.map Prod.fst (coseq wa wb)
   /-- Default implementation for `coseqRight` using `coseq` and `map`. -/
@@ -126,7 +127,6 @@ export LawfulComonad (map_eq_extend_extract extend_extract extract_extend extend
 section LawfulnessProofs
 variable {w : Type u → Type v} [Comonad w] [LawfulComonad w]
 
--- The LawfulFunctor laws hold because LawfulComonad extends LawfulCoapplicative extends LawfulFunctor.
 @[simp] theorem comonad_id_map {α : Type u} (wa : w α) : Functor.map id wa = wa :=
   id_map wa
 
@@ -160,8 +160,9 @@ variable {α : Type u} (wa : w α)
 
 @[simp] theorem map_extract_duplicate_eq_id : Functor.map extract (duplicate wa) = wa :=
 by
-  rw [map_eq_extend_extract]
-  sorry
+  rw [duplicate, map_eq_extend_extract, extend_assoc]
+  simp only [Function.comp_apply, extract_extend, id_def]
+  rw [extend_extract]
 
 @[simp] theorem extend_eq_map_duplicate {β : Type u} (f : w α → β) :
   extend wa f = Functor.map f (duplicate wa) :=
@@ -172,14 +173,13 @@ by
 @[simp] theorem duplicate_duplicate_eq_map_duplicate :
     duplicate (duplicate wa) = Functor.map duplicate (duplicate wa) :=
 by
-  -- have h_lhs : duplicate ∘ duplicate = extend duplicate := by
-  --   funext x; simp only [duplicate, extend_assoc, id_def, Function.comp_apply]
-  -- have h_rhs : Functor.map duplicate ∘ duplicate = extend duplicate := by
-  --    -- Proof failing due to type issues or tactic interaction
-  --   sorry
-  -- rw [← Function.comp_apply (f := duplicate) (g := duplicate) wa,
-  --     ← Function.comp_apply (f := Functor.map duplicate) (g := duplicate) wa,
-  --     h_lhs, h_rhs]
-  sorry -- Final step depends on h_rhs proof
+  have h_lhs : duplicate (duplicate wa) = extend wa duplicate := by
+    rw [duplicate, duplicate, extend_assoc]
+    simp only [id_def]
+    rfl
+  have h_rhs : Functor.map duplicate (duplicate wa) = extend wa duplicate := by
+    rw [duplicate, map_eq_extend_extract, extend_assoc]
+    simp only [Function.comp_apply, extract_extend, id_def]
+  rw [h_lhs, h_rhs]
 
 end Duplicate
