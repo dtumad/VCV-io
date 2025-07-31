@@ -25,6 +25,7 @@ import ToMathlib.OrderEnrichedCategory
 import ToMathlib.PFunctor.Basic
 import ToMathlib.PFunctor.Category
 import ToMathlib.PFunctor.Chart.Basic
+import ToMathlib.PFunctor.Cofree
 import ToMathlib.PFunctor.Equiv.Basic
 import ToMathlib.PFunctor.Free
 import ToMathlib.PFunctor.Lens.Basic
