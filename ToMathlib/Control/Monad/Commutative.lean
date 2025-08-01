@@ -20,7 +20,7 @@ namespace Monad
 (do let a ← ma; let b ← mb; pure (a, b)) = (do let b ← mb; let a ← ma; pure (a, b))
 ```
 -/
-def IsCommutativeAt (m : Type u → Type v) [Monad m] {α β : Type u} (ma : m α) (mb : m β) : Prop :=
+def CommutativeAt (m : Type u → Type v) [Monad m] {α β : Type u} (ma : m α) (mb : m β) : Prop :=
   (do let a ← ma; let b ← mb; pure (a, b)) = (do let b ← mb; let a ← ma; pure (a, b))
 
 /-- A monad is commutative if any two monadic actions `ma : m α` and `mb : m β` can be applied
@@ -29,19 +29,19 @@ def IsCommutativeAt (m : Type u → Type v) [Monad m] {α β : Type u} (ma : m �
 (do let a ← ma; let b ← mb; pure (a, b)) = (do let b ← mb; let a ← ma; pure (a, b))
 ```
 -/
-class IsCommutative (m : Type u → Type v) [Monad m] where
-  bind_comm {α β} (ma : m α) (mb : m β) : IsCommutativeAt m ma mb
+class Commutative (m : Type u → Type v) [Monad m] where
+  bind_comm {α β} (ma : m α) (mb : m β) : CommutativeAt m ma mb
 
-export Monad.IsCommutative (bind_comm)
+export Monad.Commutative (bind_comm)
 
 attribute [simp] bind_comm
 
 -- Instance for accessing bind_comm directly
-instance {m} [Monad m] [IsCommutative m] {α β} (ma : m α) (mb : m β) :
-    IsCommutativeAt m ma mb := bind_comm ma mb
+instance {m} [Monad m] [Commutative m] {α β} (ma : m α) (mb : m β) :
+    CommutativeAt m ma mb := bind_comm ma mb
 
 -- The main commutativity lemma for composed computations
-@[simp] theorem bind_comm_comp {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ}
+@[simp] theorem bind_comm_comp {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ}
     (ma : m α) (mb : m β) (f : α × β → m γ) :
       (ma >>= fun a => mb >>= fun b => f (a, b)) = (mb >>= fun b => ma >>= fun a => f (a, b)) := by
   -- Use associativity to factor out the pair construction
@@ -58,15 +58,15 @@ instance {m} [Monad m] [IsCommutative m] {α β} (ma : m α) (mb : m β) :
 
 alias bind_swap := bind_comm_comp
 
-@[simp] theorem IsCommutativeAt.bind_comm {m} [Monad m] [LawfulMonad m] {α β}
-    (ma : m α) (mb : m β) (h : IsCommutativeAt m ma mb) :
+@[simp] theorem CommutativeAt.bind_comm {m} [Monad m] [LawfulMonad m] {α β}
+    (ma : m α) (mb : m β) (h : CommutativeAt m ma mb) :
       (ma >>= fun a => mb >>= fun b => pure (a, b)) =
         (mb >>= fun b => ma >>= fun a => pure (a, b)) :=
   h
 
 -- The main commutativity lemma for composed computations
-@[simp] theorem IsCommutativeAt.bind_comm_comp {m} [Monad m] [LawfulMonad m] {α β γ}
-    (ma : m α) (mb : m β) (h : IsCommutativeAt m ma mb) (f : α × β → m γ) :
+@[simp] theorem CommutativeAt.bind_comm_comp {m} [Monad m] [LawfulMonad m] {α β γ}
+    (ma : m α) (mb : m β) (h : CommutativeAt m ma mb) (f : α × β → m γ) :
       (ma >>= fun a => mb >>= fun b => f (a, b)) = (mb >>= fun b => ma >>= fun a => f (a, b)) := by
   -- Use associativity to factor out the pair construction
   have h1 : (ma >>= fun a => mb >>= fun b => f (a, b)) =
@@ -83,14 +83,14 @@ alias bind_swap := bind_comm_comp
 /-! ### TODO: fix below lemmas & figure out a good naming scheme -/
 
 /-- Commutativity extends to sequences of three operations (swap first two) -/
-theorem bind_comm_triple_swap_12 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ}
+theorem bind_comm_triple_swap_12 {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ}
     (ma : m α) (mb : m β) (mc : m γ) (f : α × β × γ → m δ) :
     (do let a ← ma; let b ← mb; let c ← mc; f (a, b, c)) =
     (do let b ← mb; let a ← ma; let c ← mc; f (a, b, c)) := by
   rw [bind_comm_comp ma mb (fun p => mc >>= fun c => f (p.1, p.2, c))]
 
 /-- Swap second and third elements in a triple of monadic actions -/
-theorem bind_comm_triple_swap_23 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ}
+theorem bind_comm_triple_swap_23 {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ}
     (ma : m α) (mb : m β) (mc : m γ) (f : α × β × γ → m δ) :
     (do let a ← ma; let b ← mb; let c ← mc; f (a, b, c)) =
     (ma >>= fun a => mc >>= fun c => mb >>= fun b => f (a, b, c)) := by
@@ -98,14 +98,14 @@ theorem bind_comm_triple_swap_23 {m} [Monad m] [LawfulMonad m] [IsCommutative m]
   exact bind_comm_comp mb mc (fun p => f (a, p.1, p.2))
 
 -- Quadruple operations: swap first two elements (1,2,3,4) → (2,1,3,4)
-theorem bind_comm_quad_swap_12 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ ε}
+theorem bind_comm_quad_swap_12 {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ ε}
     (ma : m α) (mb : m β) (mc : m γ) (md : m δ) (f : α × β × γ × δ → m ε) :
     (ma >>= fun a => mb >>= fun b => mc >>= fun c => md >>= fun d => f (a, b, c, d)) =
     (mb >>= fun b => ma >>= fun a => mc >>= fun c => md >>= fun d => f (a, b, c, d)) :=
   bind_comm_comp ma mb (fun p => mc >>= fun c => md >>= fun d => f (p.1, p.2, c, d))
 
 -- Swap second and third elements in quadruple (1,2,3,4) → (1,3,2,4)
-theorem bind_comm_quad_swap_23 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ ε}
+theorem bind_comm_quad_swap_23 {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ ε}
     (ma : m α) (mb : m β) (mc : m γ) (md : m δ) (f : α × β × γ × δ → m ε) :
     (ma >>= fun a => mb >>= fun b => mc >>= fun c => md >>= fun d => f (a, b, c, d)) =
     (ma >>= fun a => mc >>= fun c => mb >>= fun b => md >>= fun d => f (a, b, c, d)) := by
@@ -113,7 +113,7 @@ theorem bind_comm_quad_swap_23 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {
   exact bind_comm_comp mb mc (fun p => md >>= fun d => f (a, p.1, p.2, d))
 
 -- Swap third and fourth elements in quadruple (1,2,3,4) → (1,2,4,3)
-theorem bind_comm_quad_swap_34 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ ε}
+theorem bind_comm_quad_swap_34 {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ ε}
     (ma : m α) (mb : m β) (mc : m γ) (md : m δ) (f : α × β × γ × δ → m ε) :
     (ma >>= fun a => mb >>= fun b => mc >>= fun c => md >>= fun d => f (a, b, c, d)) =
     (ma >>= fun a => mb >>= fun b => md >>= fun d => mc >>= fun c => f (a, b, c, d)) := by
@@ -121,7 +121,7 @@ theorem bind_comm_quad_swap_34 {m} [Monad m] [LawfulMonad m] [IsCommutative m] {
   exact bind_comm_comp mc md (fun p => f (a, b, p.1, p.2))
 
 -- Swap pairs in quadruple (1,2,3,4) → (3,4,1,2)
-theorem bind_comm_quad_swap_pairs {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ ε}
+theorem bind_comm_quad_swap_pairs {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ ε}
     (ma : m α) (mb : m β) (mc : m γ) (md : m δ) (f : α × β × γ × δ → m ε) :
     (ma >>= fun a => mb >>= fun b => mc >>= fun c => md >>= fun d => f (a, b, c, d)) =
     (mc >>= fun c => md >>= fun d => ma >>= fun a => mb >>= fun b => f (a, b, c, d)) := by sorry
@@ -130,7 +130,7 @@ theorem bind_comm_quad_swap_pairs {m} [Monad m] [LawfulMonad m] [IsCommutative m
   --                       (mc >>= fun c => md >>= fun d => pure (c, d))
   --                       (fun p => f (p.1.1, p.1.2, p.2.1, p.2.2))
 
-theorem bind_reverse_triple {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α β γ δ}
+theorem bind_reverse_triple {m} [Monad m] [LawfulMonad m] [Commutative m] {α β γ δ}
     (ma : m α) (mb : m β) (mc : m γ) (f : α × β × γ → m δ) :
     (ma >>= fun a => mb >>= fun b => mc >>= fun c => f (a, b, c)) =
     (mc >>= fun c => mb >>= fun b => ma >>= fun a => f (a, b, c)) := by
@@ -142,17 +142,24 @@ theorem bind_reverse_triple {m} [Monad m] [LawfulMonad m] [IsCommutative m] {α 
   --     (fun p => f p.1 p.2)]
 
 /-- The identity monad is commutative -/
-instance : IsCommutative Id where
+instance : Commutative Id where
   bind_comm := fun _ _ => rfl
 
-/-- The option monad is commutative -/
-instance : IsCommutative Option where
+/- Note: `OptionT m` and `ExceptT ε m` are not commutative in general, even if `m` is commutative.
+  For example, `OptionT Option` is not commutative. -/
+
+instance : Commutative Option where
   bind_comm := fun ma mb => by cases ma <;> cases mb <;> rfl
 
-/-- The `ReaderT ρ m` monad is commutative if the underlying monad is commutative -/
-instance {ρ} {m} [Monad m] [IsCommutative m] : IsCommutative (ReaderT ρ m) where
+instance {ε} [Subsingleton ε] : Commutative (Except ε) where
   bind_comm := fun ma mb => by
-    dsimp [IsCommutativeAt, Pure.pure, Bind.bind]
+    cases ma <;> cases mb <;> simp [CommutativeAt, Bind.bind, Pure.pure, Except.bind, Except.pure]
+    exact Subsingleton.elim _ _
+
+/-- The `ReaderT ρ m` monad is commutative if the underlying monad is commutative -/
+instance {ρ} {m} [Monad m] [Commutative m] : Commutative (ReaderT ρ m) where
+  bind_comm := fun ma mb => by
+    dsimp [CommutativeAt, Pure.pure, Bind.bind]
     unfold ReaderT.bind ReaderT.pure
     dsimp only
     funext r
@@ -160,28 +167,40 @@ instance {ρ} {m} [Monad m] [IsCommutative m] : IsCommutative (ReaderT ρ m) whe
 
 /-- The `WriterT` monad is commutative if the underlying monad is commutative and the monoid is
   commutative -/
-instance {ω} {m} [Monad m] [IsCommutative m] [CommMonoid ω] : IsCommutative (WriterT ω m) where
+instance {ω} {m} [Monad m] [Commutative m] [CommMonoid ω] : Commutative (WriterT ω m) where
   bind_comm := fun ma mb => by
-    dsimp [IsCommutativeAt, Pure.pure, Bind.bind]
+    dsimp [CommutativeAt, Pure.pure, Bind.bind]
     unfold WriterT.mk
     sorry
 
 attribute [local instance] Set.monad
 
-/-- The set monad is commutative -/
-def Set.monadComm : IsCommutative Set where
+/-- The set monad is commutative. This is not registered as an instance similar to how
+  `Set.monad` is not registered as an instance. -/
+def Set.monadComm : Commutative Set where
   bind_comm := fun ma mb => by
-    dsimp [IsCommutativeAt, Pure.pure, Bind.bind]
+    dsimp [CommutativeAt, Pure.pure, Bind.bind]
     aesop
 
 /-- The `PMF` monad is commutative -/
-instance : IsCommutative PMF where
+instance : Commutative PMF where
   bind_comm := fun ma mb => by
-    dsimp [IsCommutativeAt, Pure.pure, Bind.bind, PMF.pure, PMF.bind]
+    dsimp [CommutativeAt, Pure.pure, Bind.bind, PMF.pure, PMF.bind]
     ext ⟨a, b⟩
     simp [PMF.instFunLike]
     sorry
     -- simp_rw [← Summable.tsum_mul_left]
 
+-- Is this true?
+instance : Commutative (OptionT PMF) where
+  bind_comm := fun ma mb => by
+    dsimp [CommutativeAt, Pure.pure, Bind.bind, PMF.pure, PMF.bind, OptionT.bind, OptionT.pure,
+      OptionT.mk]
+    dsimp [OptionT] at ma mb ⊢
+    ext ⟨a, b⟩
+    · simp [PMF.instFunLike]; sorry
+    · simp [PMF.instFunLike]
+      sorry
+    -- simp_rw [← Summable.tsum_mul_left]
 
 end Monad
