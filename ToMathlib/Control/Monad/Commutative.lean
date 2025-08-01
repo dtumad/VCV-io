@@ -191,16 +191,4 @@ instance : Commutative PMF where
     sorry
     -- simp_rw [← Summable.tsum_mul_left]
 
--- Is this true?
-instance : Commutative (OptionT PMF) where
-  bind_comm := fun ma mb => by
-    dsimp [CommutativeAt, Pure.pure, Bind.bind, PMF.pure, PMF.bind, OptionT.bind, OptionT.pure,
-      OptionT.mk]
-    dsimp [OptionT] at ma mb ⊢
-    ext ⟨a, b⟩
-    · simp [PMF.instFunLike]; sorry
-    · simp [PMF.instFunLike]
-      sorry
-    -- simp_rw [← Summable.tsum_mul_left]
-
 end Monad
