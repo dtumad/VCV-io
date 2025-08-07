@@ -18,7 +18,10 @@ import ToMathlib.OrderEnrichedCategory
 import ToMathlib.PFunctor.Basic
 import ToMathlib.PFunctor.Category
 import ToMathlib.PFunctor.Chart
+import ToMathlib.PFunctor.Chart.Basic
+import ToMathlib.PFunctor.Equiv.Basic
 import ToMathlib.PFunctor.Free
 import ToMathlib.PFunctor.Lens
+import ToMathlib.PFunctor.Lens.Basic
 import ToMathlib.ProbabilityTheory.Bluebell
 import ToMathlib.ProbabilityTheory.Coupling

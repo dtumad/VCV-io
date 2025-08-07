@@ -6,7 +6,6 @@ Authors: Quang Dao
 -- import Mathlib.CategoryTheory.Monad.Basic
 import Mathlib.Control.Lawful -- Enables inferInstance : LawfulMonad (OptionT m)
 import Batteries.Control.OptionT
-import Batteries.Control.Lawful.MonadLift
 
 /-!
 # Monad transformers
@@ -62,10 +61,10 @@ liftOf m (x >>= f) = liftOf m x >>= liftOf m ∘ f
 ```
 -/
 class LawfulMonadTransformer (t) [MonadTransformer t] : Prop where
-  [monad_functor {m} [Monad m] [LawfulMonad m] : LawfulMonad (t m)]
-  liftOf_pure {m} [Monad m] [LawfulMonad m] {α} (x : α) :
+  [monad_functor {m : Type u → Type v} [Monad m] [LawfulMonad m] : LawfulMonad (t m)]
+  liftOf_pure {m : Type u → Type v} [Monad m] [LawfulMonad m] {α} (x : α) :
     liftOf m (pure x) = (pure x : t m α)
-  liftOf_bind {m} [Monad m] [LawfulMonad m] {α β} (x : m α) (f : α → m β) :
+  liftOf_bind {m : Type u → Type v} [Monad m] [LawfulMonad m] {α β} (x : m α) (f : α → m β) :
     liftOf (t := t) m (x >>= f) = liftOf m x >>= (fun a => liftOf m (f a))
 
 export LawfulMonadTransformer (liftOf_pure liftOf_bind)

@@ -1,12 +1,22 @@
 import VCVio
 
+/-!
+# The Regev encryption scheme
+
+This file contains the implementation of the Regev encryption scheme, as well as some useful lemmas
+for the proof of correctness.
+
+NOTE: since the update to `v4.22.0-rc2`, there is no longer an automatic coercion from `ℕ` to `Fin
+n` via taking modulo `n`. This breaks the proofs. Someone should fix this.
+-/
+
 open Mathlib OracleSpec OracleComp AsymmEncAlg
 
 /-- The uniform error sampling distribution, from the range `[-χ, χ]` inside `Fin p` -/
 def uniformErrSamp {p : ℕ} (χ : ℕ) (hχ : p > 2*χ) : ProbComp (Fin p) := do
   let e ←$ᵗ Fin (2*χ + 1)
   haveI : NeZero p := ⟨by omega⟩
-  return (Fin.castLE hχ e) - χ
+  return (Fin.castLE hχ e) - ⟨χ, by omega⟩
 
 /-- General form of the Regev encryption scheme, with a custom error sampling distribution -/
 def regevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] (errSampKG : ProbComp (Fin p)) :
@@ -22,7 +32,7 @@ def regevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] (errSampKG : ProbComp (Fin 
     let r := (r2.map (Fin.castLE hp2.one_lt)).get
     let yr := dotProduct y.get r
     let signal := if msg then 0 else p / 2
-    return (Vector.ofFn (Matrix.mulVec A r), yr + signal)
+    return (Vector.ofFn (Matrix.mulVec A r), yr + (Fin.ofNat p signal))
   decrypt := λ s (a, b) ↦ do
     let sa := dotProduct s.get a.get
     let val := Fin.val (sa - b)
@@ -37,7 +47,8 @@ lemma relax_p_bound {p χ m: ℕ} [hm : NeZero m] (h : p > 4 * (χ * m + 1)) : p
     rw [← mul_assoc]
     exact Nat.le_mul_of_pos_right (2 * χ) hm.one_le
 
-def uniformRegevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] [NeZero m] (χ : ℕ) (he : p > 4*(χ*m + 1)) :=
+def uniformRegevAsymmEnc (n m p : ℕ) [hp2 : p.AtLeastTwo] [NeZero m]
+    (χ : ℕ) (he : p > 4*(χ*m + 1)) :=
   regevAsymmEnc n m p (uniformErrSamp χ (relax_p_bound he))
 
 -- Note: we want to defer the condition `p > 4*(χ*m + 1)` until the proof of correctness
@@ -194,20 +205,13 @@ lemma Fin_Bound_mul {n b₁ b₂ : ℕ} {x y : Fin n} (h₁ : Fin_Bound x b₁)
 @[simp]
 lemma Fin_bound_neg {n b : ℕ} {x : Fin n} (h : Fin_Bound x b) :
   Fin_Bound (-x) b := by
-  by_cases h0 : n = 0
-  · rw [h0] at x
-    apply x.elim0
-  have nnz : NeZero n := ⟨by omega⟩
-  have : Fin_Bound (-(Fin.ofNat' n 1)) 1 := by
-    right
-    simp [Fin.coe_neg]
-    by_cases h1 : n = 1
-    · simp [h1]
-    push_neg at h0 h1
-    rw [Nat.one_mod_eq_one.mpr h1]
-    rw [Nat.mod_eq_of_lt] <;> omega
-  rw [← one_mul b, ← neg_one_mul x]
-  apply Fin_Bound_mul this h
+  rcases n with _ | n
+  · cases x; omega
+  · rcases x with ⟨_ | _, _⟩
+    · simpa
+    · simp only [Fin_Bound, ge_iff_le, Fin.neg_def] at *
+      rw [Nat.mod_eq_of_lt (by omega)]
+      omega
 
 lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
 (h1 : Fin_Bound_vec v₁ b₁) (h2 : Fin_Bound_vec v₂ b₂) (Nez : NeZero p) :
@@ -226,19 +230,20 @@ lemma Fin_bound_dotprod {p m b₁ b₂ : ℕ} {v₁ v₂ : Vector (Fin p) m}
   | succ m ih =>
     rw [Fin.univ_castSuccEmb]
     simp
-    rw [Finset.sum_insert, add_comm]
-    · apply Fin_Bound_add
-      · simp
-        apply ih
-        intro i
-        rw [Fin.castLE]
-        apply this
-      · apply this
-    simp
-    intro ⟨i, hi⟩ hl
-    rw [Fin.castLE, Fin.last] at hl
-    simp at hl
-    linarith
+    rw [add_comm, ← Fin.sum_univ_castSucc]
+    sorry
+    -- · apply Fin_Bound_add
+    --   · simp
+    --     apply ih
+    --     intro i
+    --     rw [Fin.castLE]
+    --     apply this
+    --   · apply this
+    -- simp
+    -- intro ⟨i, hi⟩ hl
+    -- rw [Fin.castLE, Fin.last] at hl
+    -- simp at hl
+    -- linarith
 
 @[simp]
 lemma Fin_bound_castLE {n m : ℕ} {x : Fin (n + 1)} {h : n < m} :
@@ -248,17 +253,18 @@ lemma Fin_bound_castLE {n m : ℕ} {x : Fin (n + 1)} {h : n < m} :
 lemma IntLE_imp_NatLE {a b : ℕ} (h : (a : ℤ) ≤ (b : ℤ)) : a ≤ b := by omega
 
 lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ) :
-    Fin_Bound (Fin.castLE h a - (Fin.ofNat' p χ)) χ := by
+    Fin_Bound (Fin.castLE h a - (Fin.ofNat p χ)) χ := by
   by_cases n0 : χ = 0
   · have := Fin.le_val_last a
-    simp [n0] at *
-    trivial
+    simp [n0, Fin.ofNat] at *
+    sorry
   by_cases hv : a ≥ χ
   · left
     simp at *
     apply IntLE_imp_NatLE
     rw [Fin.intCast_val_sub_eq_sub_add_ite]
     simp
+    stop
     have : ↑χ ≤ Fin.castLE h a := by
       simp [hv]
       rw [Fin.le_def] at hv ⊢
@@ -274,6 +280,7 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
     simp at *
     apply IntLE_imp_NatLE; simp
     rw [Fin.intCast_val_sub_eq_sub_add_ite]; simp
+    stop
     have : ↑χ > Fin.castLE h a := by
       simp [hv]
       rw [Fin.lt_def] at hv ⊢
@@ -283,12 +290,13 @@ lemma Fin_bound_shift_cast {p χ} {a : Fin (2*χ + 1)} [NeZero p] (h : p > 2*χ)
       simp at *
       rw [Nat.mod_eq_of_lt] at hv ⊢ <;> omega
     rw [ite_cond_eq_false]
-    · rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
-    simp_all [this]
+    · simp only [Fin.ofNat, Fin.ofNat_eq_cast, Fin.val_natCast, Int.natCast_emod, ge_iff_le]
+      rw [Int.ofNat_mod_ofNat, Nat.mod_eq_of_lt] <;> linarith
+    simp_all [Fin.ofNat, this]
 
 -- This lemma is no longer needed
 lemma Fin_bound_shift_cast_vec {p χ m : ℕ} {v : Vector (Fin (2*χ + 1)) m} [NeZero p] (h : p > 2*χ) :
-    Fin_Bound_vec (v.map (fun t ↦ (Fin.castLE h t) - (Fin.ofNat' p χ))) χ := by
+    Fin_Bound_vec (v.map (fun t ↦ (Fin.castLE h t) - (Fin.ofNat p χ))) χ := by
   intro i
   simp [Vector.get]
   apply Fin_bound_shift_cast h
@@ -334,6 +342,7 @@ theorem isCorrect_of_uniformErrSamp [hm : NeZero m] (χ : ℕ) (he: p > 4*(χ*m 
       simp [mem_support_map] at this
       obtain ⟨y, hy⟩ := this
       rw [← hy]
+      stop
       exact Fin_bound_shift_cast herr
     · intro i
       simp [Vector.get]

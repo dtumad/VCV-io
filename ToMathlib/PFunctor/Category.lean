@@ -5,6 +5,8 @@ Authors: Quang Dao
 -/
 
 import ToMathlib.PFunctor.Basic
+import ToMathlib.PFunctor.Lens.Basic
+import ToMathlib.PFunctor.Chart.Basic
 import Mathlib.CategoryTheory.Monoidal.Category
 
 /-!
@@ -13,14 +15,14 @@ import Mathlib.CategoryTheory.Monoidal.Category
 We define the various categories of polynomial functors, where morphisms are lenses or charts.
 -/
 
-universe u v
+universe u v uA uB
 
 open CategoryTheory
 
 namespace PFunctor
 
 -- Category instance using Lens as morphisms
-instance lensCategory : Category PFunctor.{u} where
+instance lensCategory : Category PFunctor.{uA, uB} where
   Hom P Q := Lens P Q
   id P := Lens.id P
   comp f g := Lens.comp g f -- Note the order: g ∘ f for f ≫ g
@@ -29,7 +31,7 @@ instance lensCategory : Category PFunctor.{u} where
   assoc _ _ _ := rfl
 
 -- Category instance using Chart as morphisms
-instance chartCategory : Category PFunctor.{u} where
+instance chartCategory : Category PFunctor.{uA, uB} where
   Hom P Q := Chart P Q
   id P := Chart.id P
   comp f g := Chart.comp g f -- Note the order: g ∘ f for f ≫ g

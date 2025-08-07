@@ -12,6 +12,7 @@ import VCVio.CryptoFoundations.SecExp
 import VCVio.CryptoFoundations.SigmaAlg
 import VCVio.CryptoFoundations.SignatureAlg
 import VCVio.CryptoFoundations.SymmEncAlg
+import VCVio.EvalDist.Basic
 import VCVio.OracleComp.Coercions.Append
 import VCVio.OracleComp.Coercions.SimOracle
 import VCVio.OracleComp.Coercions.SubSpec

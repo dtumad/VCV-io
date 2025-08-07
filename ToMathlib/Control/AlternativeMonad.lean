@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Devon Tuma
 -/
 import Batteries.Control.AlternativeMonad
-import Batteries.Control.Lawful.MonadLift
 
 -- These have now made it into batteries, except for a few lemmas
 
@@ -59,7 +58,7 @@ theorem monadLift_elimM [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n]
     [MonadLift m n] [LawfulMonadLift m n] (x : m (Option α)) (y : m β) (z : α → m β) :
       monadLift (Option.elimM x y z) =
         Option.elimM (monadLift x : n (Option α)) (monadLift y) (fun x => monadLift (z x)) :=
-  (monadLift_bind _ _).trans (bind_congr fun | none => rfl | some _ => rfl)
+  (monadLift_bind _ _).trans (by congr; funext x; cases x <;> rfl)
 
 @[simp]
 theorem liftM_elimM [Monad m] [Monad n] [LawfulMonad m] [LawfulMonad n]
