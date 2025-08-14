@@ -36,7 +36,7 @@ instance : MonoidalCategory (Preord) where
     hom := ofHom ⟨Prod.fst, (by simp [Monotone])⟩
     inv := ofHom ⟨fun x => (x, PUnit.unit), by simp [Monotone]⟩ }
   tensorHom_def f g := rfl
-  tensor_id _ _ := rfl
+  -- tensor_id _ _ := rfl
   tensor_comp f₁ f₂ g₁ g₂ := rfl
   whiskerLeft_id _ _ := rfl
   id_whiskerRight _ _ := rfl
