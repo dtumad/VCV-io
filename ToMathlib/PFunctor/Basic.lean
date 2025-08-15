@@ -308,16 +308,14 @@ def ofConst (A : Type uA) (B : Type uB) : PFunctor.{uA, uB} where
 
 variable (A : Type uA) (B : Type uB)
 
-infixl : 25 " →ₒ " => PFunctor.ofConst
-
-instance [hB : Fintype B] : (A →ₒ B).Fintype where
+instance [hB : Fintype B] : (ofConst A B).Fintype where
   fintype_B _ := inferInstanceAs (Fintype B)
 
-instance [DecidableEq A] [DecidableEq B] : (A →ₒ B).DecidableEq where
+instance [DecidableEq A] [DecidableEq B] : (ofConst A B).DecidableEq where
   decidableEq_A := inferInstanceAs (DecidableEq A)
   decidableEq_B _ := inferInstanceAs (DecidableEq B)
 
-instance [Inhabited B] : (A →ₒ B).Inhabited where
+instance [Inhabited B] : (ofConst A B).Inhabited where
   inhabited_B _ := inferInstanceAs (Inhabited B)
 
 end ofConst

@@ -36,14 +36,12 @@ abbrev OracleSpec.range (spec : OracleSpec) (i : spec.A) := spec.B i
 abbrev emptySpec := 0
 notation "[]ₒ" => 0
 
+infixl : 25 " →ₒ " => PFunctor.ofConst
+
+/-- Access to a coin flipping oracle. Because of termination rules in Lean this is slightly
+weaker than `unifSpec`, as we have only finitely many coin flips. -/
 @[inline, reducible]
 def coinSpec : OracleSpec.{0,0} := Unit →ₒ Bool
-
--- Nicer than uniform selection but worse computability.
--- Could just throw errors running if no selectable type exists.
-def unifSpec' : OracleSpec.{u+1,u} where
-  A := Type u
-  B a := a
 
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
 By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.-/
@@ -51,7 +49,8 @@ By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ emp
   A := ℕ
   B n := Fin (n + 1)
 
-/-- TODO: should or shouldn't we switch to this. Compare to `(· + m) <$> $[0..n]`.
+/-- dtumad: should or shouldn't we switch to this. Compare to `(· + m) <$> $[0..n]`.
+One question is that we may have empty selection
 Select uniformly from a range (not starting from zero).-/
 @[inline, reducible] def probSpec : OracleSpec.{0,0} where
   A := ℕ × ℕ

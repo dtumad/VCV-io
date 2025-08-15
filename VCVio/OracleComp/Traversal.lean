@@ -27,27 +27,24 @@ variable {ι : Type u} {spec : OracleSpec} {α β γ : Type v}
 
 section When
 
-variable (Q : {α : Type v} → OracleQuery spec α → Prop)
-    (F : Prop) (oa : OracleComp spec α)
-    (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
-
-/-- All the given predicates hold on a computation when queries respond with
-elements of `possible_outputs q` for every query `q` -/
-def allWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
+/-- Given that oracle outputs are bounded by `possible_outputs`, all query inputs in the
+computation satisfy `Q` and all pure values satisfy `P`. -/
+def allWhen (Q : spec.domain → Prop) (P : {α : Type v} → α → Prop)
+    (possible_outputs : (x : spec.domain) → Set (spec.range x))
     (oa : OracleComp spec α) : Prop := by
   induction oa using OracleComp.construct with
-  | pure x => exact True
-  -- | failure => exact F
+  | pure x => exact P x
   | query_bind q _ r => exact Q q ∧ ∀ x ∈ possible_outputs q, r x
 
-/-- One of the given predicates hold on a computation when queries respond with
-elements of `possible_outputs q` for every query `q` -/
-def someWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set α)
+/-- Given that oracle outputs are bounded by `possible_outputs`, some query input in the
+computation satisfies `Q` or some pure value satisfyies `P`. -/
+def someWhen (Q : spec.domain → Prop) (P : {α : Type v} → α → Prop)
+    (possible_outputs : (x : spec.domain) → Set (spec.range x))
     (oa : OracleComp spec α) : Prop := by
   induction oa using OracleComp.construct with
-  | pure x => exact True
-  -- | failure => exact F
+  | pure x => exact P x
   | query_bind q _ r => exact Q q ∨ ∃ x ∈ possible_outputs q, r x
+
 
 -- @[simp] lemma allWhen_pure (x : α) :
 --     (pure x : OracleComp spec α).allWhen Q F possible_outputs := True.intro
@@ -86,6 +83,8 @@ def someWhen (possible_outputs : {α : Type v} → OracleQuery spec α → Set �
 -- @[simp] lemma allWhen
 
 end When
+
+-- dtumad: All of this should be part of `evalDist` stuff now.
 
 -- /-- `oa` never fails if when responses to queries `q` are in `possible_outputs q`. -/
 -- def neverFailsWhen (oa : OracleComp spec α)

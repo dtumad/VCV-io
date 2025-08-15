@@ -49,12 +49,11 @@ In practive computations in `OracleComp spec α` have have one of three forms:
 * `return x` to succeed with some `x : α` as the result.
 * `do u ← query i t; oa u` where `oa` is a continutation to run with the query result
 See `OracleComp.inductionOn` for an explicit induction principle. -/
-def OracleComp (spec : OracleSpec.{u,v}) :
-    Type w → Type (max u v w) :=
+def OracleComp (spec : OracleSpec.{u,v}) : Type w → Type (max u v w) :=
   PFunctor.FreeM spec
 
 /-- Simplified notation for computations with no oracles besides random inputs. -/
-abbrev ProbComp : Type z → Type z := OracleComp unifSpec
+abbrev ProbComp : Type → Type := OracleComp unifSpec
 
 namespace OracleComp
 
@@ -62,56 +61,61 @@ variable {ι : Type u} {spec : OracleSpec} {α β : Type v}
 
 instance (spec : OracleSpec) : Monad (OracleComp spec) :=
   inferInstanceAs (Monad spec.FreeM)
-
 instance (spec : OracleSpec) : LawfulMonad (OracleComp spec) :=
   inferInstanceAs (LawfulMonad spec.FreeM)
 
 instance [Inhabited α] : Inhabited (OracleComp spec α) := ⟨pure default⟩
 
-section lift
+section query
 
-/-- Lift a query by first lifting to the free moand and then to the option. -/
-def lift {α} : OracleQuery spec α → OracleComp spec α
-  | query t => PFunctor.FreeM.lift ⟨t, id⟩
+/-- query an oracle on in input `t` to get a result in the corresponding `range t`. -/
+def query (t : spec.domain) : OracleComp spec (spec.range t) :=
+  PFunctor.FreeM.lift ⟨t, id⟩
 
-/-- Automatically coerce an `OracleQuery spec α` to an `OracleComp spec α`. -/
-instance : MonadLift (OracleQuery spec) (OracleComp spec) where
-  monadLift := lift
+lemma query_def : query (spec := spec) = fun t => PFunctor.FreeM.lift ⟨t, id⟩ := rfl
 
-protected lemma liftM_def (q : OracleQuery spec α) :
-    (q : OracleComp spec α) = match q with | query t => PFunctor.FreeM.lift ⟨t, id⟩ := rfl
+/-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
+@[reducible, inline] def coin : OracleComp coinSpec Bool :=
+  query (spec := coinSpec) ()
 
-alias lift_query_def := OracleComp.liftM_def
+lemma coin_def : coin = query () := rfl
 
-lemma liftM_query_eq_liftM_liftM {m : Type v → Type z} [MonadLift (OracleComp spec) m] {α : Type v}
-    (q : OracleQuery spec α) : (liftM q : m α) = liftM (liftM q : OracleComp spec α) := rfl
+/-- `$[0..n]` is the computation choosing a random value in the given range, inclusively.
+By making this range inclusive we avoid the case of choosing from the empty range. -/
+@[reducible, inline] def uniformFin (n : ℕ) : ProbComp (Fin (n + 1)) :=
+  query (spec := unifSpec) n
 
-@[simp]
-lemma liftM_query_stateT {σ : Type v} {α : Type v} (q : OracleQuery spec α) :
-  (liftM q : StateT σ (OracleComp spec) α) = liftM (liftM q : OracleComp spec α) := rfl
+notation "$[0.." n "]" => uniformFin n
 
-@[simp]
-lemma liftM_query_writerT {ω : Type v} [Monoid ω] {α : Type v} (q : OracleQuery spec α) :
-  (liftM q : WriterT ω (OracleComp spec) α) = liftM (liftM q : OracleComp spec α) := rfl
+lemma uniformFin_def (n : ℕ) : $[0..n] = query (spec := unifSpec) n := rfl
 
-@[simp]
-lemma liftM_query_readerT {ρ : Type v} {α : Type v} (q : OracleQuery spec α) :
-  (liftM q : ReaderT ρ (OracleComp spec) α) = liftM (liftM q : OracleComp spec α) := rfl
+/-- Select uniformly from a non-empty range. The notation attempts to derive `h` automatically. -/
+@[reducible, inline] def uniformRange (n m : ℕ) (h : n < m) :
+    ProbComp (Fin (m + 1)) :=
+  (fun ⟨x, hx⟩ => ⟨x + n, by omega⟩) <$> $[0..(m - n)]
 
-lemma query_bind_eq_roll (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
-    (q : OracleComp spec α) >>= ob = (match q with
-      | query t => (PFunctor.FreeM.roll t ob)) := by induction q; rfl
+/-- Tactic to attempt to prove `uniformRange` decreasing bound, similar to array indexing. -/
+syntax "uniform_range_tactic" : tactic
+macro "uniform_range_tactic" : tactic => `(tactic | trivial)
+macro "uniform_range_tactic" : tactic => `(tactic | get_elem_tactic)
 
-end lift
+/-- Select uniformly from a range of numbers. Attempts to use `get-/
+notation "$[" n "⋯" m "]" => uniformRange n m (by uniform_range_tactic)
+
+lemma uniformRange_def (n m : ℕ) (h : n < m) : $[n⋯m] = uniformRange n m h := rfl
+
+example {m n : ℕ} (h : m < n) : ProbComp ℕ := do
+  let x ← $[314⋯31415]; let y ← $[0⋯10] -- Prove by trivial reduction
+  let z ← $[m⋯n] -- Use value from hypothesis
+  return x + 2 * y
+
+end query
 
 protected lemma pure_def (x : α) :
     (pure x : OracleComp spec α) = PFunctor.FreeM.pure x := rfl
 
 protected lemma bind_def (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
     oa >>= ob = PFunctor.FreeM.bind oa ob := rfl
-
-protected lemma query_def (q : OracleQuery spec α) :
-    (q : OracleComp spec α) = OracleComp.lift q := rfl
 
 protected lemma failure_def : (failure : OptionT (OracleComp spec) α) = OptionT.fail := rfl
 
@@ -121,29 +125,8 @@ protected lemma orElse_def (oa oa' : OptionT (OracleComp spec) α) : (oa <|> oa'
 protected lemma bind_congr' {oa oa' : OracleComp spec α} {ob ob' : α → OracleComp spec β}
     (h : oa = oa') (h' : ∀ x, ob x = ob' x) : oa >>= ob = oa' >>= ob' := h ▸ bind_congr h'
 
-/-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
-@[reducible, inline] def coin : OracleComp coinSpec Bool :=
-  coinSpec.query ()
-
-/-- `$[0..n]` is the computation choosing a random value in the given range, inclusively.
-By making this range inclusive we avoid the case of choosing from the empty range. -/
-@[reducible, inline] def uniformFin (n : ℕ) : ProbComp (Fin (n + 1)) :=
-  unifSpec.query n
-
-@[reducible, inline] def uniformFin' (n m : ℕ) : OracleComp probSpec (Fin (m + 1)) :=
-  probSpec.query (n, m)
-
-notation "$[0.." n "]" => uniformFin n
-
--- TODO: could consider this notation if we switch to probspec
-notation:50 "$[" n "⋯" m "]" => uniformFin' n m
-
-example : OracleComp probSpec ℕ := do
-  let x ← $[314⋯31415]; let y ← $[0⋯x]
-  return x + 2 * y
-
 @[simp] -- NOTE: debatable if this should be simp
-lemma guard_eq {ι : Type} {spec : OracleSpec} (p : Prop) [Decidable p] :
+lemma guard_eq {spec : OracleSpec} (p : Prop) [Decidable p] :
     (guard p : OptionT (OracleComp spec) Unit) = if p then pure () else failure := rfl
 
 -- NOTE: This should maybe be a `@[simp]` lemma? `apply_ite` can't be a simp lemma in general.
@@ -201,23 +184,11 @@ protected def inductionOptional {C : OptionT (OracleComp spec) α → Prop}
 
 section construct
 
-/-- NOTE: if `inductionOn` could work with `Sort u` instead of `Prop` we wouldn't need this,
-not clear to me why lean doesn't like unifying the `Prop` and `Type` cases.
-
-If the output type of `C` is a monad then `OracleComp.mapM` is usually preferable. -/
-@[elab_as_elim]
-protected def construct {C : OracleComp spec α → Type*}
-    (pure : (a : α) → C (pure a))
-    (query_bind : {β : Type v} → (q : OracleQuery spec β) →
-      (oa : β → OracleComp spec α) → ((u : β) → C (oa u)) → C (q >>= oa))
-    (oa : OracleComp spec α) : C oa :=
-  PFunctor.FreeM.construct pure (fun t => query_bind (query t)) oa
-
 /-- Version of `construct` with automatic induction on the `query` in when defining the
 `query_bind` case. Can be useful with `spec.DecidableEq` and `spec.FiniteRange`.
-NOTE: may be better to just use this universally in all cases? avoids duplicating lemmas below. -/
+`mapM`/`simulateQ` is usually preferable to this if the object being constructed is a monad. -/
 @[elab_as_elim]
-protected def construct' {C : OracleComp spec α → Type*}
+protected def construct {C : OracleComp spec α → Type*}
     (pure : (a : α) → C (pure a))
     (query_bind : (t : spec.domain) →
       (oa : spec.range t → OracleComp spec α) →
@@ -225,25 +196,22 @@ protected def construct' {C : OracleComp spec α → Type*}
     (oa : OracleComp spec α) : C oa :=
   PFunctor.FreeM.construct pure query_bind oa
 
-variable {C : OracleComp spec α → Type w}
-  (h_pure : (a : α) → C (pure a))
-  (h_query_bind : {β : Type v} → (q : OracleQuery spec β) →
-      (oa : β → OracleComp spec α) → ((u : β) → C (oa u)) → C (q >>= oa))
-  (oa : OracleComp spec α)
-
-@[simp]
-lemma construct_pure (x : α) :
+@[simp] lemma construct_pure (x : α)
+    {C : OracleComp spec α → Type w}
+    (h_pure : (a : α) → C (pure a))
+    (h_query_bind : (t : spec.domain) →
+        (oa : spec.range t → OracleComp spec α) →
+        ((u : spec.range t) → C (oa u)) → C (query t >>= oa)) :
     OracleComp.construct h_pure h_query_bind (pure x) = h_pure x := rfl
 
--- @[simp]
--- lemma construct_failure :
---     OracleComp.construct h_pure h_query_bind h_failure failure = h_failure := rfl
-
--- @[simp]
--- lemma construct_query (q : OracleQuery spec α) :
---     (OracleComp.construct h_pure h_query_bind (q : OracleComp spec α) : C q) =
---       h_query_bind q pure h_pure := rfl
--- alias construct_liftM := construct_query
+@[simp] lemma construct_query (t : spec.domain)
+    {C : OracleComp spec (spec.range t) → Type*}
+    (h_pure : (u : spec.range t) → C (pure u))
+    (h_query_bind : (t' : spec.domain) →
+      (oa : spec.range t' → OracleComp spec (spec.range t)) →
+      ((u : spec.range t') → C (oa u)) → C (query t' >>= oa)) :
+    (OracleComp.construct h_pure h_query_bind (query t) : C (query t)) =
+      h_query_bind t pure h_pure := rfl
 
 -- @[simp]
 -- lemma construct_query_bind (q : OracleQuery spec β) (oa : β → OracleComp spec α) :
@@ -260,144 +228,69 @@ end construct
 
 section noConfusion
 
-variable (x : α) (y : β) (q : OracleQuery spec β) (oa : β → OracleComp spec α)
+variable (x : α) (y : β) (t : spec.domain) (u : spec.range t)
+  (oa : β → OracleComp spec α) (ou : spec.range t → OracleComp spec α)
 
 /-- Returns `true` for computations that don't query any oracles or fail, else `false`. -/
 def isPure {α : Type v} : OracleComp spec α → Bool
-  | PFunctor.FreeM.pure _ => True
-  | PFunctor.FreeM.roll _ _ => false
-
-/-- Returns `true` for computations that fail else `false`. -/
-def isFailure {α : Type v} : OptionT (OracleComp spec) α → Bool
-  | PFunctor.FreeM.pure x => Option.isNone x
+  | PFunctor.FreeM.pure _ => true
   | PFunctor.FreeM.roll _ _ => false
 
 @[simp] lemma isPure_pure : isPure (pure x : OracleComp spec α) = true := rfl
--- @[simp] lemma isPure_query_bind : isPure ((q : OracleComp spec β) >>= oa) = false := by
---   simp only [PFunctor.FreeM.monad_bind_def]
--- @[simp] lemma isPure_failure : isPure (failure : OracleComp spec α) = false := rfl
--- @[simp] lemma isFailure_pure : isFailure (pure x : OracleComp spec α) = false := rfl
--- @[simp] lemma isFailure_query_bind : isFailure ((q : OracleComp spec β) >>= oa) = false := rfl
--- @[simp] lemma isFailure_failure : isFailure (failure : OracleComp spec α) = true := rfl
+@[simp] lemma isPure_query : isPure (query t) = false := rfl
+@[simp] lemma isPure_query_bind : isPure (query t >>= ou) = false := rfl
 
--- @[simp] lemma pure_ne_query : pure y ≠ (q : OracleComp spec β) := by
---   cases q with | query i t => exact PFunctor.FreeM.pure_ne_lift _ _
+@[simp] lemma pure_ne_query : pure u ≠ query t := fun h => by simpa using congr_arg isPure h
+@[simp] lemma query_ne_pure : query t ≠ pure u := fun h => by simpa using congr_arg isPure h
 
--- @[simp] lemma query_ne_pure : (q : OracleComp spec β) ≠ pure y := by
---   cases q with | query i t => exact PFunctor.FreeM.lift_ne_pure _ _
+@[simp] lemma pure_ne_query_bind : pure x ≠ query t >>= ou := fun h => by
+  simpa only [isPure_pure, isPure_query_bind, Bool.true_eq_false] using congr_arg isPure h
+@[simp] lemma query_bind_ne_pure : query t >>= ou ≠ pure x := fun h => by
+  simpa only [isPure_pure, isPure_query_bind, Bool.false_eq_true] using congr_arg isPure h
 
-@[simp] lemma pure_ne_query_bind : pure x ≠ (q : OracleComp spec β) >>= oa := sorry --nofun
-@[simp] lemma query_bind_ne_pure : (q : OracleComp spec β) >>= oa ≠ pure x := sorry --nofun
-
-@[simp] lemma pure_ne_failure : (pure x : OptionT (OracleComp spec) α) ≠ failure := nofun
-@[simp] lemma failure_ne_pure : failure ≠ (pure x : OptionT (OracleComp spec) α) := nofun
-
-@[simp] lemma failure_ne_query_bind (oa : β → OptionT (OracleComp spec) β) :
-    failure ≠ (q : OptionT (OracleComp spec) β) >>= oa := sorry --nofun
-@[simp] lemma query_bind_ne_failure (oa : β → OptionT (OracleComp spec) β) :
-    (q : OptionT (OracleComp spec) β) >>= oa ≠ failure := sorry --nofun
-
-@[simp] lemma query_ne_failure : (q : OptionT (OracleComp spec) β) ≠ failure := sorry --nofun
-@[simp] lemma failure_ne_query : failure ≠ (q : OptionT (OracleComp spec) β) := sorry --nofun
-
--- lemma pure_eq_query_iff_false : pure y = (q : OracleComp spec β) ↔ False := by simp
--- lemma query_eq_pure_iff_false : (q : OracleComp spec β) = pure y ↔ False := by simp
+lemma pure_eq_query_iff_false : pure u = query t ↔ False := by simp
+lemma query_eq_pure_iff_false : query t = pure u ↔ False := by simp
 
 end noConfusion
-
-section mapM
-
-/-- Implement all queries in a computation using some other monad `m`,
-preserving the pure and bind operations, giving a computation in the new monad.
-The function `qm` specifies how to replace the queries in the computation,
-and `fail` is used whenever `failure` is encountered.
-If the final output type has an `Alternative` instance then `simulate` is usually preffered. -/
-protected def mapM {m : Type v → Type w} [Monad m]
-    (query_map : {α : Type v} → OracleQuery spec α → m α)
-    (oa : OracleComp spec α) : m α :=
-  PFunctor.FreeM.mapM (P := spec) (fun t => query_map (query t)) oa
-
-variable {m : Type v → Type w} [Monad m]
-  (fail : {α : Type v} → m α) (qm : {α : Type v} → OracleQuery spec α → m α)
-
-@[simp] lemma mapM_pure (x : α) : (pure x : OracleComp spec α).mapM qm = pure x := rfl
-
-@[simp]
-lemma mapM_query [LawfulMonad m] (q : OracleQuery spec α) :
-    (q : OracleComp spec α).mapM qm = qm q := by
-  simp only [OracleComp.mapM]
-  sorry
-
-@[simp]
-lemma mapM_query_bind (q : OracleQuery spec α) (ob : α → OracleComp spec β) :
-    ((q : OracleComp spec α) >>= ob).mapM qm =
-      (do let x ← qm q; (ob x).mapM qm) := sorry
-
-lemma mapM_bind [LawfulMonad m] (oa : OracleComp spec α) (ob : α → OracleComp spec β) :
-    (oa >>= ob).mapM qm = oa.mapM qm >>= λ x ↦ (ob x).mapM qm := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => sorry --simp
-  | query_bind t oa h => sorry --simp [h]
-
-lemma mapM_map [LawfulMonad m] (oa : OracleComp spec α) (f : α → β) :
-    (f <$> oa).mapM qm = f <$> oa.mapM qm := by
-  induction oa using OracleComp.inductionOn with
-  | pure x => simp
-  | query_bind t oa h => sorry --simp [h]
-
-lemma mapM_seq [LawfulMonad m] (og : OracleComp spec (α → β)) (oa : OracleComp spec α) :
-    (og <*> oa).mapM qm = og.mapM qm <*> oa.mapM qm := by
-  rw [seq_eq_bind, seq_eq_bind]
-  sorry
-
-@[simp]
-lemma mapM_ite (p : Prop) [Decidable p] (oa oa' : OracleComp spec α) :
-    (ite p oa oa').mapM qm = ite p (oa.mapM qm) (oa'.mapM qm) := by
-  split_ifs <;> rfl
-
-end mapM
 
 /-- Given a computation `oa : OracleComp spec α`, construct a value `x : α`,
 by assuming each query returns the `default` value given by the `Inhabited` instance.
 Returns `none` if the default path would lead to failure. -/
-def defaultResult [spec.Fintype] [spec.Inhabited] (oa : OracleComp spec α) : Option α :=
-  oa.mapM (query_map := some ∘ OracleQuery.defaultOutput)
+def defaultResult [spec.Inhabited] (oa : OracleComp spec α) : Option α :=
+  PFunctor.FreeM.mapM (fun _ => default) oa
 
 /-- Total number of queries in a computation across all possible execution paths.
 Can be a helpful alternative to `sizeOf` when proving recursive calls terminate. -/
 def totalQueries [spec.Fintype] [spec.Inhabited] {α : Type v} (oa : OracleComp spec α) : ℕ := by
-  induction oa using OracleComp.construct' with
+  induction oa using OracleComp.construct with
   | pure x => exact 0
   | query_bind t oa rec_n => exact 1 + ∑ x, rec_n x
 
 section inj
 
-@[simp]
-lemma pure_inj (x y : α) : (pure x : OracleComp spec α) = pure y ↔ x = y := by
-  sorry
+/-- Two `pure` computations are equal iff they return the same value. -/
+@[simp] lemma pure_inj (x y : α) : pure (f := OracleComp spec) x = pure y ↔ x = y :=
+  PFunctor.FreeM.pure_inj x y
 
-@[simp]
-lemma liftM_inj (q q' : OracleQuery spec α) : (q : OracleComp spec α) = q' ↔ q = q' := by
-  sorry
+/-- Doing something with a query result is equal iff they query the same oracle
+and perform identical computations on the output. -/
+@[simp] lemma queryBind_inj (t t' : spec.domain) (ob : spec.range t → OracleComp spec β)
+    (ob' : spec.range t' → OracleComp spec β) :
+    (query t) >>= ob = (query t') >>= ob' ↔ ∃ h : t = t', h ▸ ob = ob' :=
+  PFunctor.FreeM.roll_inj t t' ob ob'
 
--- @[simp]
--- lemma query_inj (t t' : spec.domain) :
---     (query t : OracleComp spec (spec.range t)) = query t' ↔ t = t' := by
---   sorry
-
-@[simp]
-lemma queryBind_inj (q q' : OracleQuery spec α) (ob ob' : α → OracleComp spec β) :
-    (q : OracleComp spec α) >>= ob = (q' : OracleComp spec α) >>= ob' ↔ q = q' ∧ ob = ob' := by
-  sorry
-
-@[simp]
-lemma bind_eq_pure_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
+/-- Binding two computations gives a pure operation iff the first computation is pure
+and the second computation does something pure with the result. -/
+@[simp] lemma bind_eq_pure_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
     oa >>= ob = pure y ↔ ∃ x : α, oa = pure x ∧ ob x = pure y := by
   refine ⟨λ h ↦ ?_, λ h ↦ let ⟨x, ⟨h, h'⟩⟩ := h; h ▸ h'⟩
-  sorry
+  simp [OracleComp.pure_def, PFunctor.FreeM.monad_bind_def] at h
+  rw [PFunctor.FreeM.bind_eq_pure_iff] at h
+  exact h
 
-@[simp]
-lemma pure_eq_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
+/-- Binding two computations gives a pure operation iff the first computation is pure
+and the second computation does something pure with the result. -/
+@[simp] lemma pure_eq_bind_iff (oa : OracleComp spec α) (ob : α → OracleComp spec β) (y : β) :
     pure y = oa >>= ob ↔ ∃ x : α, oa = pure x ∧ ob x = pure y :=
   eq_comm.trans (bind_eq_pure_iff oa ob y)
 
@@ -426,7 +319,7 @@ end inj
   --   match hι i i' with
   --   | isTrue h => by
   --       induction h
-  --       rw [FreeMonad.roll.injEq, heq_eq_eq, OracleQuery.query.injEq, eq_self, true_and, heq_eq_eq]
+  --    rw [FreeMonad.roll.injEq, heq_eq_eq, OracleQuery.query.injEq, eq_self, true_and, heq_eq_eq]
   --       refine @instDecidableAnd _ _ (hd i t t') ?_
   --       suffices Decidable (∀ u, r u = s u) from decidable_of_iff' _ funext_iff
   --       suffices ∀ u, Decidable (r u = s u) from Fintype.decidableForallFintype
