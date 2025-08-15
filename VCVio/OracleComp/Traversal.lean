@@ -45,7 +45,6 @@ def someWhen (Q : spec.domain → Prop) (P : {α : Type v} → α → Prop)
   | pure x => exact P x
   | query_bind q _ r => exact Q q ∨ ∃ x ∈ possible_outputs q, r x
 
-
 -- @[simp] lemma allWhen_pure (x : α) :
 --     (pure x : OracleComp spec α).allWhen Q F possible_outputs := True.intro
 
