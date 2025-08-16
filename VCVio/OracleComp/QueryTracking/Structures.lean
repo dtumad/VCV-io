@@ -12,28 +12,28 @@ This file defines types like `QueryLog` and `QueryCache` for use with
 simulation oracles and implementation transformers defined in the same directory.
 -/
 
--- open OracleSpec OracleComp
+open OracleSpec OracleComp
 
--- universe u v w
+universe u v w
 
--- namespace OracleSpec
+namespace OracleSpec
 
--- variable {ι : Type u} {spec : OracleSpec}
+variable {ι : Type u} {spec : OracleSpec}
 
--- /-- Type to represent a cache of queries to oracles in `spec`.
--- Defined to be a function from (indexed) inputs to an optional output. -/
--- def QueryCache (spec : OracleSpec) : Type _ :=
---   (t : spec.domain) → Option (spec.range t)
+/-- Type to represent a cache of queries to oracles in `spec`.
+Defined to be a function from (indexed) inputs to an optional output. -/
+def QueryCache (spec : OracleSpec) : Type _ :=
+  (t : spec.domain) → Option (spec.range t)
 
--- namespace QueryCache
+namespace QueryCache
 
--- instance : EmptyCollection (QueryCache spec) := ⟨fun _ _ => none⟩
+instance : EmptyCollection (QueryCache spec) := ⟨fun _ => none⟩
 
--- variable [spec.DecidableEq] [DecidableEq ι] (cache : QueryCache spec)
+variable [spec.DecidableEq] [DecidableEq ι] (cache : QueryCache spec)
 
--- /-- Add a index + input pair to the cache by updating the function -/
--- def cacheQuery  (i : ι) (t : spec.domain i) (u : spec.range i) :
---     QueryCache spec := Function.update cache i (Function.update (cache i) t u)
+/-- Add a index + input pair to the cache by updating the function -/
+def cacheQuery (t : spec.domain) (u : spec.range t) : QueryCache spec :=
+  Function.update cache t u
 
 -- lemma cacheQuery_eq_ite_ite (i : ι) (t : spec.domain i) (u : spec.range i) :
 --     cache.cacheQuery i t u = λ j t' ↦
@@ -46,13 +46,14 @@ simulation oracles and implementation transformers defined in the same directory
 --     · simp [ht, cacheQuery]
 --   · simp [h, cacheQuery]
 
--- end QueryCache
+end QueryCache
 
--- /-- Simple wrapper in order to introduce the `Monoid` structure for `countingOracle`.
--- Marked as reducible and can generally be treated as just a function. -/
--- @[reducible] def QueryCount (_spec : OracleSpec ι) : Type u := ι → ℕ
+/-- Simple wrapper in order to introduce the `Monoid` structure for `countingOracle`.
+Marked as reducible and can generally be treated as just a function.
+`idx` gives the "index" for a given input -/
+@[reducible] def QueryCount (ι : Type*) (_spec : OracleSpec) := ι → ℕ
 
--- namespace QueryCount
+namespace QueryCount
 
 -- /-- Pointwise addition as the `Monoid` operation used for `WriterT`. -/
 -- instance : Monoid (QueryCount spec) where
@@ -83,53 +84,53 @@ simulation oracles and implementation transformers defined in the same directory
 --     · simp [hj]; omega
 --     · simp [hj]
 
--- end QueryCount
+end QueryCount
 
--- /-- Log of queries represented by a list of dependent product's tagging the oracle's index.
--- `(i : ι) → spec.domain i × spec.range i` is slightly more restricted as it doesn't
--- keep track of query ordering between different oracles. -/
--- @[reducible]
--- def QueryLog (spec : OracleSpec ι) : Type _ :=
---   List ((i : ι) × spec.domain i × spec.range i)
+/-- Log of queries represented by a list of dependent product's tagging the oracle's index.
+`(i : ι) → spec.domain i × spec.range i` is slightly more restricted as it doesn't
+keep track of query ordering between different oracles. -/
+@[reducible]
+def QueryLog (spec : OracleSpec) : Type _ :=
+  List ((t : spec.domain) × spec.range t)
 
--- namespace QueryLog
+namespace QueryLog
 
--- instance : Append (QueryLog spec) := ⟨List.append⟩
+instance : Append (QueryLog spec) := ⟨List.append⟩
 
--- /-- Dummy `Monoid` instance to be used with `WriterT`, actual calls should use `append`. -/
--- instance : Monoid (QueryLog spec) where
---   mul := List.append
---   mul_assoc := List.append_assoc
---   one := List.nil
---   one_mul := List.nil_append
---   mul_one := List.append_nil
+/-- Dummy `Monoid` instance to be used with `WriterT`, actual calls should use `append`. -/
+instance : Monoid (QueryLog spec) where
+  mul := List.append
+  mul_assoc := List.append_assoc
+  one := List.nil
+  one_mul := List.nil_append
+  mul_one := List.append_nil
 
--- @[simp] -- Automatically reduce "multiplication" of query logs to `List.append`
--- lemma monoid_mul_def (qc qc' : QueryLog spec) :
---   (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
---      = (qc : List _) ++ (qc' : List _) := rfl
+@[simp] -- Automatically reduce "multiplication" of query logs to `List.append`
+lemma monoid_mul_def (qc qc' : QueryLog spec) :
+  (@HMul.hMul _ _ _ (@instHMul _ (Monoid.toMulOneClass.toMul)) qc qc')
+     = (qc : List _) ++ (qc' : List _) := rfl
 
--- @[simp] lemma monoid_one_def : (1 : QueryLog spec) = List.nil := rfl
+@[simp] lemma monoid_one_def : (1 : QueryLog spec) = List.nil := rfl
 
--- /-- Query log with a single entry. -/
--- def singleton {α} (q : OracleQuery spec α) (u : α) : QueryLog spec :=
---   match q with | query i t => [⟨i, (t, u)⟩]
+/-- Query log with a single entry. -/
+def singleton (t : spec.domain) (u : spec.range t) : QueryLog spec := [⟨t, u⟩]
 
--- /-- Update a query log by adding a new element to the appropriate list.
--- Note that this requires decidable equality on the indexing set. -/
--- def logQuery {α} (log : QueryLog spec) (q : OracleQuery spec α) (u : α) :
---     QueryLog spec := log ++ singleton q u
+/-- Update a query log by adding a new element to the appropriate list.
+Note that this requires decidable equality on the indexing set. -/
+def logQuery (log : QueryLog spec) (t : spec.domain) (u : spec.range t) : QueryLog spec :=
+  log ++ singleton t u
 
--- instance [DecidableEq ι] [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
---   inferInstanceAs (DecidableEq (List _))
+instance [spec.DecidableEq] : DecidableEq (QueryLog spec) :=
+  inferInstanceAs (DecidableEq (List _))
 
--- section getQ
+section getQ
 
 -- variable [DecidableEq ι]
 
--- /-- Get all the queries made to oracle `i`. -/
--- def getQ (log : QueryLog spec) (i : ι) : List (spec.domain i × spec.range i) :=
---   List.foldr (fun ⟨j, t, u⟩ xs => if h : j = i then h ▸ (t, u) :: xs else xs) [] log
+/-- Get all the queries with inputs satisfying `p` -/
+def getQ (log : QueryLog spec) (p : spec.domain → Prop) [DecidablePred p] :
+    List ((t : spec.domain) × spec.range t) :=
+  List.foldr (fun ⟨t, u⟩ xs => if p t then ⟨t, u⟩ :: xs else xs) [] log
 
 -- -- NOTE: should this simp? feels bad to simp with ▸ and pattern matching in target
 -- lemma getQ_singleton {α} (q : OracleQuery spec α) (u : α) (i : ι) :
@@ -173,13 +174,15 @@ simulation oracles and implementation transformers defined in the same directory
 --     (i : ι) : (log.logQuery q u).getQ i = log.getQ i ++ (singleton q u).getQ i := by
 --   rw [logQuery, getQ_append]
 
--- end getQ
+end getQ
 
--- section countQ
+section countQ
 
 -- variable [DecidableEq ι]
 
--- def countQ (log : QueryLog spec) (i : ι) : ℕ := (log.getQ i).length
+/-- Count the number of queries with inputs satisfying `p`. -/
+def countQ (log : QueryLog spec) (p : spec.domain → Prop) [DecidablePred p] : ℕ :=
+  (log.getQ p).length
 
 -- @[simp]
 -- lemma countQ_singleton {α} (q : OracleQuery spec α) (u : α) (i : ι) :
@@ -200,17 +203,14 @@ simulation oracles and implementation transformers defined in the same directory
 --     (i : ι) : (log.logQuery q u).countQ i = log.countQ i + if q.index = i then 1 else 0 := by
 --   rw [logQuery, countQ_append, countQ_singleton]
 
--- end countQ
+end countQ
 
--- /-- Check if an element was ever queried in a log of queries.
--- Relies on decidable equality of the domain types of oracles. -/
--- def wasQueried [DecidableEq ι] [spec.DecidableEq] (log : QueryLog spec)
---     (i : ι) (t : spec.domain i) : Bool :=
---   match (log.getQ i).find? (λ (t', _) ↦ t = t') with
---   | Option.some _ => true
---   | Option.none => false
+/-- Check if an element was ever queried in a log of queries.
+Relies on decidable equality of the domain types of oracles. -/
+def wasQueried [spec.DecidableEq] (log : QueryLog spec) (t : spec.domain) : Bool :=
+  log.getQ (· = t) ≠ []
 
--- section prod
+section prod
 
 -- variable {ι₁ ι₂ : Type*} {spec₁ : OracleSpec ι₁} {spec₂ : OracleSpec ι₂}
 
@@ -233,13 +233,13 @@ simulation oracles and implementation transformers defined in the same directory
 -- instance : Coe (QueryLog spec₁) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.inl⟩
 -- instance : Coe (QueryLog spec₂) (QueryLog (spec₁ ++ₒ spec₂)) := ⟨QueryLog.inr⟩
 
--- end prod
+end prod
 
--- end QueryLog
+end QueryLog
 
 -- /-- Type to represent a store of seed values to use in a computation, represented as a function.
 -- Updates to individual seed lists are performed via continuation passing. -/
--- def QuerySeed (spec : OracleSpec ι) : Type _ :=
+-- def QuerySeed (spec : OracleSpec) : Type _ :=
 --   (i : ι) → List (spec.range i)
 
 -- namespace QuerySeed
@@ -369,4 +369,4 @@ simulation oracles and implementation transformers defined in the same directory
 
 -- end QuerySeed
 
--- end OracleSpec
+end OracleSpec

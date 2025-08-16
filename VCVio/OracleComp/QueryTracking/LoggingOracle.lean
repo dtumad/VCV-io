@@ -12,15 +12,21 @@ import VCVio.OracleComp.QueryTracking.Structures
 
 -/
 
--- universe u v w
+universe u v w
 
--- open OracleSpec OracleComp
+open OracleSpec OracleComp
 
--- variable {ι : Type u} {spec : OracleSpec ι}
+variable {ι : Type u} {spec : OracleSpec}
 
--- namespace QueryImpl
+namespace QueryImpl
 
--- variable {m : Type u → Type v} [Monad m]
+variable {m : Type u → Type v} [Monad m]
+
+def withLogging (so : QueryImpl spec m) : QueryImpl spec (WriterT (QueryLog spec) m) :=
+  fun t => do
+    let u ← so t
+    tell (QueryLog.singleton t u)
+    return u
 
 -- /-- Add logging to an existing query implementation, using `StateT` to extend the final monad. -/
 -- def withLogging (so : QueryImpl spec m) :
@@ -34,15 +40,15 @@ import VCVio.OracleComp.QueryTracking.Structures
 --     so.withLogging.impl q =
 --       do let x ← liftM (so.impl q); tell (QueryLog.singleton q x); return x := rfl
 
--- end QueryImpl
+end QueryImpl
 
--- /-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
--- behavior of the oracle. Requires decidable equality of the indexing set to determine
--- which list to update when queries come in. -/
--- def loggingOracle : QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) :=
---   idOracle.withLogging
+/-- Simulation oracle for tracking the quries in a `QueryLog`, without modifying the actual
+behavior of the oracle. Requires decidable equality of the indexing set to determine
+which list to update when queries come in. -/
+def loggingOracle : QueryImpl spec (WriterT (QueryLog spec) (OracleComp spec)) :=
+  idOracle.withLogging
 
--- namespace loggingOracle
+namespace loggingOracle
 
 -- variable {ι : Type u} {spec : OracleSpec ι} {α β : Type u}
 
@@ -73,4 +79,9 @@ import VCVio.OracleComp.QueryTracking.Structures
 
 -- alias ⟨_, neverFails_simulateQ⟩ := neverFails_run_simulateQ_iff
 
--- end loggingOracle
+end loggingOracle
+
+/-- Add a query log to a computation using a logging oracle.  -/
+@[reducible] def OracleComp.withQueryLog {α} (mx : OracleComp spec α) :
+    OracleComp spec (α × QueryLog spec) :=
+  WriterT.run (simulateQ idOracle.withLogging mx)
