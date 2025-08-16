@@ -74,6 +74,13 @@ def query (t : spec.domain) : OracleComp spec (spec.range t) :=
 
 lemma query_def : query (spec := spec) = fun t => PFunctor.FreeM.lift ⟨t, id⟩ := rfl
 
+/-- Version of `query_def` using a positive definition of lifting. -/
+lemma query_def' : query (spec := spec) = fun t => PFunctor.FreeM.liftPos t := rfl
+
+@[simp] lemma mapM_query {m} [Monad m] [LawfulMonad m]
+    (f : (x : spec.domain) → m (spec.range x)) (t : spec.domain) :
+    PFunctor.FreeM.mapM f (query t) = f t := by simp [query_def]
+
 /-- `coin` is the computation representing a coin flip, given a coin flipping oracle. -/
 @[reducible, inline] def coin : OracleComp coinSpec Bool :=
   query (spec := coinSpec) ()
@@ -197,32 +204,27 @@ protected def construct {C : OracleComp spec α → Type*}
   PFunctor.FreeM.construct pure query_bind oa
 
 @[simp] lemma construct_pure (x : α)
-    {C : OracleComp spec α → Type w}
-    (h_pure : (a : α) → C (pure a))
+    {C : OracleComp spec α → Type w} (h_pure : (a : α) → C (pure a))
     (h_query_bind : (t : spec.domain) →
         (oa : spec.range t → OracleComp spec α) →
         ((u : spec.range t) → C (oa u)) → C (query t >>= oa)) :
     OracleComp.construct h_pure h_query_bind (pure x) = h_pure x := rfl
 
 @[simp] lemma construct_query (t : spec.domain)
-    {C : OracleComp spec (spec.range t) → Type*}
-    (h_pure : (u : spec.range t) → C (pure u))
+    {C : OracleComp spec (spec.range t) → Type*} (h_pure : (u : spec.range t) → C (pure u))
     (h_query_bind : (t' : spec.domain) →
       (oa : spec.range t' → OracleComp spec (spec.range t)) →
       ((u : spec.range t') → C (oa u)) → C (query t' >>= oa)) :
     (OracleComp.construct h_pure h_query_bind (query t) : C (query t)) =
       h_query_bind t pure h_pure := rfl
 
--- @[simp]
--- lemma construct_query_bind (q : OracleQuery spec β) (oa : β → OracleComp spec α) :
---     (OracleComp.construct h_pure h_query_bind h_failure ((q : OracleComp spec β) >>= oa)) =
---       h_query_bind q oa (λ u ↦ (oa u).construct h_pure h_query_bind h_failure) := rfl
-
--- @[simp]
--- lemma construct_roll (q : OracleQuery spec β) (oa : β → OracleComp spec α) :
---     (OracleComp.construct h_pure h_query_bind h_failure (OptionT.mk (FreeMonad.roll q oa)) :
---       C (OptionT.mk (FreeMonad.roll q oa))) = h_query_bind q oa
---         (λ u ↦ (oa u).construct h_pure h_query_bind h_failure) := rfl
+@[simp] lemma construct_query_bind (t : spec.domain) (mx : spec.range t → OracleComp spec α)
+    {C : OracleComp spec α → Type w} (h_pure : (a : α) → C (pure a))
+    (h_query_bind : (t : spec.domain) →
+        (mx : spec.range t → OracleComp spec α) →
+        ((u : spec.range t) → C (mx u)) → C (query t >>= mx)) :
+    OracleComp.construct h_pure h_query_bind (query t >>= mx) =
+      h_query_bind t mx fun u => OracleComp.construct h_pure h_query_bind (mx u) := rfl
 
 end construct
 

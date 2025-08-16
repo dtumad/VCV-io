@@ -27,7 +27,7 @@ class HasSupportM (m : Type u → Type v) [Monad m]
 /-- Given a monad with a lawful set embedding get the support by applying the map.
 dt: might be good to call this `supportM` due to namespacing. -/
 def support {m : Type u → Type v} [Monad m] {α : Type u}
-    [hm : HasSupportM m] (mx : m α) : Set α := hm.toFun mx
+    [hm : HasSupportM m] (mx : m α) : Set α := SetM.run (hm.toFun mx)
 
 variable {α β γ : Type u} {m : Type u → Type v} [Monad m] [hm : HasSupportM m]
 

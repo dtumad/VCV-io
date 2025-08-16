@@ -140,7 +140,7 @@ lemma construct_pure (y : α) : FreeM.construct h_pure h_roll (pure y) = h_pure 
 @[simp]
 lemma construct_roll (x : P.A) (r : P.B x → FreeM P α) :
     (FreeM.construct h_pure h_roll (FreeM.roll x r) : C (FreeM.roll x r)) =
-      (h_roll x r (λ u ↦ FreeM.construct h_pure h_roll (r u))) := rfl
+      (h_roll x r (fun u => FreeM.construct h_pure h_roll (r u))) := rfl
 
 end construct
 

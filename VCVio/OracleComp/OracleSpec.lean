@@ -43,11 +43,17 @@ weaker than `unifSpec`, as we have only finitely many coin flips. -/
 @[inline, reducible]
 def coinSpec : OracleSpec.{0,0} := Unit →ₒ Bool
 
+@[simp] lemma domain_coinSpec : coinSpec.domain = Unit := rfl
+@[simp] lemma range_coinSpec (t : coinSpec.domain) : coinSpec.range t = Bool := rfl
+
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
 By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ empty`.-/
 @[inline, reducible] def unifSpec : OracleSpec.{0,0} where
   A := ℕ
   B n := Fin (n + 1)
+
+@[simp] lemma domain_unifSpec : unifSpec.domain = ℕ := rfl
+@[simp] lemma range_unifSpec (t : unifSpec.domain) : unifSpec.range t = Fin (t + 1) := rfl
 
 /-- dtumad: should or shouldn't we switch to this. Compare to `(· + m) <$> $[0..n]`.
 One question is that we may have empty selection
